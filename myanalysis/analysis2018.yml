@@ -1,0 +1,67 @@
+tree: Events
+eras:
+  '2018': {}
+samples:
+  DYJetsToLL:
+    db: das:/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv4-Nano14Dec2018_102X_upgrade2018_realistic_v16-v1/NANOAODSIM
+    generated-events: 'genEventSumw'
+    cross-section: 6529.0 
+    group: DY
+    era: '2018'
+    split: 4
+
+  TTTo2L2Nu:
+    db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAOD-102X_upgrade2018_realistic_v15-v1/NANOAODSIM   # not v4 # TOCHECK  if you can work with this TTTo2L2Nu_HT500Njet7_TuneCP5_13TeV-powheg-pythia8
+    generated-events: 'genEventSumw'
+    cross-section: 687.1 
+    group: ttbar
+    era: '2018'
+    split: 4
+
+  DoubleMuon_2018B:
+    db: das:/DoubleMuon/Run2018B-Nano14Dec2018-v1/NANOAOD
+    group: data
+    era: '2018'
+    run_range: [317080, 319310]  
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  MuonEG_2018B:
+    db: das:/MuonEG/Run2018B-Nano14Dec2018-v1/NANOAOD
+    group: data
+    era: '2018'
+    run_range: [317080, 319310] 
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+
+  EGamma_2018B:
+    db: das:/EGamma/Run2018B-Nano14Dec2018-v1/NANOAOD
+    group: data
+    era: '2018'
+    run_range: [317080, 319310] 
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+# run_range : https://twiki.cern.ch/twiki/bin/view/CMS/PdmV2018Analysis
+# certification lumin for 2018 is not final ----> TOCHECK
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)'  
+    experiment: CMS
+    extra-label: Work in progress
+    luminosity:  7066.552168737 #pb
+    luminosity-error: 0.025     #pb
+    show-overflow: true
+  legend:
+    position: [0.7, 0.6, 0.91, 0.91]
+  groups:
+    data:
+      legend: data
+    DY:
+      fill-color: "#0000FF"   
+      legend: Drell-Yan
+      order: 2
+    ttbar:
+      legend: tt Full Lept
+      fill-color: "#DADAE3"
+      order: 1 
