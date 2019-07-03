@@ -74,7 +74,7 @@ all_scalefactors = {
     , "btag_2018_102X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
                                else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
                            for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
+          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2018.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
    
     }
 
