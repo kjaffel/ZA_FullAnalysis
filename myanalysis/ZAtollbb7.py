@@ -39,9 +39,10 @@ all_scalefactors = {
                            for k, v in
           dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
 
+
       # 2017: 
       # https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2017
-      # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94X
+
    ,  "electron_2017_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
           dict(("id_{wp}".format(wp=wp.lower()), ("Electron_EGamma_SF2D_2017{wp}.json".format(wp=wp)))
          for wp in ("Loose", "Medium", "Tight" , "Veto")).items()))
@@ -53,14 +54,9 @@ all_scalefactors = {
         , dict(("iso_{isowp}_id_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()), "Muon_NUM_{isowp}RelIso_DEN_{idwp}ID_pt_abseta_2017RunBCDEF.json".format(isowp=isowp, idwp=idwp))
             for (idwp,isowp) in (("Loose", "Loose"), ("Loose", "Medium"), ("Loose", "TightIDandIPCut"),  ("Tight", "Medium"), ("Tight", "TightIDandIPCut")) ).items()))
 
-    , "btag_2017_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                               else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
-                           for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2017BtoF.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("CSVv2", "DeepCSV") ).items())
- 
       # 2018:
       # https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2018      
-      # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation102X
+
    ,  "electron_2018_102X"  : dict((k,localize_myanalysis(v)) for k, v in chain(  
           dict(("id_{wp}".format(wp=wp.lower()), ("Electron_EGamma_SF2D_2018{wp}.json".format(wp=wp)))
          for wp in ("Loose", "Medium", "Tight", "Veto")).items()))
@@ -71,11 +67,6 @@ all_scalefactors = {
         , dict(("iso_{isowp}_id_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()), "Muon_NUM_{isowp}RelIso_DEN_{idwp}ID_pt_abseta_2018RunABCD.json".format(isowp=isowp, idwp=idwp))
             for (idwp,isowp) in (("Loose", "Loose"), ("Loose", "Medium"), ("Loose", "TightIDandIPCut"),  ("Tight", "Medium"), ("Tight", "TightIDandIPCut")) ).items()))
 
-    , "btag_2018_102X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                               else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
-                           for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
-   
     }
 
 def get_scalefactor(objType, key, periods=None, combine=None, additionalVariables=dict()):
