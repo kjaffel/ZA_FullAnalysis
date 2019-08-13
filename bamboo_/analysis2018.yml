@@ -4,6 +4,7 @@ eras:
 samples:
   DYJetsToLL:
     db: das:/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv4-Nano14Dec2018_102X_upgrade2018_realistic_v16-v1/NANOAODSIM
+    files: dascache/DYJetsToLL.dat
     generated-events: 'genEventSumw'
     cross-section: 6529.0 
     group: DY
@@ -12,6 +13,7 @@ samples:
 
   TTTo2L2Nu:
     db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAOD-102X_upgrade2018_realistic_v15-v1/NANOAODSIM   # not v4 # TOCHECK  if you can work with this TTTo2L2Nu_HT500Njet7_TuneCP5_13TeV-powheg-pythia8
+    files: dascache/TTTo2L2Nu.dat
     generated-events: 'genEventSumw'
     cross-section: 687.1 
     group: ttbar
@@ -20,6 +22,7 @@ samples:
 
   DoubleMuon_2018B:
     db: das:/DoubleMuon/Run2018B-Nano14Dec2018-v1/NANOAOD
+    files: dascache/DoubleMuon_2018B.dat
     group: data
     era: '2018'
     run_range: [317080, 319310]  
@@ -27,6 +30,7 @@ samples:
 
   MuonEG_2018B:
     db: das:/MuonEG/Run2018B-Nano14Dec2018-v1/NANOAOD
+    files: dascache/MuonEG_2018B.dat
     group: data
     era: '2018'
     run_range: [317080, 319310] 
@@ -35,6 +39,7 @@ samples:
 
   EGamma_2018B:
     db: das:/EGamma/Run2018B-Nano14Dec2018-v1/NANOAOD
+    files: dascache/EGamma_2018B.dat
     group: data
     era: '2018'
     run_range: [317080, 319310] 

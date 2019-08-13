@@ -4,7 +4,7 @@ eras:
 samples:
   DYToLL_0J:
     db: das:/DYToLL_0J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
-    #files: [ /storage/data/cms/store/mc/RunIISummer16NanoAODv4/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/NANOAODSIM/PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/90000/079767FD-F88C-354C-B447-33C63867EC1B.root ]
+    files: dascache/DYToLL_0J.dat
     generated-events: 'genEventSumw'
     cross-section: 4620.519036 #pb
     group: DY
@@ -13,7 +13,7 @@ samples:
     
   DYToLL_1J:
     db: das:/DYToLL_1J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
-    #files: [ /storage/data/cms/store/mc/RunIISummer16NanoAODv4/DYToLL_1J_13TeV-amcatnloFXFX-pythia8/NANOAODSIM/PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/30000/030191D3-9685-CC49-9A3A-627E02230626.root ]
+    files: dascache/DYToLL_1J.dat
     generated-events: 'genEventSumw'
     cross-section: 859.589402 #pb
     group: DY
@@ -22,7 +22,7 @@ samples:
 
   DYToLL_2J:
     db: das:/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/NANOAODSIM
-    #files: [ /storage/data/cms/store/mc/RunIISummer16NanoAODv4/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/NANOAODSIM/PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/90000/9F280EC1-3142-2041-8DED-18BC88094024.root]
+    files: dascache/DYToLL_2J.dat
     generated-events: 'genEventSumw'
     cross-section: 338.258531  #pb
     group: DY
@@ -32,7 +32,7 @@ samples:
 
   TTTo2L2Nu:
     db: das:/TTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/NANOAODSIM
-    #files: [ /storage/data/cms/store/mc/RunIISummer16NanoAODv4/TTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8/NANOAODSIM/PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/280000/171052F8-DA03-3640-88E0-C4A7169835BB.root ]
+    files: dascache/TTTo2L2Nu.dat
     generated-events: 'genEventSumw'
     cross-section:   76.7       # pb
     group: ttbar
@@ -42,7 +42,7 @@ samples:
 
   DoubleMuon_2016F:
     db: das:/DoubleMuon/Run2016F-Nano14Dec2018-v1/NANOAOD
-    #files: [ /storage/data/cms/store/data/Run2016F/DoubleMuon/NANOAOD/Nano14Dec2018-v1/20000/07268F37-48E3-9F4D-B005-CB72C5A80725.root ]
+    files: dascache/DoubleMuon_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
@@ -50,6 +50,7 @@ samples:
 
   DoubleEGamma_2016F:
     db: das:/DoubleEG/Run2016F-Nano14Dec2018-v1/NANOAOD
+    files: dascache/DoubleEGamma_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
@@ -57,6 +58,7 @@ samples:
 
   MuonEG_2016F:
     db: das:/MuonEG/Run2016F-Nano14Dec2018-v1/NANOAOD
+    files: dascache/MuonEG_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
@@ -70,7 +72,7 @@ plotIt:
     height: 600
     luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
     experiment: CMS
-    extra-label: Bamboo test
+    extra-label: Work in progress
     luminosity: 3104.509131800  #pb
     luminosity-error: 0.025     #pb
     show-overflow: true
@@ -87,3 +89,20 @@ plotIt:
       legend: tt Full Lept
       fill-color: "#DADAE3"    # gris
       order: 1
+  systematics:
+    # on the jets 
+    - jesTotal
+    - jer
+    # on the lepton id /iso 
+    - muid
+    - muiso
+    - elid
+    # on the pileup
+    - pileup
+    # on the trigger
+    - eleltrig
+    - mumutrig
+    - elmutrig
+    - mueltrig
+    # on the jet btagging
+    - btagging2016
