@@ -141,17 +141,17 @@ class NanoZMuMu(NanoAODHistoModule):
                 configureJets(tree, "Jet", "AK4PFchs",
                     jec="Summer16_07Aug2017_V20_MC",
                     smear="Summer16_25nsV1_MC",
-                    jesUncertaintySources=["Total"], mayWriteCache=isNotWorker, enableSystematics=[])
+                    jesUncertaintySources=["Total"], mayWriteCache=isNotWorker)
             else:
                 if "2016B" in sample or "2016C" in sample or "2016D" in sample:
                     configureJets(tree, "Jet", "AK4PFchs",
-                        jec="Summer16_07Aug2017BCD_V11_DATA", mayWriteCache=isNotWorker, enableSystematics=[])
+                        jec="Summer16_07Aug2017BCD_V11_DATA", mayWriteCache=isNotWorker)
                 elif "2016E" in sample or "2016F" in sample:
                     configureJets(tree, "Jet", "AK4PFchs",
-                        jec="Summer16_07Aug2017EF_V11_DATA", mayWriteCache=isNotWorker, enableSystematics=[])
+                        jec="Summer16_07Aug2017EF_V11_DATA", mayWriteCache=isNotWorker)
                 elif "2016G" in sample or "2016H" in sample:
                     configureJets(tree, "Jet", "AK4PFchs",
-                        jec="Summer16_07Aug2017GH_V11_DATA", mayWriteCache=isNotWorker, enableSystematics=[])
+                        jec="Summer16_07Aug2017GH_V11_DATA", mayWriteCache=isNotWorker)
 
         elif era == "2017":
             configureRochesterCorrection(tree._Muon.calc,os.path.join(os.path.dirname(__file__), "data", "RoccoR2017.txt"))
@@ -225,6 +225,7 @@ class NanoZMuMu(NanoAODHistoModule):
         return tree,noSel,be,lumiArgs
         
     def definePlots(self, t, noSel, era=None, sample=None):
+        from bamboo.analysisutils import forceDefine
         from bamboo.plots import Plot, EquidistantBinning
         from bamboo import treefunctions as op
 
@@ -244,12 +245,10 @@ class NanoZMuMu(NanoAODHistoModule):
         isMC = self.isMC(sample)
         plots = []
 
+        forceDefine(t._Muon.calcProd, noSel)
+
         # Wp // 2016- 2017 -2018 : Muon_mediumId   // https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Muon_Isolation
         muons = op.select(t.Muon, lambda mu : op.AND(mu.p4.Pt() > 10., op.abs(mu.p4.Eta()) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
-        # search for opposite signe muons from the one that pass the selection
-        OsMuMu = op.combine(muons, N=2, pred=lambda mu1,mu2 : mu1.charge != mu2.charge)
-        firstosmumu = OsMuMu[0]
-        # find at least one pair of opposite signe muons where the leading one is above 25 GeV  & apply SFs  also i ask for 70GeV < mll <110Gev to suppress quarkonia resonances and jets misidentified as leptons, the Trigger selection is applied here for now
       
         if era=="2016":
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
@@ -261,23 +260,17 @@ class NanoZMuMu(NanoAODHistoModule):
             muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"))
             muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium")) 
 
-        hasOsMuMu = noSel.refine("twoosMuons", cut=[ op.rng_len(OsMuMu) >= 1 , firstosmumu[0].p4.Pt() > 20. ,op.in_range(70, op.invariant_mass( firstosmumu[0].p4, firstosmumu[1].p4),110.) ], weight=([muMediumIDSF(firstosmumu[0]), muMediumIDSF(firstosmumu[1]), muMediumISOSF(firstosmumu[0]), muMediumISOSF(firstosmumu[1]), doubleMuTrigSF(firstosmumu)]if isMC else None))#,TrkIDSF(firstosmumu), TrkISOSF(firstosmumu) ])
-        # cut where the muons are not opposite signe, the leading muons is set to be above 20GeV, where the subleading is intialize first in the muons selection : choice up to you in the selection !
-        # hasTwoMuons=noSel.refine("hasMuon", cut=[op.rng_len(muons) > 1 , muons[0].p4.Pt() > 20.,  op.in_range(70., op.invariant_mass(muons[0].p4, muons[1].p4) ,110.) ], weight=[muMediumIDSF(muons[0]), muMediumIDSF(muons[1])])
-
- 
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
         electrons = op.select(t.Electron, lambda ele : op.AND(ele.p4.Pt() > 15., op.abs(ele.p4.Eta()) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), systName="elid")
         doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")     
-        OsElEl = op.combine(electrons, N=2, pred=lambda ele1,ele2 : ele1.charge != ele2.charge)
-        firstoselel = OsElEl[0]
-        hasOsElEl = noSel.refine("twoosElectrons", cut=[op.rng_len(OsElEl) >= 1, firstoselel[0].p4.Pt() > 25. , op.in_range(70, op.invariant_mass(firstoselel[0].p4, firstoselel[1].p4), 110.)], weight=([elMediumIDSF(firstoselel[0]), elMediumIDSF(firstoselel[1]), doubleEleTrigSF(firstoselel) ]if isMC else None))
-        # hasTwoElectrons = noSel.refine("hasElectron", cut=[op.rng_len(electrons) >1 ,electrons[0].dz<0.1 ,electrons[0].dxy<0.05 , electrons[0].p4.Pt() > 25., op.in_range(70., op.invariant_mass( electrons[0].p4, electrons[1].p4),110.)], weight=[elMediumIDSF(electrons[0]), elMediumIDSF(electrons[1]), doubleEleTrigSF(electrons) ])
 
-#------------- For debugging purpose; work on electronMVA to check if the e-mu & mu-e channel will mess up in the same way as working only with Electron
+        elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
+        mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
+
+#------------- For debugging purpose; work on electronMVA to check if the e-mu & mu-e channel will screwd up in the same way as working only with Electron
         #working in the inner barrel  |eta|< 0.8
         electronsIB = op.select(t.Electron, lambda ele : op.AND(ele.p4.Pt() > 10., op.abs(ele.p4.Eta()) < 0.8, ele.mvaFall17V2Iso_WPL))
         OsElEl_IB = op.combine(electronsIB, N=2, pred=lambda ele1,ele2 : ele1.charge != ele2.charge)
@@ -301,7 +294,6 @@ class NanoZMuMu(NanoAODHistoModule):
         firstoselmu_IB = OsElMu_IB[0]
         firstoselmu_OB = OsElMu_OB[0]
         firstoselmu_EC = OsElMu_EC[0]
-        elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"))     
         hasOsElMu_IB = noSel.refine("twoosElectronMuonIB", cut=[ op.rng_len(OsElMu_IB) >= 1, op.in_range(70., op.invariant_mass( firstoselmu_IB[0].p4, firstoselmu_IB[1].p4),110.)], weight=([elMediumIDSF(firstoselmu_IB[0]), muMediumIDSF(firstoselmu_IB[1]),muMediumISOSF(firstoselmu_IB[1]), elemuTrigSF(firstoselmu_IB) ]if isMC else None))
         hasOsElMu_OB = noSel.refine("twoosElectronMuonOB", cut=[ op.rng_len(OsElMu_OB) >= 1, op.in_range(70., op.invariant_mass( firstoselmu_OB[0].p4, firstoselmu_OB[1].p4),110.)], weight=([elMediumIDSF(firstoselmu_OB[0]), muMediumIDSF(firstoselmu_OB[1]),muMediumISOSF(firstoselmu_OB[1]), elemuTrigSF(firstoselmu_OB) ]if isMC else None))
         hasOsElMu_EC = noSel.refine("twoosElectronMuonEC", cut=[ op.rng_len(OsElMu_EC) >= 1, op.in_range(70., op.invariant_mass( firstoselmu_EC[0].p4, firstoselmu_EC[1].p4),110.)], weight=([elMediumIDSF(firstoselmu_EC[0]), muMediumIDSF(firstoselmu_EC[1]),muMediumISOSF(firstoselmu_EC[1]), elemuTrigSF(firstoselmu_EC) ]if isMC else None))
@@ -349,34 +341,33 @@ class NanoZMuMu(NanoAODHistoModule):
             bJets = op.select(jets, lambda j : j.btagDeepB > 0.4184 )
             DeepB_discriVar = { "BTagDiscri": lambda j : j.btagDeepB }
             deepBMediumSF = get_scalefactor("jet", ("btag_2018_102X", "DeepCSV_medium"), additionalVariables=DeepB_discriVar, systName="btagging2018")  
-    
 
-        ##hasElectronMuon = noSel.refine("hasElectronMuon", cut=[ op.rng_len(muons) > 0, op.rng_len(electrons) > 0, electrons[0].p4.Pt() > 25. , muons[1].p4.pt() > 10., op.in_range(70., op.invariant_mass( electrons[0].p4, muons[1].p4), 110.) ] , weight=[elMediumIDSF(electrons[0]), muMediumIDSF(muons[1])]) ##, elemuTrigSF(electrons) , elemuTrigSF(muons)])
-        OsElMu = op.combine((electrons, muons), pred=lambda ele,mu : op.AND(ele.charge != mu.charge ,ele.p4.Pt() > mu.p4.Pt() ))
-        firstoselmu = OsElMu[0]
-        elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")     
-        hasOsElMu = noSel.refine("twoosElectronMuon", cut=[ op.rng_len(OsElMu) >= 1,firstoselmu[0].p4.Pt() > 25.,  op.in_range(70., op.invariant_mass( firstoselmu[0].p4, firstoselmu[1].p4),110.)], weight=[elMediumIDSF(firstoselmu[0]), muMediumIDSF(firstoselmu[1]),muMediumISOSF(firstoselmu[1]), elemuTrigSF(firstoselmu) ])
+        ## Dilepton selection
 
+        osdilep_Z = lambda l1,l2 : op.AND(l1.charge != l2.charge, op.in_range(70., op.invariant_mass(l1.p4, l2.p4), 120.))
 
-        ##hasMuonElectron = noSel.refine("hasMuonElectron", cut=[op.rng_len(muons) > 0, op.rng_len(electrons) > 0, muons[0].p4.Pt() > 25. , electrons[1].p4.pt() > 15., op.in_range(70., op.invariant_mass( muons[0].p4, electrons[1].p4), 110.) ],  weight=[muMediumIDSF(muons[0]), elMediumIDSF(electrons[1])]) ##, mueleTrigSF(electrons) , mueleTrigSF(muons)])
-        OsMuEl = op.combine((muons, electrons), N=2, pred=lambda ele,mu : op.AND(ele.charge != mu.charge, mu.p4.Pt() > ele.p4.Pt()))
-        firstosmuel = OsMuEl[0]
-        mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")     
-        hasOsMuEl= noSel.refine("twoosMuonElectron", cut=[op.rng_len(OsMuEl) >= 1,firstosmuel[0].p4.Pt() > 25., op.in_range(70., op.invariant_mass( firstosmuel[0].p4, firstosmuel[1].p4),110.)], weight=[muMediumIDSF(firstosmuel[0]),muMediumISOSF(firstosmuel[0]), elMediumIDSF(firstosmuel[1]), mueleTrigSF(firstosmuel) ])
+        osLLRng = {
+                "MuMu" : op.combine(muons, N=2, pred=osdilep_Z),
+                "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
+                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.p4.Pt() > mu.p4.Pt() )),
+                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
+                }
 
-#--------------------------
-        #categories for non opposite signe leptons 
-        #categories = {"ElEl" : (firstoselel, hasTwoElectrons),
-                     # "ElMu" : (firstoselmu, hasElectronMuon), 
-                     # "MuEl" : (firstosmuel, hasMuonElectron), 
-                     # "MuMu" : (firstosmumu, hasTwoMuons)}
+        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 20.)
 
+        ## helper selection (OR) to make sure jet calculations are only done once
+        hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
+        forceDefine(t._Jet.calcProd, hasOSLL)
+        for varNm in t._Jet.available:
+            forceDefine(t._Jet[varNm], hasOSLL)
 
-        categories = {"ElEl" : (firstoselel, hasOsElEl),
-                      "ElMu" : (firstoselmu, hasOsElMu), 
-                      "MuEl" : (firstosmuel, hasOsMuEl), 
-                      "MuMu" : (firstosmumu, hasOsMuMu)}
-
+        llSFs = {
+            "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll) ]),#,TrkIDSF(ll), TrkISOSF(ll)
+            "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll) ]),
+            "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll) ]),
+            "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), doubleEleTrigSF(ll) ])
+            }
+        categories = dict((catN, (catLLRng[0], hasOSLL.refine("hasOS{0}".format(catN), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[catN](catLLRng[0]) if isMC else None)))) for catN, catLLRng in osLLRng.items())
         for catN, (dilepton, catSel) in categories.items():
 
             plots.append(Plot.make1D("{0}_leadleptonPT".format(catN), dilepton[0].p4.Pt(), catSel, EquidistantBinning(100, 0., 600.), title="Transverse momentum of the leading lepton", xTitle= "pT(leading lepton)(GeV)"))
@@ -390,11 +381,7 @@ class NanoZMuMu(NanoAODHistoModule):
 
             plots.append(Plot.make2D("{0}_Electron_dzdxy".format(catN), (dilepton[0].dz ,dilepton[0].dxy),catSel, (EquidistantBinning(10, 0., 2.),EquidistantBinning(10, 0., 2.)) ,title="Electron in Barrel/EndCAP region" ))
 
-            from bamboo.analysisutils import forceDefine
-            forceDefine(t._Jet.calcProd, catSel)
-
             TwoJetsTwoLeptons=catSel.refine("twoJet{0}Sel".format(catN), cut=[ op.rng_len(jets) > 1 ]) 
-            TwoLeptonsTwoBjets = catSel.refine("TwoElTwoBjets{0}".format(catN), cut=[ op.rng_len(bJets) > 1 ],weight=([ deepBMediumSF(bJets[0]), deepBMediumSF(bJets[1]) ]if isMC else None))
 
             plots.append(Plot.make1D("{0}_leadJetPT".format(catN), jets[0].p4.Pt(), TwoJetsTwoLeptons, EquidistantBinning(100, 0., 600.), title="Transverse momentum of the leading jet PT", xTitle= "pT(leading Jet)(GeV)"))
             plots.append(Plot.make1D("{0}_subleadJetPT".format(catN), jets[1].p4.Pt(), TwoJetsTwoLeptons,EquidistantBinning(100, 0., 600.), title="Transverse momentum of the sub-leading jet PT", xTitle= "pT(Sub-leading Jet)(GeV)"))
@@ -409,6 +396,7 @@ class NanoZMuMu(NanoAODHistoModule):
             plots.append(Plot.make2D("{0}_mlljjvsmjj".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()), TwoJetsTwoLeptons, (EquidistantBinning(1000, 0., 1000.), EquidistantBinning(1000, 0., 1000.)), title="mlljj vs mjj invariant mass"))
 
             # asking for bjets -----------------------           
+            TwoLeptonsTwoBjets = TwoJetsTwoLeptons.refine("TwoElTwoBjets{0}".format(catN), cut=[ op.rng_len(bJets) > 1 ],weight=([ deepBMediumSF(bJets[0]), deepBMediumSF(bJets[1]) ]if isMC else None))
             plots.append(Plot.make1D("{0}_lead_BJetPT".format(catN), jets[0].p4.Pt(), TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 600.), title="Transverse momentum of the leading bjet PT", xTitle= "pT(leading b-Jet)(GeV)"))
             plots.append(Plot.make1D("{0}_sublead_BJetPT".format(catN), jets[1].p4.Pt(), TwoLeptonsTwoBjets,EquidistantBinning(100, 0., 600.), title="Transverse momentum of the sub-leading bjet PT", xTitle= "pT(Sub-leading b-Jet)(GeV)"))
             plots.append(Plot.make1D("{0}_lead_BJetETA".format(catN), jets[0].p4.eta(), TwoLeptonsTwoBjets, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the leading bjet", xTitle="Eta(leading b-Jet"))
