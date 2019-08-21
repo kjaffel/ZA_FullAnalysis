@@ -2,23 +2,23 @@ tree: Events
 eras:
   '2016': {}
 samples:
-  DYToLL_0J:
-    db: das:/DYToLL_0J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
-    files: dascache/DYToLL_0J.dat
-    generated-events: 'genEventSumw'
-    cross-section: 4620.519036 #pb
-    group: DY
-    era: '2016'
-    split: 4
+    #DYToLL_0J:
+    #db: das:/DYToLL_0J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
+    #files: dascache/DYToLL_0J.dat
+    #generated-events: 'genEventSumw'
+    #cross-section: 4620.519036 #pb
+    #group: DY
+    #era: '2016'
+    #split: 4
     
-  DYToLL_1J:
-    db: das:/DYToLL_1J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
-    files: dascache/DYToLL_1J.dat
-    generated-events: 'genEventSumw'
-    cross-section: 859.589402 #pb
-    group: DY
-    era: '2016'
-    split: 4
+    #DYToLL_1J:
+    #db: das:/DYToLL_1J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6_ext1-v1/NANOAODSIM
+    #files: dascache/DYToLL_1J.dat
+    #generated-events: 'genEventSumw'
+    #cross-section: 859.589402 #pb
+    #group: DY
+    #era: '2016'
+    #split: 4
 
   DYToLL_2J:
     db: das:/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/NANOAODSIM
@@ -30,41 +30,88 @@ samples:
     split: 4
 
 
-  TTTo2L2Nu:
-    db: das:/TTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/NANOAODSIM
-    files: dascache/TTTo2L2Nu.dat
-    generated-events: 'genEventSumw'
-    cross-section:   76.7       # pb
-    group: ttbar
-    era: '2016'
-    split: 4
+  #TTTo2L2Nu:
+  #  db: das:/TTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8/RunIISummer16NanoAODv4-PUMoriond17_Nano14Dec2018_102X_mcRun2_asymptotic_v6-v1/NANOAODSIM
+  #  files: dascache/TTTo2L2Nu.dat
+  # generated-events: 'genEventSumw'
+  # cross-section:   76.7       # pb
+  # group: ttbar
+  # era: '2016'
+  # split: 4
 
 
-  DoubleMuon_2016F:
-    db: das:/DoubleMuon/Run2016F-Nano14Dec2018-v1/NANOAOD
-    files: dascache/DoubleMuon_2016F.dat
+  #DoubleMuon_2016F:
+  # db: das:/DoubleMuon/Run2016F-Nano14Dec2018-v1/NANOAOD
+  # files: dascache/DoubleMuon_2016F.dat
+  # group: data
+  # era: '2016'
+  # run_range: [277772, 278808]
+  # certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
+
+  #DoubleEGamma_2016F:
+  # db: das:/DoubleEG/Run2016F-Nano14Dec2018-v1/NANOAOD
+   #files: dascache/DoubleEGamma_2016F.dat
+   # group: data
+   #era: '2016'
+   # run_range: [277772, 278808]
+   #certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
+
+   #MuonEG_2016F:
+   #db: das:/MuonEG/Run2016F-Nano14Dec2018-v1/NANOAOD
+   #files: dascache/MuonEG_2016F.dat
+   #group: data
+   #era: '2016'
+   #run_range: [277772, 278808]
+   #certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
+
+
+  DoubleMuon_2016H:
+    db: das:/DoubleMuon/Run2016H-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2016H.dat
     group: data
     era: '2016'
-    run_range: [277772, 278808]
+    run_range: [280919, 284044]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-  DoubleEGamma_2016F:
-    db: das:/DoubleEG/Run2016F-Nano14Dec2018-v1/NANOAOD
-    files: dascache/DoubleEGamma_2016F.dat
+  DoubleEGamma_2016H:
+    db: das:/DoubleEG/Run2016H-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2016H.dat
     group: data
     era: '2016'
-    run_range: [277772, 278808]
+    run_range: [280919, 284044]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-  MuonEG_2016F:
-    db: das:/MuonEG/Run2016F-Nano14Dec2018-v1/NANOAOD
-    files: dascache/MuonEG_2016F.dat
+  MuonEG_2016H:
+    db: das:/MuonEG/Run2016H-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2016H.dat
     group: data
     era: '2016'
-    run_range: [277772, 278808]
+    run_range: [280919, 284044]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
+  DoubleMuon_2016G:
+    db: das:/DoubleMuon/Run2016G-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2016G.dat
+    group: data
+    era: '2016'
+    run_range: [278820, 280385]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
+  DoubleEGamma_2016G:
+    db: das:/DoubleEG/Run2016G-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2016G.dat
+    group: data
+    era: '2016'
+    run_range: [278820, 280385]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
+
+  MuonEG_2016G:
+    db: das:/MuonEG/Run2016G-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2016G.dat
+    group: data
+    era: '2016'
+    run_range: [278820, 280385]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
 plotIt:
   configuration:
@@ -85,10 +132,10 @@ plotIt:
       fill-color: "#0000FF"    # bleu
       legend: Drell-Yan
       order: 2
-    ttbar:
-      legend: tt Full Lept
-      fill-color: "#DADAE3"    # gris
-      order: 1
+    #ttbar:
+    # legend: tt Full Lept
+    # fill-color: "#DADAE3"    # gris
+    # order: 1
   systematics:
     # on the jets 
     - jesTotal

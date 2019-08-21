@@ -59,7 +59,6 @@ all_scalefactors = {
 
     , "elemuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg"))
 
-
       # 2017: 
       # https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2017
       # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94X
@@ -131,12 +130,19 @@ class NanoZMuMu(NanoAODHistoModule):
                                  tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ,
                                  tree.HLT.Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL,
                                  tree.HLT.Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ ],
-                "DoubleEG"   : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ ],
-                "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,
-                                 tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
-                                 tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,
-                                 tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ ]
+                "DoubleEG"   : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ ],  # double electron (loosely isolated)
+                "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL ]
                 }
+            if self.isMC(sample) or "2016F" in sample or "2016G" in sample or "2016H" in sample:
+                triggersPerPrimaryDataset["MuonEG"] += [ ## added from 2016F on
+                        tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
+                        tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ
+                        ]
+            if "2016H" not in sample:
+                triggersPerPrimaryDataset["MuonEG"] += [ ## removed for 2016H
+                        tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL
+                        ]
+
             if self.isMC(sample):
                 configureJets(tree, "Jet", "AK4PFchs",
                     jec="Summer16_07Aug2017_V20_MC",
@@ -257,8 +263,8 @@ class NanoZMuMu(NanoAODHistoModule):
             #TrkIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "highpt"), combine="weight")
             #TrkISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "isotrk_loose_idtrk_tightidandipcut"), combine="weight")
         else:
-            muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"))
-            muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium")) 
+            muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"), systName="muid")
+            muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium"), systName="muiso") 
 
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
@@ -342,8 +348,7 @@ class NanoZMuMu(NanoAODHistoModule):
             DeepB_discriVar = { "BTagDiscri": lambda j : j.btagDeepB }
             deepBMediumSF = get_scalefactor("jet", ("btag_2018_102X", "DeepCSV_medium"), additionalVariables=DeepB_discriVar, systName="btagging2018")  
 
-        ## Dilepton selection
-
+        ## Dilepton selection: opposite sign & 70.<mll<120. GeV 
         osdilep_Z = lambda l1,l2 : op.AND(l1.charge != l2.charge, op.in_range(70., op.invariant_mass(l1.p4, l2.p4), 120.))
 
         osLLRng = {
@@ -353,7 +358,7 @@ class NanoZMuMu(NanoAODHistoModule):
                 "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
                 }
 
-        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 20.)
+        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 25.) # The leading pT for the µµ channel should be above 20 Gev !
 
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
@@ -376,9 +381,7 @@ class NanoZMuMu(NanoAODHistoModule):
             plots.append(Plot.make1D("{0}_subleadleptonETA".format(catN), dilepton[1].p4.eta(), catSel, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the sub-leading lepton", xTitle= "Eta(Sub-leading lepton)"))
             plots.append(Plot.make1D("{0}_mll".format(catN), op.invariant_mass(dilepton[0].p4, dilepton[1].p4), catSel, EquidistantBinning(100, 70., 110.), title=" dilepton invariant mass", xTitle= "mll(GeV)"))
             plots.append(Plot.make1D("{0}_llpT".format(catN), (dilepton[0].p4.Pt() + dilepton[1].p4.Pt()), catSel, EquidistantBinning(100,0.,600.),title= "dilepton transverse momentum" , xTitle= "dilepton pT (GeV)"))
-            #plots.append(Plot.make1D("{0}_nleptons".format(catN),op.rng_len(dilepton), catSel, EquidistantBinning(5,0,5.),title= "Number of leptons" , xTitle= "nbr leptons"))
             plots.append(Plot.make1D("{0}_nVX".format(catN), t.PV.npvs, catSel, EquidistantBinning(10, 0., 60.), title="Distrubtion of the number of the reconstructed vertices", xTitle="nPVX"))
-
             plots.append(Plot.make2D("{0}_Electron_dzdxy".format(catN), (dilepton[0].dz ,dilepton[0].dxy),catSel, (EquidistantBinning(10, 0., 2.),EquidistantBinning(10, 0., 2.)) ,title="Electron in Barrel/EndCAP region" ))
 
             TwoJetsTwoLeptons=catSel.refine("twoJet{0}Sel".format(catN), cut=[ op.rng_len(jets) > 1 ]) 
@@ -388,23 +391,20 @@ class NanoZMuMu(NanoAODHistoModule):
             plots.append(Plot.make1D("{0}_leadJetETA".format(catN), jets[0].p4.eta(), TwoJetsTwoLeptons, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the leading jet", xTitle="Eta(leading Jet"))
             plots.append(Plot.make1D("{0}_subleadJetETA".format(catN), jets[1].p4.eta(), TwoJetsTwoLeptons, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the sub-leading jet", xTitle="Eta(Sub-leading Jet"))
             plots.append(Plot.make1D("{0}_nJets".format(catN), op.rng_len(jets), TwoJetsTwoLeptons, EquidistantBinning(5, 2., 6.), title="Number of jets", xTitle= "nbr Jets"))
-
             plots.append(Plot.make1D("{0}_jjpT".format(catN), (jets[0].p4.Pt() + jets[1].p4.Pt()), TwoJetsTwoLeptons, EquidistantBinning(100,0.,600.),title= "dijet transverse momentum" , xTitle= "dijet pT (GeV)"))
-
             plots.append(Plot.make1D("{0}_mjj".format(catN),op.invariant_mass(jets[0].p4, jets[1].p4) , TwoJetsTwoLeptons, EquidistantBinning(100, 0., 800.), title="mjj", xTitle= "mjj(GeV)"))
             plots.append(Plot.make1D("{0}_mlljj".format(catN), (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M(), TwoJetsTwoLeptons, EquidistantBinning(100, 0., 800.), title="mlljj", xTitle="mlljj(GeV)"))
             plots.append(Plot.make2D("{0}_mlljjvsmjj".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()), TwoJetsTwoLeptons, (EquidistantBinning(1000, 0., 1000.), EquidistantBinning(1000, 0., 1000.)), title="mlljj vs mjj invariant mass"))
 
             # asking for bjets -----------------------           
-            TwoLeptonsTwoBjets = TwoJetsTwoLeptons.refine("TwoElTwoBjets{0}".format(catN), cut=[ op.rng_len(bJets) > 1 ],weight=([ deepBMediumSF(bJets[0]), deepBMediumSF(bJets[1]) ]if isMC else None))
+            #TwoLeptonsTwoBjets = TwoJetsTwoLeptons.refine("TwoElTwoBjets{0}".format(catN), cut=[ op.rng_len(bJets) > 1 ],weight=([ deepBMediumSF(bJets[0]), deepBMediumSF(bJets[1]) ]if isMC else None))
+            TwoLeptonsTwoBjets = catSel.refine("TwoElTwoBjets{0}".format(catN), cut=[ op.rng_len(bJets) > 1 ],weight=([ deepBMediumSF(bJets[0]), deepBMediumSF(bJets[1]) ]if isMC else None))
             plots.append(Plot.make1D("{0}_lead_BJetPT".format(catN), jets[0].p4.Pt(), TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 600.), title="Transverse momentum of the leading bjet PT", xTitle= "pT(leading b-Jet)(GeV)"))
             plots.append(Plot.make1D("{0}_sublead_BJetPT".format(catN), jets[1].p4.Pt(), TwoLeptonsTwoBjets,EquidistantBinning(100, 0., 600.), title="Transverse momentum of the sub-leading bjet PT", xTitle= "pT(Sub-leading b-Jet)(GeV)"))
             plots.append(Plot.make1D("{0}_lead_BJetETA".format(catN), jets[0].p4.eta(), TwoLeptonsTwoBjets, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the leading bjet", xTitle="Eta(leading b-Jet"))
             plots.append(Plot.make1D("{0}_sublead_BJetETA".format(catN), jets[1].p4.eta(), TwoLeptonsTwoBjets, EquidistantBinning(10, -3, 3), title="Pseudo-rapidity of the sub-leading bjet", xTitle="Eta(Sub-leading b-Jet"))
             plots.append(Plot.make1D("{0}_nBJets".format(catN), op.rng_len(jets), TwoLeptonsTwoBjets, EquidistantBinning(5, 2., 6.), title="Number of bjets", xTitle= "nbr b-Jets"))
-
             plots.append(Plot.make1D("{0}_twoBtaggedjetspT".format(catN), (jets[0].p4.Pt() + jets[1].p4.Pt()), TwoLeptonsTwoBjets, EquidistantBinning(100,0.,600.),title= "di-bjet transverse momentum" , xTitle= "di-bjet pT (GeV)"))
-
             plots.append(Plot.make1D("{0}_mjj_btagged".format(catN),op.invariant_mass(jets[0].p4, jets[1].p4) , TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 800.), title="mass of two b-tagged jets", xTitle= "mjj(GeV)"))
             plots.append(Plot.make1D("{0}_mlljj_btagged".format(catN), (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M(),TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 800.), title="invariant mass of 2 leptons two b-tagged jets", xTitle="mlljj(GeV)"))
             plots.append(Plot.make2D("{0}_mlljjvsmjj_btagged".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()),TwoLeptonsTwoBjets, (EquidistantBinning(1000, 0., 1000.), EquidistantBinning(1000, 0., 1000.)), title="mlljj vs mjj invariant mass"))

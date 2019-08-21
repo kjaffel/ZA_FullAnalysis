@@ -2,7 +2,7 @@ tree: Events
 eras:
   '2016': {}
 samples:
-    DYJetsToLL_M-10to50:
+  DYJetsToLL_M-10to50:
     db: das:/DYJetsToLL_M-10to50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM
     files: dascache/DYJetsToLL_M-10to50.dat
     generated-events: 'genEventSumw'
@@ -30,7 +30,7 @@ samples:
     split: 4
 
   DYToLL_2J:
-      db: das:/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM/
+    db: das:/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM/
     files: dascache/DYToLL_2J.dat
     generated-events: 'genEventSumw'
     cross-section: 340.5  #pb
@@ -77,7 +77,7 @@ samples:
     db: das:/ST_t-channel_antitop_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/ST_tchannelantitop_4f.dat
     generated-events: 'genEventSumw'
-    cross-section: 80.95  # TODO  to check !  
+    cross-section: 80.95  # TODO  to check !   Opb on the xsc uncertainty for now 
     group: ST
     era: '2016'
 
@@ -85,7 +85,7 @@ samples:
     db: das:/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/ST_tchanneltop_4f.dat
     generated-events: 'genEventSumw'
-    cross-section: 136.02 # TODO  to check! 
+    cross-section: 136.02 # TODO  to check!  Opb on the xsc uncertainty for now 
     group: ST
     era: '2016'
 
@@ -125,7 +125,7 @@ samples:
 ###### Standrd model higgs : Zh & tth  
 
   HZJ_HToWW:
-      db: das:/HZJ_HToWW_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    db: das:/HZJ_HToWW_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/HZJ_HToWW.dat
     generated-events: 'genEventSumw'
     cross-section: 0.7524   
@@ -471,7 +471,6 @@ samples:
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
 
-
 plotIt:
   configuration:
     width: 800
@@ -507,9 +506,9 @@ plotIt:
       fill-color: "#ff0038"
       legend: tth, Zh
       order: 2
-    others: "#00ff48"
-      fill-color:
-      legend: others: tt+V, W+Jets , VVV, VV
+    others: 
+      fill-color: "#00ff48"
+      legend: others #: tt+V, W+Jets , VVV, VV
       order: 1    
   systematics:
       # on the jets
@@ -560,6 +559,6 @@ plotIt:
     #- WZTo2L2Qxsc: {type: const, value: 0.01897, on: 'WZTo2L2Q'}
     #- WZTo1L3Nuxsc: {type: const, value: 0.01222, on: 'WZTo1L3Nu'}
     #- WZ1L1Nu2Qxsc: {type: const, value: 0.01824, on: 'WZ1L1Nu2Q'}
-    #- WWTo3LNuxsc: {type: const, value: 0.05, on: 'WWTo3LNu'}
+    #- WZTo3LNuxsc: {type: const, value: 0.05, on: 'WZTo3LNu'}
    
 
