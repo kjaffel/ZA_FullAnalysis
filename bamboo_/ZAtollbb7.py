@@ -418,4 +418,14 @@ class NanoZMuMu(NanoAODHistoModule):
             plots.append(Plot.make2D("{0}_mlljjvsmjj_btagged".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()),TwoLeptonsTwoBjets, (EquidistantBinning(1000, 0., 1000.), EquidistantBinning(1000, 0., 1000.)), title="mlljj vs mjj invariant mass"))
             plots.append(Plot.make1D("{0}_mll_btagged".format(catN), op.invariant_mass(dilepton[0].p4, dilepton[1].p4), TwoLeptonsTwoBjets, EquidistantBinning(100, 70., 110.), title=" dilepton invariant mass", xTitle= "mll(GeV)"))
 
+# -----------------------------
+#----- signales samples  
+#------------------------------
+
+            plots.append(Plot.make1D("jj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN),op.invariant_mass(jets[0].p4, jets[1].p4) , TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of two b-tagged jets", xTitle= "mjj(GeV)"))
+            plots.append(Plot.make1D("lljj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M(),TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of 2 leptons two b-tagged jets", xTitle="mlljj(GeV)"))
+            plots.append(Plot.make2D("Mjj_vs_Mlljj_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()),TwoLeptonsTwoBjets, (EquidistantBinning(100, 0., 1000.), EquidistantBinning(100, 0., 1000.)), title="mlljj vs mjj invariant mass"))
+            plots.append(Plot.make1D("ll_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), op.invariant_mass(dilepton[0].p4, dilepton[1].p4), TwoLeptonsTwoBjets, EquidistantBinning(100, 70., 110.), title=" dilepton invariant mass", xTitle= "mll(GeV)"))
+
+# -----------------------------
         return plots
