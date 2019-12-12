@@ -1,0 +1,498 @@
+tree: Events
+eras:
+  '2017': {}
+samples:
+  DYJetsToLL_M-5to50:
+    db: das:/DYJetsToLL_M-5to50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/DYJetsToLL_M-5to50.dat
+    generated-events: 'genEventSumw'
+    cross-section: 81880.0   #pb    # total uncertainty= 83.67  pb 
+    group: DY
+    era: '2017'
+    split: 4
+    
+#DYJetsToLL_0J:  # cross section should be computed since none is provied in the XSCDB   , check xsc.py  script !
+#    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+#    files: dascache/DYJetsToLL_0J.dat
+#    generated-events: 'genEventSumw'
+#    cross-section: #pb
+#    group: DY
+#    era: '2017'
+#    split: 4
+
+#  DYJetsToLL_1J:
+#    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+#    files: dascache/DYJetsToLL_1J.dat
+#    generated-events: 'genEventSumw'
+#    cross-section: #pb
+#    group: DY
+#    era: '2017'
+#    split: 4
+
+#  DYJetsToLL_2J:
+#    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+#    files: dascache/DYJetsToLL_2J.dat
+#    generated-events: 'genEventSumw'
+#    cross-section: #pb
+#    group: DY
+#    era: '2017'
+#    split: 4
+
+######## ttbar 
+  TTHadronic:
+    db: das:/TTToHadronic_mtop178p5_TuneCP5_PSweights_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTHadronic.dat
+    generated-events: 'genEventSumw'
+    cross-section: 584.6     # pb  # uncer= 0.4374 pb
+    group: ttbar
+    era: '2017'
+    split: 4
+   
+  TTTo2L2Nu:
+    db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTTo2L2Nu.dat
+    generated-events: 'genEventSumw' 
+    cross-section: 687.1 # pb   # uncer= 0.5174  pb  
+    group: ttbar
+    era: '2017'
+    split: 4
+###########   single top
+  ST_tW_top_5f:
+    db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ST_tWtop_5f.dat
+    generated-events: 'genEventSumw'
+    cross-section:  34.91    # uncer= 0.02817 pb
+    group: ST
+    era: '2017'
+
+  ST_tW_antitop_5f:
+    db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/ST_tWantitop_5f.dat
+    generated-events: 'genEventSumw'
+    cross-section: 34.97      # uncer = 0.02827 pb
+    group: ST
+    era: '2017'
+
+  ST_tchannel_antitop_4f:
+    db: das:/ST_t-channel_antitop_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ST_tchannelantitop_4f.dat
+    generated-events: 'genEventSumw'
+    cross-section: 67.91        # uncer= 0.3487 pb 
+    group: ST
+    era: '2017'
+
+  ST_tchannel_top_4f:
+    db: das:/ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ST_tchanneltop_4f.dat
+    generated-events: 'genEventSumw'
+    cross-section: 113.3    # uncer=  0.6404  pb    
+    group: ST
+    era: '2017'
+
+  ST_schannel_4f:
+    db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ST_schannel_4f.dat
+    generated-events: 'genEventSumw'
+    cross-section: 3.74 # uncer= 0.003533 pb
+    group: ST
+    era: '2017'
+        
+######## ZZ
+  ZZTo2L2Nu:
+    db: das:/ZZTo2L2Nu_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ZZTo4L2Nu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5644  # uncer= 0.0002688 pb 
+    group: ZZ
+    era: '2017'
+
+
+  ZZTo2L2Q:
+    db: das:/ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ZZTo2L2Q.dat
+    generated-events: 'genEventSumw'
+    cross-section: 3.222 # uncer = 0.004901 pb 
+    group: ZZ
+    era: '2017'
+
+#  ZZTo4L:
+#    db: das:/ZZTo4L_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext2-v1/NANOAODSIM
+#    files: dascache/ZZTo4L.dat
+#    generated-events: 'genEventSumw'
+#    cross-section:  1.256   # uncer = 0.002271   pb 
+#    group: ZZ
+#    era: '2017'
+
+###### Standrd model higgs : Zh & tth  
+
+  HZJ_HToWW:
+    db: das:/HZJ_HToWW_M125_13TeV_powheg_jhugen714_pythia8_TuneCP5/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/HZJ_HToWW.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.7524   # uncer= 0.003643 pb 
+    group: SM
+    era: '2017'
+
+  ZH_HToBB_ZToLL: 
+    db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM003138       
+    files: dascache/ZH_HToBB_ZToLL.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.07523   # uncer= 0.0003138 pb 
+    group: SM
+    era: '2017'
+
+
+  ggZH_HToBB_ZToLL:
+    db: das:/ggZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ggZH_HToBB_ZToLL.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.006954  # uncer= 7.737e-06  pb  
+    group: SM
+    era: '2017'
+
+  ttHTobb:
+    db: das:/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ttHTobb.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5269 # uncer = 0.003834 pb   
+    group: SM
+    era: '2017'
+
+  ttHToNonbb:
+    db: das:/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/ttHToNonbb.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5638   # uncer= 0.02855     pb 
+    group: SM
+    era: '2017'
+
+########## VV(except the ZZ) //  VVV / W+Jets / ttbar+V
+  WWToLNuQQ:
+    db: das:/WWToLNuQQ_NNPDF31_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/WWToLNuQQ.dat
+    generated-events: 'genEventSumw'
+    cross-section: 45.99 # uncer= 0.0293 pb 
+    group: others
+    era: '2017'
+
+  WWTo2L2Nu:
+    db: das:/WWTo2L2Nu_NNPDF31_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WWTo2L2Nu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 12.178 #  taken from Alessia 
+    group: others
+    era: '2017'
+
+  WZTo2L2Q:
+    db: das:/WZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZTo2L2Q.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.606  # uncer= 0.01897 pb 
+    group: others
+    era: '2017'
+
+  WZTo1L3Nu:
+    db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8_v2/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZTo1L3Nu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 3.054 # uncer=  0.01222   pb   
+    group: others
+    era: '2017'
+
+  WZ1L1Nu2Q:
+    db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZ1L1Nu2Q.dat
+    generated-events: 'genEventSumw'
+    cross-section:  10.73   #  uncer = 0.01824  pb   
+    group: others
+    era: '2017'
+
+  WWW:
+    db: das:/WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WWW.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2086  # uncer= 0.0002024 pb 
+    group: others 
+    era: '2017'
+
+  WWZ:
+    db: das:/WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WWZ.dat
+    generated-events: 'genEventSumw'
+    cross-section:  0.1651  # uncer = 0.0001724 pb 
+    group: others
+    era: '2017'
+
+  WZZ:
+    db: das:/WZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZZ.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.05565  # uncer = 5.5e-05 pb 
+    group: others
+    era: '2017'
+
+  ZZZ:
+    db: das:/ZZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/ZZZ.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.01398   # uncer = 1.496e-05     pb 
+    group: others
+    era: '2017'
+
+  WJetsToLNu:
+    db: das:/WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/WJetsToLNu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 52850.0  # uncer= 121.6   pb 
+    group: others
+    era: '2017'
+
+  TTWJetsToQQ:
+    db: das:/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTWJetsToQQ.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.4316 # uncer= 0.001658 pb 
+    group: others
+    era: '2017'
+
+  TTWJetsToLNu:
+    db: das:/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTWJetsToLNu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2149 # uncer =  0.0008133   pb 
+    group: others
+    era: '2017'
+
+  TTZToQQ:
+    db: das:/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/TTZToQQ.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5104    # uncer = 0.000697 pb 
+    group: others
+    era: '2017'
+
+  TTZToLLNuNu:
+    db: das:/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTZToLLNuNu.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2432   # uncer = 0.0003054  pb 
+    group: others
+    era: '2017'
+
+###### era B
+  DoubleMuon_2017B:
+    db: das:/DoubleMuon/Run2017B-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2017B.dat
+    group: data
+    era: '2017'
+    run_range: [297046, 299329]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  DoubleEGamma_2017B:
+    db: das:/DoubleEG/Run2017B-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2017B.dat
+    group: data
+    era: '2017'
+    run_range: [297046, 299329] 
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  MuonEG_2017B:
+    db: das:/MuonEG/Run2017B-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2017B.dat
+    group: data
+    era: '2017'
+    run_range: [297046, 299329] 
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+###### era C
+  DoubleMuon_2017C:
+    db: das:/DoubleMuon/Run2017C-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2017C.dat
+    group: data
+    era: '2017'
+    run_range: [299368, 302029]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  DoubleEGamma_2017C:
+    db: das:/DoubleEG/Run2017C-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2017C.dat
+    group: data
+    era: '2017'
+    run_range: [299368, 302029]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  MuonEG_2017C:
+    db: das:/MuonEG/Run2017C-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2017C.dat
+    group: data
+    era: '2017'
+    run_range: [299368, 302029]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+########## era D
+  DoubleMuon_2017D:
+    db: das:/DoubleMuon/Run2017D-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2017D.dat
+    group: data
+    era: '2017'
+    run_range: [302030, 303434]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  DoubleEGamma_2017D:
+    db: das:/DoubleEG/Run2017D-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2017D.dat
+    group: data
+    era: '2017'
+    run_range: [302030, 303434]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  MuonEG_2017D:
+    db: das:/MuonEG/Run2017D-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2017D.dat
+    group: data
+    era: '2017'
+    run_range: [302030, 303434]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+######## era E
+  DoubleMuon_2017E:
+    db: das:/DoubleMuon/Run2017E-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2017E.dat
+    group: data
+    era: '2017'
+    run_range: [303824, 304826]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  DoubleEGamma_2017E:
+    db: das:/DoubleEG/Run2017E-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2017E.dat
+    group: data
+    era: '2017'
+    run_range: [303824, 304826]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  MuonEG_2017E:
+    db: das:/MuonEG/Run2017E-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2017E.dat
+    group: data
+    era: '2017'
+    run_range: [303824, 304826]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+#####  era F
+
+  DoubleMuon_2017F:
+    db: das:/DoubleMuon/Run2017F-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleMuon_2017F.dat
+    group: data
+    era: '2017'
+    run_range: [305040, 306462]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  DoubleEGamma_2017F:
+    db: das:/DoubleEG/Run2017F-Nano1June2019-v1/NANOAOD
+    files: dascache/DoubleEGamma_2017F.dat
+    group: data
+    era: '2017'
+    run_range:  [305040, 306462]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+  MuonEG_2017F:
+    db: das:/MuonEG/Run2017F-Nano1June2019-v1/NANOAOD
+    files: dascache/MuonEG_2017F.dat
+    group: data
+    era: '2017'
+    run_range:  [305040, 306462]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt
+
+
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
+    experiment: CMS
+    extra-label: 2017Data --Work in progress
+    luminosity: 3104.509131800  #pb
+    luminosity-error: 0.025     #pb
+    show-overflow: true
+  legend:
+    position: [0.7, 0.6, 0.91, 0.91]
+  groups:
+    data:
+      legend: data
+    DY:
+      fill-color: "490A3D" 
+      legend: Drell-Yan
+      order: 6
+    ttbar:
+      legend: tt Full Lept
+      fill-color: "009989" 
+      order: 5
+    ST:
+      fill-color: "E97F02"    
+      legend: Single Top
+      order: 4
+    ZZ: 
+      fill-color: "EDB92E"
+      legend: ZZ
+      order: 3
+    SM:
+      fill-color: "BD1550"
+      legend: tth, Zh
+      order: 2
+    others:
+      fill-color: "A4BCE2"
+      legend: others #: tt+V, W+Jets , VVV , VV
+      order: 1    
+  systematics:
+    # on the jets
+    - jer
+    - jesTotal
+    # on the lepton id /iso 
+    - muid
+    - muiso
+    - elid
+    # on the pileup
+    - pileup
+    # on the trigger
+    - eleltrig
+    - mumutrig
+    - elmutrig
+    - mueltrig
+    # on the jet btagging
+    #- btagging2017
+    # on the cross section            
+    - ttHadronicxsc: {type: const, value: 1.0007482039001026 , on: 'TTHadronic'} # uncer= 0.4374 pb 
+    - TTTo2L2Nuxsc: {type: const, value: 1.0007530199388734, on: 'TTTo2L2Nu'} # uncer= 0.5174 pb
+    - DYJetsToLLxsc: {type: const, value: 1.001021861260381, on: 'DYJetsToLL_M-5to50'}  #uncer= 83.67  pb
+    #- DYJetsToLL_0Jxsc: {type: const, value: , on: 'DYJetsToLL_0J'}
+    #- DYJetsToLL_1Jxsc: {type: const, value: , on: 'DYJetsToLL_1J'}
+    #- DYJetsToLL_2Jxsc: {type: const, value: , on: 'DYJetsToLL_2J'}
+    - ST_s-channel_4fxsc: {type: const, value: 1.0009446524064172, on: 'ST_s-channel_4f'}   # uncer= 0.003533 pb
+    - ST_tW_top_5fxsc: {type: const, value: 1.000806932111143 , on: 'ST_tW_top_5f'}   # uncer= 0.02817 pb
+    - ST_tW_antitop_5fxsc: {type: const, value: 1.0008084072061767, on: 'ST_tW_antitop_5f'}  # uncer = 0.02827 pb
+    - ST_t-channel_antitop_4fxsc: {type: const, value: 1.005134737152113, on: 'ST_tchannel_antitop_4f'} # uncer= 0.3487 pb
+    - ST_t-channel_antitop_4fxsc: {type: const, value: 1.0056522506619594, on: 'ST_tchannel_top_4f'} # uncer=  0.6404  pb
+    - ZZTo2L2Nuxsc: {type: const, value: 1.0004762579730688, on: 'ZZTo2L2Nu'} # uncer= 0.0002688 pb
+    - ZZTo2L2Qxsc: {type: const, value: 1.0015211049037864, on: 'ZZTo2L2Q'} # uncer = 0.004901 pb
+    - ZZTo4Lxsc: {type: const, value: 1.0018081210191083, on: 'ZZTo4L'}  # uncer = 0.002271   pb
+    - HZJ_HToWWxsc: {type: const, value: 1.0048418394471026 , on: 'HZJ_HToWW'} # uncer= 0.003643 pb
+    - ZH_HToBB_ZToLLxsc: {type: const, value: 1.0041712082945633, on: 'ZH_HToBB_ZToLL'}  # uncer= 0.0003138 pb
+    - ggZH_HToBB_ZToLLxsc: {type: const, value: 1.0011125970664365, on: 'ggZH_HToBB_ZToLL'}  # uncer= 7.737e-06  pb
+    - ttHTobbxsc: {type: const, value: 1.007276523059404, on: 'ttHTobb'}  # uncer = 0.003834 pb
+    - ttHToNonbbxsc: {type: const, value: 1.050638524299397 , on: 'ttHToNonbb'}  # uncer= 0.02855 pb
+    - ZZZxsc: {type: const, value: 1.0010701001430615, on: 'ZZZ'}  # uncer = 1.496e-05     pb
+    - WWWxsc: {type: const, value: 1.0009702780441037, on: 'WWW'}  # uncer= 0.0002024 pb
+    - WWZxsc: {type: const, value: 1.0010442156268928, on: 'WWZ'}  # uncer = 0.0001724 pb
+    - WZZxsc: {type: const, value: 1.003934191702432 , on: 'WZZ'}  # # uncer = 5.5e-05 pb
+    - WJetsToLNuxsc: {type: const, value: 1.0023008514664145, on: 'WJetsToLNu'} # uncer= 121.6   pb
+    - TTZToLLNuNuxsc: {type: const, value: 1.0012557565789473, on: 'TTZToLLNuNu'}  # uncer = 0.0003054  pb
+    - TTZToQQxsc: {type: const, value: 1.0013655956112852, on: 'TTZToQQ'} # uncer = 0.000697 pb
+    - TTWJetsToLNuxsc: {type: const, value: 1.003784550953932, on: 'TTWJetsToLNu'} # uncer =  0.0008133   pb
+    - TTWJetsToQQxsc: {type: const, value: 1.0038415199258572, on: 'TTWJetsToQQ'}  # uncer= 0.001658 pb
+    #- WWTo2L2Nuxsc: {type: const, value: , on: 'WWTo2L2Nu'} xsc taken from Alessia paper no idea about the uncer
+    - WWToLNuQQxsc: {type: const, value: 1.0006370950206567 , on: 'WWToLNuQQ'} # uncer= 0.293 pb
+    - WZ1L1Nu2Qxsc: {type: const, value: 1.0016999068033552, on: 'WZ1L1Nu2Q'} #  uncer = 0.01824  pb
+    - WZTo2L2Qxsc: {type: const, value: 1.003383874420264 , on: 'WZTo2L2Q'}  # uncer= 0.01897 pb
+    - WZTo1L3Nuxsc: {type: const, value: 1.0040013097576947, on: 'WZTo2L2Q'}  # uncer= 0.01222 pb
+    #- WWTo3LNuxsc: {type: const, value: 0.05, on: 'WWTo3LNu'}
