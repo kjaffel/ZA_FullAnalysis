@@ -1,0 +1,6 @@
+<tool name="py2-qtconsole" version="4.3.1-gnimlf2">
+  <client>
+    <environment name="PY2_QTCONSOLE_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/py2-qtconsole/4.3.1-gnimlf2"/>
+  </client>
+  <runtime name="PATH" value="$PY2_QTCONSOLE_BASE/bin" type="path"/>
+</tool>

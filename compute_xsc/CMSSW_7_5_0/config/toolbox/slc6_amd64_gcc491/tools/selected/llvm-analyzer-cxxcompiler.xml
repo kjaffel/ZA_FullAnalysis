@@ -1,0 +1,8 @@
+  <tool name="llvm-analyzer-cxxcompiler" version="3.6-eccfad" type="compiler">
+    <use name="llvm-cxxcompiler"/>
+    <client>
+      <environment name="LLVM_ANALYZER_CXXCOMPILER_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/llvm/3.6-eccfad"/>
+      <environment name="CXX" value="$LLVM_ANALYZER_CXXCOMPILER_BASE/bin/c++-analyzer"/>
+    </client>
+    <runtime name="COMPILER_RUNTIME_OBJECTS" value="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/gcc/4.9.1-cms"/>
+  </tool>

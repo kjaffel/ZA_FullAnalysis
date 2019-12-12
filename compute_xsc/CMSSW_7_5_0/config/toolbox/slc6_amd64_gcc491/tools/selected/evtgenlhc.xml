@@ -1,0 +1,11 @@
+<tool name="evtgenlhc" version="9.1-eccfad">
+  <lib name="evtgenlhc"/>
+  <client>
+    <environment name="EVTGENLHC_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/evtgenlhc/9.1-eccfad"/>
+    <environment name="LIBDIR" default="$EVTGENLHC_BASE/lib"/>
+    <environment name="INCLUDE" default="$EVTGENLHC_BASE"/>
+  </client>
+  <runtime name="ROOT_INCLUDE_PATH" value="$INCLUDE" type="path"/>
+  <use name="root_cxxdefaults"/>
+  <use name="clhep"/>
+</tool>

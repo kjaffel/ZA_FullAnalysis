@@ -1,0 +1,17 @@
+<tool name="py2-dxr" version="1.0-eccfad">
+  <info url="https://dxr.readthedocs.org/"/>
+  <client>
+    <environment name="PY2_DXR_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-dxr/1.0-eccfad"/>
+    <environment name="LIBDIR" default="$PY2_DXR_BASE/lib"/>
+  </client>
+    <runtime name="PYTHONPATH" value="$PY2_DXR_BASE/lib/python2.7/site-packages" type="path"/>
+    <runtime name="PATH" value="$PY2_DXR_BASE/bin" type="path"/>
+    <use name="python"/>
+    <use name="sqlite"/>
+    <use name="py2-futures"/>
+    <use name="py2-jinja"/>
+    <use name="py2-markupsafe"/>
+    <use name="py2-ordereddict"/>
+    <use name="py2-parsimonious"/>
+    <use name="py2-pygments"/>
+</tool>

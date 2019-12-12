@@ -1,0 +1,7 @@
+<tool name="py2-python-dateutil" version="1.5-eccfad">
+  <client>
+    <environment name="PY2_PYTHON_DATEUTIL_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-python-dateutil/1.5-eccfad"/>
+  </client>
+  <runtime name="PYTHONPATH" value="$PY2_PYTHON_DATEUTIL_BASE/lib/python2.7/site-packages" type="path"/>
+  <use name="python"/>
+</tool>

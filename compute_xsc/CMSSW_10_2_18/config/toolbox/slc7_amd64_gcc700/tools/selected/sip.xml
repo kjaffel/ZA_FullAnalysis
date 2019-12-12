@@ -1,0 +1,7 @@
+<tool name="sip" version="4.17-omkpbe4">
+  <info url="http://www.riverbankcomputing.co.uk/software/sip/intro"/>
+  <client>
+    <environment name="SIP_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/sip/4.17-omkpbe4"/>
+  </client>
+  <use name="python"/>
+</tool>

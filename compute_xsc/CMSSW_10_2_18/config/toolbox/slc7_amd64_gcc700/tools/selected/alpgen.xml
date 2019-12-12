@@ -1,0 +1,6 @@
+<tool name="alpgen" version="214-omkpbe2">
+  <client>
+    <environment name="ALPGEN_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/alpgen/214-omkpbe2"/>
+  </client>
+  <runtime name="PATH" value="$ALPGEN_BASE/bin" type="path"/>
+</tool>

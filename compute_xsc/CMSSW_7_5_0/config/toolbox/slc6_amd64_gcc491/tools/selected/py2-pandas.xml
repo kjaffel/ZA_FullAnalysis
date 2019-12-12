@@ -1,0 +1,10 @@
+<tool name="py2-pandas" version="0.16.0-eccfad">
+  <client>
+    <environment name="PY2_PANDAS_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-pandas/0.16.0-eccfad"/>
+  </client>
+  <runtime name="PYTHONPATH" value="$PY2_PANDAS_BASE/lib/python2.7/site-packages" type="path"/>
+  <use name="python"/>
+  <use name="py2-numpy"/>
+  <use name="py2-python-dateutil"/>
+  <use name="py2-pytz"/>
+</tool>

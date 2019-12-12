@@ -1,0 +1,10 @@
+<tool name="oracleocci" version="20180210-omkpbe">
+  <lib name="cms_oracleocci_abi_hack"/>
+  <use name="oracleocci-official"/>
+  <client>
+    <environment name="ORACLEOCCI_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cms_oracleocci_abi_hack/20180210-omkpbe"/>
+    <environment name="INCLUDE" value="$ORACLEOCCI_BASE/include"/>
+    <environment name="LIBDIR" value="$ORACLEOCCI_BASE/lib"/>
+  </client>
+  <runtime name="CMS_ORACLEOCCI_LIB" value="$LIBDIR/libcms_oracleocci_abi_hack.so"/>
+</tool>

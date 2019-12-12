@@ -1,0 +1,10 @@
+<tool name="herwigpp" version="2.7.1-eccfad2">
+  <client>
+    <environment name="HERWIGPP_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/herwigpp/2.7.1-eccfad2"/>
+    <environment name="LIBDIR" default="$HERWIGPP_BASE/lib"/>
+    <environment name="INCLUDE" default="$HERWIGPP_BASE/include"/>
+  </client>
+  <runtime name="HERWIGPATH" value="$HERWIGPP_BASE/share/Herwig++"/>
+  <runtime name="ROOT_INCLUDE_PATH" value="$INCLUDE" type="path"/>
+  <use name="root_cxxdefaults"/>
+</tool>

@@ -1,0 +1,9 @@
+<tool name="photos" version="215.5-omkpbe2">
+  <lib name="photos"/>
+  <client>
+    <environment name="PHOTOS_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/photos/215.5-omkpbe2"/>
+    <environment name="LIBDIR" default="$PHOTOS_BASE/lib"/>
+  </client>
+  <use name="photos_headers"/>
+  <use name="f77compiler"/>
+</tool>

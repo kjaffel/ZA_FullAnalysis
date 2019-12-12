@@ -1,0 +1,6 @@
+<tool name="boost_mpi" version="1.63.0-gnimlf">
+  <info url="http://www.boost.org"/>
+  <lib name="boost_mpi"/>
+  <use name="boost"/>
+  <use name="boost_serialization"/>
+</tool>

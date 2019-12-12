@@ -1,0 +1,8 @@
+<tool name="py2-markupsafe" version="0.23-eccfad">
+  <info url="https://pypi.python.org/pypi/MarkupSafe"/>
+  <client>
+    <environment name="PY2_MARKUPSAFE_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-markupsafe/0.23-eccfad"/>
+    <environment name="LIBDIR" default="$PY2_MARKUPSAFE_BASE/lib"/>
+    <runtime name="PYTHONPATH" value="$PY2_MARKUPSAFE_BASE/lib/python2.7/site-packages" type="path"/>
+  </client>
+</tool>

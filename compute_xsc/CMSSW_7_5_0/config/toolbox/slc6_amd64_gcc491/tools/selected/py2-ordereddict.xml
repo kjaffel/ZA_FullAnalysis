@@ -1,0 +1,8 @@
+<tool name="py2-ordereddict" version="1.1-eccfad">
+  <info url="https://pypi.python.org/pypi/MarkupSafe"/>
+  <client>
+    <environment name="PY2_ORDEREDDICT_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-ordereddict/1.1-eccfad"/>
+    <environment name="LIBDIR" default="$PY2_ORDEREDDICT_BASE/lib"/>
+    <runtime name="PYTHONPATH" value="$PY2_ORDEREDDICT_BASE/lib/python2.7/site-packages" type="path"/>
+  </client>
+</tool>

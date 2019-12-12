@@ -1,0 +1,6 @@
+<tool name="py2-nose" version="1.3.7-gnimlf">
+  <client>
+    <environment name="PY2_NOSE_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/py2-nose/1.3.7-gnimlf"/>
+  </client>
+  <runtime name="PATH" value="$PY2_NOSE_BASE/bin" type="path"/>
+</tool>

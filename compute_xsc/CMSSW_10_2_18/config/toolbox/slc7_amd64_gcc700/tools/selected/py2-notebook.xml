@@ -1,0 +1,6 @@
+<tool name="py2-notebook" version="5.4.0-gnimlf2">
+  <client>
+    <environment name="PY2_NOTEBOOK_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/py2-notebook/5.4.0-gnimlf2"/>
+  </client>
+  <runtime name="PATH" value="$PY2_NOTEBOOK_BASE/bin" type="path"/>
+</tool>

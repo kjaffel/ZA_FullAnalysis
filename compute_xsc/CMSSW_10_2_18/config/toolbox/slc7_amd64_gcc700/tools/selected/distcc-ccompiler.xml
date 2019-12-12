@@ -1,0 +1,6 @@
+  <tool name="distcc-ccompiler" version="3.2rc1-omkpbe4" type="compiler">
+    <use name="gcc-ccompiler"/>
+    <client>
+      <environment name="CC" value="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/distcc/3.2rc1-omkpbe4/bin/gcc"/>
+    </client>
+  </tool>

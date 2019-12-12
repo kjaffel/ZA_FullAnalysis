@@ -1,0 +1,6 @@
+<tool name="gdb" version="8.1-omkpbe3">
+  <client>
+    <environment name="GDB_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gdb/8.1-omkpbe3"/>
+  </client>
+  <runtime name="PATH" value="$GDB_BASE/bin" type="path"/>
+</tool>

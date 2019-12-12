@@ -1,0 +1,4 @@
+<tool name="python-paths" version="1.0">
+  <runtime name="PYTHON27PATH"  value="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw-tool-conf/45.0-gnimlf4/lib/python2.7/site-packages" type="path"/>
+  <runtime name="PYTHON3PATH"  value="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw-tool-conf/45.0-gnimlf4/lib/python3.6/site-packages" type="path"/>
+</tool>

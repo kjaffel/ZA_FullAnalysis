@@ -1,0 +1,10 @@
+  <tool name="icc-ccompiler" version="ICC_SCRAM_VERSION" type="compiler">
+    <use name="gcc-ccompiler"/>
+    <client>
+      <environment name="ICC_CCOMPILER_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/cms/icc-scram/16.0beta/installation" handler="warn"/>
+      <environment name="CC" value="$ICC_CCOMPILER_BASE/bin/intel64/icc" handler="warn"/>
+    </client>
+    <architecture name="_mic_">
+      <flags CFLAGS="-mmic"/>
+    </architecture>
+  </tool>

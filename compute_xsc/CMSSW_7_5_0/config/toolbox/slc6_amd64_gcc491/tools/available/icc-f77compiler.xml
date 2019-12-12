@@ -1,0 +1,14 @@
+  <tool name="icc-f77compiler" version="ICC_SCRAM_VERSION" type="compiler">
+    <use name="gcc-f77compiler"/>    
+    <client>
+      <environment name="ICC_FCOMPILER_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/cms/icc-scram/16.0beta/ifort" handler="warn"/>
+      <environment name="FC" default="$ICC_FCOMPILER_BASE/bin/intel64/ifort" handler="warn"/>
+      <environment name="LIBDIR" default="$ICC_FCOMPILER_BASE/compiler/lib/intel64" handler="warn"/>
+    </client>
+    <architecture name="_mic_">
+      <flags FFLAGS="-mmic"/>
+    </architecture>
+    <runtime name="LD_LIBRARY_PATH" value="$ICC_FCOMPILER_BASE/compiler/lib/intel64" type="path" handler="warn"/>
+    <lib name="ifcore"/>
+    <lib name="ifport"/>
+  </tool>

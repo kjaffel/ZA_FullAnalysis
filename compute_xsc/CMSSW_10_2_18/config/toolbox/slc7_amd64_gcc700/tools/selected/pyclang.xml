@@ -1,0 +1,6 @@
+<tool name="pyclang" version="6.0.0-ogkkac">
+  <client>
+    <environment name="PYCLANG_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/llvm/6.0.0-ogkkac"/>
+  </client>
+  <use name="python"/>
+</tool>

@@ -1,0 +1,7 @@
+<tool name="py2-pytz" version="2014.7-eccfad">
+  <client>
+    <environment name="PY2PYTZ_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/py2-pytz/2014.7-eccfad"/>
+  </client>
+  <runtime name="PYTHONPATH" value="$PY2PYTZ_BASE/lib/python2.7/site-packages" type="path"/>
+  <use name="python"/>
+</tool>

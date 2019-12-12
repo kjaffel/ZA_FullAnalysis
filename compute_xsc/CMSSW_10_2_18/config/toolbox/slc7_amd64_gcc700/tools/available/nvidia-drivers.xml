@@ -1,0 +1,7 @@
+<tool name="nvidia-drivers" version="9.2.148">
+  <info url="https://docs.nvidia.com/cuda/index.html"/>
+  <client>
+    <environment name="NVIDIA_DRIVERS_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/cuda/9.2.148"/>
+    <environment name="LIBDIR"              default="$NVIDIA_DRIVERS_BASE/drivers"/>
+  </client>
+</tool>

@@ -1,0 +1,4 @@
+<tool name="qd_f_main" version="2.3.13-omkpbe2">
+  <lib name="qd_f_main"/>
+  <use name="qd"/>
+</tool>

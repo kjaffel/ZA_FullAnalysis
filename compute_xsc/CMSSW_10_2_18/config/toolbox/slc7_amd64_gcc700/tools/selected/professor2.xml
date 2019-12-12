@@ -1,0 +1,11 @@
+<tool name="professor2" version="2.2.1-gnimlf7">
+<client>
+<environment name="PROFESSOR2_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/professor2/2.2.1-gnimlf7"/>
+</client>
+<use name="py2-numpy"/>
+<use name="py2-sympy"/>
+<use name="root"/>
+<use name="yoda"/>
+<use name="eigen"/>
+<runtime name="PATH" value="$PROFESSOR2_BASE/bin" type="path"/>
+</tool>

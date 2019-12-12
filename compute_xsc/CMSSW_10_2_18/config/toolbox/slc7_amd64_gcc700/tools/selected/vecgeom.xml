@@ -1,0 +1,10 @@
+<tool name="vecgeom" version="v00.05.00-gnimlf">
+  <info url="https://gitlab.cern.ch/VecGeom/VecGeom"/>
+  <lib name="vecgeom"/>
+  <lib name="usolids"/>
+  <client>
+    <environment name="VECGEOM_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/vecgeom/v00.05.00-gnimlf"/>
+    <environment name="LIBDIR" default="$VECGEOM_BASE/lib"/>
+  </client>
+  <use name="vecgeom_interface"/>
+</tool>

@@ -1,0 +1,6 @@
+<tool name="py2-nbconvert" version="5.3.1-gnimlf2">
+  <client>
+    <environment name="PY2_NBCONVERT_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/py2-nbconvert/5.3.1-gnimlf2"/>
+  </client>
+  <runtime name="PATH" value="$PY2_NBCONVERT_BASE/bin" type="path"/>
+</tool>

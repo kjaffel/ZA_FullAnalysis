@@ -1,0 +1,6 @@
+<tool name="lapack" version="3.3.1-eccfad">
+  <client>
+    <environment name="LAPACK_BASE" default="/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/lapack/3.3.1-eccfad"/>
+    <environment name="LIBDIR" default="$LAPACK_BASE/lib"/>
+  </client>
+</tool>

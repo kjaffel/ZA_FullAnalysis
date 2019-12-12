@@ -1,0 +1,5 @@
+<tool name="root_cxxdefaults" version="6.12.07-gnimlf5">
+  <runtime name="ROOT_GCC_TOOLCHAIN" value="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2" type="path"/>
+  <runtime name="ROOT_INCLUDE_PATH" value="/usr/local/include" type="path"/>
+  <runtime name="ROOT_INCLUDE_PATH" value="/usr/include" type="path"/>
+</tool>

@@ -1,0 +1,7 @@
+<tool name="cub" version="1.8.0-ogkkac">
+  <use name="cuda"/>
+  <client>
+    <environment name="CUB_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/cub/1.8.0-ogkkac"/>
+    <environment name="INCLUDE"  default="$CUB_BASE/include"/>
+  </client>
+</tool>

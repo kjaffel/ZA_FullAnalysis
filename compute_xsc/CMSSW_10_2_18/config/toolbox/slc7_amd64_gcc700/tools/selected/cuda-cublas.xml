@@ -1,0 +1,7 @@
+<tool name="cuda-cublas" version="9.2.148">
+  <info url="https://docs.nvidia.com/cuda/cublas/index.html"/>
+  <use name="cuda"/>
+  <lib name="cublas"/>
+  <lib name="cublas_device"/>
+  <lib name="cublas_device" type="cuda"/>
+</tool>

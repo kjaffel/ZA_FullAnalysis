@@ -1,0 +1,5 @@
+<tool name="py2-fs" version="2.0.23">
+  <client>
+    <environment name="PY2_FS_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/py2-fs/2.0.23"/>
+  </client>
+</tool>

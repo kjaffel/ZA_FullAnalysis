@@ -1,0 +1,7 @@
+<tool name="dd4hep-cms" version="v01-08x-gnimlf2">
+  <lib name="DDCMS" />
+  <client>
+    <environment name="DD4HEP_CMS_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/dd4hep/v01-08x-gnimlf2"/>
+  </client>
+  <use name="dd4hep"/>
+</tool>

@@ -1,0 +1,6 @@
+<tool name="professor" version="1.4.0-gnimlf6">
+<client>
+<environment name="PROFESSOR_BASE" default="/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/professor/1.4.0-gnimlf6"/>
+</client>
+<runtime name="PATH" value="$PROFESSOR_BASE/bin" type="path"/>
+</tool>
