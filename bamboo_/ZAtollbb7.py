@@ -114,12 +114,14 @@ class NanoZMuMu(NanoAODHistoModule):
     """ Example module: Z->MuMu histograms from NanoAOD """
     def __init__(self, args):
         super(NanoZMuMu, self).__init__(args)
-
-    def prepareTree(self, tree, era=None, sample=None):
+        self.calcToAdd += ["nJet", "nMuon"]
+    def prepareTree(self, tree, sample=None, sampleCfg=None):
+        era = sampleCfg.get("era") if sampleCfg else None
         ## initializes tree.Jet.calc so should be called first (better: use super() instead)
         # JEC's Recommendation for Full RunII: https://twiki.cern.ch/twiki/bin/view/CMS/JECDataMC
         # JER : -----------------------------: https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
-        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, era=era, sample=sample)
+        #tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, era=era, sample=sample)
+        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg)
         triggersPerPrimaryDataset = {}
         from bamboo.analysisutils import configureJets ,configureRochesterCorrection
         isNotWorker = (self.args.distributed != "worker") 
@@ -236,11 +238,11 @@ class NanoZMuMu(NanoAODHistoModule):
             noSel = noSel.refine("withTrig", cut=makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset))
 
         return tree,noSel,be,lumiArgs
-        
-    def definePlots(self, t, noSel, era=None, sample=None):
+    def definePlots(self, t, noSel, sample=None, sampleCfg=None):    
         from bamboo.analysisutils import forceDefine
         from bamboo.plots import Plot, EquidistantBinning
         from bamboo import treefunctions as op
+        era = sampleCfg.get("era") if sampleCfg else None
 
         puWeightsFile = None
         if era == "2016":
@@ -422,10 +424,10 @@ class NanoZMuMu(NanoAODHistoModule):
 #----- signales samples  
 #------------------------------
 
-            plots.append(Plot.make1D("jj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN),op.invariant_mass(jets[0].p4, jets[1].p4) , TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of two b-tagged jets", xTitle= "mjj(GeV)"))
-            plots.append(Plot.make1D("lljj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M(),TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of 2 leptons two b-tagged jets", xTitle="mlljj(GeV)"))
-            plots.append(Plot.make2D("Mjj_vs_Mlljj_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()),TwoLeptonsTwoBjets, (EquidistantBinning(100, 0., 1000.), EquidistantBinning(100, 0., 1000.)), title="mlljj vs mjj invariant mass"))
-            plots.append(Plot.make1D("ll_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), op.invariant_mass(dilepton[0].p4, dilepton[1].p4), TwoLeptonsTwoBjets, EquidistantBinning(100, 70., 110.), title=" dilepton invariant mass", xTitle= "mll(GeV)"))
+            #plots.append(Plot.make1D("jj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN),op.invariant_mass(jets[0].p4, jets[1].p4) , TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of two b-tagged jets", xTitle= "mjj(GeV)"))
+            #plots.append(Plot.make1D("lljj_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M(),TwoLeptonsTwoBjets, EquidistantBinning(100, 0., 1000.), title="invariant mass of 2 leptons two b-tagged jets", xTitle="mlljj(GeV)"))
+            #plots.append(Plot.make2D("Mjj_vs_Mlljj_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), (op.invariant_mass(jets[0].p4, jets[1].p4),(dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()),TwoLeptonsTwoBjets, (EquidistantBinning(100, 0., 1000.), EquidistantBinning(100, 0., 1000.)), title="mlljj vs mjj invariant mass"))
+            #plots.append(Plot.make1D("ll_M_{0}_hZA_lljj_deepCSV_btagM_mll_and_met_cut".format(catN), op.invariant_mass(dilepton[0].p4, dilepton[1].p4), TwoLeptonsTwoBjets, EquidistantBinning(100, 70., 110.), title=" dilepton invariant mass", xTitle= "mll(GeV)"))
 
 # -----------------------------
         return plots
