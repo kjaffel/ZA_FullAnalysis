@@ -1,0 +1,45 @@
+tree: Events
+eras:
+  '2016':
+    luminosity: 12.34
+    luminosity-error: 0.025     
+samples:
+  DoubleMuon_2016E:
+    files: [/storage/data/cms/store/data/Run2016E/DoubleMuon/NANOAOD/Nano1June2019-v1/70000/00EAB17E-EF9D-974A-B96F-9E7FE1F17AAA.root]
+    group: data
+    era: '2016'
+    run_range: [276831, 277420]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
+
+  DYToLL_2J:
+    files: [/storage/data/cms/store/mc/RunIISummer16NanoAODv5/DYToLL_2J_13TeV-amcatnloFXFX-pythia8/NANOAODSIM/PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/260000/0FC695C6-781F-E242-A910-73E05361CDEC.root]
+    generated-events: 'genEventSumw'
+    cross-section: 340.5  #pb
+    group: DY
+    era: '2016'
+
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
+    experiment: CMS
+    extra-label: Bamboo test
+    show-overflow: true
+  legend:
+    position: [0.7, 0.6, 0.91, 0.91]
+  groups:
+    data:
+      legend: data
+    DY:
+      fill-color: "#ED5188"
+      legend: Drell-Yen
+      order: 1
+  systematics:
+      # on the jets
+    - jer
+    - jesTotal
+      # on the lepton id /iso 
+    - muid
+    - muiso
+    - btagging2016
