@@ -1,4 +1,0 @@
-<tool name="tensorflow-framework" version="1.6.0-gnimlf2">
-  <lib name="tensorflow_framework"/>
-  <use name="tensorflow"/>
-</tool>

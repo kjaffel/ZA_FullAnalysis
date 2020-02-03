@@ -1,5 +1,0 @@
-<tool name="cuda-cusparse" version="9.2.148">
-  <info url="https://docs.nvidia.com/cuda/cusparse/index.html"/>
-  <use name="cuda"/>
-  <lib name="cusparse"/>
-</tool>
