@@ -241,6 +241,7 @@ class NanoHtoZA(NanoAODHistoModule):
             if self.isMC(sample):
                 jec = "Summer16_07Aug2017_V20_MC"
                 smear="Summer16_25nsV1_MC"
+                jesUncertaintySources = ["Total"] ## TODO everywhere
                 
                 configureJets(tree._Jet, "AK4PFchs",
                     jec="Summer16_07Aug2017_V20_MC",
