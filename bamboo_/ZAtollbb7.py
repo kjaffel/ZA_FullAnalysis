@@ -28,11 +28,11 @@ def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "TriggerEfficienciesStudies", aPath)
 
 binningVariables = {
-      "Eta"       : lambda obj : obj.p4.Eta()
-    , "ClusEta"   : lambda obj : obj.p4.Eta() + obj.deltaEtaSC
-    , "AbsEta"    : lambda obj : op.abs(obj.p4.Eta())
-    , "AbsClusEta": lambda obj : op.abs(obj.clusterEta) +op.abs(obj.deltaEtaSC)
-    , "Pt"        : lambda obj : obj.p4.Pt()
+      "Eta"       : lambda obj : obj.eta
+    , "ClusEta"   : lambda obj : obj.eta + obj.deltaEtaSC
+    , "AbsEta"    : lambda obj : op.abs(obj.eta)
+    , "AbsClusEta": lambda obj : op.abs(obj.eta + obj.deltaEtaSC)
+    , "Pt"        : lambda obj : obj.pt
     }
 
 all_scalefactors = {
@@ -434,8 +434,8 @@ class NanoHtoZA(NanoAODHistoModule):
         forceDefine(t._Muon.calcProd, noSel)
 
         # Wp // 2016- 2017 -2018 : Muon_mediumId   // https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Muon_Isolation
-        sorted_muons = op.sort(t.Muon, lambda mu : -mu.p4.Pt())
-        muons = op.select(sorted_muons, lambda mu : op.AND(mu.p4.Pt() > 10., op.abs(mu.p4.Eta()) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
+        sorted_muons = op.sort(t.Muon, lambda mu : -mu.pt)
+        muons = op.select(sorted_muons, lambda mu : op.AND(mu.pt > 10., op.abs(mu.eta) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
       
         if era=="2016":
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
@@ -450,8 +450,8 @@ class NanoHtoZA(NanoAODHistoModule):
 
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
-        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.p4.Pt())
-        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.p4.Pt() > 15., op.abs(ele.p4.Eta()) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
+        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.pt)
+        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), systName="elid")
         doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")     
@@ -548,7 +548,7 @@ class NanoHtoZA(NanoAODHistoModule):
         ##################################
         #// 2016 - 2017 - 2018   ( j.jetId &2) ->      tight jet ID
         # For 2017 data, there is the option of "Tight" or "TightLepVeto", depending on how much you want to veto jets that overlap with/are faked by leptons. # TODO
-        sorted_jets=op.sort(t.Jet, lambda j : -j.p4.Pt())
+        sorted_jets=op.sort(t.Jet, lambda j : -j.pt)
         jetsSel = op.select(sorted_jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta)< 2.4, (j.jetId &2)))        
         # exclude from the jetsSel any jet that happens to include within its reconstruction cone a muon or an electron.
         jets= op.select(jetsSel, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
@@ -627,11 +627,11 @@ class NanoHtoZA(NanoAODHistoModule):
         osLLRng = {
                 "MuMu" : op.combine(muons, N=2, pred=osdilep_Z),
                 "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
-                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.p4.Pt() > mu.p4.Pt() )),
-                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
+                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.pt > mu.pt )),
+                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.pt > ele.pt))
                 }
 
-        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
+        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
 
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
