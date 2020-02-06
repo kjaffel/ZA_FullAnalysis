@@ -28,11 +28,11 @@ def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "TriggerEfficienciesStudies", aPath)
 
 binningVariables = {
-      "Eta"       : lambda obj : obj.p4.Eta()
-    , "ClusEta"   : lambda obj : obj.p4.Eta() + obj.deltaEtaSC
-    , "AbsEta"    : lambda obj : op.abs(obj.p4.Eta())
-    , "AbsClusEta": lambda obj : op.abs(obj.clusterEta) +op.abs(obj.deltaEtaSC)
-    , "Pt"        : lambda obj : obj.p4.Pt()
+      "Eta"       : lambda obj : obj.eta
+    , "ClusEta"   : lambda obj : obj.eta + obj.deltaEtaSC
+    , "AbsEta"    : lambda obj : op.abs(obj.eta)
+    , "AbsClusEta": lambda obj : op.abs(obj.eta + obj.deltaEtaSC)
+    , "Pt"        : lambda obj : obj.pt
     }
 
 all_scalefactors = {
@@ -241,6 +241,7 @@ class NanoHtoZA(NanoAODHistoModule):
             if self.isMC(sample):
                 jec = "Summer16_07Aug2017_V20_MC"
                 smear="Summer16_25nsV1_MC"
+                jesUncertaintySources = ["Total"] ## TODO everywhere
                 
                 configureJets(tree._Jet, "AK4PFchs",
                     jec="Summer16_07Aug2017_V20_MC",
@@ -434,8 +435,8 @@ class NanoHtoZA(NanoAODHistoModule):
         forceDefine(t._Muon.calcProd, noSel)
 
         # Wp // 2016- 2017 -2018 : Muon_mediumId   // https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Muon_Isolation
-        sorted_muons = op.sort(t.Muon, lambda mu : -mu.p4.Pt())
-        muons = op.select(sorted_muons, lambda mu : op.AND(mu.p4.Pt() > 10., op.abs(mu.p4.Eta()) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
+        sorted_muons = op.sort(t.Muon, lambda mu : -mu.pt)
+        muons = op.select(sorted_muons, lambda mu : op.AND(mu.pt > 10., op.abs(mu.eta) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
       
         if era=="2016":
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
@@ -450,8 +451,8 @@ class NanoHtoZA(NanoAODHistoModule):
 
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
-        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.p4.Pt())
-        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.p4.Pt() > 15., op.abs(ele.p4.Eta()) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
+        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.pt)
+        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), systName="elid")
         doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")     
@@ -548,7 +549,7 @@ class NanoHtoZA(NanoAODHistoModule):
         ##################################
         #// 2016 - 2017 - 2018   ( j.jetId &2) ->      tight jet ID
         # For 2017 data, there is the option of "Tight" or "TightLepVeto", depending on how much you want to veto jets that overlap with/are faked by leptons. # TODO
-        sorted_jets=op.sort(t.Jet, lambda j : -j.p4.Pt())
+        sorted_jets=op.sort(t.Jet, lambda j : -j.pt)
         jetsSel = op.select(sorted_jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta)< 2.4, (j.jetId &2)))        
         # exclude from the jetsSel any jet that happens to include within its reconstruction cone a muon or an electron.
         jets= op.select(jetsSel, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
@@ -627,11 +628,11 @@ class NanoHtoZA(NanoAODHistoModule):
         osLLRng = {
                 "MuMu" : op.combine(muons, N=2, pred=osdilep_Z),
                 "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
-                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.p4.Pt() > mu.p4.Pt() )),
-                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
+                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.pt > mu.pt )),
+                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.pt > ele.pt))
                 }
 
-        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
+        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
 
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
@@ -658,10 +659,6 @@ class NanoHtoZA(NanoAODHistoModule):
             # plots for: mll, mlljj, mjj, nVX, pT, eta ... 
             plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets, jets, dilepton, channel))
 
-            # x-y correction applied to the MET 
-            METcut=TwoLeptonsTwoJets.refine("TwoLeptonsTwoJets_METcut_{0}".format(channel),
-                                        cut=[ corrMET.pt < 80. ])
-            
             # TODO pass the different working points for each tagger and make control plots 
             
             for wp in WorkingPoints: 
@@ -676,30 +673,22 @@ class NanoHtoZA(NanoAODHistoModule):
                 bJets_PassdeepflavourWP=safeget(bjets, "DeepFlavour", wp)
                 bJets_PassdeepcsvWP=safeget(bjets, "DeepCSV", wp)
 
-                TwoLeptonsTwoBjets = {
-                    "DeepFlavour{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepFlavour{0}_{1}".format(wp, channel), 
-                                                                cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
-                                                                weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
-                    "DeepCSV{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepCSV{0}_{1}".format(wp, channel), 
-                                                            cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
-                                                            weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
-                                    }
-
                 TwoLeptonsTwoBjets_NoMETCut = {
-                    "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}".format(wp, channel),
+                    "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepFlavour{0}_{1}".format(wp, channel),
                                                                         cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
                                                                         weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
                     "DeepCSV{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepCSV{0}_{1}".format(wp, channel), 
                                                                     cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
                                                                     weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
                                         }
+                ## needed to optimize the MET cut 
+                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
+
+                TwoLeptonsTwoBjets = dict((tagger, selNoMET.refine(selNoMET.name.replace("_NoMETCut", ""), cut=[ corrMET.pt < 80. ])) for tagger, selNoMET in TwoLeptonsTwoBjets_NoMETCut.items())
 
                 plots.extend(DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp))
                 plots.extend(MakeControlPlotsForBjetsSel(self, TwoLeptonsTwoBjets, bjets, dilepton, channel, wp))
                 plots.extend(MakeControlPlotsForBestBJetsPair(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton,  channel, wp))
-                
-                ## needed to optimize the MET cut 
-                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
             
                 ### to get the Ellipses plots  
                 #plots.extend(MakeEllipsesPlots(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton, channel, wp))
