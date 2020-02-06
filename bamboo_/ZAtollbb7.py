@@ -659,10 +659,6 @@ class NanoHtoZA(NanoAODHistoModule):
             # plots for: mll, mlljj, mjj, nVX, pT, eta ... 
             plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets, jets, dilepton, channel))
 
-            # x-y correction applied to the MET 
-            METcut=TwoLeptonsTwoJets.refine("TwoLeptonsTwoJets_METcut_{0}".format(channel),
-                                        cut=[ corrMET.pt < 80. ])
-            
             # TODO pass the different working points for each tagger and make control plots 
             
             for wp in WorkingPoints: 
@@ -677,30 +673,22 @@ class NanoHtoZA(NanoAODHistoModule):
                 bJets_PassdeepflavourWP=safeget(bjets, "DeepFlavour", wp)
                 bJets_PassdeepcsvWP=safeget(bjets, "DeepCSV", wp)
 
-                TwoLeptonsTwoBjets = {
-                    "DeepFlavour{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepFlavour{0}_{1}".format(wp, channel), 
-                                                                cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
-                                                                weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
-                    "DeepCSV{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepCSV{0}_{1}".format(wp, channel), 
-                                                            cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
-                                                            weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
-                                    }
-
                 TwoLeptonsTwoBjets_NoMETCut = {
-                    "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}".format(wp, channel),
+                    "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepFlavour{0}_{1}".format(wp, channel),
                                                                         cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
                                                                         weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
                     "DeepCSV{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepCSV{0}_{1}".format(wp, channel), 
                                                                     cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
                                                                     weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
                                         }
+                ## needed to optimize the MET cut 
+                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
+
+                TwoLeptonsTwoBjets = dict((tagger, selNoMET.refine(selNoMET.name.replace("_NoMETCut", ""), cut=[ corrMET.pt < 80. ])) for tagger, selNoMET in TwoLeptonsTwoBjets_NoMETCut.items())
 
                 plots.extend(DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp))
                 plots.extend(MakeControlPlotsForBjetsSel(self, TwoLeptonsTwoBjets, bjets, dilepton, channel, wp))
                 plots.extend(MakeControlPlotsForBestBJetsPair(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton,  channel, wp))
-                
-                ## needed to optimize the MET cut 
-                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
             
                 ### to get the Ellipses plots  
                 #plots.extend(MakeEllipsesPlots(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton, channel, wp))
