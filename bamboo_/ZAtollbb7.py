@@ -21,18 +21,18 @@ from  ZAEllipses import MakeEllipsesPlots, MakeMETPlots
 from ControlPLots import MakeControlPlotsForZpic, MakeControlPlotsForBasicSel, DiscriminatorPlots, MakeControlPlotsForBjetsSel, MakeControlPlotsForBestBJetsPair
 
 
-def localize_myanalysis(aPath, era="FullRunII"):
+def localize_myanalysis(aPath, era="FullRunIIv1"):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(era), aPath)
 
 def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "TriggerEfficienciesStudies", aPath)
 
 binningVariables = {
-      "Eta"       : lambda obj : obj.p4.Eta()
-    , "ClusEta"   : lambda obj : obj.p4.Eta() + obj.deltaEtaSC
-    , "AbsEta"    : lambda obj : op.abs(obj.p4.Eta())
-    , "AbsClusEta": lambda obj : op.abs(obj.clusterEta) +op.abs(obj.deltaEtaSC)
-    , "Pt"        : lambda obj : obj.p4.Pt()
+      "Eta"       : lambda obj : obj.eta
+    , "ClusEta"   : lambda obj : obj.eta + obj.deltaEtaSC
+    , "AbsEta"    : lambda obj : op.abs(obj.eta)
+    , "AbsClusEta": lambda obj : op.abs(obj.eta + obj.deltaEtaSC)
+    , "Pt"        : lambda obj : obj.pt
     }
 
 all_scalefactors = {
@@ -44,90 +44,158 @@ all_scalefactors = {
        # Btagging :  https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation2016Legacy
       
        "electron_2016_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
-          dict(("id_{wp}".format(wp=wp.lower()), ("Electron_EGamma_SF2D_2016Legacy_{wp}_Fall17V2.json".format(wp=wp)))
-         for wp in ("Loose", "Medium", "Tight", "MVA80","MVA90", "MVA80noiso", "MVA90noiso")).items()))
+                              dict(("id_{wp}".format(wp=wp.lower()), 
+                                ("Electron_EGamma_SF2D_2016Legacy_{wp}_Fall17V2.json".format(wp=wp)))
+                                for wp in ("Loose", "Medium", "Tight")).items())),
+                                #for wp in ("Loose", "Medium", "Tight", "MVA80","MVA90", "MVA80noiso", "MVA90noiso")).items())),
 
-          #  DONE  --> updating the SFs with _stat & _syst   for 2016 and 2018 // #TODO for 2017 : not recomended for now ( missing correction in some bins !! )
-          # TODO --> extract the trk SFs for the FullRun from Muon SFs 
-    , "muon_2016_94X" : dict((k,( localize_myanalysis(v) if isinstance(v, str)
-                               else [ (eras, localize_myanalysis(path)) for eras,path in v ]))
-                           for k, v in chain(
-          dict(("id_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), "Muon_NUM_{wp}ID_DEN_genTracks_eta_pt_{uncer}_2016Run{era}.json".format(wp=wp, uncer=uncer, era=eras)) for eras in ("BCDEF", "GH") for uncer in ("syst", "stat")]) for wp in ("Loose", "Medium", "Tight")).items()
-       ,  dict(("idtrk_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), "Muon_NUM_{wp}ID_DEN_genTracks_eta_pair_newTuneP_probe_pt_{uncer}_2016Run{era}.json".format(wp=wp, uncer=uncer, era=eras)) for eras in ("BCDEF", "GH") for uncer in ("syst", "stat")]) for wp in ("HighPt",)).items()
+        # DONE  --> updating the SFs with _stat & _syst   for 2016 and 2018 // 
+        # DONE : for 2017 : ( missing correction in some bins !! )
+        # The recommendation is to use the nominal SF and uncertainties of closes pT bin. 
+        # TODO --> extract the trk SFs for the FullRun from Muon SFs 
+       "muon_2016_94X" : dict((k,( localize_myanalysis(v) 
+                            if isinstance(v, str) 
+                            else [ (eras, localize_myanalysis(path)) for eras,path in v ])) for k, v in chain(
 
-       ,  dict(("iso_{isowp}_id_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), "Muon_NUM_{isowp}RelIso_DEN_{idwp}ID_eta_pt_{uncer}_2016Run{era}.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))for eras in ("BCDEF", "GH") for uncer in (("syst","stat")if eras=="BCDEF" else ("stat",))]) for (isowp,idwp) in (("Loose", "Loose"), ("Loose", "Medium"), ("Loose", "TightIDandIPCut"),("Tight", "Medium"), ("Tight", "TightIDandIPCut"))).items() 
-       ,  dict(("isotrk_{isowp}_idtrk_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), "Muon_NUM_{isowp}RelTrkIso_DEN_{idwp}_eta_pair_newTuneP_probe_pt_{uncer}_2016Run{era}.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))for eras in ("BCDEF", "GH") for uncer in (("syst","stat")if eras=="BCDEF" else ("stat",))]) for (isowp,idwp) in (("Loose", "TightIDandIPCut"),)).items())) 
+                            dict(("id_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{wp}ID_DEN_genTracks_eta_pt_{uncer}_2016Run{era}.json".format(wp=wp, uncer=uncer, era=eras)) 
+                                for eras in ("BCDEF", "GH") for uncer in ("syst", "stat")]) for wp in ("Loose", "Medium", "Tight")).items(),
+
+                            dict(("id_{wp}_newTuneP".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{wp}ID_DEN_genTracks_eta_pair_newTuneP_probe_pt_{uncer}_2016Run{era}.json".format(wp=wp, uncer=uncer, era=eras)) 
+                                for eras in ("BCDEF", "GH") for uncer in ("syst", "stat")]) for wp in ("HighPt",)).items(),
+
+                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{isowp}RelIso_DEN_{idwp}_eta_pt_{uncer}_2016Run{era}.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))
+                                for eras in ("BCDEF", "GH") for uncer in (("syst","stat")if eras=="BCDEF" else ("stat",))]) 
+                                for (isowp,idwp) in (("Loose", "LooseID"), ("Loose", "MediumID"), ("Loose", "TightIDandIPCut"),("Tight", "MediumID"), ("Tight", "TightIDandIPCut"))).items(),
+                    
+                            dict(("iso_{isowp}_id_{idwp}_newTuneP".format(isowp=isowp.lower(), idwp=idwp.lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{isowp}RelTkIso_DEN_{idwp}_eta_pair_newTuneP_probe_pt_{uncer}_2016Run{era}.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))
+                                for eras in ("BCDEF", "GH") for uncer in (("syst","stat")if eras=="BCDEF" else ("stat",))]) for (isowp,idwp) in (("Loose", "TightIDandIPCut"),)).items()
+                         )),
       
-    , "btag_2016_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                               else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
-                           for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
+       "btag_2016_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+                            if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in
+                            
+                            dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2016Legacy.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items()
+                         ),
 
     #------- single muon trigger --------------
-    , "mutrig_2016_94X" : tuple(localize_trigger("{trig}_PtEtaBins_2016Run{eras}.json".format(trig=trig, eras=eras)) 
-								  for trig in ("IsoMu24_OR_IsoTkMu24","Mu50_OR_TkMu50" ) for eras in ("BtoF", "GtoH"))
+       "mutrig_2016_94X" : tuple(localize_trigger("{trig}_PtEtaBins_2016Run{eras}.json".format(trig=trig, eras=eras)) 
+								  for trig in ("IsoMu24_OR_IsoTkMu24","Mu50_OR_TkMu50" ) for eras in ("BtoF", "GtoH")),
     #-------- double muon trigger ------------ 
-    #For now i will use Alessia efficiencies trigger --> To Update this later ***
+    # TODO: For now i will use Alessia efficiencies trigger --> To Update this later ***
     #----------------------------------------------------------------------------
-    , "doubleEleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
-								  for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg") )
+       "doubleEleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
+                                            for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg")),
 
-    , "doubleMuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) for wp in ("Muon_DoubleIsoMu17Mu8_IsoMu17leg", "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg", "Muon_DoubleIsoMu17Mu8_IsoMu17leg", "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg"))
+       "doubleMuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
+                                            for wp in ("Muon_DoubleIsoMu17Mu8_IsoMu17leg", "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg", "Muon_DoubleIsoMu17Mu8_IsoMu17leg", 
+                                                "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg")),
 
-    , "mueleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp))for wp in ("Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg"))
+       "mueleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp))
+                                        for wp in ("Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg")),
 
-    , "elemuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg"))
+       "elemuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
+                                        for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg")),
       
       ####################################
       # 2017: 
       #####################################
-      # https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2017
-      # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94X
-   ,  "electron_2017_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
-          dict(("id_{wp}".format(wp=wp.lower()), ("Electron_EGamma_SF2D_2017{wp}.json".format(wp=wp)))
-         for wp in ("Loose", "Medium", "Tight" , "Veto")).items()))
+      # Muons:      https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2017
+      # Btagging:   https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94X
+       
+       "electron_2017_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
+                               dict(("id_{wp}".format(wp=wp.lower()), 
+                                ("Electron_EGamma_SF2D_2017_{wp}_Fall17V2.json".format(wp=wp)))
+                                for wp in ("Loose", "Medium", "Tight" )).items()
+                              )), 
 
+       "muon_2017_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
+                           
+                           dict(("id_{wp}".format(wp=wp.lower()), 
+                               ("Muon_NUM_{wp}ID_DEN_genTracks_pt_abseta_{uncer}_2017RunBCDEF.json".format(wp=wp, uncer=uncer)))
+                                for wp in ("Loose", "Medium", "Tight", "Soft", "MediumPrompt")for uncer in ("syst","stat")).items(),
 
-   ,  "muon_2017_94X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
-          dict(("id_{wp}".format(wp=wp.lower()), ("Muon_NUM_{wp}ID_DEN_genTracks_pt_abseta_2017RunBCDEF.json".format(wp=wp)))
-         for wp in ("Loose", "Medium", "Tight", "Soft", "MediumPrompt")).items()
-        , dict(("iso_{isowp}_id_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()), "Muon_NUM_{isowp}RelIso_DEN_{idwp}ID_pt_abseta_2017RunBCDEF.json".format(isowp=isowp, idwp=idwp))
-            for (isowp,idwp) in (("Loose", "Loose"), ("Loose", "Medium"), ("Loose", "TightIDandIPCut"),  ("Tight", "Medium"), ("Tight", "TightIDandIPCut")) ).items()))
+                           dict(("id_{wp}_newTuneP".format(wp=wp.lower()), 
+                               ("Muon_NUM_{wp}ID_DEN_genTracks_pair_newTuneP_probe_pt_abseta_{uncer}_2017RunBCDEF.json".format(wp=wp,uncer=uncer))) 
+                               for wp in ("HighPt","TrkHighPtID")for uncer in ("syst", "stat")).items(),
+                          
+                           dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),
+                                "Muon_NUM_{isowp}RelIso_DEN_{idwp}_pt_abseta_{uncer}_2017RunBCDEF.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("Loose", "LooseID"), ("Loose", "MediumID"), ("Loose", "TightIDandIPCut"),  ("Tight", "MediumID"), ("Tight", "TightIDandIPCut"))
+                                for uncer in ("syst", "stat")).items(),
+                      
+                            dict(("iso_{isowp}_id_{idwp}_newTuneP".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),
+                                "Muon_NUM_{isowp}RelTkIso_DEN_{idwp}_pair_newTuneP_probe_pt_abseta_{uncer}_2017RunBCDEF.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("Loose", "TrkHighPtID"), ("Loose", "TightIDandIPCut"),  ("Tight", "HighPtIDandIPCut"), ("Tight", "TightIDandIPCut"))
+                                for uncer in ("syst", "stat")).items()
+                          )),
 
-    , "btag_2017_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                               else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
-                           for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2017BtoF.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepFlavour","CSVv2", "DeepCSV") ).items())
+       "btag_2017_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+                            if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in
 
-    #---- Single Muon trigger ------------------
-    , "mutrig_2017_94X" : tuple(localize_trigger("{0}_PtEtaBins_2017RunBtoF.json".format(trig)) for trig in ("IsoMu27", "Mu50"))
+                          dict(("{algo}_{wp}".format(algo=algo, wp=wp), 
+                            tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2017BtoF.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") 
+                            for algo in ("DeepJet", "DeepCSV") ).items()
+                         ),
+
+        #---- Single Muon trigger ------------------
+       "mutrig_2017_94X" : tuple(localize_trigger("{0}_PtEtaBins_2017RunBtoF.json".format(trig)) 
+                            for trig in ("IsoMu27", "Mu50")), 
+      
       
       ##################################
       # 2018:
       ##################################
-      # https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2018      
-      # https://twiki.cg_2016_94X"ern.ch/twiki/bin/viewauth/CMS/BtagRecommendation102X
-   ,  "electron_2018_102X"  : dict((k,localize_myanalysis(v)) for k, v in chain(  
-          dict(("id_{wp}".format(wp=wp.lower()), ("Electron_EGamma_SF2D_2018{wp}.json".format(wp=wp)))
-         for wp in ("Loose", "Medium", "Tight", "Veto")).items()))
+      # Muons:      https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2018      
+      # Btagging:   https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation102X
 
-   ,  "muon_2018_102X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
-          dict(("id_{wp}".format(wp=wp.lower()), ("Muon_NUM_{wp}ID_DEN_TrackerMuons_pt_abseta_{uncer}_2018RunABCD.json".format(wp=wp, uncer=uncer)))
-         for wp in ("Loose", "Medium", "Tight", "Soft", "MediumPrompt")for uncer in ("syst","stat")).items()
-        , dict(("idtrk_{wp}".format(wp=wp.lower()), ("Muon_NUM_Trk{wp}ID_DEN_TrackerMuons_pair_newTuneP_probe_pt_abseta_{uncer}_2018RunABCD.json".format(wp=wp,uncer=uncer))) for wp in ("HighPt",)for uncer in ("syst", "stat")).items()
+       "electron_2018_102X"  : dict((k,localize_myanalysis(v)) for k, v in chain(  
+                                dict(("id_{wp}".format(wp=wp.lower()), 
+                                ("Electron_EGamma_SF2D_2018_{wp}_FallV2.json".format(wp=wp)))
+                                for wp in ("Loose", "Medium", "Tight")).items()
+                                
+                               )),
+       
+       "muon_2018_102X"  : dict((k,localize_myanalysis(v)) for k, v in chain(
+                            dict(("id_{wp}".format(wp=wp.lower()), 
+                               ("Muon_NUM_{wp}ID_DEN_TrackerMuons_pt_abseta_{uncer}_2018RunABCD.json".format(wp=wp, uncer=uncer)))
+                                for wp in ("Loose", "Medium", "Tight", "Soft", "MediumPrompt")for uncer in ("syst","stat")).items(),
 
-        , dict(("iso_{isowp}_id_{idwp}".format(isowp=isowp.lower(), idwp=idwp.lower()), "Muon_NUM_{isowp}RelIso_DEN_{idwp}ID_pt_abseta_{uncer}_2018RunABCD.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
-            for (isowp,idwp) in (("Loose", "Loose"), ("Loose", "Medium"), ("Loose", "TightIDandIPCut"),  ("Tight", "Medium"), ("Tight", "TightIDandIPCut")) for uncer in ("syst", "stat")).items()))
+                            dict(("id_{wp}_newTuneP".format(wp=wp.lower()), 
+                               ("Muon_NUM_{wp}ID_DEN_TrackerMuons_pair_newTuneP_probe_pt_abseta_{uncer}_2018RunABCD.json".format(wp=wp,uncer=uncer))) 
+                               for wp in ("HighPt","TrkHighPt")for uncer in ("syst", "stat")).items(),
 
-    , "btag_2018_102X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                               else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ]))
-                           for k, v in
-          dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2018.json".format(wp=wp, flav=flav, calib=calib, algo=algo) for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items())
+                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()), 
+                               "Muon_NUM_{isowp}RelIso_DEN_{idwp}_pt_abseta_{uncer}_2018RunABCD.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("Loose", "LooseID"), ("Loose", "MediumID"), ("Loose", "TightIDandIPCut"),  ("Tight", "MediumID"), ("Tight", "TightIDandIPCut")) 
+                                for uncer in ("syst", "stat")).items(),
+                           
+                            dict(("iso_{isowp}_id_{idwp}_newTuneP".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()), 
+                               "Muon_NUM_{isowp}RelTkIso_DEN_{idwp}_pair_newTuneP_probe_pt_abseta_{uncer}_2018RunABCD.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("Loose", "HighPtIDandIPCut"), ("Loose", "TrkHighPtID"), ("Tight", "HighPtIDandIPCut"),  ("Tight", "TrkHighPtID")) 
+                                for uncer in ("syst", "stat")).items() 
+                           
+                           )),
 
-    ###################################    
-    # Single muon trigger 
-    ####################################
-    , "mutrig_2018_102X" : tuple(localize_trigger("{trig}_PtEtaBins_2018AfterMuonHLTUpdate.json".format(trig=trig)) for trig in ("IsoMu24_OR_IsoTkMu24","Mu50_OR_OldMu100_OR_TkMu100" ))
+       "btag_2018_102X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+                            if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in
+
+                            dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2018.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                              for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") 
+                              for algo in ("DeepCSV", "DeepJet") ).items()
+                          ),
+
+    # ------------- Single muon trigger  --------------------
+       "mutrig_2018_102X" : tuple(localize_trigger("{trig}_PtEtaBins_2018AfterMuonHLTUpdate.json".format(trig=trig)) 
+                            for trig in ("IsoMu24_OR_IsoTkMu24","Mu50_OR_OldMu100_OR_TkMu100" ))
             
     }
 
@@ -156,25 +224,25 @@ def METFilter(flags, era):
                 flags.HBHENoiseIsoFilter,
                 flags.EcalDeadCellTriggerPrimitiveFilter,
                 flags.BadPFMuonFilter,
-                flags.ecalBadCalibFilterV2
-                                                                                                                                                                                                                            ]
+                flags.ecalBadCalibFilterV2 ]
+    
     elif era=='2017':
         cuts = [
                 flags.goodVertices,
+                flags.globalSuperTightHalo2016Filter,
                 flags.HBHENoiseFilter,
                 flags.HBHENoiseIsoFilter,
                 flags.EcalDeadCellTriggerPrimitiveFilter,
                 flags.BadPFMuonFilter,
-                flags.ecalBadCalibFilterV2
-        ]
+                flags.ecalBadCalibFilterV2 ]
     else:
         cuts=[
                 flags.goodVertices,
+                flags.globalSuperTightHalo2016Filter,
                 flags.HBHENoiseFilter,
                 flags.HBHENoiseIsoFilter,
                 flags.EcalDeadCellTriggerPrimitiveFilter,
-                flags.BadPFMuonFilter,
-    ]
+                flags.BadPFMuonFilter ]
     return cuts
 
 
@@ -191,12 +259,6 @@ class NanoHtoZA(NanoAODHistoModule):
                             "show-ratio"       : True,
                             "sort-by-yields"   : False,
                             }
-    #    self.passSysts = self.args.systematic
-    #def addArgs(self, parser):
-    #    super(genTtbbPlotter, self).addArgs(parser)
-    #    parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
-
-
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
@@ -241,48 +303,44 @@ class NanoHtoZA(NanoAODHistoModule):
             if self.isMC(sample):
                 jec = "Summer16_07Aug2017_V20_MC"
                 smear="Summer16_25nsV1_MC"
+                jesUncertaintySources=["Total"]
                 
-                configureJets(tree._Jet, "AK4PFchs",
-                    jec="Summer16_07Aug2017_V20_MC",
-                    smear="Summer16_25nsV1_MC",
-                    jesUncertaintySources=["Total"], 
-                    mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
             else:
                 if "2016B" in sample or "2016C" in sample or "2016D" in sample:
                     jec="Summer16_07Aug2017BCD_V11_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Summer16_07Aug2017BCD_V11_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2016E" in sample or "2016F" in sample:
                     jec="Summer16_07Aug2017EF_V11_DATA"
                     
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Summer16_07Aug2017EF_V11_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2016G" in sample or "2016H" in sample:
                     jec="Summer16_07Aug2017GH_V11_DATA"
                     
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Summer16_07Aug2017GH_V11_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-
         elif era == "2017":
+            
             configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2017.txt"), isMC=isMC, backend=be, uName=sample)
-                # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2017
+            
+            # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2017
             triggersPerPrimaryDataset = {
                 "DoubleMuon" : [ tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL,
-                                    tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ],
+                                 tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ,
+                                 tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8,
+                                 #tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8  # Not for era B
+                                 ],
                     
-                "DoubleEG"   : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL ], # loosely isolated
-                                    
-                # it's recommended to not use the DZ  version  for 2017 and 2018, it would be a needless efficiency loss
+                # it's recommended to not use the DoubleEG HLT _ DZ version  for 2017 and 2018, 
+                # using them it would be a needless efficiency loss !
                 #---> https://twiki.cern.ch/twiki/bin/view/CMS/EgHLTRunIISummary
-                "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
-                                    tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ,
-                                    tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ]
+                "DoubleEG"   : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL, # loosely isolated
+                                 tree.HLT.DoubleEle33_CaloIdL_MW],
+                                    
+                "MuonEG"     : [ #tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,  #  Not for Era B
+                                 tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
+                                 
+                                 #tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_v,  # not available for all samples check batch logs in version3
+                                 tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ,
+                                 
+                                 #tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,   # Not for Era B
+                                 tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ ]
             }
             
             if "2017B" not in sample:
@@ -290,15 +348,15 @@ class NanoHtoZA(NanoAODHistoModule):
                         ## removed for 2017B
                         tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,
                         tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL]
-            if "2017B" not in sample and "DYJetsToLL_M-10to50" not in sample:
+            if "2017B" not in sample:
                 triggersPerPrimaryDataset["DoubleMuon"] += [ 
                          ## removed for 2017B
-                         tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8,
                          tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8]
 
             if self.isMC(sample):
                 jec="Fall17_17Nov2017_V32_MC"
                 smear="Fall17_V3_MC"
+                jesUncertaintySources=["Total"]
 
                 configureJets(tree._Jet, "AK4PFchs",
                     jec="Fall17_17Nov2017_V32_MC",
@@ -309,29 +367,14 @@ class NanoHtoZA(NanoAODHistoModule):
                 if "2017B" in sample:
                     jec="Fall17_17Nov2017B_V32_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs", 
-                        jec="Fall17_17Nov2017B_V32_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2017C" in sample:
                     jec="Fall17_17Nov2017C_V32_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs", 
-                            jec="Fall17_17Nov2017C_V32_DATA", 
-                            mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2017D" in sample or "2017E" in sample:
                     jec="Fall17_17Nov2017DE_V32_DATA"
-                    configureJets(tree._Jet, "AK4PFchs", 
-                            jec="Fall17_17Nov2017DE_V32_DATA", 
-                            mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
                 
                 elif "2017F" in sample:
                     jec="Fall17_17Nov2017F_V32_DATA"
-
-                    configureJets(tree._Jet, "AK4PFchs", 
-                            jec="Fall17_17Nov2017F_V32_DATA", 
-                            mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
 
         elif era == "2018":
             configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2018.txt"), isMC=isMC, backend=be, uName=sample)
@@ -340,8 +383,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 "DoubleMuon" : [ tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL,
                                  tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ,
                                  tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8, #  - Unprescaled for the whole year 
-                                 tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 
-                                 ],
+                                 tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 ],
                 "EGamma"     : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL ], 
                 "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,
                                  tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
@@ -353,54 +395,41 @@ class NanoHtoZA(NanoAODHistoModule):
             if self.isMC(sample):
                 jec="Autumn18_V8_MC"
                 smear="Autumn18_V1_MC"
+                jesUncertaintySources=["Total"]
 
-                configureJets(tree._Jet, "AK4PFchs",
-                    jec="Autumn18_V8_MC",
-                    smear="Autumn18_V1_MC",
-                    jesUncertaintySources=["Total"], 
-                    mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
             else:
                 if "2018A" in sample:
                     jec="Autumn18_RunA_V8_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Autumn18_RunA_V8_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2018B" in sample:
                     jec="Autumn18_RunB_V8_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Autumn18_RunB_V8_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2018C" in sample:
                     jec="Autumn18_RunC_V8_DATA"
 
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Autumn18_RunC_V8_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-                
                 elif "2018D" in sample:
                     jec="Autumn18_RunD_V8_DATA"
-
-                    configureJets(tree._Jet, "AK4PFchs",
-                        jec="Autumn18_RunD_V8_DATA", 
-                        mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
+        
         else:
             raise RuntimeError("Unknown era {0}".format(era))
-
-        if self.isMC(sample):
-            noSel = noSel.refine("genWeight", weight=tree.genWeight, cut=op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())))
-        else:
-            noSel = noSel.refine("withTrig", cut=makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset) )
-            
+        ## Configure jets 
+        try:
+            configureJets(tree._Jet, "AK4PFchs", jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
+        except Exception as ex:
+            logger.exception("Problem while configuring jet correction and variations")
         
+        ## Configure MET
         try:
             configureType1MET(getattr(tree, f"_{metName}"), jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
         except Exception as ex:
             logger.exception("Problem while configuring MET correction and variations")
         
+        
+        if self.isMC(sample):
+            noSel = noSel.refine("genWeight", weight=tree.genWeight, cut=op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())))
+        else:
+            noSel = noSel.refine("withTrig", cut=makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset) )
+            
         return tree,noSel,be,lumiArgs
     
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):    
@@ -434,15 +463,14 @@ class NanoHtoZA(NanoAODHistoModule):
         forceDefine(t._Muon.calcProd, noSel)
 
         # Wp // 2016- 2017 -2018 : Muon_mediumId   // https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Muon_Isolation
-        sorted_muons = op.sort(t.Muon, lambda mu : -mu.p4.Pt())
-        muons = op.select(sorted_muons, lambda mu : op.AND(mu.p4.Pt() > 10., op.abs(mu.p4.Eta()) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
+        sorted_muons = op.sort(t.Muon, lambda mu : -mu.pt)
+        muons = op.select(sorted_muons, lambda mu : op.AND(mu.pt > 10., op.abs(mu.eta) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
       
+        # i pass 2016 seprate from 2017 &2018  because SFs need to be combined for BCDEF and GH eras !
         if era=="2016":
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
             muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"), combine="weight", systName="muid")
             muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium"), combine="weight", systName="muiso")
-            #TrkIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "highpt"), combine="weight")
-            #TrkISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "isotrk_loose_idtrk_tightidandipcut"), combine="weight")
         else:
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
             muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"), systName="muid")
@@ -450,8 +478,8 @@ class NanoHtoZA(NanoAODHistoModule):
 
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
-        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.p4.Pt())
-        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.p4.Pt() > 15., op.abs(ele.p4.Eta()) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
+        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.pt)
+        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3 )) # //cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), systName="elid")
         doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")     
@@ -543,7 +571,6 @@ class NanoHtoZA(NanoAODHistoModule):
         corrMET=METcorrection(MET,t.PV,sample,era,self.isMC(sample))
         
         
-        
         #######  select jets  
         ##################################
         #// 2016 - 2017 - 2018   ( j.jetId &2) ->      tight jet ID
@@ -571,7 +598,8 @@ class NanoHtoZA(NanoAODHistoModule):
                    }
         
         bjets = {}
-        WorkingPoints = ["L", "M", "T"]
+        #WorkingPoints = ["L", "M", "T"]
+        WorkingPoints = ["M"]
         for tagger  in btagging.keys():
             bJets_deepflavour ={}
             bJets_deepcsv ={}
@@ -598,7 +626,10 @@ class NanoHtoZA(NanoAODHistoModule):
                                                 additionalVariables=Jet_DeepCSVBDis,
                                                 systName="btagging".format(era))  
                     bjets[tagger]=bJets_deepcsv
-
+        # bjets ={ "DeepFlavour": {"L": jets pass loose  , "M":  jets pass medium  , "T":jets pass tight    }     
+        #           "DeepCSV":    {"L":    ---           , "M":         ---        , "T":   ----            }
+        #        }
+        
         bestDeepFlavourPair={}
         bestDeepCSVPair={}
         bestJetPairs= {}
@@ -617,8 +648,10 @@ class NanoHtoZA(NanoAODHistoModule):
                 JetsPair[0]=firstBest
                 secondBest=ReturnHighestDiscriminatorJet(tagger, wp)[1]
                 JetsPair[1]=secondBest
+        #  bestJetPairs= { 
 
-
+        #                }
+        
         #######  Zmass reconstruction : Opposite Sign , Same Flavour leptons
         ########################################################
         ## Dilepton selection: opposite sign leptons in range 70.<mll<120. GeV 
@@ -627,11 +660,11 @@ class NanoHtoZA(NanoAODHistoModule):
         osLLRng = {
                 "MuMu" : op.combine(muons, N=2, pred=osdilep_Z),
                 "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
-                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.p4.Pt() > mu.p4.Pt() )),
-                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
+                #"ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.pt > mu.pt )),
+                #"MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.pt > ele.pt))
                 }
 
-        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].p4.Pt() > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
+        hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
 
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
@@ -640,8 +673,8 @@ class NanoHtoZA(NanoAODHistoModule):
         
         llSFs = {
             "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll) ]),#,TrkIDSF(ll), TrkISOSF(ll)
-            "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll) ]),
-            "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll) ]),
+            #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll) ]),
+            #"MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll) ]),
             "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), doubleEleTrigSF(ll) ])
             }
         
@@ -658,11 +691,6 @@ class NanoHtoZA(NanoAODHistoModule):
             # plots for: mll, mlljj, mjj, nVX, pT, eta ... 
             plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets, jets, dilepton, channel))
 
-            # x-y correction applied to the MET 
-            METcut=TwoLeptonsTwoJets.refine("TwoLeptonsTwoJets_METcut_{0}".format(channel),
-                                        cut=[ corrMET.pt < 80. ])
-            
-            # TODO pass the different working points for each tagger and make control plots 
             
             for wp in WorkingPoints: 
                 GetBestJetPair(bestDeepCSVPair,"DeepCSV", wp)
@@ -676,15 +704,6 @@ class NanoHtoZA(NanoAODHistoModule):
                 bJets_PassdeepflavourWP=safeget(bjets, "DeepFlavour", wp)
                 bJets_PassdeepcsvWP=safeget(bjets, "DeepCSV", wp)
 
-                TwoLeptonsTwoBjets = {
-                    "DeepFlavour{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepFlavour{0}_{1}".format(wp, channel), 
-                                                                cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
-                                                                weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
-                    "DeepCSV{0}".format(wp): METcut.refine("TwoLeptonsTwoBjets_DeepCSV{0}_{1}".format(wp, channel), 
-                                                            cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
-                                                            weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
-                                    }
-
                 TwoLeptonsTwoBjets_NoMETCut = {
                     "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}".format(wp, channel),
                                                                         cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ],
@@ -692,15 +711,20 @@ class NanoHtoZA(NanoAODHistoModule):
                     "DeepCSV{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepCSV{0}_{1}".format(wp, channel), 
                                                                     cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ],
                                                                     weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
-                                        }
+                                            }
 
+                ## needed to optimize the MET cut 
+                # x-y correction applied to the MET 
+                # The MET cut is passed to TwoLeptonsTwoBjets selection for the # tagger and for the # wp 
+                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
+
+                TwoLeptonsTwoBjets = dict((tagger, selNoMET.refine("TwoLeptonsTwoBjets_{0}{1}_{2}".format(tagger, wp, channel), cut=[ corrMET.pt < 80. ])) for tagger, selNoMET in TwoLeptonsTwoBjets_NoMETCut.items())
                 plots.extend(DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp))
-                plots.extend(MakeControlPlotsForBjetsSel(self, TwoLeptonsTwoBjets, bjets, dilepton, channel, wp))
+                #plots.extend(MakeControlPlotsForBjetsSel(self, TwoLeptonsTwoBjets, bjets, dilepton, channel, wp))
+                
+                #--- plots bjets selection according to the highest  discri for each tagger ...
                 plots.extend(MakeControlPlotsForBestBJetsPair(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton,  channel, wp))
                 
-                ## needed to optimize the MET cut 
-                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
-            
                 ### to get the Ellipses plots  
                 #plots.extend(MakeEllipsesPlots(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton, channel, wp))
         
