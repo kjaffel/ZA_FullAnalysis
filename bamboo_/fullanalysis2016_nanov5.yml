@@ -53,7 +53,7 @@ samples:
     files: dascache/TT_2016.dat
     generated-events: 'genEventSumw'
     cross-section: 730.6  # pb
-    group: ttbar
+    group: Inclusive
     era: '2016'
     split: 4
    
@@ -62,7 +62,7 @@ samples:
     files: dascache/TTTo2L2Nu_2016.dat
     generated-events: 'genEventSumw'
     cross-section:   76.7       # pb
-    group: ttbar
+    group: ttbar_FullLeptonic
     era: '2016'
     split: 4
 ###########   single top
@@ -181,7 +181,7 @@ samples:
     group: SM
     era: '2016'
 
-########## others= VV(except the ZZ) /  VVV / W+Jets / ttbar+V
+  ########## others= VV(except the ZZ) /  VVV / W+Jets / ttbar+V
   WWToLNuQQ:
     db: das:/WWToLNuQQ_13TeV-powheg/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM
     files: dascache/WWToLNu2Q_2016.dat
@@ -197,40 +197,39 @@ samples:
     cross-section: 10.48
     group: others
     era: '2016'
-        ##################
-  #WZTo2L2Q:
-  # db: das:/WZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM 
-  # files: dascache/WZTo2L2Q_2016.dat
-  # generated-events: 'genEventSumw'
-  # cross-section: 5.606    
-  # group: WZ # #TODO should add the WZ samples to the others bkg
-  # era: '2016'
+  
+  WZTo2L2Q:
+    db: das:/WZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM 
+    files: dascache/WZTo2L2Q_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.606    
+    group: others
+    era: '2016'
 
-  #WZTo1L3Nu:
-  # db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
-  # files: dascache/WZTo1L3Nu_2016.dat
-  # generated-events: 'genEventSumw'
-  # cross-section: 3.054
-  # group: WZ  # To be added later
-  # era: '2016'
+  #WZTo1L3Nu:  Not locally
+  #  db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+  #  files: dascache/WZTo1L3Nu_2016.dat
+  #  generated-events: 'genEventSumw'
+  #  cross-section: 3.054
+  #  group: others 
+  #  era: '2016'
 
   #WZ1L1Nu2Q:
-  # db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
-  # files: dascache/WZ1L1Nu2Q_2016.dat
-  # generated-events: 'genEventSumw'
-  # cross-section: 10.73
-  # group: WZ   # To be added
-  # era: '2016'
-
+  #  db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+  #  files: dascache/WZ1L1Nu2Q_2016.dat
+  #  generated-events: 'genEventSumw'
+  #  cross-section: 10.73
+  #  group: others 
+  #  era: '2016'
 
   #WZTo3LNu:
-  #db: das:/WZTo3LNu_TuneCUETP8M1_13TeV-powheg-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM
+  # db: das:/WZTo3LNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
   # files: dascache/WZTo3LNu_2016.dat
   # generated-events: 'genEventSumw'
   # cross-section: 4.43 
-  # group: WZ   # To be added
+  # group: others 
   # era: '2016'
-    ###################
+  
   WWW:
     db: das:/WWW_4F_TuneCUETP8M1_13TeV-amcatnlo-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/WWW_2016.dat
@@ -305,7 +304,8 @@ samples:
 
 ###### era B
   DoubleMuon_2016B:
-    db: das:/DoubleMuon/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    #db: das:/DoubleMuon/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    db: das:[/DoubleMuon/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD, /DoubleMuon/Run2016B_ver1-Nano1June2019_ver1-v1/NANOAOD]
     files: dascache/DoubleMuon_2016B.dat
     group: data
     era: '2016'
@@ -313,7 +313,8 @@ samples:
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
   DoubleEGamma_2016B:
-    db: das:/DoubleEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    #db: das:/DoubleEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    db: das:[/DoubleEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD, /DoubleEG/Run2016B_ver1-Nano1June2019_ver1-v1/NANOAOD]
     files: dascache/DoubleEGamma_2016B.dat
     group: data
     era: '2016'
@@ -321,7 +322,8 @@ samples:
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
   MuonEG_2016B:
-    db: das:/MuonEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    #db: das:/MuonEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD
+    db: das:[/MuonEG/Run2016B_ver2-Nano1June2019_ver2-v1/NANOAOD, /MuonEG/Run2016B_ver1-Nano1June2019_ver1-v1/NANOAOD] 
     files: dascache/MuonEG_2016B.dat
     group: data
     era: '2016'
@@ -483,7 +485,7 @@ plotIt:
   configuration:
     width: 800
     height: 600
-    luminosity-label: '%1$.2f fb^{-1} (13 TeV)'  #TODO
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
     experiment: CMS
     extra-label: 2016Data --Work in progress
     show-overflow: true
@@ -495,8 +497,12 @@ plotIt:
     DY:
       fill-color: "#0000FF" 
       legend: Drell-Yan
+      order: 7
+    Inclusive: 
+      fill-color: "#B20027"
+      legend: Inclusive
       order: 6
-    ttbar:
+    ttbar_FullLeptonic:
       legend: tt Full Lept
       fill-color: "#00ffc7" 
       order: 5
@@ -532,7 +538,7 @@ plotIt:
     - elmutrig
     - mueltrig
       # on the jet btagging
-      #- btagging2016  " something went wrong here to be checked 
+    - btagging2016
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     - ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
     - TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
@@ -562,9 +568,9 @@ plotIt:
     - TTWJetsToQQxsc: {type: const, value: 1.0041802469135803, on: 'TTWJetsToQQ'} #uncer= 0.001693
     - WWTo2L2Nuxsc: {type: const, value: 1.0007983778625955, on: 'WWTo2L2Nu'} # uncer= 0.008367
     - WWToLNuQQxsc: {type: const, value: 1.0007983000229728, on: 'WWToLNuQQ'} # uncer=0.03475
-    #- WZTo2L2Qxsc: {type: const, value: , on: 'WZTo2L2Q'} # uncer= 0.01897
-    #- WZTo1L3Nuxsc: {type: const, value:, on: 'WZTo1L3Nu'} # uncer= 0.01222
-    #- WZ1L1Nu2Qxsc: {type: const, value:, on: 'WZ1L1Nu2Q'} # uncer= 0.01824
-    #- WZTo3LNuxsc: {type: const, value: , on: 'WZTo3LNu'} # uncer= 0.05
+    - WZTo2L2Qxsc: {type: const, value: 1.003383874420264003, on: 'WZTo2L2Q'} # uncer= 0.01897
+    - WZTo1L3Nuxsc: {type: const, value: 1.004001309757694827, on: 'WZTo1L3Nu'} # uncer= 0.01222
+    - WZ1L1Nu2Qxsc: {type: const, value: 1.001699906803355079, on: 'WZ1L1Nu2Q'} # uncer= 0.01824
+    - WZTo3LNuxsc: {type: const, value:  1.011286681715575623, on: 'WZTo3LNu'} # uncer= 0.05
    
 

@@ -42,10 +42,10 @@ def getHisto(path, isBkg, prefix, cat):
         f = ROOT.TFile.Open(filename)
         _files.add(f)
         for j, key in enumerate(f.GetListOfKeys()):
+            tagger= "DeepJetM"   # TODO is to loop over all of them !
             cl = ROOT.gROOT.GetClass(key.GetClassName())
-            #if key.ReadObj().GetName() == "met_pt_{0}_hZA_lljj_deepCSV_btagM_mll_cut".format(cat):
-            #if key.ReadObj().GetName() == "met_pt_{0}_hZA_lljj_btag_DeepCSV_passMedium".format(cat):
-            if key.ReadObj().GetName() == "xycorrmet_pt_{0}_hZA_lljj_btag_DeepCSV_passMedium".format(cat):
+            #if key.ReadObj().GetName() == "met_pt_{0}_hZA_lljj_btag_{1}".format(cat, tagger):
+            if key.ReadObj().GetName() == "xycorrmet_pt_{0}_hZA_lljj_btag_{1}".format(cat, tagger):
                 key.ReadObj().SetDirectory(0)
                 integral = integral + key.ReadObj().Integral()
                 histo_met.Add(key.ReadObj(), 1)

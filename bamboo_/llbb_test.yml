@@ -37,9 +37,9 @@ plotIt:
       order: 1
   systematics:
       # on the jets
-    - jer
-    - jesTotal
+      #- jer
+      #- jesTotal
       # on the lepton id /iso 
-    - muid
-    - muiso
-    - btagging2016
+      #- muid
+      #- muiso
+      #- btagging2016

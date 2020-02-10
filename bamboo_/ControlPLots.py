@@ -57,11 +57,11 @@ def MakeControlPlotsForZpic(self, catSel, dilepton, channel):
     #            title="Distrubtion of the number of the reconstructed vertices", 
     #            xTitle="number of reconstructed vertices "))
         
-    plots.append(Plot.make2D("{0}_Electron_dzdxy".format(channel), 
-                (dilepton[0].dz ,dilepton[0].dxy), catSel, 
-                (EqB(10, 0., 2.),
-                EqB(10, 0., 2.)) ,
-                title="Electron in Barrel/EndCAP region" ))
+    #plots.append(Plot.make2D("{0}_Electron_dzdxy".format(channel), 
+    #            (dilepton[0].dz ,dilepton[0].dxy), catSel, 
+    #            (EqB(10, 0., 2.),
+    #            EqB(10, 0., 2.)) ,
+    #            title="Electron in Barrel/EndCAP region" ))
     
     return plots
 
@@ -131,41 +131,113 @@ def MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets, jets, dilepton, channel
 
 #############
 
-def DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp):
+def DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp, isMC):
 
     plots =[]
     for key in TwoLeptonsTwoBjets.keys():
         
-        tagger=key.replace(wp, "")
-        
+        tagger=key.replace(wp,"")
+
         if tagger == 'DeepCSV':
             discr_1stbest = bestJetPairs[tagger][0].btagDeepB
             discr_2ndbest = bestJetPairs[tagger][1].btagDeepB
-            tag = 'btagDeepB'
-        else:
+            discr = 'btagDeepB'
+        
+        elif tagger=='DeepFlavour':
             discr_1stbest = bestJetPairs[tagger][0].btagDeepFlavB
             discr_2ndbest = bestJetPairs[tagger][1].btagDeepFlavB
-            tag = 'btagDeepFlavB'
-
-        plots.append(Plot.make1D("{0}_{1}{2}_Discriminator_leadingBJet".format(channel, tag, wp), 
+            discr = 'btagDeepFlavB'
+        else:
+            raise RuntimeError("ERROR in getting TwoLeptonsTwoBjets keys !!" )
+        
+        
+        plots.append(Plot.make1D("{0}_{1}{2}_Discriminator_leadingBJet".format(channel, discr, wp), 
                     discr_1stbest, 
                     TwoLeptonsTwoBjets.get(key), 
-                    EqB(10, 0., 1.), 
+                    EqB(100, 0., 1.), 
                     title="{0} Discriminator ".format(key), 
-                    xTitle="{0}{1} discriminant(leading bjet)".format(tag, wp)))
+                    xTitle="{0}{1} discriminant(leading bjet)".format(discr, wp)))
     
-        plots.append(Plot.make1D("{0}_{1}{2}_Discriminator_subleadingBJet".format(channel, tag, wp), 
+        plots.append(Plot.make1D("{0}_{1}{2}_Discriminator_subleadingBJet".format(channel, discr, wp), 
                     discr_2ndbest, 
                     TwoLeptonsTwoBjets.get(key), 
-                    EqB(10, 0., 1.), 
+                    EqB(100, 0., 1.), 
                     title="{0} Discriminator".format(key), 
-                    xTitle="{0}{1} discriminant (sub-leading bjet)".format(tag, wp)))
+                    xTitle="{0}{1} discriminant (sub-leading bjet)".format(discr, wp)))
             
-        plots.append(Plot.make2D("{0}_1st_vs_2nd_leadingBJet_discriminant_{1}{2}".format(channel, tag, wp),
+        plots.append(Plot.make2D("{0}_1st_vs_2nd_leadingBJet_discriminant_{1}{2}".format(channel, discr, wp),
                     (discr_1stbest, discr_2ndbest),
                     TwoLeptonsTwoBjets.get(key), 
-                    (EqB(10, 0., 1.), EqB(10, 0., 1.)),
-                    title="{0}{1} discriminant 1st vs 2nd leading bjets".format(tag, wp)))
+                    (EqB(100, 0., 1.), EqB(100, 0., 1.)),
+                    title="{0}{1} discriminant 1st vs 2nd leading bjets".format(discr, wp)))
+        
+        if isMC:
+
+            sel_leadingB = TwoLeptonsTwoBjets.get(key).refine(..., cut=(bestJetPairs[tagger][0].hadronFlavour == 5))
+            sel_leadingC = TwoLeptonsTwoBjets.get(key).refine(..., cut=(bestJetPairs[tagger][0].hadronFlavour == 4))
+            sel_leadingLight = TwoLeptonsTwoBjets.get(key).refine(..., cut=(bestJetPairs[tagger][0].hadronFlavour == 0))
+
+
+            hadronFlavour_leading = bestJetPairs[tagger][0].hadronFlavour if isMC else op.c_int(9)
+
+
+            bFlav_LeadingJets= op.select(bestJetPairs[tagger][0], lambda j: j.hadronFlavour == 5)
+            cFlav_LeadingJets = op.select(bestJetPairs[tagger][0], lambda j: j.hadronFlavour == 4)
+            lFlav_LeadingJets = op.select(bestJetPairs[tagger][0], lambda j: j.hadronFlavour == 0)
+            
+            Pass_bFlav0 = (Plot.make1D("{0}_{1}_{2}_bFlav_taggedb_0".format(channel, discr, wp),
+                                    bFlav_LeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass bFlav",
+                                    xTitle="Pass bFlav"))
+            
+            Pass_cFlav0 = (Plot.make1D("{0}_{1}_{2}_cFlav_mistagged_bFlav_0".format(channel, discr, wp),
+                                    cFlav_LeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass cFlav",
+                                    xTitle="Pass cFlav"))
+            
+            Pass_lFlav0 = (Plot.make1D("{0}_{1}_{2}_lFlav_mistagged_bFlav_0".format(channel, discr, wp),
+                                    lFlav_LeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass lFlav",
+                                    xTitle="Pass lFlav"))
+            
+            plots.append(SummedPlot("{0}_Discriminator_splitbyJetsFlavour_leadingBJets{1}".format(channel, key),
+                        [Pass_bFlav0, Pass_cFlav0, Pass_lFlav0],
+                        xTitle="Discriminator {0}".format(key)))
+            
+            bFlav_SubLeadingJets= op.select(bestJetPairs[tagger][1], lambda j: j.hadronFlavour == 5)   # b
+            cFlav_SubLeadingJets = op.select(bestJetPairs[tagger][1], lambda j: j.hadronFlavour == 4)  # c
+            lFlav_SubLeadingJets = op.select(bestJetPairs[tagger][1], lambda j: j.hadronFlavour == 0)  # udsg
+            
+            Pass_bFlav1 = (Plot.make1D("{0}_{1}_{2}_bFlav_taggedb_1".format(channel, discr, wp),
+                                    bFlav_SubLeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass bFlav",
+                                    xTitle="Pass bFlav"))
+            
+            Pass_cFlav1 = (Plot.make1D("{0}_{1}_{2}_cFlav_mistagged_bFlav_1".format(channel, discr, wp),
+                                    cFlav_SubLeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass cFlav",
+                                    xTitle="Pass cFlav"))
+            
+            Pass_lFlav1 = (Plot.make1D("{0}_{1}_{2}_lFlav_mistagged_bFlav_1".format(channel, discr, wp),
+                                    lFlav_SubLeadingJets,
+                                    TwoLeptonsTwoBjets.get(key),
+                                    EqB(100, 0., 1.),
+                                    title="Pass lFlav",
+                                    xTitle="Pass lFlav"))
+        
+            plots.append(SummedPlot("{0}_Discriminator_splitbyJetsFlavour_subleadingBJets{1}".format(channel, key),
+                        [Pass_bFlav1, Pass_cFlav1, Pass_lFlav1],
+                        xTitle="Discriminator {0}".format(key)))
         
     return plots
 
@@ -256,7 +328,6 @@ def MakeControlPlotsForBestBJetsPair(self, TwoLeptonsTwoBjets, bestJetPairs, dil
 
     plots =[]
     for key in TwoLeptonsTwoBjets.keys():
-        
         tagger= key.replace(wp, "")
         
         plots.append(Plot.make1D("{0}_Jet_leading_pT_wrt_{1}_Discriminator".format(channel, key), 

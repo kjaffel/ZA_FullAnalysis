@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from glob import glob
-from pyPdf import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfFileReader, PdfFileWriter
+#from pyPdf import PdfFileReader, PdfFileWriter
 import os
 
 def merge(path, output_filename):

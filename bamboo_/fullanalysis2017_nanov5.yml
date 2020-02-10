@@ -3,7 +3,7 @@ eras:
   '2017':
     #https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM
     luminosity: 41529.152060112 #pb
-    luminosity-error: 0.023     #pb
+    luminosity-error: 0.023     
 samples:
   DYJetsToLL_M-10to50:
     db: das:/DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -43,14 +43,14 @@ samples:
     split: 4
 
 ######## ttbar 
-#TTHadronic:
-#    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
-#    files: dascache/TTHadronic_2017.dat
-#    generated-events: 'genEventSumw'
-#    cross-section: 687.1  # pb  # uncer= 0.5174 pb
-#    group: ttbar_FullHadronic
-#    era: '2017'
-#    split: 4
+  TTHadronic:
+    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTHadronic_2017.dat
+    generated-events: 'genEventSumw'
+    cross-section: 687.1  # pb  # uncer= 0.5174 pb
+    group: ttbar_FullHadronic
+    era: '2017'
+    split: 4
    
   TTTo2L2Nu:
     db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -61,6 +61,14 @@ samples:
     era: '2017'
     split: 4
 
+  TTToSemiLeptonic:   # TODO CHECK if it's better to use PSweights : /TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8 !
+    db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/TTToSemiLeptonic_2017.dat
+    generated-events: 'genEventSumw' 
+    cross-section:  365.34 # +- +4.8%-6.1%  pb
+    group: ttbar_SemiLeptonic
+    era: '2017'
+    split: 4
 ###########   single top
   ST_tW_top_5f:
     db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -144,7 +152,7 @@ samples:
     era: '2017'
     split: 4
 
-  #ZH_HToBB_ZToLL: 
+  #ZH_HToBB_ZToLL:
   #  db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
   #  files: dascache/ZH_HToBB_ZToLL_2017.dat
   #  generated-events: 'genEventSumw'
@@ -181,7 +189,7 @@ samples:
     era: '2017'
     split: 4
 
-########## VV(except the ZZ) //  VVV / W+Jets / ttbar+V
+    ########## other bkgs: VV(except the ZZ) +  VVV +  W+Jets + ttbar+V
   WWToLNuQQ:
     db: das:/WWToLNuQQ_NNPDF31_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
     files: dascache/WWToLNuQQ_2017.dat
@@ -226,6 +234,15 @@ samples:
     group: others
     era: '2017'
     split: 4
+
+
+  WZTo3LNu:
+    db: das:/WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZTo3LNu_2017.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.052    #  uncer = 0.0175 pb 
+    group: others
+    era: '2017'
 
   WWW:
     db: das:/WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -432,6 +449,9 @@ samples:
     era: '2017'
     run_range:  [305040, 306462]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON.txt
+
+
+
 plotIt:
   configuration:
     width: 800
@@ -448,14 +468,18 @@ plotIt:
     DY:
       fill-color: "#0000FF" 
       legend: Drell-Yan
-      order: 7
+      order: 8
     ttbar_FullLeptonic:
       legend: tt Full Leptonic
       fill-color: "#00624d" 
-      order: 6
+      order: 7
     ttbar_FullHadronic:
       legend: tt Full Hadronic
       fill-color: "#00ffc7" 
+      order: 6
+    ttbar_SemiLeptonic:
+      legend: tt Semi Leptonic
+      fill-color: "#8e0a19"
       order: 5
     ST:
       fill-color: "#ffc800"    
@@ -489,28 +513,35 @@ plotIt:
     - elmutrig
     - mueltrig
     # on the jet btagging
-    #- btagging2017
-    # on the cross section            
-    #- ttHadronicxsc: {type: const, value: 1.0007530199388735263 , on: 'TTHadronic'} # uncer= 0.5174 pb    ---> ok 
+    - btagging2017
+    # on the cross section
+    # --- ttbar 
+    - TTHadronicxsc: {type: const, value: 1.0007530199388735263 , on: 'TTHadronic'} # uncer= 0.5174 pb    ---> ok 
     #- TTTo2L2Nuxsc: {type: const, value: , on: 'TTTo2L2Nu'} # uncer= +4.8%-6.1%
+    #- TTToSemiLeptonicxsc: {type: const, value: , on: 'TTToSemiLeptonicxsc'} # uncer= +4.8%-6.1% 
+    # ---- DY 
     - DYJetsToLLxsc: {type: const, value: 1.00036457938013915244, on: 'DYJetsToLL_M-10to50'}  #uncer= 5.764 pb
     - DYJetsToLL_0Jxsc: {type: const, value: 1.0010982377202849642, on: 'DYJetsToLL_0J'} # +-5.858e+00
     - DYJetsToLL_1Jxsc: {type: const, value: 1.0024989617940199336, on: 'DYJetsToLL_1J'} # +- 2.407e+00
     - DYJetsToLL_2Jxsc: {type: const, value: 1.004286896551724138, on: 'DYJetsToLL_2J'} # +- 1.554e+00
+    # ----- ST 
     - ST_s-channel_4fxsc: {type: const, value: 1.0009446524064172, on: 'ST_s-channel_4f'}   # uncer= 0.003533 pb
     - ST_tW_top_5fxsc: {type: const, value: 1.000806932111143 , on: 'ST_tW_top_5f'}   # uncer= 0.02817 pb
     - ST_tW_antitop_5fxsc: {type: const, value: 1.0008084072061767, on: 'ST_tW_antitop_5f'}  # uncer = 0.02827 pb
     - ST_t-channel_antitop_4fxsc: {type: const, value: 1.005134737152113, on: 'ST_tchannel_antitop_4f'} # uncer= 0.3487 pb
     - ST_t-channel_antitop_4fxsc: {type: const, value: 1.0056522506619594, on: 'ST_tchannel_top_4f'} # uncer=  0.6404  pb
+    # ----- ZZ 
     - ZZTo2L2Nuxsc: {type: const, value: 1.0004762579730688, on: 'ZZTo2L2Nu'} # uncer= 0.0002688 pb
     - ZZTo2L2Qxsc: {type: const, value: 1.0015211049037864, on: 'ZZTo2L2Q'} # uncer = 0.004901 pb
     - ZZTo4Lxsc: {type: const, value: 1.0018081210191083, on: 'ZZTo4L'}  # uncer = 0.002271   pb
+    # ----- SM
     - HZJ_HToWWxsc: {type: const, value: 1.0048418394471026 , on: 'HZJ_HToWW'} # uncer= 0.003643 pb
-    #- ZH_HToBB_ZToLLxsc: {type: const, value: 1.0041712082945633, on: 'ZH_HToBB_ZToLL'}  # uncer= 0.0003138 pb
+    - ZH_HToBB_ZToLLxsc: {type: const, value: 1.0041712082945633, on: 'ZH_HToBB_ZToLL'}  # uncer= 0.0003138 pb
     - ggZH_HToBB_ZToLLxsc: {type: const, value: 1.0011125970664365, on: 'ggZH_HToBB_ZToLL'}  # uncer= 7.737e-06  pb
     - ttHTobbxsc: {type: const, value: 1.007276523059404, on: 'ttHTobb'}  # uncer = 0.003834 pb
     - ttHToNonbbxsc: {type: const, value: 1.050638524299397 , on: 'ttHToNonbb'}  # uncer= 0.02855 pb
-    - ZZZxsc: {type: const, value: 1.0010701001430615, on: 'ZZZ'}  # uncer = 1.496e-05     pb
+    # ------- other bkgs 
+    - ZZZxsc: {type: const, value: 1.0010701001430615, on: 'ZZZ'}  # uncer = 1.496e-05 pb
     - WWWxsc: {type: const, value: 1.0009702780441037, on: 'WWW'}  # uncer= 0.0002024 pb
     - WWZxsc: {type: const, value: 1.0010442156268928, on: 'WWZ'}  # uncer = 0.0001724 pb
     - WZZxsc: {type: const, value: 1.003934191702432 , on: 'WZZ'}  # # uncer = 5.5e-05 pb
@@ -521,7 +552,7 @@ plotIt:
     - TTWJetsToQQxsc: {type: const, value: 1.0038415199258572, on: 'TTWJetsToQQ'}  # uncer= 0.001658 pb
     #- WWTo2L2Nuxsc: {type: const, value: , on: 'WWTo2L2Nu'} xsc taken from Alessia paper no idea about the uncer
     - WWToLNuQQxsc: {type: const, value: 1.0006370950206567 , on: 'WWToLNuQQ'} # uncer= 0.293 pb
-    - WZ1L1Nu2Qxsc: {type: const, value: 1.0016999068033552, on: 'WZ1L1Nu2Q'} #  uncer = 0.01824  pb
+    - WZTo1L1Nu2Qxsc: {type: const, value: 1.0016999068033552, on: 'WZTo1L1Nu2Q'} #  uncer = 0.01824  pb
     - WZTo2L2Qxsc: {type: const, value: 1.003383874420264 , on: 'WZTo2L2Q'}  # uncer= 0.01897 pb
     - WZTo1L3Nuxsc: {type: const, value: 1.0040013097576947, on: 'WZTo2L2Q'}  # uncer= 0.01222 pb
-    #- WWTo3LNuxsc: {type: const, value: , on: 'WWTo3LNu'}
+    - WZTo3LNuxsc: {type: const, value: 1.0034639746634996045, on: 'WZTo3LNu'}   # uncer= +-0.0175  

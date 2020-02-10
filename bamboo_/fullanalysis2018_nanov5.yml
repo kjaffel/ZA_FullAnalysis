@@ -50,15 +50,23 @@ samples:
 
 ######## ttbar
 #TTHadronic:
-#    db: das:[/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19-v1/NANOAODSIM,
-#    /TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext2-v1/NANOAODSIM]
+#    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19-v1/NANOAODSIM
 #    files: dascache/TTHadronic_2018.dat
 #    generated-events: 'genEventSumw'
-#    cross-section:         # pb
+#    cross-section: 687.1  # pb  # uncer= 0.5174 pb
 #    group: ttbar_FullHadronic
 #    era: '2018'
 #    split: 4
-   
+
+  TTToSemiLeptonic:
+    db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19-v1/NANOAODSIM
+    files: dascache/TTToSemiLeptonic_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  365.34 # +- +4.8%-6.1%  pb
+    group: ttbar_SemiLeptonic
+    era: '2018'
+    split: 4
+
   TTTo2L2Nu:
     db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19-v1/NANOAODSIM
     files: dascache/TTTo2L2Nu_2018.dat
@@ -67,17 +75,20 @@ samples:
     group: ttbar_FullLeptonic
     era: '2018'
     split: 4
-###########   single top  they should be NoFullyHadronicDecays TODO
-  ST_tW_top_5f:
-    db: das:/ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
+
+###########    ext2 not found locally
+  ST_tW_top_5f:  
+    #db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext2-v1/NANOAODSIM
+    db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
     files: dascache/ST_tWtop_5f_2018.dat
     generated-events: 'genEventSumw'
     cross-section:  34.91 # pb +- 0.02817
     group: ST
     era: '2018'
 
-  ST_tW_antitop_5f:   # NoFullyHadronicDecays  # TODO
-    db: das:/ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
+  ST_tW_antitop_5f:   
+    #db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext2-v1/NANOAODSIM
+    db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
     files: dascache/ST_tWantitop_5f_2018.dat
     generated-events: 'genEventSumw'
     cross-section:    34.97 # pb +- 0.02827
@@ -224,7 +235,14 @@ samples:
     cross-section: 10.73   #  uncer = 0.01824  pb
     group: others
     era: '2018'
-
+        
+  WZTo3LNu:
+    db: das:/WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    files: dascache/WZTo3LNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.052    #  uncer = 0.0175 pb
+    group: others
+    era: '2018'
 
   WWW:
     db: das:/WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
@@ -414,14 +432,18 @@ plotIt:
     DY:
       fill-color: "#0000FF" 
       legend: Drell-Yan
-      order: 7
+      order: 8
     ttbar_FullLeptonic:
       legend: tt Full Leptonic
       fill-color: "#00624d" 
+      order: 7
+    ttbar_SemiLeptonic:
+      legend: tt SemiLeptonic
+      fill-color: "#620046" 
       order: 6
     ttbar_FullHadronic:
       legend: tt Full Hadronic
-      fill-color: "#00ffc7" 
+      fill-color: "#358f9a"
       order: 5
     ST:
       fill-color: "#ffc800"    
@@ -455,28 +477,34 @@ plotIt:
     - elmutrig
     - mueltrig
       # on the btagging
-      #- btagging2018   
+    - btagging2018   
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
-    #- tthadronicxsc: {type: const, value: , on: 'TTHadronic'}   # uncer=
+    - TTHadronicxsc: {type: const, value: 1.0007530199388735263, on: 'TTHadronic'} # uncer= 0.5174 pb 
     - TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= +4.8%-6.1% 
+    #- TTToSemiLeptonicxsc: {type: const, value: , on: 'TTToSemiLeptonicxsc'} # uncer= +4.8%-6.1% 
+    #--- DY
     - DYJetsToLL_M-10to50xsc: {type: const, value: 1.00036457938013915244, on: 'DYJetsToLL_M-10to50'}    # uncer= 5.764
     - DYToLL_0Jxsc: {type: const, value: 1.0010982377202849642, on: 'DYJetsToLL_0J'} # uncer= 5.858 pb
     - DYToLL_1Jxsc: {type: const, value: 1.0024989617940199336, on: 'DYJetsToLL_1J'} # uncer= 2.407 pb
     - DYToLL_2Jxsc: {type: const, value: 1.004286896551724138, on: 'DYJetsToLL_2J'}   # uncer=  1.554 pb 
+    #----- ST
     - ST_t-channel_antitop_4fxsc: {type: const, value: 1.005134737152113, on: 'ST_tchannel_antitop_4f'} # uncer= 0.3487 pb
     - ST_t-channel_top_4fxsc: {type: const, value: 1.0056522506619594, on: 'ST_tchannel_top_4f'} # uncer=  0.6404  pb
     - ST_s-channel_4fxsc: {type: const, value: 1.0009446524064171122, on: 'ST_schannel_4f'} # uncer = 0.003533
     - ST_tW_top_5fxsc: {type: const, value: 1.000806932111142939, on: 'ST_tW_top_5f'}  # uncer=0.02817
     - ST_tW_antitop_5fxsc: {type: const, value: 1.000808407206176723, on: 'ST_tW_antitop_5f'} # uncer= 0.02827
+    # ---- ZZ
     - ZZTo2L2Nuxsc: {type: const, value: 1.0004762579730688, on: 'ZZTo2L2Nu'} # uncer= 0.0002688
     - ZZTo2L2Qxsc: {type: const, value: 1.0015211049037864, on: 'ZZTo2L2Q'} # uncer= 0.004901
     - ZZTo4Lxsc: {type: const, value: 1.00047625797306874554, on: 'ZZTo4L'} # uncer= 0.0002688
+    # ---- SM
     - HZJ_HToWWxsc: {type: const, value: 1.0048418394471026, on: 'HZJ_HToWW'} # uncer= 0.003643
     - ZH_HToBB_ZToLLxsc: {type: const, value: 1.004171208294563338, on: 'ZH_HToBB_ZToLL'} # uncer=0.0003138 
     - ggZH_HToBB_ZToLLxsc: {type: const, value: 1.0011125970664365, on: 'ggZH_HToBB_ZToLL'} # uncer= 7.737e-06
     - ggZH_HToBB_ZToNuNuxsc: {type: const, value: 1.0011136198106336, on: 'ggZH_HToBB_ZToNuNu'} # uncer= 1.529e-05
     - ttHTobbxsc: {type: const, value: 1.0072765230594040615, on: 'ttHTobb'} # uncer= 0.003834
     - ttHToNonbbxsc: {type: const, value: 1.050638524299397, on: 'ttHToNonbb'}  # uncer= 0.02855
+    #  others 
     - ZZZxsc: {type: const, value: 1.0010701001430615, on: 'ZZZ'} # uncer= 1.496e-05
     - WWWxsc: {type: const, value: 1.0009702780441037, on: 'WWW'} # uncer= 0.0002024
     - WWZxsc: {type: const, value: 1.0010442156268928, on: 'WWZ'} # uncer= 0.0001724
@@ -488,4 +516,9 @@ plotIt:
     - TTWJetsToQQxsc: {type: const, value: 1.0038415199258572752, on: 'TTWJetsToQQ'} #uncer= 0.001658
     #- WWTo2L2Nuxsc: {type: const, value: , on: 'WWTo2L2Nu'} # uncer= taken from Alessia no info about uncer ! 
     - WWToLNuQQxsc: {type: const, value: 1.0006370950206566645, on: 'WWToLNuQQ'} # uncer= 0.0293
+    - WZTo1L1Nu2Qxsc: {type: const, value: 1.0016999068033552, on: 'WZTo1L1Nu2Q'} #  uncer = 0.01824  pb  !!!!!!!!!!!
     - WZTo2L2Qxsc: {type: const, value: 1.003383874420264003, on: 'WZTo2L2Q'} # uncer= 0.01897
+    - WZTo1L3Nuxsc: {type: const, value: 1.0040013097576947, on: 'WZTo1L3Nu'}  # uncer= 0.01222 pb
+    - WZTo3LNuxsc: {type: const, value: 1.0034639746634996045, on: 'WZTo3LNu'}   # uncer= +-0.0175  
+
+
