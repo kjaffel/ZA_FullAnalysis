@@ -512,6 +512,10 @@ plotIt:
     - mumutrig
     - elmutrig
     - mueltrig
+    # sys from theory  
+    - qcdScale
+    - psISR
+    - psFSR
     # on the jet btagging
     - btagging2017
     # on the cross section
