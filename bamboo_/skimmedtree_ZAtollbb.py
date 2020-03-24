@@ -1,101 +1,156 @@
+import sys
+import argparse
 
 from bamboo.analysismodules import  NanoAODSkimmerModule
 from bamboo import treefunctions as op
 
-import sys
 sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
-from ZAtollbb7 import NanoHtoZA
+from ZAtollbb_PreSelection import NanoHtoZABase, safeget
 
-
-class Skimedtree_NanoHtoZA(NanoAODSkimmerModule):
+class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
     def __init__(self, args):
         super(Skimedtree_NanoHtoZA, self).__init__(args)
+
+        self.SetSel = self.args.selections
+        self.SetRegion = self.args.regions
+        self.SetCat = self.args.categories
+        self.SetTagger = self.args.taggers
+        self.SetWP = self.args.workingpoints
     
-    def defineSkimSelection(self, tree, noSel, sample=None, sampleCfg=None):
+    def addArgs(self, parser):
+        super(Skimedtree_NanoHtoZA, self).addArgs(parser)
+        parser.add_argument("-sel", "--selections",    default=None, help="set Final Selection")
+        parser.add_argument("-reg", "--regions",       default=None, help="Produce ntuples in Boosted or resolved region")
+        parser.add_argument("-cat", "--categories",    default=None, help="Produce ntuples in ElEl or MuMu channel")
+        parser.add_argument("-Tag", "--taggers",       default=None, help="Set tagger for b-jet identification")
+        parser.add_argument("-wp",  "--workingpoints", default=None, help="Setting Working point is mandatory")
+    
+    def defineSkimSelection(self, t, noSel, sample=None, sampleCfg=None):
+        noSel, PUWeight, corrMET, muons, electrons, AK4jets, AK8jets, bjets_resolved, bjets_boosted, categories, TwoLeptonsTwoJets_Resolved, TwoLeptonsTwoJets_Boosted, TwoLeptonsTwoBjets_Res, TwoLeptonsTwoBjets_Boo, TwoLeptonsTwoBjets_NoMETCut_Res, TwoLeptonsTwoBjets_NoMETCut_Boo, WorkingPoints = self.defineObjects(t, noSel, sample, sampleCfg)
+
         era = sampleCfg["era"]
+        isMC = self.isMC(sample)
+        
+        if self.SetSel not in [ "noSel", "catSel", "2Lep2Jets", "2Lep2bJets"]:
+            print ('[Skimedtree_NanoHtoZA]: %s Unkown selection ' %self.SetSel)
+            sys.exit(0)
+
+        if self.SetRegion not in ["boosted", "resolved"]:
+            print ( ' Region of studies should be : boosted or resolved ! ' )
+            sys.exit(0)
+        
+        if self.SetRegion=="boosted":
+            self.SetTagger = "DeepCSV" # FIXME add later DeepDoubleB 
+        else:
+            if self.SetTagger not in ["DeepFlavour", "DeepCSV"]:
+                print ('[Skimedtree_NanoHtoZA]: %s Unknown tagger for resolved region' %self.SetTagger)
+                sys.exit(0)
+
+        if self.SetCat not in categories.keys():
+            print ('[Skimedtree_NanoHtoZA] channel %s not found in categories' % self.SetCat)
+            print ('Available channel are :')
+            print (categories.keys())
+            sys.exit(0)
+        
+        if self.SetWP is None:
+            print ('[Skimedtree_NanoHtoZA]: WP is MANDATORY, this is the working point as defined in the ZAtollbb_PreSelection.py')
+            sys.exit(0)
+    
+        if self.SetWP not in WorkingPoints:
+            print ('[Skimedtree_NanoHtoZA] WP %s not found in working points definitions' % self.SetWP)
+            print ('  --> define in settings first')
+            print ('  In settings I found WPs: ')
+            print (WorkingPoints)
+            sys.exit(1)
+        
+        key = self.SetTagger + self.SetWP
+        if self.SetRegion== "resolved":
+            jets= AK4jets
+            bjets= bjets_resolved
+            suffix = "AK4Jets"
+        elif self.SetRegion=="boosted":
+            jets= AK8jets
+            bjets= bjets_boosted
+            suffix= "AK8Jets"
+        else:
+            raise RuntimeError('ERROR : %s Unkown args' %self.SetRegion)
         
         #variables to keep from the input tree
         varsToKeep = {"run": None, "luminosityBlock": None, "event": None}
-
-        ## Muons selection 
-        sorted_muons=op.sort(t.Muon, lambda mu : -mu.p4.Pt())
-        muons = op.select(sorted_muons, lambda mu : op.AND(mu.p4.Pt() > 10., op.abs(mu.p4.Eta()) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15))
-        varsToKeep["nMuons"] = op.static_cast("UInt_t", op.rng_len(muons)) ## TBranch doesn't accept size_t
         
-        ## Electrons selection
-        sorted_electrons=op.sort(t.Electron, lambda ele : -ele.p4.Pt())
-        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.p4.Pt() > 15., op.abs(ele.p4.Eta()) < 2.5 , ele.cutBased>=3 )) 
-        varsToKeep["nElectrons"]= op.static_cast("UInt_t", op.rng_len(electrons)) 
+        if isMC:
+            varsToKeep["MC_weight"] = t.genWeight
+            varsToKeep["PU_weight"] = PUWeight
+        
+        if self.SetSel=="noSel":
+            FinalSel= noSel
+            # Muons && Electrons selections
+            for obj, flav in zip ([muons, electrons], ["Muons", "Electrons"]):
+                varsToKeep["n%s"    %flav] = op.static_cast("UInt_t",op.rng_len(obj))
+                varsToKeep["%s_pt"  %flav] = op.map(obj, lambda lep: lep.pt)
+                varsToKeep["%s_eta" %flav] = op.map(obj, lambda lep: lep.eta)
+                varsToKeep["%s_phi" %flav] = op.map(obj, lambda lep: lep.phi)
+        
+            # resolved or boosted 
+                ### Jets selections
+            varsToKeep["%s_pt"  %suffix] = op.map(jets, lambda j: j.pt)
+            varsToKeep["%s_eta" %suffix] = op.map(jets, lambda j: j.eta)
+            varsToKeep["%s_phi" %suffix] = op.map(jets, lambda j: j.phi)
+            varsToKeep["n%s"    %suffix] = op.static_cast("UInt_t",op.rng_len(jets))    
+        
+            # MET selections
+            varsToKeep["CorrMET_pt"]  = corrMET.pt
+            varsToKeep["CorrMET_phi"] = corrMET.phi
+
+        
+        for channel, (dilepton, catSel) in categories.items():
             
-        ## Opposite sign dilepton selection 
-        osdilep_Z = lambda l1,l2 : op.AND(l1.charge != l2.charge, op.in_range(70., op.invariant_mass(l1.p4, l2.p4), 120.))
-        leptonchannels = {
-                "MuMu" : op.combine(muons, N=2, pred=osdilep_Z),
-                "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
-                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(osdilep_Z(ele,mu), ele.p4.Pt() > mu.p4.Pt() )),
-                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(osdilep_Z(mu,ele), mu.p4.Pt() > ele.p4.Pt()))
-                }
-
-        TwocombinedOSlepton = lambda combine_rng : op.AND(op.rng_len(combine_rng) > 0, combine_rng[0][0].p4.Pt() > 25.)  # lepton: pT[0]> 25 GeV , pT[1]>10 GeV
-        hasOSdilepton = noSel.refine("hasOSLL", cut=op.OR(*( TwocombinedOSlepton(rng) for rng in leptonchannels.values())))
-
-        categories = dict((channel, (cut_perchannel[0], hasOSdilepton.refine("hasOS{0}".format(channel), 
-                                    cut=TwocombinedOSlepton(cut_perchannel), 
-                                    weight=(llSFs[channel](cut_perchannel[0]) if isMC else None))))
-                                    for channel, cut_perchannel in leptonchannels.items())
-        
-        
-        #hasTwoMuons = noSel.refine("hasTwoMu", cut=( op.AND( muons[0].p4.Pt() >20. , op.rng_len(muons) >= 2)))
-        #hasTwoElectrons = noSel.refine("hasTwoEl", cut=( op.AND( electrons[0].p4.Pt()> 25., op.rng_len(electrons) >= 2)))
-        
-        jet1_p4= jets[0].p4
-        jet2_p4= jets[1].p4
-        #lep1_p4= 
-        #lep2_p4=
-        #lep1_charge=
-        #lep2_charge=
-
-        ## Two OS Leptons _ Two Jets  selection
-        lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
-        jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
-
-        ll_M=op.invariant_mass(dilepton[0].p4, dilepton[1].p4)
-
-        llbb_M= (dilepton[0].p4 +dilepton[1].p4+bjets[tagger][0].p4+bjets[tagger][1].p4).M()
-        bb_M=op.invariant_mass(bjets[tagger][0].p4+bjets[tagger][1].p4)
-
-        #met_pt=
-        #met_phi=
-        
-        #sample_weight=
-        #event_weight=
-        #total_weight=
-        #cross_section=
+            ### Opposite sign leptons , Same Flavour  selection 
+            if self.SetSel=="catSel":
+                FinalSel= catSel
+                for i in range(2):
+                    varsToKeep["lep{0}_pt_{1}".format(i, self.SetCat)]  = dilepton[i].p4.pt
+                    varsToKeep["lep{0}_eta_{1}".format(i, self.SetCat)] = dilepton[i].p4.eta
+                    varsToKeep["lep{0}_phi_{1}".format(i, self.SetCat)] = dilepton[i].p4.phi
+                ll_M   = op.invariant_mass(dilepton[0].p4, dilepton[1].p4)
+                varsToKeep["ll_M_{0}".format(channel)]  = ll_M
+            
+            
+            # boosted or resolved 
+                ### Two OS SF Leptons _ Two Jets  selection
+            elif self.SetSel=="2Lep2Jets":
+                if self.SetRegion=="resolved": 
+                    FinalSel = TwoLeptonsTwoJets_Resolved.get(key)
+                elif self.SetRegion=="boosted":
+                    FinaSel= TwoLeptonsTwoJets_Boosted.get(key) 
+                
+                lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
+                jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
+                varsToKeep["lljj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= lljj_M
+                varsToKeep["jj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]  = jj_M
+                
+                varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
+            
+                ### Two OS SF Leptons _ Two bJets  selection +MET cut (xy corr applied too )
+            elif self.SetSel=="2Lep2bJets":
+                bJets = safeget(bjets, self.SetTagger, self.SetWP)
+                if self.SetRegion=="resolved":
+                    FinalSel = TwoLeptonsTwoBjets_Res.get(key)
+                elif self.SetRegion=="boosted":
+                    FinalSel = TwoLeptonsTwoBjets_Boo.get(key)
     
-        
-        ## Jets selection
-        sorted_jets = op.sort(t.Jet, lambda j : -j.p4.Pt())
-        jets = op.select(sorted_jets, lambda j : op.AND(j.p4.Pt() > 20., op.abs(j.p4.Eta())< 2.4, (j.jetId &2)))
-        jetsSel = op.select(jets, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
-        
-        varsToKeep["nJets"] = op.static_cast("UInt_t", op.rng_len(jetsSel)) 
-        varsToKeep["jets_pt"] = op.map(jets, lambda j: j.pt)
-        varsToKeep["jets_eta"] = op.map(jets, lambda j: j.eta)
-        
-        for wp in WorkingPoints: 
-            bJets_PassdeepflavourWP=safeget(bjets, "DeepFlavour", wp)
-            bJets_PassdeepcsvWP=safeget(bjets, "DeepCSV", wp)
+                llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
+                bb_M= op.invariant_mass(bJets[0].p4+bJets[1].p4)
+                varsToKeep["llbb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= llbb_M
+                varsToKeep["bb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= bb_M
+                    
+                varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
+            else:
+                raise RuntimeError('ERROR : %s  in selection args' %self.SetSel)
+            
+            #sample_weight=
+            #event_weight=
+            #total_weight=
+            #cross_section=
 
-            varsToKeep["nBJets_deepFlav{0}".format(wp)] = op.static_cast("UInt_t", op.rng_len(bJets_PassdeepflavourWP))
-            varsToKeep["nBJets_deepCSV{0}".format(wp)] = op.static_cast("UInt_t", op.rng_len(bJets_PassdeepcsvWP))
-                                  
-
-        
-        
-        
-        #varsToKeep["lljj_M"] =
-
-
-        varsToKeep["selMu_miniPFRelIsoNeu"] = op.map(muons, lambda mu : mu.miniPFRelIso_all - mu.miniPFRelIso_chg)
-        return hasTwoMu, varsToKeep
-
+        return FinalSel, varsToKeep
