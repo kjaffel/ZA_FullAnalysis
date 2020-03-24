@@ -6,170 +6,254 @@ eras:
 samples:
   HToZATo2L2B_MH-1000_MA-200:
     db: das:/HToZATo2L2B_MH-1000_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-200_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 7388.0
+    line-color: "#e31b1b"
+    line-type: 1
+    legend: MH-1000_MA-200
     #split: 4
     type: signal
 
   HToZATo2L2B_MH-1000_MA-500:
     db: das:/HToZATo2L2B_MH-1000_MA-500_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-500_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
-    cross-section: 10.71 # pb  
+    cross-section: 10.71 # pb 
+    line-color: "#450808"
+    line-type: 1
+    legend: MH-1000_MA-500
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-1000_MA-50:
     db: das:/HToZATo2L2B_MH-1000_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
-    cross-section: 14930.0  # pb  
+    cross-section: 14930.0  # pb
+    line-color: "#080845"
+    line-type: 1
+    legend: MH-1000_MA-50
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-2000_MA-1000:
     db: das:/HToZATo2L2B_MH-2000_MA-1000_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-2000_MA-1000_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 0.6671 # pb  
+    line-color: "#8383f1"
+    line-type: 1
+    legend: MH-2000_MA-1000 
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-200_MA-100:
     db: das:/HToZATo2L2B_MH-200_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-200_MA-100_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 1233000.0 # pb  
+    line-color: "#31dce5"
+    line-type: 1
+    legend: MH-200_MA-100
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-200_MA-50:
     db: das:/HToZATo2L2B_MH-200_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-200_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 1030000.0 # pb  
+    line-color: "#e59431"
+    line-type: 1
+    legend: MH-200_MA-50
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-250_MA-100:
     db: das:/HToZATo2L2B_MH-250_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-250_MA-100_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 575200.0 # pb  
+    line-color: "#e56731"
+    line-type: 1
+    legend: MH-250_MA-100
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-250_MA-50:
     db: das:/HToZATo2L2B_MH-250_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-250_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 523200.0 # pb  
+    line-color: "#b3175d"
+    line-type: 1
+    legend: MH-250_MA-50
     #split: 4
     type: signal
 
   HToZATo2L2B_MH-3000_MA-2000:
     db: das:/HToZATo2L2B_MH-3000_MA-2000_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-3000_MA-2000_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 0.05531 # pb  
+    line-color: "#5c1499"
+    line-type: 1
+    legend: MH-3000_MA-2000
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-300_MA-100:
     db: das:/HToZATo2L2B_MH-300_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-100_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 323800.0 # pb  
+    line-color: "#519914"
+    line-type: 1
+    legend: MH-300_MA-100
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-300_MA-200:
     db: das:/HToZATo2L2B_MH-300_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-200_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 325500.0  # pb  
+    line-color: "#86777c"
+    line-type: 1
+    legend: MH-300_MA-200
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-300_MA-50:
     db: das:/HToZATo2L2B_MH-300_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 294500.0 # pb  
+    line-color: "#1b2105"
+    line-type: 1
+    legend: MH-300_MA-50
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-500_MA-200:
     db: das:/HToZATo2L2B_MH-500_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-200_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 46430.0 # pb  
+    line-color: "#c876ea"
+    line-type: 1
+    legend: MH-500_MA-200
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-500_MA-300:
     db: das:/HToZATo2L2B_MH-500_MA-300_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-300_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 25510.0 # pb  
+    line-color: "#76eac8"
+    line-type: 1
+    legend: MH-500_MA-300
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-500_MA-400:
     db: das:/HToZATo2L2B_MH-500_MA-400_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-400_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 9.58 # pb  
+    line-color: "#ea8e76"
+    line-type: 1
+    legend: MH-500_MA-400
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-500_MA-50:
     db: das:/HToZATo2L2B_MH-500_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 54460.0  # pb  
+    line-color: "#a9381a"
+    line-type: 1
+    legend: MH-500_MA-50
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-650_MA-50:
     db: das:/HToZATo2L2B_MH-650_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-650_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 28750.0 # pb  
+    line-color: "#1a8ba9"
+    line-type: 1
+    legend: MH-650_MA-50
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-800_MA-200:
     db: das:/HToZATo2L2B_MH-800_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-200_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 12180.0 # pb  
+    line-color: "#a91a8b"
+    line-type: 1
+    legend: MH-800_MA-200
     #split: 4
     type: signal
 
   HToZATo2L2B_MH-800_MA-400:
     db: das:/HToZATo2L2B_MH-800_MA-400_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-400_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 29.24 # pb  
+    line-color: "#083211"
+    line-type: 1
+    legend: MH-800_MA-400
     #split: 4
     type: signal
         
   HToZATo2L2B_MH-800_MA-50:
     db: das:/HToZATo2L2B_MH-800_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-50_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 19710.0  # pb  
+    line-color: "#d3db23"
+    line-type: 1
+    legend: MH-800_MA-50
     #split: 4
     type: signal 
 
 
   HToZATo2L2B_MH-800_MA-700:
     db: das:/HToZATo2L2B_MH-800_MA-700_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-700_2016.dat
     generated-events: 'genEventSumw'
     era: '2016'
     cross-section: 1.285 # pb  
+    line-color: "#5923db"
+    line-type: 1
+    legend: MH-800_MA-700
     #split: 4
     type: signal 
 
@@ -202,8 +286,12 @@ plotIt:
     - mumutrig
     - elmutrig
     - mueltrig
-      # on the jet btagging
-      #- btagging2016
+      # sys from theory  
+    - qcdScale
+    - psISR
+    - psFSR
+      # on the btagged jet
+    - btagging2016
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     - sysonMH-1000_MA-200xsc: {type: const, value: 1.0004113427179209, on: 'HToZATo2L2B_MH-800_MA-50'}   # uncer= 3.039
     - sysonMH-1000_MA-500xsc: {type: const, value: 1.0004113427179209, on: 'HToZATo2L2B_MH-1000_MA-500'}   # uncer=0.006163  
