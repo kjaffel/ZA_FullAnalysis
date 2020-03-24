@@ -8,7 +8,6 @@ from bamboo import scalefactors
 from bamboo.logging import getLogger
 logger = getLogger(__name__)
 
-
 from itertools import chain
 import os.path
 import collections
@@ -17,9 +16,12 @@ import argparse
 import sys
 
 sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
-from  ZAEllipses import MakeEllipsesPlots, MakeMETPlots
-from ControlPLots import MakeControlPlotsForZpic, MakeControlPlotsForBasicSel, DiscriminatorPlots, MakeControlPlotsForBjetsSel, MakeControlPlotsForBestBJetsPair
-
+import utils
+from  ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots
+from EXtraPlots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots#, MakeDiscriminatorPlots
+from Btagging import MakeBtagEfficienciesPlots 
+from ControlPLots import makeControlPlotsForZpic, makeControlPlotsForBasicSel, makeControlPlotsForFinalSel, makeResolvedBJetPlots, makeResolvedJetPlots, makeBoostedJetPLots
+# FIXME makeBosstedBJetPlots
 
 def localize_myanalysis(aPath, era="FullRunIIv1"):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(era), aPath)
@@ -77,11 +79,14 @@ all_scalefactors = {
       
        "btag_2016_94X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
                             if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
                             
                             dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2016Legacy.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
-                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items()
-                         ),
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
+
+                            dict(("subjet_{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_subjet_{algo}_2016Legacy.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "lt"), ("bjets","lt")))) for wp in ("loose", "medium") for algo in ("DeepCSV", ) ).items(),
+                         )),
 
     #------- single muon trigger --------------
        "mutrig_2016_94X" : tuple(localize_trigger("{trig}_PtEtaBins_2016Run{eras}.json".format(trig=trig, eras=eras)) 
@@ -199,12 +204,12 @@ all_scalefactors = {
             
     }
 
-def get_scalefactor(objType, key, periods=None, combine=None, additionalVariables=dict(), systName=None):
+def get_scalefactor(objType, key, periods=None, combine=None, additionalVariables=dict(), getFlavour=None, systName=None):
     return scalefactors.get_scalefactor(objType, key, periods=periods, combine=combine, 
                                         additionalVariables=additionalVariables, 
                                         sfLib=all_scalefactors, 
                                         paramDefs=binningVariables, 
-                                        getFlavour=(lambda j : j.hadronFlavour), 
+                                        getFlavour=getFlavour,
                                         systName=systName)
 def safeget(dct, *keys):
     for key in keys:
@@ -245,6 +250,85 @@ def METFilter(flags, era):
                 flags.BadPFMuonFilter ]
     return cuts
 
+class METcorrection(object):
+    # https://lathomas.web.cern.ch/lathomas/METStuff/XYCorrections/XYMETCorrection.h
+    def __init__(self,rawMET,pv,sample,era,isMC):
+        if(era=='2016'):
+            if isMC:
+                xcorr = (0.195191,   0.170948)
+                ycorr = (0.0311891, -0.787627)
+            else:
+                if '2016B' in sample:
+                    xcorr = (0.0478335,  0.108032)
+                    ycorr = (-0.125148, -0.355672)
+                elif '2016C' in sample: 
+                    xcorr = ( 0.0916985, -0.393247)
+                    ycorr = (-0.151445,  -0.114491)
+                elif '2016D' in sample:
+                    xcorr = ( 0.0581169, -0.567316)
+                    ycorr = (-0.147549,  -0.403088)
+                elif '2016E' in sample:
+                    xcorr = ( 0.065622, -0.536856)
+                    ycorr = (-0.188532, -0.495346)
+                elif '2016F' in sample:
+                    xcorr = ( 0.0313322, -0.39866)
+                    ycorr = (-0.16081,   -0.960177)
+                elif '2016G' in sample:
+                    xcorr = (-0.040803,   0.290384)
+                    ycorr = (-0.0961935, -0.666096)
+                else:
+                    xcorr = (-0.0330868, 0.209534)
+                    ycorr = (-0.141513, -0.816732)
+
+
+        elif(era=='2017'):
+            if isMC:
+                xcorr = (0.217714, -0.493361)
+                ycorr = (-0.177058, 0.336648)
+                #these are the corrections for v2 MET recipe (currently recommended for 2017)
+            else: 
+                if '2017B' in sample:
+                    xcorr = ( 0.19563, -1.51859)
+                    ycorr = (-0.306987, 1.84713)
+                elif '2017C' in sample:
+                    xcorr = ( 0.161661, -0.589933)
+                    ycorr = (-0.233569,  0.995546)
+                elif '2017D' in sample:
+                    xcorr = ( 0.180911, -1.23553)
+                    ycorr = (-0.240155,  1.27449)
+                elif '2017E' in sample:
+                    xcorr = ( 0.149494, -0.901305)
+                    ycorr = (-0.178212,  0.535537)
+                else:
+                    xcorr = ( 0.165154, -1.02018)
+                    ycorr = (-0.253794, -0.75776)
+        else:
+            if isMC:
+                xcorr = (-0.296713,  0.141506)
+                ycorr = (-0.115685, -0.0128193)
+            else:
+                if '2018A' in sample:
+                    xcorr= (-0.362865,  1.94505)
+                    ycorr= (-0.0709085, 0.307365)
+                elif'2018B' in sample:
+                    xcorr = (-0.492083, 2.93552)
+                    ycorr = (-0.17874,  0.786844)
+                elif '2018C' in sample:
+                    xcorr = (-0.521349, 1.44544)
+                    ycorr = (-0.118956, 1.96434)
+                else:
+                    xcorr = (-0.531151,  1.37568)
+                    ycorr = (-0.0884639, 1.57089)
+                
+        METxcorr=xcorr[0] *pv.npvs+xcorr[1]
+        METycorr=ycorr[0] *pv.npvs+ycorr[1]
+            
+        corrMETx=rawMET.pt*op.cos(rawMET.phi) +METxcorr
+        corrMETy=rawMET.pt*op.sin(rawMET.phi) +METycorr
+        
+        self.pt=op.sqrt(corrMETx**2 +corrMETy**2)
+        atan=op.atan(corrMETy/corrMETx)
+        self.phi=op.multiSwitch((corrMETx> 0,atan),(corrMETy> 0,atan+math.pi),atan-math.pi)
 
 class NanoHtoZA(NanoAODHistoModule):
     """ H->Z(ll)A(bb) analysis for the FullRunII using NanoAODv5 """
@@ -259,6 +343,11 @@ class NanoHtoZA(NanoAODHistoModule):
                             "show-ratio"       : True,
                             "sort-by-yields"   : False,
                             }
+
+        self.doSysts = self.args.systematic
+    def addArgs(self, parser):
+        super(NanoHtoZA, self).addArgs(parser)
+        parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
@@ -411,15 +500,16 @@ class NanoHtoZA(NanoAODHistoModule):
 
                 elif "2018C" in sample:
                     jec="Autumn18_RunC_V8_DATA"
-
+        
                 elif "2018D" in sample:
                     jec="Autumn18_RunD_V8_DATA"
-        
         else:
             raise RuntimeError("Unknown era {0}".format(era))
         ## Configure jets 
         try:
             configureJets(tree._Jet, "AK4PFchs", jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
+            # FIXME
+            #configureJets(tree._Jet, "AK8", jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
         except Exception as ex:
             logger.exception("Problem while configuring jet correction and variations")
         
@@ -431,7 +521,10 @@ class NanoHtoZA(NanoAODHistoModule):
         
         
         if self.isMC(sample):
-            noSel = noSel.refine("genWeight", weight=tree.genWeight, cut=op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())))
+            noSel = noSel.refine("genWeight", weight=tree.genWeight, cut=op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())), autoSyst=self.doSysts)
+            if self.doSysts:
+                logger.info("Adding QCD scale variations")
+                noSel = utils.addTheorySystematics(self, tree, noSel)
         else:
             noSel = noSel.refine("withTrig", cut=makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset) )
             
@@ -449,15 +542,15 @@ class NanoHtoZA(NanoAODHistoModule):
         
         if era == "2016":
             sfTag="94X"
-            puWeightsFile = os.path.join(os.path.dirname(__file__), "data", "puweights2016.json")
+            puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII", "puweights2016.json")
         
         elif era == "2017":
             sfTag="94X"     
-            puWeightsFile = os.path.join(os.path.dirname(__file__), "data", "puweights2017.json")
+            puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII", "puweights2017.json")
         
         elif era == "2018":
             sfTag="102X"
-            puWeightsFile = os.path.join(os.path.dirname(__file__), "data", "puweights2018.json")
+            puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII", "puweights2018.json")
         
         if self.isMC(sample) and puWeightsFile is not None:
             from bamboo.analysisutils import makePileupWeight
@@ -481,12 +574,12 @@ class NanoHtoZA(NanoAODHistoModule):
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")    
             muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"), systName="muid")
             muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium"), systName="muiso") 
-
+        
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
         # cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
         sorted_electrons = op.sort(t.Electron, lambda ele : -ele.pt)
-        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3, op.abs(ele.sip3d < 4.), op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
+        electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3, op.abs(ele.sip3d)< 4., op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), systName="elid")
         doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")     
@@ -494,85 +587,6 @@ class NanoHtoZA(NanoAODHistoModule):
         elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
         mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
         
-        class METcorrection(object):
-            # https://lathomas.web.cern.ch/lathomas/METStuff/XYCorrections/XYMETCorrection.h
-            def __init__(self,rawMET,pv,sample,era,isMC):
-                if(era=='2016'):
-                    if isMC:
-                        xcorr = (0.195191,   0.170948)
-                        ycorr = (0.0311891, -0.787627)
-                    else:
-                        if '2016B' in sample:
-                            xcorr = (0.0478335,  0.108032)
-                            ycorr = (-0.125148, -0.355672)
-                        elif '2016C' in sample: 
-                            xcorr = ( 0.0916985, -0.393247)
-                            ycorr = (-0.151445,  -0.114491)
-                        elif '2016D' in sample:
-                            xcorr = ( 0.0581169, -0.567316)
-                            ycorr = (-0.147549,  -0.403088)
-                        elif '2016E' in sample:
-                            xcorr = ( 0.065622, -0.536856)
-                            ycorr = (-0.188532, -0.495346)
-                        elif '2016F' in sample:
-                            xcorr = ( 0.0313322, -0.39866)
-                            ycorr = (-0.16081,   -0.960177)
-                        elif '2016G' in sample:
-                            xcorr = (-0.040803,   0.290384)
-                            ycorr = (-0.0961935, -0.666096)
-                        else:
-                            xcorr = (-0.0330868, 0.209534)
-                            ycorr = (-0.141513, -0.816732)
-
-
-                elif(era=='2017'):
-                    if isMC:
-                        xcorr = (0.217714, -0.493361)
-                        ycorr = (-0.177058, 0.336648)
-                    #these are the corrections for v2 MET recipe (currently recommended for 2017)
-                    else: 
-                        if '2017B' in sample:
-                            xcorr = ( 0.19563, -1.51859)
-                            ycorr = (-0.306987, 1.84713)
-                        elif '2017C' in sample:
-                            xcorr = ( 0.161661, -0.589933)
-                            ycorr = (-0.233569,  0.995546)
-                        elif '2017D' in sample:
-                            xcorr = ( 0.180911, -1.23553)
-                            ycorr = (-0.240155,  1.27449)
-                        elif '2017E' in sample:
-                            xcorr = ( 0.149494, -0.901305)
-                            ycorr = (-0.178212,  0.535537)
-                        else:
-                            xcorr = ( 0.165154, -1.02018)
-                            ycorr = (-0.253794, -0.75776)
-                else:
-                    if isMC:
-                        xcorr = (-0.296713,  0.141506)
-                        ycorr = (-0.115685, -0.0128193)
-                    else:
-                        if '2018A' in sample:
-                            xcorr= (-0.362865,  1.94505)
-                            ycorr= (-0.0709085, 0.307365)
-                        elif'2018B' in sample:
-                            xcorr = (-0.492083, 2.93552)
-                            ycorr = (-0.17874,  0.786844)
-                        elif '2018C' in sample:
-                            xcorr = (-0.521349, 1.44544)
-                            ycorr = (-0.118956, 1.96434)
-                        else:
-                            xcorr = (-0.531151,  1.37568)
-                            ycorr = (-0.0884639, 1.57089)
-                
-                METxcorr=xcorr[0] *pv.npvs+xcorr[1]
-                METycorr=ycorr[0] *pv.npvs+ycorr[1]
-                
-                corrMETx=rawMET.pt*op.cos(rawMET.phi) +METxcorr
-                corrMETy=rawMET.pt*op.sin(rawMET.phi) +METycorr
-                
-                self.pt=op.sqrt(corrMETx**2 +corrMETy**2)
-                atan=op.atan(corrMETy/corrMETx)
-                self.phi=op.multiSwitch((corrMETx> 0,atan),(corrMETy> 0,atan+math.pi),atan-math.pi)
 
         MET = t.MET if era != "2017" else t.METFixEE2017
         corrMET=METcorrection(MET,t.PV,sample,era,self.isMC(sample))
@@ -581,92 +595,110 @@ class NanoHtoZA(NanoAODHistoModule):
         #######  select jets  
         ##################################
         #// 2016 - 2017 - 2018   ( j.jetId &2) ->      tight jet ID
-        # For 2017 data, there is the option of "Tight" or "TightLepVeto", depending on how much you want to veto jets that overlap with/are faked by leptons. # TODO
-        sorted_jets=op.sort(t.Jet, lambda j : -j.pt)
-        jetsSel = op.select(sorted_jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta)< 2.4, j.jetId == 6))# oldcut: (j.jetId &2)))        
+        # For 2017 data, there is the option of "Tight" or "TightLepVeto", depending on how much you want to veto jets that overlap with/are faked by leptons
+        sorted_AK4jets=op.sort(t.Jet, lambda j : -j.pt)
+        AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta)< 2.4, (j.jetId &2)))#   j.jetId == 6))# oldcut: (j.jetId &2)))        
         # exclude from the jetsSel any jet that happens to include within its reconstruction cone a muon or an electron.
-        jets= op.select(jetsSel, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
+        AK4jets= op.select(AK4jetsSel, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
         
-        #if self.isMC(sample): 
-        # shape correction
-        #    bTagWeight = [ op.rng_product(jets, lambda j: j.btagSF_shape) ]
-        #else:
-        #    bTagWeight = []
+        # order jets by *decreasing* deepFlavour
+        cleaned_AK4JetsByDeepFlav = op.sort(AK4jets, lambda j: -j.btagDeepFlavB)
+        cleaned_AK4JetsByDeepB = op.sort(AK4jets, lambda j: -j.btagDeepB)
 
-        # fixed working point
-        #bTagSFPerJet = op.map(jets, lambda j: self.bTagEff.evaluate(j.hadronFlavour, j.btagDeepFlavB, j.pt, op.abs(j.eta), j.btagSF))
-        #bTagWeightFixWP = op.rng_product(bTagSFPerJet)
-        # correction weights
-        # nJetCorrWgt = self.nJetRwgt.evaluate(op.rng_len(jets)
+        # Boosted Region
+        sorted_AK8jets=op.sort(t.FatJet, lambda j : -j.pt)
+        AK8jetsSel = op.select(sorted_AK8jets, lambda j : op.AND(j.pt > 200., op.abs(j.eta)< 2.4, (j.jetId &2), j.subJet1._idx.result != -1, j.subJet2._idx.result != -1))
 
+        AK8jets= op.select(AK8jetsSel, lambda j : op.AND(op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.3 )), op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.3 ))))
         
+        cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
         
-        
-        
-        if isMC:
-            bFlavJets = lambda j: j.hadronFlavour == 5      
-
         # Now,  let's ask for the jets to be a b-jets 
         # DeepCSV or deepJet Medium b-tag working point
         btagging = {
                 "DeepCSV":{ # era: (loose, medium, tight)
-                            "2016": (0.2217, 0.6321, 0.8953), 
+                            "2016":(0.2217, 0.6321, 0.8953), 
                             "2017":(0.1522, 0.4941, 0.8001), 
                             "2018":(0.1241, 0.4184, 0.7527) 
                           },
                 "DeepFlavour":{
                             "2016":(0.0614, 0.3093, 0.7221), 
                             "2017":(0.0521, 0.3033, 0.7489), 
-                            "2018": (0.0494, 0.2770, 0.7264) 
+                            "2018":(0.0494, 0.2770, 0.7264) 
                           }
                    }
         
-        bjets = {}
-        #WorkingPoints = ["L", "M", "T"]
-        WorkingPoints = ["M","T"]
-        for tagger  in btagging.keys():
-            bJets_deepflavour ={}
-            bJets_deepcsv ={}
-            for idx, wp in enumerate(sorted(WorkingPoints)):
-                suffix=("loose" if wp=='L' else ("medium" if wp=='M' else "tight"))
-                if tagger=="DeepFlavour":
-                    print ("Btagging: Era= {0}, Tagger={1}, Pass_{2}_working_point={3}".format(era, tagger, suffix, btagging[tagger][era][idx] ))
-                    print ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix))
-                    bJets_deepflavour[wp] = op.select(jets, lambda j : j.btagDeepFlavB > btagging[tagger][era][idx] )
-                    Jet_DeepFlavourBDisc = { "BTagDiscri": lambda j : j.btagDeepFlavB }
-                    deepBFlavScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix)),
-                                                        additionalVariables=Jet_DeepFlavourBDisc, 
-                                                        #getFlavour= bFlavJets,
-                                                        systName="btagging{0}".format(era))  
-
-                    bjets[tagger]=bJets_deepflavour
-                    
-                else:
-                    print ("Btagging: Era= {0}, Tagger={1}, Pass_{2}_working_point={3}".format(era, tagger, suffix, btagging[tagger][era][idx] ))
-                    print (suffix, era)
-                    print ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix))
-                    bJets_deepcsv[wp] = op.select(jets, lambda j : j.btagDeepB > btagging[tagger][era][idx] )   
-                    Jet_DeepCSVBDis = { "BTagDiscri": lambda j : j.btagDeepB }
-                    deepBScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix)), 
-                                                additionalVariables=Jet_DeepCSVBDis, 
-                                                #getFlavour= bFlavJets,
-                                                systName="btagging".format(era))  
-                    bjets[tagger]=bJets_deepcsv
         # bjets ={ "DeepFlavour": {"L": jets pass loose  , "M":  jets pass medium  , "T":jets pass tight    }     
         #           "DeepCSV":    {"L":    ---           , "M":         ---        , "T":   ----            }
         #        }
+        # FIXME 
+        bjets_boosted = {}
+        bjets_resolved = {}
+        
+        #WorkingPoints = ["L", "M", "T"]
+        WorkingPoints = ["M"]
+        for tagger  in btagging.keys():
+            
+            bJets_AK4_deepflavour ={}
+            bJets_AK4_deepcsv ={}
+            bJets_AK8_deepcsv ={}
+            # FIXME idx is not propagated properly when i pass only one or two wp !! 
+            for wp in sorted(WorkingPoints):
+                
+                suffix = ("loose" if wp=='L' else ("medium" if wp=='M' else "tight"))
+                idx = ( 0 if wp=="L" else ( 1 if wp=="M" else 2))
+                if tagger=="DeepFlavour":
+                    
+                    print ("Btagging: Era= {0}, Tagger={1}, Pass_{2}_working_point={3}".format(era, tagger, suffix, btagging[tagger][era][idx] ))
+                    print ("***********************************************", idx, wp)
+                    print ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix))
+                    
+                    bJets_AK4_deepflavour[wp] = op.select(cleaned_AK4JetsByDeepFlav, lambda j : j.btagDeepFlavB >= btagging[tagger][era][idx] )
+                    Jet_DeepFlavourBDisc = { "BTagDiscri": lambda j : j.btagDeepFlavB }
+                    deepBFlavScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix)),
+                                                        additionalVariables=Jet_DeepFlavourBDisc, 
+                                                        getFlavour=(lambda j : j.hadronFlavour),
+                                                        systName="btagging{0}".format(era))  
+                    
+                    bjets_resolved[tagger]=bJets_AK4_deepflavour
+                    
+                else:
+                    print ("Btagging: Era= {0}, Tagger={1}, Pass_{2}_working_point={3}".format(era, tagger, suffix, btagging[tagger][era][idx] ))
+                    print ("***********************************************", idx, wp)
+                    print ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix))
+                    
+                    bJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB >= btagging[tagger][era][idx] )   
+                    bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, lambda j : op.AND(j.subJet1.btagDeepB >= btagging[tagger][era][idx] , j.subJet2.btagDeepB >= btagging[tagger][era][idx]))   
+                    Jet_DeepCSVBDis = { "BTagDiscri": lambda j : j.btagDeepB }
+                    subJet_DeepCSVBDis = { "BTagDiscri": lambda j : op.AND(j.subJet1.btagDeepB, j.subJet2.btagDeepB) }
+                    
+                    # FIXME for boosted and resolved i will use # tagger need to pass jsons files to scale factors above ! 
+                    deepB_AK4ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix)), 
+                                                additionalVariables=Jet_DeepCSVBDis,
+                                                getFlavour=(lambda j : j.hadronFlavour),
+                                                systName="btagging{0}".format(era))  
+                    # FIXME
+                    #deepB_AK8ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "subjet_{0}_{1}".format('DeepCSV', suffix)), 
+                                                #additionalVariables=Jet_DeepCSVBDis,
+                                                #getFlavour=(lambda j : j.subJet1.hadronFlavour),
+                                                #systName="btagging{0}".format(era))  
+                    
+                    bjets_resolved[tagger]=bJets_AK4_deepcsv
+                    bjets_boosted[tagger]=bJets_AK8_deepcsv
         
         bestDeepFlavourPair={}
         bestDeepCSVPair={}
         bestJetPairs= {}
+        bjets = {}
+        # For the Resolved only 
         class GetBestJetPair(object):
             JetsPair={}
             def __init__(self, JetsPair, tagger, wp):
                 def ReturnHighestDiscriminatorJet(tagger, wp):
                     if tagger=="DeepCSV":
-                        return op.sort(safeget(bjets, tagger, wp), lambda j: - j.btagDeepB)
+                        return op.sort(safeget(bjets_resolved, tagger, wp), lambda j: - j.btagDeepB)
                     elif tagger=="DeepFlavour":
-                        return op.sort(safeget(bjets, tagger, wp), lambda j: - j.btagDeepFlavB)
+                        return op.sort(safeget(bjets_resolved, tagger, wp), lambda j: - j.btagDeepFlavB)
                     else:
                         raise RuntimeError("Something went wrong in returning {0} discriminator !".format(tagger))
                
@@ -674,8 +706,8 @@ class NanoHtoZA(NanoAODHistoModule):
                 JetsPair[0]=firstBest
                 secondBest=ReturnHighestDiscriminatorJet(tagger, wp)[1]
                 JetsPair[1]=secondBest
-        #  bestJetPairs= { "DeepFlavour": bestDeepFlavourPair(first 2 best jets pass deepflavour wp access them --> [0],[1]  ),
-        #                "DeepCSV": bestDeepCSVPair
+        #  bestJetPairs= { "DeepFlavour": bestDeepFlavourPair,
+        #                  "DeepCSV":     bestDeepCSVPair    
         #                }
         
         #######  Zmass reconstruction : Opposite Sign , Same Flavour leptons
@@ -694,6 +726,7 @@ class NanoHtoZA(NanoAODHistoModule):
 
         hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) # TODO The leading pT for the µµ channel should be above 20 Gev !
 
+        
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
         forceDefine(t._Jet.calcProd, hasOSLL)
@@ -701,60 +734,81 @@ class NanoHtoZA(NanoAODHistoModule):
         
         llSFs = {
             "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll) ]),
-            #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll) ]),
-            #"MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll) ]),
+            "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll) ]),
+            "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll) ]),
             "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), doubleEleTrigSF(ll) ])
             }
         
-        categories = dict((channel, (catLLRng[0], 
-                            hasOSLL.refine("hasOS{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None))
-                            )) for channel, catLLRng in osLLRng.items())
+        categories = dict((channel, (catLLRng[0], hasOSLL.refine("hasOS{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None)) )) for channel, catLLRng in osLLRng.items())
+
+        ## btagging efficiencies plots
+        #plots.extend(MakeBtagEfficienciesPlots(self, jets, bjets, categories))
         
         for channel, (dilepton, catSel) in categories.items():
-            
-            # dilpeton 
+            #----  Zmass (2Lepton OS && SF ) --------
             #plots.extend(MakeControlPlotsForZpic(self, catSel, dilepton, channel))
             
-            TwoLeptonsTwoJets=catSel.refine("twoJet{0}Sel".format(channel), cut=[ op.rng_len(jets) > 1 ])#, weight=bTagWeight) 
-            # plots for: mll, mlljj, mjj, nVX, pT, eta ... 
-            #plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets, jets, dilepton, channel))
+            #----  add Jets selection 
+            TwoLeptonsTwoJets_Resolved = catSel.refine("TwoJet_{0}Sel_resolved".format(channel), cut=[ op.rng_len(AK4jets) > 1 ])
+            TwoLeptonsTwoJets_Boosted = catSel.refine("OneJet_{0}Sel_boosted".format(channel), cut=[ op.rng_len(AK8jets) > 0 ])
+            #plots.extend(makeJetPlots(self, TwoLeptonsTwoJets_Resolved, AK4jets, channel))
+            #plots.extend(makeBoostedJetPLots(self, TwoLeptonsTwoJets_Boosted, AK8jets, channel))
+            
+            # ----- plots : mll, mlljj, mjj, nVX, pT, eta  : basic selection plots ------
+            #plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets_Resolved, AK4jets, dilepton, channel))
+            #plots.extend(MakeControlPlotsForBasicSel(self, TwoLeptonsTwoJets_boosted, AK8jets, dilepton, channel))
 
             
             for wp in WorkingPoints: 
+                # Get the best AK4 JETS 
                 GetBestJetPair(bestDeepCSVPair,"DeepCSV", wp)
                 GetBestJetPair(bestDeepFlavourPair,"DeepFlavour", wp)
                 bestJetPairs["DeepCSV"]=bestDeepCSVPair
                 bestJetPairs["DeepFlavour"]=bestDeepFlavourPair
-                print ("bestJetPairs--->", bestJetPairs, wp)
-                print ("bestJetPairs_deepcsv--->", bestJetPairs["DeepCSV"][0], bestJetPairs["DeepCSV"][1], wp)
-                print ("bestJetPairs_deepflavour--->", bestJetPairs["DeepFlavour"][0],bestJetPairs["DeepFlavour"][1], wp)
+                print ("bestJetPairs AK4--->", bestJetPairs, wp)
+                print ("bestJetPairs_deepcsv  AK4--->", bestJetPairs["DeepCSV"][0], bestJetPairs["DeepCSV"][1], wp)
+                print ("bestJetPairs_deepflavour  AK4 --->", bestJetPairs["DeepFlavour"][0],bestJetPairs["DeepFlavour"][1], wp)
+                # resolved 
+                bJets_resolved_PassdeepflavourWP=safeget(bjets_resolved, "DeepFlavour", wp)
+                bJets_resolved_PassdeepcsvWP=safeget(bjets_resolved, "DeepCSV", wp)
+                # boosted
+                bJets_boosted_PassdeepcsvWP=safeget(bjets_boosted, "DeepCSV", wp)
+
+                TwoLeptonsTwoBjets_NoMETCut_Res = {
+                    "DeepFlavour{0}".format(wp) :  TwoLeptonsTwoJets_Resolved.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
+                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepflavourWP) > 1 ],
+                                                                        weight=([ deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[1]) ]if isMC else None)),
+                    "DeepCSV{0}".format(wp)     :  TwoLeptonsTwoJets_Resolved.refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Resolved".format(wp, channel), 
+                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepcsvWP) > 1 ],
+                                                                        weight=([ deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[0]), deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[1]) ]if isMC else None))
+                                                }
+
+
+                TwoLeptonsTwoBjets_NoMETCut_Boo = {
+                    "DeepCSV{0}".format(wp)     :  TwoLeptonsTwoJets_Boosted.refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Boosted".format(wp, channel), 
+                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) > 1 ]), 
+                                                                        # FIXME ! can't pass boosted jets SFs with current version ---> move to v7  
+                                                                        #weight=([ deepB_AK8ScaleFactor(bJets_boosted_PassdeepcsvWP[0]), deepB_AK8ScaleFactor(bJets_boosted_PassdeepcsvWP[1]) ]if isMC else None))
+                                                }
                 
-                bJets_PassdeepflavourWP=safeget(bjets, "DeepFlavour", wp)
-                bJets_PassdeepcsvWP=safeget(bjets, "DeepCSV", wp)
-
-                TwoLeptonsTwoBjets_NoMETCut = {
-                    "DeepFlavour{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}".format(wp, channel),
-                                                                        cut=[ op.rng_len(bJets_PassdeepflavourWP) > 1 ]),# weight=bTagWeight),
-                                                                        #weight=([ deepBFlavScaleFactor(bJets_PassdeepflavourWP[0]), deepBFlavScaleFactor(bJets_PassdeepflavourWP[1]) ]if isMC else None)),
-                    "DeepCSV{0}".format(wp):  TwoLeptonsTwoJets.refine("TwoLeptonsTwoBjets_NoMETCut_DeepCSV{0}_{1}".format(wp, channel), 
-                                                                    cut=[ op.rng_len(bJets_PassdeepcsvWP) > 1 ])#, weight=bTagWeight)#,
-                                                                    #weight=([ deepBScaleFactor(bJets_PassdeepcsvWP[0]), deepBScaleFactor(bJets_PassdeepcsvWP[1]) ]if isMC else None))
-                                            }
-
                 ## needed to optimize the MET cut 
-                # x-y correction applied to the MET 
+                # FIXME  Rerun again  &&& pass signal and bkg  
                 # The MET cut is passed to TwoLeptonsTwoBjets selection for the # tagger and for the # wp 
-                #plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut, corrMET, MET, channel))
+                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut_Res, corrMET, MET, channel, "resolved"))
+                plots.extend(MakeMETPlots(self, TwoLeptonsTwoBjets_NoMETCut_Boo, corrMET, MET, channel, "boosted"))
+                plots.extend(MakeExtraMETPlots(self, TwoLeptonsTwoBjets_NoMETCut_Res, dilepton, MET, channel, "resolved"))
+                plots.extend(MakeExtraMETPlots(self, TwoLeptonsTwoBjets_NoMETCut_Boo, dilepton, MET, channel, "boosted"))
 
-                TwoLeptonsTwoBjets = dict((tagger, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut.items())
+                TwoLeptonsTwoBjets_Res = dict((key, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut_Res.items())
+                TwoLeptonsTwoBjets_Boo = dict((key, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Boosted".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut_Boo.items())
+                #plots.extend(MakeDiscriminatorPlots(self, TwoLeptonsTwoBjets_Res, bjets_resolved, wp, channel, "resolved"))
+                #plots.extend(MakeDiscriminatorPlots(self, TwoLeptonsTwoBjets_Boo, bjets_boosted, wp, channel, "boosted"))
                 
-                plots.extend(DiscriminatorPlots(self, TwoLeptonsTwoBjets, bestJetPairs, channel, wp, isMC))
-                
-                #plots.extend(MakeControlPlotsForBjetsSel(self, TwoLeptonsTwoBjets, bjets, dilepton, channel, wp))
-                #--- plots bjets selection according to the highest  discri for each tagger ...
-                #plots.extend(MakeControlPlotsForBestBJetsPair(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton,  channel, wp))
-                
-                ### to get the Ellipses plots  
-                #plots.extend(MakeEllipsesPlots(self, TwoLeptonsTwoBjets, bestJetPairs, dilepton, channel, wp))
+                #plots.extend(makeResolvedBJetPlots(self, TwoLeptonsTwoBjets_Res, bjets_resolved, dilepton, wp, channel))
+                #plots.extend(makeBoostedBJetPlots(self, TwoLeptonsTwoBjets_NoMETCut_Boo, bjets_boosted, dilepton, wp, channel))
+
+                # --- to get the Ellipses plots  
+                plots.extend(MakeEllipsesPLots(self, TwoLeptonsTwoBjets_Res, bjets_resolved, dilepton, wp, channel, "resolved"))
+                plots.extend(MakeEllipsesPLots(self, TwoLeptonsTwoBjets_Boo, bjets_boosted, dilepton, wp, channel, "boosted"))
         
         return plots
