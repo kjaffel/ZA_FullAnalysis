@@ -6,7 +6,7 @@ eras:
     luminosity-error: 0.023     
 samples:
   DYJetsToLL_M-10to50:
-    db: das:/DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
+    db: das:/DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
     files: dascache/DYJetsToLL_M-10to50_2017.dat
     generated-events: 'genEventSumw'
     cross-section: 15810   #pb    # total uncertainty= 5.764  pb 
@@ -152,14 +152,14 @@ samples:
     era: '2017'
     split: 4
 
-  #ZH_HToBB_ZToLL:
-  #  db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
-  #  files: dascache/ZH_HToBB_ZToLL_2017.dat
-  #  generated-events: 'genEventSumw'
-  #  cross-section: 0.07523   # uncer= 0.0003138 pb 
-  #  group: SM
-  #  era: '2017'
-  #  split: 4
+  ZH_HToBB_ZToLL:
+    db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7_ext1-v1/NANOAODSIM
+    files: dascache/ZH_HToBB_ZToLL_2017.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.07523   # uncer= 0.0003138 pb 
+    group: SM
+    era: '2017'
+    split: 4
 
 
   ggZH_HToBB_ZToLL:
@@ -450,8 +450,6 @@ samples:
     run_range:  [305040, 306462]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON.txt
 
-
-
 plotIt:
   configuration:
     width: 800
@@ -514,6 +512,7 @@ plotIt:
     - mueltrig
     # sys from theory  
     - qcdScale
+      #FIXME
     - psISR
     - psFSR
     # on the jet btagging
