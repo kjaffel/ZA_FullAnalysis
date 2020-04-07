@@ -2,6 +2,7 @@ import sys
 import argparse
 
 from bamboo.analysismodules import  NanoAODSkimmerModule
+from bamboo.analysisutils import makePileupWeight
 from bamboo import treefunctions as op
 
 sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
@@ -31,7 +32,7 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
         era = sampleCfg["era"]
         isMC = self.isMC(sample)
         
-        if self.SetSel not in [ "noSel", "catSel", "2Lep2Jets", "2Lep2bJets"]:
+        if self.SetSel not in [ "noSel", "OsLeptons", "2Lep2Jets", "2Lep2bJets"]:
             print ('[Skimedtree_NanoHtoZA]: %s Unkown selection ' %self.SetSel)
             sys.exit(0)
 
@@ -80,8 +81,11 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
         
         if isMC:
             varsToKeep["MC_weight"] = t.genWeight
-            varsToKeep["PU_weight"] = PUWeight
-        
+            #varsToKeep["PU_weight"] = PUWeight
+            puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII/", "puweights2016_Moriond17.json")
+            varsToKeep["PU_weight"] = makePileupWeight(puWeightsFile, tree.Pileup_nTrueInt, variation="Nominal",
+                                                        nameHint="puWeight{0}".format("".join(c for c in sample if c.isalnum())))
+
         if self.SetSel=="noSel":
             FinalSel= noSel
             # Muons && Electrons selections
@@ -99,6 +103,11 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             varsToKeep["n%s"    %suffix] = op.static_cast("UInt_t",op.rng_len(jets))    
         
             # MET selections
+                # Raw MET 
+            RawMET = (MET if era != "2017" else METFixEE2017)
+            varsToKeep["CorrMET_pt"]  = RawMET.pt
+            varsToKeep["CorrMET_phi"] = RawMET.phi
+                # xy corr
             varsToKeep["CorrMET_pt"]  = corrMET.pt
             varsToKeep["CorrMET_phi"] = corrMET.phi
 
@@ -106,7 +115,7 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
         for channel, (dilepton, catSel) in categories.items():
             
             ### Opposite sign leptons , Same Flavour  selection 
-            if self.SetSel=="catSel":
+            if self.SetSel=="OsLeptons":
                 FinalSel= catSel
                 for i in range(2):
                     varsToKeep["lep{0}_pt_{1}".format(i, self.SetCat)]  = dilepton[i].p4.pt
@@ -122,14 +131,18 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
                 if self.SetRegion=="resolved": 
                     FinalSel = TwoLeptonsTwoJets_Resolved.get(key)
                 elif self.SetRegion=="boosted":
-                    FinaSel= TwoLeptonsTwoJets_Boosted.get(key) 
+                    FinalSel= TwoLeptonsTwoJets_Boosted.get(key) 
                 
                 lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
                 jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
-                varsToKeep["lljj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= lljj_M
-                varsToKeep["jj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]  = jj_M
+                # For the DNN better have variables with the same name ...
+                varsToKeep["lljj_M"]= lljj_M
+                varsToKeep["jj_M"]  = jj_M
+                varsToKeep["nB_{0}".format( suffix)] = op.static_cast("UInt_t", op.rng_len(bJets))
                 
-                varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
+                #varsToKeep["lljj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= lljj_M
+                #varsToKeep["jj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]  = jj_M
+                #varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
             
                 ### Two OS SF Leptons _ Two bJets  selection +MET cut (xy corr applied too )
             elif self.SetSel=="2Lep2bJets":
@@ -141,10 +154,14 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
     
                 llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
                 bb_M= op.invariant_mass(bJets[0].p4+bJets[1].p4)
-                varsToKeep["llbb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= llbb_M
-                varsToKeep["bb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= bb_M
-                    
-                varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
+                
+                varsToKeep["llbb_M"]= llbb_M
+                varsToKeep["bb_M"]= bb_M
+                varsToKeep["nB_{0}".format( suffix)] = op.static_cast("UInt_t", op.rng_len(bJets))
+                
+                #varsToKeep["llbb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= llbb_M
+                #varsToKeep["bb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= bb_M
+                #varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
             else:
                 raise RuntimeError('ERROR : %s  in selection args' %self.SetSel)
             
