@@ -1,9 +1,11 @@
-from bamboo.root import gbl
 import os
 import sys
+import collections
+import json
 import logging
 logger = logging.getLogger("ZAInfos Plotter")
 
+from bamboo.root import gbl
 import bamboo.plots
 class Plot(bamboo.plots.Plot):
     def produceQCDEnvelopes(self, bareResults, fbe):
@@ -29,6 +31,8 @@ class Plot(bamboo.plots.Plot):
 
 def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f : -1., eras=("all", None), verbose=False):
     eraMode, eras = eras
+    evWgt = collections.defaultdict(dict)
+    SumWgt ={}
     f= open( os.path.join(resultsdir, "ZAInfos.txt"),"a")
     if not eras: ## from config if not specified
         eras = list(config["eras"].keys())
@@ -42,6 +46,34 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
                 effMsg = f", Eff={sumPass/sumTotal:.2%}"
         printFun(f"Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}")
         f.write((f"- Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}\n"))
+        
+        
+        #if "TwoLeptonsTwoBjets_" in entry.name and ("ElEl" or "MuMu") in entry.name:
+        #    if "2016" not in smp:
+        #        evWgt [smp] = sumPass
+        #        with open(os.path.join(resultsdir,f"{entry.name}_event_weight.json"), "w") as handle:
+        #            json.dump(evWgt, handle, indent=4)
+        
+        #TwoLeptonsTwoBjets_NoMETcut_DeepCSVM_MuMu_Boosted
+        if "TwoLeptonsTwoBjets_" in entry.name:
+            opts = entry.name.split('_')
+            cat= opts[-2]
+            tagger = opts[-3]
+            data = ["DoubleEGamma", "DoubleMuon", "MuonEG"]
+            cut = ("_NoMETcut_" if "_NoMETcut_" in entry.name else(''))
+            if '2016' not in smp:
+                if cat in ["MuMu", "ElEl"]:
+                    try:
+                        evWgt[smp][tagger][cat]= sumPass
+                        with open(os.path.join(resultsdir,"backgrounds_{0}_{1}_event_weight.json".format(opts[-1], cut)), "w") as handle:
+                            json.dump(evWgt, handle, indent=4)
+                    except:
+                        evWgt[smp][tagger] = {}
+                        evWgt[smp][tagger][cat]= sumPass
+                        with open(os.path.join(resultsdir,"backgrounds_{0}_{1}_event_weight.json".format(opts[-1], cut)), "w") as handle:
+                            json.dump(evWgt, handle, indent=4)
+
+                #evWgt[smp][tagger] = collections.defaultdict(dict)
         if recursive:
             for c in entry.children:
                 saveEntry(c, printFun=printFun, recursive=recursive)
@@ -53,13 +85,19 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
             logger.info(f"Cutflow report {report.name} for sample {smp}")
             f.write('\n')
             f.write(f"Cutflow report for sample {smp}:\n")
+            
             if "generated-events" in smpCfg:
                 if isinstance(smpCfg["generated-events"], str):
                     generated_events = readCounters(resultsFile)[smpCfg["generated-events"]]
                 else:
                     generated_events = smpCfg["generated-events"]
                 logger.info(f"Sum of event weights for processed files: {generated_events:e}")
+                SumWgt [smp] = generated_events
                 f.write(f"Sum of event weights for processed files: {generated_events:e}\n")
+                suffix = ("signals" if "type" in smpCfg else("backgrounds"))
+                # cut independant , from NanoAOD
+                with open(os.path.join(resultsdir,"%s_sum_event_weight.json"%suffix), "w") as handle:
+                    json.dump(SumWgt, handle, indent=4)
             smpReport = report.readFromResults(resultsFile)
             for root in smpReport.rootEntries():
                 saveEntry(root)
