@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 
@@ -27,6 +28,7 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
         parser.add_argument("-wp",  "--workingpoints", default=None, help="Setting Working point is mandatory")
     
     def defineSkimSelection(self, t, noSel, sample=None, sampleCfg=None):
+
         noSel, PUWeight, corrMET, muons, electrons, AK4jets, AK8jets, bjets_resolved, bjets_boosted, categories, TwoLeptonsTwoJets_Resolved, TwoLeptonsTwoJets_Boosted, TwoLeptonsTwoBjets_Res, TwoLeptonsTwoBjets_Boo, TwoLeptonsTwoBjets_NoMETCut_Res, TwoLeptonsTwoBjets_NoMETCut_Boo, WorkingPoints = self.defineObjects(t, noSel, sample, sampleCfg)
 
         era = sampleCfg["era"]
@@ -83,7 +85,7 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             varsToKeep["MC_weight"] = t.genWeight
             #varsToKeep["PU_weight"] = PUWeight
             puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII/", "puweights2016_Moriond17.json")
-            varsToKeep["PU_weight"] = makePileupWeight(puWeightsFile, tree.Pileup_nTrueInt, variation="Nominal",
+            varsToKeep["PU_weight"] = makePileupWeight(puWeightsFile, t.Pileup_nTrueInt, variation="Nominal",
                                                         nameHint="puWeight{0}".format("".join(c for c in sample if c.isalnum())))
 
         if self.SetSel=="noSel":
@@ -105,8 +107,8 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             # MET selections
                 # Raw MET 
             RawMET = (MET if era != "2017" else METFixEE2017)
-            varsToKeep["CorrMET_pt"]  = RawMET.pt
-            varsToKeep["CorrMET_phi"] = RawMET.phi
+            varsToKeep["RawMET_pt"]  = RawMET.pt
+            varsToKeep["RawMET_phi"] = RawMET.phi
                 # xy corr
             varsToKeep["CorrMET_pt"]  = corrMET.pt
             varsToKeep["CorrMET_phi"] = corrMET.phi
@@ -130,11 +132,13 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             elif self.SetSel=="2Lep2Jets":
                 if self.SetRegion=="resolved": 
                     FinalSel = TwoLeptonsTwoJets_Resolved.get(key)
+                    lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
+                    jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
                 elif self.SetRegion=="boosted":
                     FinalSel= TwoLeptonsTwoJets_Boosted.get(key) 
+                    lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4).M()
+                    jj_M=op.invariant_mass(jets[0].p4)
                 
-                lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
-                jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
                 # For the DNN better have variables with the same name ...
                 varsToKeep["lljj_M"]= lljj_M
                 varsToKeep["jj_M"]  = jj_M
@@ -149,11 +153,13 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
                 bJets = safeget(bjets, self.SetTagger, self.SetWP)
                 if self.SetRegion=="resolved":
                     FinalSel = TwoLeptonsTwoBjets_Res.get(key)
+                    llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
+                    bb_M= op.invariant_mass(bJets[0].p4+bJets[1].p4)
                 elif self.SetRegion=="boosted":
                     FinalSel = TwoLeptonsTwoBjets_Boo.get(key)
+                    llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4).M()
+                    bb_M= op.invariant_mass(bJets[0].p4)
     
-                llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
-                bb_M= op.invariant_mass(bJets[0].p4+bJets[1].p4)
                 
                 varsToKeep["llbb_M"]= llbb_M
                 varsToKeep["bb_M"]= bb_M
@@ -165,9 +171,4 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             else:
                 raise RuntimeError('ERROR : %s  in selection args' %self.SetSel)
             
-            #sample_weight=
-            #event_weight=
-            #total_weight=
-            #cross_section=
-
         return FinalSel, varsToKeep
