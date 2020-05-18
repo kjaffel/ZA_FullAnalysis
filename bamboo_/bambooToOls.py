@@ -33,6 +33,7 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
     eraMode, eras = eras
     evWgt = collections.defaultdict(dict)
     SumWgt ={}
+    xsc ={}
     f= open( os.path.join(resultsdir, "ZAInfos.txt"),"a")
     if not eras: ## from config if not specified
         eras = list(config["eras"].keys())
@@ -93,11 +94,14 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
                     generated_events = smpCfg["generated-events"]
                 logger.info(f"Sum of event weights for processed files: {generated_events:e}")
                 SumWgt [smp] = generated_events
+                xsc [smp] = smpCfg["cross-section"]
                 f.write(f"Sum of event weights for processed files: {generated_events:e}\n")
                 suffix = ("signals" if "type" in smpCfg else("backgrounds"))
                 # cut independant , from NanoAOD
                 with open(os.path.join(resultsdir,"%s_sum_event_weight.json"%suffix), "w") as handle:
                     json.dump(SumWgt, handle, indent=4)
+                with open(os.path.join(resultsdir,"%s_cross_sections.json"%suffix), "w") as handle:
+                    json.dump(xsc, handle, indent=4)
             smpReport = report.readFromResults(resultsFile)
             for root in smpReport.rootEntries():
                 saveEntry(root)
