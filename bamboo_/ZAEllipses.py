@@ -1,4 +1,5 @@
-from bamboo.plots import Plot, SummedPlot 
+from bambooToOls import Plot
+from bamboo.plots import SummedPlot 
 from bamboo.plots import EquidistantBinning as EqB
 from bamboo import treefunctions as op
 import utils
@@ -11,38 +12,39 @@ def MakeEllipsesPLots(self, sel, bjets, lepton, wp, uname, suffix):
         
         tagger = key.replace(wp, "")
         bjets_ = safeget(bjets, tagger, wp)
+        sorted_bJets= ((bjets_[0].p4+bjets_[1].p4) if suffix=="resolved" else( bjets_[0].p4))
         
         plots.append(Plot.make1D("jj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key),
-                    op.invariant_mass(bjets_[0].p4, bjets_[1].p4), 
-                    sel.get(key), 
-                    EqB(60 // binScaling, 0., 1000.), 
-                    title="invariant mass of two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
-                    xTitle= "mjj {0} {1} [GeV]".format(suffix, key),
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
-        
+                        op.invariant_mass(sorted_bJets), 
+                        sel.get(key), 
+                        EqB(60 // binScaling, 0., 1000.), 
+                        title="invariant mass of two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
+                        xTitle= "mbb [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+            
         plots.append(Plot.make1D("lljj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                    (lepton[0].p4 + lepton[1].p4 + bjets_[0].p4 + bjets_[1].p4).M(),
-                    sel.get(key), 
-                    EqB(60 // binScaling, 0., 1000.), 
-                    title="invariant mass of 2 leptons two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
-                    xTitle="mlljj {0} {1} [GeV]".format(suffix, key),
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
-        
+                        (lepton[0].p4 + lepton[1].p4 + sorted_bJets).M(),
+                        sel.get(key), 
+                        EqB(60 // binScaling, 0., 1000.), 
+                        title="invariant mass of 2 leptons two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
+                        xTitle="mllbb [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+            
         plots.append(Plot.make2D("Mjj_vs_Mlljj_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                    (op.invariant_mass(bjets_[0].p4, bjets_[1].p4),(
-                    lepton[0].p4 + lepton[1].p4 + bjets_[0].p4 + bjets_[1].p4).M()),
-                    sel.get(key), 
-                    (EqB(60 // binScaling, 0., 1000.), EqB(60 // binScaling, 0., 1000.)), 
-                    title="mlljj vs mjj invariant mass {0} wrt {1} Discriminator".format(suffix, key),
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
+                        (op.invariant_mass(sorted_bJets),(
+                        lepton[0].p4 + lepton[1].p4 + sorted_bJets).M()),
+                        sel.get(key), 
+                        (EqB(60 // binScaling, 0., 1000.), EqB(60 // binScaling, 0., 1000.)), 
+                        title="mllbb vs mbb [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
         
         plots.append(Plot.make1D("ll_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                    op.invariant_mass(lepton[0].p4, lepton[1].p4), 
-                    sel.get(key), 
-                    EqB(60 // binScaling, 70., 110.), 
-                    title=" dilepton invariant mass {0} wrt {1} Discriminator".format(suffix, key), 
-                    xTitle= "mll {0} {1} [GeV]".format(suffix, key),
-                    plotopts=utils.getOpts(uname)))
+                        op.invariant_mass(lepton[0].p4, lepton[1].p4), 
+                        sel.get(key), 
+                        EqB(60 // binScaling, 70., 110.), 
+                        title=" dilepton invariant mass {0} wrt {1} Discriminator".format(suffix, key), 
+                        xTitle= "mll [GeV]",
+                        plotopts=utils.getOpts(uname)))
     return plots
 
 def MakeMETPlots(self, sel, corrmet, met, uname, suffix):    
@@ -58,6 +60,25 @@ def MakeMETPlots(self, sel, corrmet, met, uname, suffix):
                     corrmet.pt, sel.get(key), 
                     EqB(60 // binScaling, 0., 600.), title="corrMET p_{T} [GeV]",
                     plotopts=utils.getOpts(uname, **{"log-y": False})))
+    return plots
+
+def MakePuppiMETPlots(self, PuppiMET, sel, uname):
+    plots = []
+    binScaling=1
+    plots.append(Plot.make1D("PuppiMET_sumEt_%s"%uname,
+                        PuppiMET.sumEt, sel,
+                        EqB(60 // binScaling, 0., 600.), title="PuppiMET sumEt [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+
+    plots.append(Plot.make1D("PuppiMET_pt_%s"%uname,
+                        PuppiMET.pt, sel,
+                        EqB(60 // binScaling, 0., 600.), title=" PuppiMET p_{T} [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+
+    plots.append(Plot.make1D("PuppiMET_phi_%s"%uname, 
+                        PuppiMET.phi, sel,
+                        EqB(60 // binScaling, -3.1416, 3.1416), title="PuppiMET #phi",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
 def MakeExtraMETPlots(self, sel, lepton, met, uname, suffix):
