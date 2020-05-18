@@ -1,37 +1,22 @@
 import math 
 from bamboo import treefunctions as op
 
-def METFilter(flags, era):
+def METFilter(flags, era, isMC):
     # from https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
-    if era == '2018':
-        cuts = [
-                flags.goodVertices,
-                flags.globalSuperTightHalo2016Filter, # not tested need to be careful
-                flags.HBHENoiseFilter,
-                flags.HBHENoiseIsoFilter,
-                flags.EcalDeadCellTriggerPrimitiveFilter,
-                flags.BadPFMuonFilter,
-                flags.ecalBadCalibFilterV2 ]
-    
-    elif era=='2017':
-        cuts = [
-                flags.goodVertices,
-                flags.globalSuperTightHalo2016Filter,
-                flags.HBHENoiseFilter,
-                flags.HBHENoiseIsoFilter,
-                flags.EcalDeadCellTriggerPrimitiveFilter,
-                flags.BadPFMuonFilter,
-                flags.ecalBadCalibFilterV2 ]
-    else:
-        cuts=[
-                flags.goodVertices,
-                flags.globalSuperTightHalo2016Filter,
-                flags.HBHENoiseFilter,
-                flags.HBHENoiseIsoFilter,
-                flags.EcalDeadCellTriggerPrimitiveFilter,
-                flags.BadPFMuonFilter ]
-    return cuts
+    # On data and mc
+    cuts=[
+            flags.goodVertices,
+            flags.globalSuperTightHalo2016Filter,
+            flags.HBHENoiseFilter,
+            flags.HBHENoiseIsoFilter,
+            flags.EcalDeadCellTriggerPrimitiveFilter,
+            flags.BadPFMuonFilter ]
+    if era == '2017' or era =='2018':
+        cuts.append(flags.ecalBadCalibFilterV2)
+    if not isMC:
+        cuts.append(flags.eeBadScFilter)
 
+    return cuts
 
 class METcorrection(object):
     # https://lathomas.web.cern.ch/lathomas/METStuff/XYCorrections/XYMETCorrection.h
@@ -65,10 +50,10 @@ class METcorrection(object):
 
 
         elif(era=='2017'):
+            #these are the corrections for v2 MET recipe (currently recommended for 2017)
             if isMC:
                 xcorr = (0.217714, -0.493361)
                 ycorr = (-0.177058, 0.336648)
-                #these are the corrections for v2 MET recipe (currently recommended for 2017)
             else: 
                 if '2017B' in sample:
                     xcorr = ( 0.19563, -1.51859)
