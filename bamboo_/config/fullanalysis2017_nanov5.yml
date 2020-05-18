@@ -11,6 +11,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 15810   #pb    # total uncertainty= 5.764  pb 
     group: DY
+    pufile: 'DYJetsToLL_M-10to50_2017.json'
     era: '2017'
     split: 4
     
@@ -43,14 +44,14 @@ samples:
     split: 4
 
 ######## ttbar 
-  TTHadronic:
-    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
-    files: dascache/TTHadronic_2017.dat
-    generated-events: 'genEventSumw'
-    cross-section: 687.1  # pb  # uncer= 0.5174 pb
-    group: ttbar_FullHadronic
-    era: '2017'
-    split: 4
+#  TTHadronic:
+#    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
+#    files: dascache/TTHadronic_2017.dat
+#    generated-events: 'genEventSumw'
+#    cross-section: 377.96 # +4.8%-6.1%    # pb  # uncer= 0.5174 pb
+#    group: ttbar_FullHadronic
+#    era: '2017'
+#    split: 4
    
   TTTo2L2Nu:
     db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_new_pmx_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -85,6 +86,7 @@ samples:
     cross-section: 34.97      # uncer = 0.02827 pb
     group: ST
     era: '2017'
+    pufile: 'ST_tW_antitop_5f_2017.json'
     
   ST_tchannel_antitop_4f:
     db: das:/ST_t-channel_antitop_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8/RunIIFall17NanoAODv5-PU2017_12Apr2018_Nano1June2019_102X_mc2017_realistic_v7-v1/NANOAODSIM
@@ -159,6 +161,7 @@ samples:
     cross-section: 0.07523   # uncer= 0.0003138 pb 
     group: SM
     era: '2017'
+    pufile: 'ZH_HToBB_ZToLL_2017.json'
     split: 4
 
 
@@ -169,6 +172,7 @@ samples:
     cross-section: 0.006954  # uncer= 7.737e-06  pb  
     group: SM
     era: '2017'
+    pufile: 'ggZH_HToBB_ZToLL_2017.json'
     split: 4
 
   ttHTobb:
@@ -197,6 +201,7 @@ samples:
     cross-section: 45.99 # uncer= 0.0293 pb 
     group: others
     era: '2017'
+    pufile: 'WWToLNuQQ_2017.json'
     split: 4
 
   WWTo2L2Nu:
@@ -269,6 +274,7 @@ samples:
     cross-section: 0.05565  # uncer = 5.5e-05 pb 
     group: others
     era: '2017'
+    pufile: 'WZZ_2017.json'
     split: 4
 
   ZZZ: 
@@ -305,6 +311,7 @@ samples:
     cross-section: 0.2149 # uncer =  0.0008133   pb 
     group: others
     era: '2017'
+    pufile: 'TTWJetsToLNu_2017.json'
     split: 4
 
   TTZToQQ:
@@ -323,6 +330,7 @@ samples:
     cross-section: 0.2432   # uncer = 0.0003054  pb 
     group: others
     era: '2017'
+    pufile: 'TTZToLLNuNu_2017.json'
     split: 4
 
 ###### era B
@@ -458,8 +466,16 @@ plotIt:
     experiment: CMS
     extra-label: 2017Data --Work in progress
     show-overflow: true
+    error-fill-style: 3154
+    error-fill-color: "#ee556270"
+    ratio-fit-error-fill-style: 1001
+    ratio-fit-error-fill-color: "#aa556270"
+    ratio-fit-line-color: "#0B486B"
+    y-axis-format: "%1% / %2$.2f"
+
   legend:
     position: [0.7, 0.6, 0.91, 0.91]
+  
   groups:
     data:
       legend: data
@@ -495,16 +511,50 @@ plotIt:
       fill-color: "#ff8d58"
       legend: others (tt+V, W+Jets , VVV, VV)
       order: 1    
+  
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False
+  
   systematics:
     # on the jets
     - jer
     - jesTotal
+      # sys on jet pileup Id loOse from SF, eff, and mistagrates
+    - JetpuID_eff_mc_loOse
+    - JetpuID_mistagrates_mc_loOse
+    - JetpuID_eff_sf_loOse
+    - JetpuID_mistagrates_sf_loOse
+      # medium
+    - JetpuID_eff_mc_medium
+    - JetpuID_mistagrates_mc_medium
+    - JetpuID_eff_sf_medium
+    - JetpuID_mistagrates_sf_medium
+      # tight
+    - JetpuID_eff_mc_tight
+    - JetpuID_mistagrates_mc_tight
+    - JetpuID_eff_sf_tight
+    - JetpuID_mistagrates_sf_tight
     # on the lepton id /iso 
     - muid
     - muiso
     - elid
+    - ele_reco
     # on the pileup
-    - pileup
+    - puweights2017_Fall17
+      # on the samples with wrong PU profile
+    - puWeight_DYJetsToLL_M_10to50
+    - puWeight_ST_tW_antitop_5f
+    - puWeight_ZH_HToBB_ZToLL
+    - puWeight_ggZH_HToBB_ZToLL
+    - puWeight_WWToLNuQQ
+    - puWeight_WZZ
+    - puWeight_TTWJetsToLNu
     # on the trigger
     - eleltrig
     - mumutrig
@@ -512,11 +562,24 @@ plotIt:
     - mueltrig
     # sys from theory  
     - qcdScale
-      #FIXME
     - psISR
     - psFSR
-    # on the jet btagging
-    - btagging2017
+    # on the jets btagged 
+    - DeepFlavourL
+    - DeepFlavourM
+    - DeepFlavourT
+    - DeepCSVL
+    - DeepCSVM
+    - DeepCSVT
+    - DeepDoubleBvLL
+    - DeepDoubleBvLM1
+    - DeepDoubleBvLM2
+    - DeepDoubleBvLT1
+    - DeepDoubleBvLT2
+    # L1 pre-firing event correction weight
+    - L1PreFiring
+    # only for final sel: 2lep +2 'Medim' bjets
+    - NLO_DYReweighting
     # on the cross section
     # --- ttbar 
     - TTHadronicxsc: {type: const, value: 1.0007530199388735263 , on: 'TTHadronic'} # uncer= 0.5174 pb    ---> ok 

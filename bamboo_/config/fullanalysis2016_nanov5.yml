@@ -206,29 +206,29 @@ samples:
     group: others
     era: '2016'
 
-  #WZTo1L3Nu:  Not locally
-  #  db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
-  #  files: dascache/WZTo1L3Nu_2016.dat
-  #  generated-events: 'genEventSumw'
-  #  cross-section: 3.054
-  #  group: others 
-  #  era: '2016'
+  WZTo1L3Nu:  
+    db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/WZTo1L3Nu_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 3.054
+    group: others 
+    era: '2016'
 
-  #WZ1L1Nu2Q:
-  #  db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
-  #  files: dascache/WZ1L1Nu2Q_2016.dat
-  #  generated-events: 'genEventSumw'
-  #  cross-section: 10.73
-  #  group: others 
-  #  era: '2016'
+  WZ1L1Nu2Q:
+    db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/WZ1L1Nu2Q_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 10.73
+    group: others 
+    era: '2016'
 
-  #WZTo3LNu:
-  # db: das:/WZTo3LNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
-  # files: dascache/WZTo3LNu_2016.dat
-  # generated-events: 'genEventSumw'
-  # cross-section: 4.43 
-  # group: others 
-  # era: '2016'
+  WZTo3LNu:
+   db: das:/WZTo3LNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+   files: dascache/WZTo3LNu_2016.dat
+   generated-events: 'genEventSumw'
+   cross-section: 4.43 
+   group: others 
+   era: '2016'
   
   WWW:
     db: das:/WWW_4F_TuneCUETP8M1_13TeV-amcatnlo-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
@@ -330,7 +330,7 @@ samples:
     run_range: [272007, 275376]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-###### era C
+####### era C
   DoubleMuon_2016C:
     db: das:/DoubleMuon/Run2016C-Nano1June2019-v1/NANOAOD
     files: dascache/DoubleMuon_2016C.dat
@@ -355,7 +355,7 @@ samples:
     run_range: [275657, 276283]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-########## era D
+########### era D
   DoubleMuon_2016D:
     db: das:/DoubleMuon/Run2016D-Nano1June2019-v1/NANOAOD
     files: dascache/DoubleMuon_2016D.dat
@@ -380,7 +380,7 @@ samples:
     run_range: [276315, 276811]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-######## era E
+######### era E
   DoubleMuon_2016E:
     db: das:/DoubleMuon/Run2016E-Nano1June2019-v1/NANOAOD
     files: dascache/DoubleMuon_2016E.dat
@@ -430,7 +430,7 @@ samples:
     run_range: [277772, 278808]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
-###### era G
+####### era G
   DoubleMuon_2016G:
     db: das:/DoubleMuon/Run2016G-Nano1June2019-v1/NANOAOD
     files: dascache/DoubleMuon_2016G.dat
@@ -489,8 +489,16 @@ plotIt:
     experiment: CMS
     extra-label: 2016Data --Work in progress
     show-overflow: true
+    error-fill-style: 3154
+    error-fill-color: "#ee556270"
+    ratio-fit-error-fill-style: 1001
+    ratio-fit-error-fill-color: "#aa556270"
+    ratio-fit-line-color: "#0B486B"
+    y-axis-format: "%1% / %2$.2f"
+  
   legend:
     position: [0.7, 0.6, 0.91, 0.91]
+  
   groups:
     data:
       legend: data
@@ -500,7 +508,7 @@ plotIt:
       order: 7
     Inclusive: 
       fill-color: "#B20027"
-      legend: Inclusive
+      legend: tt Inclusive
       order: 6
     ttbar_FullLeptonic:
       legend: tt Full Lept
@@ -522,23 +530,53 @@ plotIt:
       fill-color: "#00ff48"
       legend: others #: tt+V, W+Jets , VVV, VV
       order: 1    
+  
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6,1.4]
+      sort-by-yields: False
+  
   systematics:
       # on the jets
     - jer
     - jesTotal
+    - JetpuID_loOse
+    - JetpuID_medium
+    - JetpuID_tight
       # on the lepton id /iso 
     - muid
     - muiso
     - elid
+    - ele_reco
       # on the pileup
-    - pileup
+    - puweights2016_Moriond17
       # on the trigger
     - eleltrig
     - mumutrig
     - elmutrig
     - mueltrig
-      # on the jet btagging
-    - btagging2016
+      # sys from theory  
+    - qcdScale
+    - psISR
+    - psFSR
+      # on the btagged jets 
+    - DeepFlavourL
+    - DeepFlavourM
+    - DeepFlavourT
+    - DeepCSVL
+    - DeepCSVM
+    - DeepCSVT
+    - DeepDoubleBvLL
+    - DeepDoubleBvLM1
+    - DeepDoubleBvLM2
+    - DeepDoubleBvLT1
+    - DeepDoubleBvLT2
+      # L1 pre-firing event correction weight
+    - L1PreFiring
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     - ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
     - TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
