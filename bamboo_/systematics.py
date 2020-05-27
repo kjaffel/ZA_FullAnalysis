@@ -19,11 +19,10 @@ def  getHLTZvtxSF (self, era, sample, splitbyeras):
 
 def getDYReweighting(self, era, sample, jets):
 #def getDYReweighting(self, era, sample, jets, bjets, WP):
-    DY_NLOWeight = None
+    DY_NLOWeight = 1.
     # to be applied only on the NLO DY+jets samples
     #if WP =='M': # Let's focus on the Medium Working Point 
-    if sample == 'DYJetsToLL_0J' or sample =='DYJetsToLL_1J' or sample =='DYJetsToLL_2J':
-
+    if era =='2017' and sample in ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J']:
         if op.rng_len(jets) >= 4:
         #if op.AND(op.rng_len(jets) >= 4, op.rng_len(bjets) >= 2):
             if era == '2017':
