@@ -854,14 +854,16 @@ class NanoHtoZA(NanoAODHistoModule):
                                             # check low pt && high pt ele (< 20 GeV)- POG SFs
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if era != '2018':
-                ele_recoweight =[]
-                if channel[0] =='E':
-                    ele_recoweight = ele_recoweight.append(elRecoSF_highpt(dilepton[0]))
-                if channel[-1] =='l': 
-                    ele_recoweight= ele_recoweight.append(elRecoSF_lowpt(dilepton[1], elRecoSF_highpt(dilepton[1])))
+                ele_recoweight = None
+                if channel =='ElEl':
+                    ele_recoweight= [ elRecoSF_highpt(dilepton[0]), elRecoSF_lowpt(dilepton[1]), elRecoSF_highpt(dilepton[1])]
+                if channel =='ElMu':
+                    ele_recoweight = [elRecoSF_highpt(dilepton[0])]
+                if channel =='MuEl':
+                    ele_recoweight = [elRecoSF_lowpt(dilepton[1]), elRecoSF_highpt(dilepton[1])]
                 refine_Oslepsel = catSel.refine( 'ele_reco_SF_ptlower20_%s'%channel, weight=(( ele_recoweight )if isMC else None))
                 makeControlPlotsForZpic(self, refine_Oslepsel, dilepton, 'oslepSel_add_lowpt_eleRecoSF', channel, '_' )
-                
+
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # Zmass (2Lepton OS && SF ) 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
