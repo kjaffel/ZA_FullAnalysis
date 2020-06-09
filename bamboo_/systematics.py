@@ -17,12 +17,12 @@ def  getHLTZvtxSF (self, era, sample, splitbyeras):
         HLTZvtxSF = op.systematic(op.c_float(0.991), name='HLT_Zvtx_eff', up=op.c_float(0.992), down=op.c_float(0.990))
     return HLTZvtxSF
 
-def getDYReweighting(self, era, sample, jets):
+def get_tthDYreweighting(self, era, sample, jets):
 #def getDYReweighting(self, era, sample, jets, bjets, WP):
     DY_NLOWeight = 1.
     # to be applied only on the NLO DY+jets samples
     #if WP =='M': # Let's focus on the Medium Working Point 
-    if era =='2017' and sample in ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J']:
+    if sample in ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J']:
         if op.rng_len(jets) >= 4:
         #if op.AND(op.rng_len(jets) >= 4, op.rng_len(bjets) >= 2):
             if era == '2017':
@@ -52,8 +52,6 @@ def getDYReweighting(self, era, sample, jets):
 
         DY_NLOWeight = op.systematic(op.c_float(nominal), name="NLO_DYReweighting", up=op.c_float(nominal+ uncer), down=op.c_float(nominal- uncer))
         
-        logger.info("Adding NLO_DYReweighting ")
-        print ( "*******", sample, DY_NLOWeight, op.rng_len(jets)) 
     return DY_NLOWeight 
 
 def getTriggerSystematcis(self, era, leptons, suffix, version):
