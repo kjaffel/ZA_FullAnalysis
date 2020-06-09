@@ -5,7 +5,9 @@ from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
 from bamboo import treefunctions as op
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
+zabPath = os.path.dirname(__file__)
+if zabPath not in sys.path:
+    sys.path.append(zabPath)
 import utils
 
 class makeYieldPlots:

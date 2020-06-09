@@ -18,7 +18,9 @@ import math
 import argparse
 import sys
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
+zabPath = os.path.dirname(__file__)
+if zabPath not in sys.path:
+    sys.path.append(zabPath)
 import utils
 from systematics import getTriggerSystematcis, get_tthDYreweighting
 import HistogramTools as HT
