@@ -856,7 +856,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 if channel[0] =='E':
                     ele_recoweight = ele_recoweight.append(elRecoSF_highpt(dilepton[0]))
                 if channel[-1] =='l': 
-                    ele_recoweight= ele_recoweight.append( elRecoSF_lowpt(dilepton[1], elRecoSF_highpt(dilepton[1])
+                    ele_recoweight= ele_recoweight.append(elRecoSF_lowpt(dilepton[1], elRecoSF_highpt(dilepton[1])))
                 refine_Oslepsel = catSel.refine( 'ele_reco_SF_ptlower20_%s'%channel, weight=(( ele_recoweight )if isMC else None))
                 makeControlPlotsForZpic(self, refine_Oslepsel, dilepton, 'oslepSel_add_lowpt_eleRecoSF', channel, '_' )
                 
