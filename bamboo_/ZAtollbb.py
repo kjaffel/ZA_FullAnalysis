@@ -20,13 +20,13 @@ import sys
 
 sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
 import utils
-from systematics import getTriggerSystematcis, getDYReweighting
+from systematics import getTriggerSystematcis, get_tthDYreweighting
 import HistogramTools as HT
 from bambooToOls import Plot
 
 from  ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots, MakePuppiMETPlots
 from EXtraPlots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots
-from Btagging import MakeBtagEfficienciesPlots
+from BtagEfficiencies_BTV import MakeBtagEfficienciesPlots
 #from ControlPLots import makeControlPlotsForZpic, makeControlPlotsForBasicSel, makeControlPlotsForFinalSel, makeJetPlots, makeBJetPlots, makeJetmultiplictyPlots
 from ControlPLots import *
 from boOstedEvents import addBoOstedTagger, getBoOstedWeight
@@ -157,7 +157,7 @@ class NanoHtoZA(NanoAODHistoModule):
                             "y-axis"           : "Events",
                             "log-y"            : "both",
                             "y-axis-show-zero" : True,
-                            "save-extensions"  : ["pdf"],
+                            "save-extensions"  : ["pdf", "png"],
                             "show-ratio"       : True,
                             "sort-by-yields"   : False,
                             }
@@ -255,10 +255,11 @@ class NanoHtoZA(NanoAODHistoModule):
                                  #tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,   # Not for Era B
                                  tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ ],
                 
-                "SingleElectron": [ tree.HLT.Ele35_WPTight_Gsf,
-                                    tree.HLT.Ele28_eta2p1_WPTight_Gsf_HT150 ],
-                "SingleMuon" :    [ tree.HLT.IsoMu27,
-                                    tree.HLT.Mu50   ],
+                # FIXME : if you want to include them need to include the primary dataset too !!
+                #"SingleElectron": [ tree.HLT.Ele35_WPTight_Gsf,
+                #                    tree.HLT.Ele28_eta2p1_WPTight_Gsf_HT150 ],
+                #"SingleMuon" :    [ tree.HLT.IsoMu27,
+                #                    tree.HLT.Mu50   ],
 
                 
             }
@@ -285,11 +286,6 @@ class NanoHtoZA(NanoAODHistoModule):
                 smear="Fall17_V3_MC"
                 jesUncertaintySources=["Total"]
 
-                configureJets(tree._Jet, "AK4PFchs",
-                    jec="Fall17_17Nov2017_V32_MC",
-                    smear="Fall17_V3_MC",
-                    jesUncertaintySources=["Total"], 
-                    mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
             else:
                 if "2017B" in sample:
                     jec="Fall17_17Nov2017B_V32_DATA"
@@ -371,7 +367,6 @@ class NanoHtoZA(NanoAODHistoModule):
         
         
         sampleCut = None
-        cuts = []
         if self.isMC(sample):
             # remove double counting passing TTbar Inclusive + TTbar Full Leptonic ==> mainly for 2016 Analysis 
             if sample =="TT":
@@ -384,15 +379,16 @@ class NanoHtoZA(NanoAODHistoModule):
                                                   autoSyst=self.doSysts)
             else:
                 noSel = noSel.refine("genWeight", weight=tree.genWeight, 
-                                                  cut=cuts.append(op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values()))), 
+                                                  cut=(op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values()))), 
                                                   autoSyst=self.doSysts)
 
             if self.doSysts:
                 logger.info("Adding QCD scale variations, ISR and FSR ")
                 noSel = utils.addTheorySystematics(self, tree, noSel)
         else:
-            noSel = noSel.refine("withTrig", cut=cuts.append(makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset)))
-        
+            noSel = noSel.refine("withTrig", cut=(makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset)))
+       
+
         return tree,noSel,be,lumiArgs
     
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):    
@@ -411,6 +407,7 @@ class NanoHtoZA(NanoAODHistoModule):
         puWeightsFile = None
         mcprofile= None
         yield_object = makeYieldPlots()
+
 
         if era == "2016":
             sfTag ="94X"
@@ -444,9 +441,43 @@ class NanoHtoZA(NanoAODHistoModule):
                 PUWeight = makePileupWeight(puWeightsFile, t.Pileup_nTrueInt, systName="puweights%s"%suffix)
             noSel = noSel.refine("puWeight", weight=PUWeight)
 
-        plots = []
-        forceDefine(t._Muon.calcProd, noSel)
+        #top reweighting :
+        if era != '2016' and self.isMC(sample) and sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
+            # https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf
+            genTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==6))
+            gen_antiTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==-6))
+            
+            # func not from the PAG 
+            # TODO for 2016 there's another one and you should produce yor own folowing
+            # https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Use_case_3_ttbar_MC_is_used_to_m 
+            scalefactor = lambda t : op.exp(-2.02274e-01 + 1.09734e-04*t.pt -1.30088e-07*t.pt**2 + (5.83494e+01/(t.pt+1.96252e+02)))
+            top_weight = lambda top, antitop : op.sqrt(scalefactor(top)*scalefactor(antitop))
+                
+            noSel = noSel.refine("top_reweighting", weight=top_weight(genTop_pt[0], gen_antiTop_pt[0]))
 
+                
+        plots = []
+        gen_ptll_nlo = None
+        gen_ptll_lo = None
+        from reweightDY import Plots_gen
+        if era=='2016':
+            DYsamples= ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"] 
+        else:
+            DYsamples= ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"] 
+        # it will crash if evaluated when there are no two leptons in the matrix element
+        if sample in DYsamples:
+            genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
+            gen_ptll_nlo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
+            
+            forceDefine(gen_ptll_nlo, noSel)
+            plots.extend(Plots_gen( self, gen_ptll_nlo, noSel, "noSel", sample))
+            plots.extend(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
+        
+        #elif sampleCfg["group"] == "DYJetsToLL_M-10to50":
+        #   gen_ptll_lo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
+        #   forceDefine(gen_ptll_lo, noSel)
+        
+        forceDefine(t._Muon.calcProd, noSel)
         # Wp // 2016- 2017 -2018 : Muon_mediumId   // https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Muon_Isolation
         #To suppress nonprompt leptons, the impact parameter in three dimensions of the lepton track, with respect to the primaryvertex, is required to be less than 4 times its uncertainty (|SIP3D|<4)
         sorted_muons = op.sort(t.Muon, lambda mu : -mu.pt)
@@ -459,7 +490,7 @@ class NanoHtoZA(NanoAODHistoModule):
         else:
             muMediumIDSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_medium"), systName="muid")
             muMediumISOSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "iso_tight_id_medium"), systName="muiso") 
-        
+            #mutrackingSF =  get_scalefactor("lepton", ("muon_{0}_{1}".format(era, sfTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
         #Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
         # asking for electrons to be in the Barrel region with dz<1mm & dxy< 0.5mm   //   Endcap region dz<2mm & dxy< 0.5mm 
         # cut-based ID Fall17 V2 the recomended one from POG for the FullRunII
@@ -483,8 +514,8 @@ class NanoHtoZA(NanoAODHistoModule):
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
 
         if elRecoSF_splitby_Hi_LO_pT == True and era !='2018':
-                elRecoSF_lowpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptL20_%s"%elRecoSF_version), isElectron=True, systName="lowele_reco")
-                elRecoSF_highpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptG20_%s"%elRecoSF_version), isElectron=True, systName="highele_reco")
+            elRecoSF_lowpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptL20_%s"%elRecoSF_version), isElectron=True, systName="lowele_reco")
+            elRecoSF_highpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptG20_%s"%elRecoSF_version), isElectron=True, systName="highele_reco")
         else:
             passpt = ('ptG20' if era !='2018' else(''))
             elRecoSF= get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_%s_%s"%(passpt, elRecoSF_version)), isElectron=True, systName="ele_reco")
@@ -500,17 +531,17 @@ class NanoHtoZA(NanoAODHistoModule):
         ##################################
         #// 2016 - 2017 - 2018   ( j.jetId &2) ->      tight jet ID
         # For 2017 data, there is the option of "Tight" or "TightLepVeto", depending on how much you want to veto jets that overlap with/are faked by leptons
-        sorted_AK4jets=op.sort(t.Jet, lambda j : -j.pt)
+        puIdWP = "loOse"
+        CleanJets_fromPileup =False
         deltaR = (0.3 if era == '2016' else (0.4))
         jet_puID_wp = {
                     "loOse"    : lambda j : j.puId & 0x4,
                     "medium"   : lambda j : j.puId & 0x2,
                     "tight"    : lambda j : j.puId & 0x1
                 }
-        CleanJets_fromPileup =False
-        puIdWP = "loOse"
         
-        if era == 2016:
+        sorted_AK4jets = op.sort(t.Jet, lambda j : -j.pt)
+        if era == '2016':
             # j.jetId &2 means tight 
             AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.4, (j.jetId &2)))        
         else:
@@ -541,7 +572,6 @@ class NanoHtoZA(NanoAODHistoModule):
         
         if era != '2016' and CleanJets_fromPileup !=False:
              # FIXME : get_scalefactor works only on b-tagged jets --passed as lepton SFs for now      
-
             mcEffPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_eff_mc_%s"% puIdWP[0].upper()), systName="JetpuID_eff_mc_%s"%puIdWP)
             mcMistagPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_mistag_mc_%s"% puIdWP[0].upper()), systName="JetpuID_mistagrates_mc_%s"%puIdWP)
                 
@@ -550,7 +580,6 @@ class NanoHtoZA(NanoAODHistoModule):
     
             sfEffPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_eff_sf_%s"% puIdWP[0].upper()), systName="JetpuID_eff_sf_%s"%puIdWP)
             sfMistagPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_mistag_sf_%s"% puIdWP[0].upper()), systName="JetpuID_mistagrates_sf_%s"%puIdWP)
-
             
             if isMC:
                 effPUID = lambda j : op.switch(j.genJet.isValid, mcEffPUID(j), mcMistagPUID(j))
@@ -579,6 +608,7 @@ class NanoHtoZA(NanoAODHistoModule):
                                             op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 ))))
         
         cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
+        
         
         # Now,  let's ask for the jets to be a b-jets 
         # DeepCSV or deepJet Medium b-tag working point
@@ -619,8 +649,8 @@ class NanoHtoZA(NanoAODHistoModule):
         
         #WorkingPoints = ["L", "M", "T"] 
         # Need to be careful; as the boosted have only DeepCSV as tagger with WPs 'cut' same as AK4jets in resolved region , only L and M are available 
-        WorkingPoints = ["L", "M"]
-        SFsperiod_dependency = False
+        WorkingPoints = ["M"]
+        SFsperiod_dependency = False # FIXME 
         btagging_Onboth_subjets = True
         for tagger  in btagging.keys():
             
@@ -650,7 +680,6 @@ class NanoHtoZA(NanoAODHistoModule):
                     print ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix))
                     
                     bJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB >= btagging[tagger][era][idx] )   
-                    # FIXME  just for testing  purpose !!!
                     if btagging_Onboth_subjets :
                         bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, 
                                                             lambda j : op.AND(j.subJet1.btagDeepB >= btagging[tagger][era][idx] , 
@@ -716,8 +745,8 @@ class NanoHtoZA(NanoAODHistoModule):
         osLLRng = {
                 "MuMu" : op.combine(muons, N=2, pred= osdilep_Z),
                 "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
-                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(LowMass_cut(ele, mu), osdilep_Z(ele,mu), ele.pt > mu.pt )),
-                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep_Z(mu,ele), mu.pt > ele.pt )),
+                "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(LowMass_cut(ele, mu), ele.pt > mu.pt )),
+                "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), mu.pt > ele.pt )),
                 
                 #"comb" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep_Z(mu,ele))),
                 
@@ -737,13 +766,9 @@ class NanoHtoZA(NanoAODHistoModule):
         forceDefine(t._Jet.calcProd, hasOSLL)
         forceDefine(getattr(t, "_{0}".format("MET" if era != "2017" else "METFixEE2017")).calcProd, hasOSLL)
         
-        #llSFs = {} 
-        L1Prefiring = None
+        L1Prefiring = 1.
         if era in ["2016", "2017"]:
             L1Prefiring = getL1PreFiringWeight(t) 
-            #for k in llSFs.keys():
-            #    llSFs[k]= L1Prefiring
-        # FIXME i am not sure L1Prefiring is added to llSFs dict ----- need to be checked  
         
         #single_mutrig = get_scalefactor("lepton", ("mutrig_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "single_muon"), combine="weight", systName="single_mutrig")
         #single_eletrig = get_scalefactor("lepton", ("eletrig_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "single_electron"), combine="weight", systName="single_eletrig")
@@ -763,7 +788,7 @@ class NanoHtoZA(NanoAODHistoModule):
             #    mixed_catgoriesSFs = lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF(ll), L1Prefiring]
             
             llSFs = {
-                "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring]),
+                "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring]),#, mutrackingSF(ll[0]), mutrackingSF(ll[1])]),
                 "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF(ll[0]), elemuTrigSF(ll), L1Prefiring]), #, elChargeSF(ll[0])]),
                 "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF(ll), L1Prefiring]), #,  elChargeSF(ll[1])]),
                 "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[0]), elRecoSF(ll[1]), doubleEleTrigSF(ll), L1Prefiring]) #FIXME, elChargeSF(ll[0]), elChargeSF(ll[1])]),
@@ -782,29 +807,34 @@ class NanoHtoZA(NanoAODHistoModule):
 
             llSFs = {
                 "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF, L1Prefiring]),
-                "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF(ll[0]), elemuTrigSF, L1Prefiring, elChargeSF(ll[0])]),
-                "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF, L1Prefiring, elChargeSF(ll[1])]),
-                "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[0]), elRecoSF(ll[1]), doubleEleTrigSF, L1Prefiring, elChargeSF(ll[0]), elChargeSF(ll[1])])
+                "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF(ll[0]), elemuTrigSF, L1Prefiring]),#, elChargeSF(ll[0])]),
+                "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]),elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF, L1Prefiring]),#, elChargeSF(ll[1])]),
+                "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[0]), elRecoSF(ll[1]), doubleEleTrigSF, L1Prefiring])#, elChargeSF(ll[0]), elChargeSF(ll[1])])
                 }
         print ( llSFs) 
         categories = dict((channel, (catLLRng[0], hasOSLL.refine("hasOs{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None)) )) for channel, catLLRng in osLLRng.items())
 
         make_ZpicPlots = True
         make_JetmultiplictyPlots = True
-        make_JetschecksPlots = True
+        make_JetschecksPlots = False
         make_JetsPlusLeptonsPlots = True
         make_DeepDoubleBPlots = False
-        make_METPlots = False
+        make_METPlots = True
         make_METPuppiPlots = False
         make_ttbarEstimationPlots = False
-        make_ellipsesPlots = False
+        make_ellipsesPlots = True
         make_bJetsPlusLeptonsPlots_METcut = True
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots = False
         make_LookInsideJets = False
         make_reconstructedVerticesPlots = False
-        
+        make_DYReweightingPlots_2017Only = False
+        # don't forget to set these 
+        split_DYWeightIn64Regions = False
+        HighPileupJetIdWeight = None
+        chooseJetsLen ='_at_least2Jets_'
+        #chooseJetsLen = '_only2Jets_' 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                # more plots to invistagtes 2017 problems  
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -814,11 +844,22 @@ class NanoHtoZA(NanoAODHistoModule):
                                                # b- tagging studies 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ## btagging efficiencies plots
-        #plots.extend(MakeBtagEfficienciesPlots(self, jets, bjets, categories))
-
-
+        #plots.extend(MakeBtagEfficienciesPlots(self, jets, bjets, categories, era))
 
         for channel, (dilepton, catSel) in categories.items():
+            
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                            # check low pt && high pt ele (< 20 GeV)- POG SFs
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            if era != '2018':
+                ele_recoweight =[]
+                if channel[0] =='E':
+                    ele_recoweight = ele_recoweight.append(elRecoSF_highpt(dilepton[0]))
+                if channel[-1] =='l': 
+                    ele_recoweight= ele_recoweight.append( elRecoSF_lowpt(dilepton[1], elRecoSF_highpt(dilepton[1])
+                refine_Oslepsel = catSel.refine( 'ele_reco_SF_ptlower20_%s'%channel, weight=(( ele_recoweight )if isMC else None))
+                makeControlPlotsForZpic(self, refine_Oslepsel, dilepton, 'oslepSel_add_lowpt_eleRecoSF', channel, '_' )
+                
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # Zmass (2Lepton OS && SF ) 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -838,33 +879,43 @@ class NanoHtoZA(NanoAODHistoModule):
                 for sel, jet, reg in zip ([catSel, catSel], [AK4jets, AK8jets], ["resolved", "boosted"]):
                     plots.extend(makeJetmultiplictyPlots(self, catSel, AK4jets, channel,"_NoCutOnJetsLen_" + reg))
             
-            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    # DY -reweighting  && High Pileup JetId Weight 
-            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            #TwoLeptonsTwoJets_Resolved_DYReweighting = catSel.refine("TwoJet_{0}Sel_resolved_DYReweighting".format(channel), cut=[ op.rng_len(AK4jets) > 1 ], weight=(getDYReweighting(self, era, sample, AK4jets)))
-           # HighPileupJetIdWeight = None
-           # #chooseJetsLen = '_only2Jets_' 
-           # chooseJetsLen ='_at_least2Jets_'
-           # if era != '2016' and CleanJets_fromPileup == True:
-           #     TwoLeptonsTwoJets_Resolved_nojetpuIdWeight = get_selections( self, catSel, AK4jets, AK8jets, chooseJetsLen, 'resolved', 'Exclusive', channel) 
-           #     if isMC:
-           #         HighPileupJetIdWeight= op.switch(op.OR(op.in_range(30., AK4jets[0].pt, 50.), op.in_range(30, AK4jets[1].pt, 50.)), puidWeight, op.c_float(1.))
-    
-           #     TwoLeptonsTwoJets_Resolved = get_selections( self, TwoLeptonsTwoJets_Resolved_nojetpuIdWeight, AK4jets, AK8jets, chooseJetsLen, 'resolved', 'Exclusive', channel)
-           # else:
-           #     TwoLeptonsTwoJets_Resolved= get_selections( self, catSel, AK4jets, AK8jets, chooseJetsLen, 'resolved', 'Exclusive', channel) 
-
-           # TwoLeptonsOneJet_Boosted = get_selections( self, catSel, AK4jets, AK8jets,'_at_least1Jet_', 'boosted', 'Exclusive', channel) 
-
+            # Inclusive selections *** boosted : at least 1 AK8jets  
+            #                          resolved: at least 2 AK4jets  
             TwoLeptonsTwoJets_Resolved= catSel.refine("TwoJet_{0}Sel_resolved".format(channel), cut=[ op.rng_len(AK4jets) > 1])
             TwoLeptonsOneJet_Boosted = catSel.refine("OneJet_{0}Sel_boosted".format(channel), cut=[ op.rng_len(AK8jets) > 0 ])
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                    # High Pileup JetId Weight 
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
-            yield_object.addYields(TwoLeptonsTwoJets_Resolved,"has2Lep2ResolvedJets_%s"%channel,"2 Lep(OS)+ at least 2 AK4Jets + $M_{ll}$ cut (channel : %s)"%optstex)
-            yield_object.addYields(TwoLeptonsOneJet_Boosted,"has2Lep2BoostedJets_%s"%channel,"2 Lep(OS)+ at least 1 AK8Jets+ $M_{ll}$ cut (channel : %s)"%optstex)
+            if era != '2016' and CleanJets_fromPileup:
+                TwoLeptonsTwoJets_Resolved_NopuWeight = TwoLeptonsTwoJets_Resolved
+                if isMC:
+                    pu_weight= makePUIDSF(AK4jets, era, wp=puIdWP[0].upper(), wpToCut=jet_puID_wp.get(puIdWP))
+                    #pu_weight= op.switch(op.OR(op.in_range(30., AK4jets[0].pt, 50.), op.in_range(30, AK4jets[1].pt, 50.)), puidWeight, op.c_float(1.))
+                TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved_NopuWeight.refine( "TwoJet_{0}Sel_resolved_inclusive_puWeight_{0}".format(channel, puIdWP), weight= pu_weight)
+            # N.B : boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat 
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            
+            jlenOpts_resolved = (' at least 2' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2'))
+            yield_object.addYields(TwoLeptonsTwoJets_Resolved,"has2Lep2ResolvedJets_%s"%channel,"2 Lep(OS)+ %s AK4Jets + $M_{ll}$ cut (channel : %s)"%(jlenOpts_resolved, optstex))
+            yield_object.addYields(TwoLeptonsOneJet_Boosted,"has2Lep1BoostedJets_%s"%channel,"2 Lep(OS)+ at least 1 AK8Jets+ $M_{ll}$ cut (channel : %s)"%optstex)
             
             plots.append(CutFlowReport("%sjj_resolved"%channel.lower(), TwoLeptonsTwoJets_Resolved))
             plots.append(CutFlowReport("%sjj_boosted"%channel.lower(), TwoLeptonsOneJet_Boosted))
             
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                     # DY - Reweighting  
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            #ptllDYW_NLO = (0.876979+gen_ptll*(4.11598e-03)-(2.35520e-05)*gen_ptll*gen_ptll)*(1.10211 * (0.958512 - 0.131835*TMath::Erf((gen_ptll-14.1972)/10.1525)))*(gen_ptll<140)+0.891188*(gen_ptll>=140)
+            #ptllDYW_LO  = (8.61313e-01+gen_ptll*4.46807e-03-1.52324e-05*gen_ptll*gen_ptll)*(1.08683 * (0.95 - 0.0657370*TMath::Erf((gen_ptll-11.)/5.51582)))*(gen_ptll<140)+1.141996*(gen_ptll>=140)
+            #TwoLeptonsTwoJets_Resolved_DYReweighting = TwoLeptonsTwoJets_Resolved.refine("{0}_2lep2jets_DYweight_fromtth".format(channel), weight=(get_tthDYreweighting(self, era, sample, AK4jets)))
+            from reweightDY import plotsWithDYReweightings, Plots_gen, PLots_withtthDYweight
+            if channel in ['ElEl', 'MuMu']:
+                if sample in DYsamples:
+                    plots.extend(Plots_gen( self, gen_ptll_nlo, TwoLeptonsTwoJets_Resolved, '%s_resolved_2lep2jSel'%channel, sample))
+                plots.extend(PLots_withtthDYweight(self, channel, dilepton, AK4jets, TwoLeptonsTwoJets_Resolved, 'resolved', sample, era))
+                if make_DYReweightingPlots_2017Only and era =='2017':
+                    plots.extend(plotsWithDYReweightings(self, AK4jets, dilepton, TwoLeptonsTwoJets_Resolved, channel, 'resolved', sample, split_DYWeightIn64Regions))
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                 # more Investigation pffff ... :(
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -895,7 +946,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 if make_ZpicPlots:
                     plots.extend(makeControlPlotsForZpic(self, sel, dilepton, 'lepplusjetSel', channel, reg))
             
-            #FIXME error in passing these plots ....
+            #FIXME errors when passing these plots ....
             #plots.extend(makeAK8JetsPLots(self, TwoLeptonsOneJet_Boosted, AK8jets, channel))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -913,7 +964,6 @@ class NanoHtoZA(NanoAODHistoModule):
                                         }
 
                     _2Lep2bjets_boOsted = dict((key, selNoMET.refine("TwoLeptonsOneBjets_{0}_{1}_Boosted".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in _2Lep2bjets_boOsted_NoMETcut.items())
-                    
                     for sel, suffix in zip([ _2Lep2bjets_boOsted_NoMETcut, _2Lep2bjets_boOsted], [ '_NoMETCut_', '_METCut_']):
                         plots.extend(makeBJetPlots(self, sel, BoOstedJets, wp, channel, "boosted", suffix, era))
                         plots.extend(makeControlPlotsForFinalSel(self, sel, BoOstedJets, dilepton, wp, channel, "boosted", suffix))
@@ -944,15 +994,16 @@ class NanoHtoZA(NanoAODHistoModule):
                                                                         cut=[ op.rng_len(bJets_resolved_PassdeepflavourWP) > 1 ],
                                                                         weight=([ deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[0]), 
                                                                                   deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[1]) 
-                                                                                  #getDYReweighting(self, era, sample, AK4jets, bJets_resolved_PassdeepflavourWP, wp)
+                                                                                  #get_tthDYreweighting(self, era, sample, AK4jets, bJets_resolved_PassdeepflavourWP, wp)
                                                                                 ] if isMC else None
                                                                                 )),
 
                     "DeepCSV{0}".format(wp)     :  TwoLeptonsTwoJets_Resolved.refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Resolved".format(wp, channel), 
-                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepcsvWP) > 1 ],
+                                                                        # remove boosted bjets that pass deepcsv WP
+                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepcsvWP) > 1, op.rng_len(bJets_boosted_PassdeepcsvWP) ==0],
                                                                         weight=([ deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[0]), 
                                                                                   deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[1])
-                                                                                  #getDYReweighting(self, era, sample, AK4jets, bJets_resolved_PassdeepcsvWP, wp)  
+                                                                                  #get_tthDYreweighting(self, era, sample, AK4jets, bJets_resolved_PassdeepcsvWP, wp)  
                                                                                 ] if isMC else None
                                                                                 ))
                                                 }
@@ -962,7 +1013,7 @@ class NanoHtoZA(NanoAODHistoModule):
                     "DeepCSV{0}".format(wp)     :  TwoLeptonsOneJet_Boosted.refine("TwoLeptonsOneBjets_NoMETcut_DeepCSV{0}_{1}_Boosted".format(wp, channel), 
                                                                         cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) > 0 ])
                                                                         # FIXME ! can't pass boosted jets SFs with current version ---> move to v7  
-                                                                        #weight=([ getDYReweighting(self, era, sample, AK8jets, bJets_boosted_PassdeepcsvWP, wp)
+                                                                        #weight=([ get_tthDYreweighting(self, era, sample, AK8jets, bJets_boosted_PassdeepcsvWP, wp)
                                                                         #         deepB_AK8ScaleFactor(bJets_boosted_PassdeepcsvWP[0]), 
                                                                         #         deepB_AK8ScaleFactor(bJets_boosted_PassdeepcsvWP[1]) 
                                                                         #        ] if isMC else None))
@@ -971,15 +1022,14 @@ class NanoHtoZA(NanoAODHistoModule):
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  to optimize the MET cut 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                # FIXME  Rerun again  &&& pass signal and bkg  
-                # The MET cut is passed to TwoLeptonsTwoBjets selection for the # tagger and for the # wp 
+                # pass signal && bkg  
                 if make_METPlots:
                     for sel, reg in zip( [TwoLeptonsTwoBjets_NoMETCut_Res,TwoLeptonsOneBjets_NoMETCut_Boo], ["resolved", "boosted"]):
                         plots.extend(MakeMETPlots(self, sel, corrMET, MET, channel, reg))
                         plots.extend(MakeExtraMETPlots(self, sel, dilepton, MET, channel, reg))
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  refine previous selctions : with MET cut  < 80. 
+                                                    #  refine previous selections for SR : with MET cut  < 80. 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 TwoLeptonsTwoBjets_Res = dict((key, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut_Res.items())
                 TwoLeptonsOneBjets_Boo = dict((key, selNoMET.refine("TwoLeptonsOneBjets_{0}_{1}_Boosted".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsOneBjets_NoMETCut_Boo.items())
@@ -1003,7 +1053,7 @@ class NanoHtoZA(NanoAODHistoModule):
                             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 JetType=( 'AK4' if reg=='resolved' else( 'AK8'))
                 if make_bJetsPlusLeptonsPlots_METcut :
-                    for sel, bjets, reg in zip([TwoLeptonsTwoBjets_Res, TwoLeptonsOneBjets_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"]):
+                    for sel, bjets, reg, jlen in zip([TwoLeptonsTwoBjets_Res, TwoLeptonsOneBjets_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"], [jlenOpts_resolved, 'at least 1']):
                         plots.extend(makeBJetPlots(self, sel, bjets, wp, channel, reg, "_METCut_", era))
                         plots.extend(makeControlPlotsForFinalSel(self, sel, bjets, dilepton, wp, channel, reg, "_METCut_"))
                    
@@ -1011,7 +1061,7 @@ class NanoHtoZA(NanoAODHistoModule):
                             plots.extend(MakeEllipsesPLots(self, sel, bjets, dilepton, wp, channel, reg))
                     
                         for key in sel.keys():
-                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_METCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + at least 2 {0}BJets {1} pass {2} + METcut (channel : {3})".format(JetType, reg, key, optstex))
+                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_METCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + {0} {1}BJets {2} pass {3} + METcut (channel : {4})".format(jlen, JetType, reg, key, optstex))
                             plots.append(CutFlowReport("{0}jj_{1}_METCut_{2}".format(channel.lower(), key, reg), sel.get(key)))
                 
                             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1019,13 +1069,13 @@ class NanoHtoZA(NanoAODHistoModule):
                             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if make_bJetsPlusLeptonsPlots_NoMETcut :
                     # Control Plots, Yield Plots, FlowReport (passed to the postprocess)
-                    for sel, bjets, reg in zip([TwoLeptonsTwoBjets_NoMETCut_Res, TwoLeptonsOneBjets_NoMETCut_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"]):
+                    for sel, bjets, reg, jlen in zip([TwoLeptonsTwoBjets_NoMETCut_Res, TwoLeptonsOneBjets_NoMETCut_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"], [jlenOpts_resolved, 'at least 1']):
                         
                         plots.extend(makeBJetPlots(self, sel, bjets, wp, channel, reg, "_NoMETCut_", era))
                         plots.extend(makeControlPlotsForFinalSel(self, sel, bjets, dilepton, wp, channel, reg, "_NoMETCut_"))
                     
                         for key in sel.keys():
-                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_NoMETCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + at least 1 {0}BJets {1} pass {2} + NoMETcut (channel : {3})".format(JetType, reg, key, optstex))
+                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_NoMETCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + {0} {1}BJets {2} pass {3} + NoMETcut (channel : {4})".format(jlen, JetType, reg, key, optstex))
                             plots.append(CutFlowReport("{0}jj_{1}_NoMETCut_{2}".format(channel.lower(), key, reg), sel.get(key)))
             
                 #plots.extend(makeExtraFatJetBOostedPlots(self, TwoLeptonsOneBjets_Boo, bjets_boosted, wp, channel))
@@ -1036,13 +1086,25 @@ class NanoHtoZA(NanoAODHistoModule):
     def postProcess(self, taskList, config=None, workdir=None, resultsdir=None):
         from bamboo.plots import CutFlowReport, DerivedPlot
         import bambooToOls
-        
+        import json 
+
         # Get list of plots (taken from bamboo.HistogramsModule)
-        if not self.plotList:
-            tup, smpName, smpCfg = self.getATree()
-            tree, noSel, backend, runAndLS = self.prepareTree(tup, sample=smpName, sampleCfg=smpCfg)
-            self.plotList = self.definePlots(tree, noSel, sample=smpName, sampleCfg=smpCfg)
-        
+        #if not self.plotList:
+        #    tup, smpName, smpCfg = self.getATree()
+        #    tree, noSel, backend, runAndLS = self.prepareTree(tup, sample=smpName, sampleCfg=smpCfg)
+        #    self.plotList = self.definePlots(tree, noSel, sample=smpName, sampleCfg=smpCfg)
+            
+        # memory usage 
+        # FIXME I want to plots these ! 
+        #start= timer()
+        #end= timer()
+        #maxrssmb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024
+        #logger.info(f"{len(self.plotList):d} plots defined in {end - start:.2f}s, max RSS: {maxrssmb:.2f}MB")
+        #with open(os.path.join(resultsdir=".","memoryusage.json"%suffix), "w") as handle:
+        #    json.dump(len(self.plotList), handle, indent=4)
+        #    json.dump(maxrssmb, handle, indent=4)
+        #    json.dump(end - start, handle, indent=4)
+
         # merge processes using their cross sections
         #utils.normalizeAndMergeSamples(self.plotList, self.readCounters, config, resultsdir, os.path.join(resultsdir, "output_sum.root"))
         
@@ -1050,34 +1112,37 @@ class NanoHtoZA(NanoAODHistoModule):
         plotList_cutflowreport = [ ap for ap in self.plotList if isinstance(ap, CutFlowReport) ]
         bambooToOls.SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
 
+        # QCD scale variations .
         #for (inputs, output), kwargs in taskList:
         #    if self.doSysts and self.isMC(output):
         #        self.qcdScaleVariations= { f"qcdScalevar{i}" for i in [0, 1, 3, 5, 7, 8] }
         #        utils.produceMEScaleEnvelopes(self.plotList, self.qcdScaleVariations, os.path.join(resultsdir, output))
+       
         
+        # finally, run plotIt as defined in HistogramsModule
+        # keep above your changes in the post-process 
+        super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
         
-       # plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
-       # logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
+        plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
+        logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
-       # from bamboo.analysisutils import loadPlotIt
-       # p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=self.args.eras, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
-       # from plotit.plotit import Stack
-       # from bamboo.root import gbl
-       # for plot in plots_2D:
-       #     logger.debug(f"Saving plot {plot.name}")
-       #     obsStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "DATA")
-       #     expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
-       #     cv = gbl.TCanvas(f"c{plot.name}")
-       #     cv.Divide(2)
-       #     cv.cd(1)
-       #     expStack.total.Draw("COLZ")
-       #     cv.cd(2)
-       #     obsStack.total.Draw("COLZ")
-       #     cv.Update()
-       #     cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
-       # 
+        from bamboo.analysisutils import loadPlotIt
+        p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=self.args.eras, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
+        from plotit.plotit import Stack
+        from bamboo.root import gbl
+        for plot in plots_2D:
+            logger.debug(f"Saving plot {plot.name}")
+            obsStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "DATA")
+            expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
+            cv = gbl.TCanvas(f"c{plot.name}")
+            cv.Divide(2)
+            cv.cd(1)
+            expStack.obj.Draw("COLZ0")
+            cv.cd(2)
+            obsStack.obj.Draw("COLZ0")
+            cv.Update()
+            cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
+        
         #for smpName, smpCfg in config["samples"].items():
         #    smpCfg.pop("files")
 
-        # finally, run plotIt as defined in HistogramsModule
-        super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
