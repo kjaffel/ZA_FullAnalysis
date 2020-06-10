@@ -511,13 +511,13 @@ class NanoHtoZA(NanoAODHistoModule):
        # 
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), isElectron=True, systName="elid")
         # FIXME  Need to be careful I didn't pass this before for 2016 -- and the plots are perfect  **** need to be tested *** 
-        
-        elRecoSF_splitby_Hi_LO_pT = False
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
-
-        if elRecoSF_splitby_Hi_LO_pT == True and era !='2018':
+        if era !='2018':
             elRecoSF_lowpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptL20_%s"%elRecoSF_version), isElectron=True, systName="lowele_reco")
             elRecoSF_highpt = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_ptG20_%s"%elRecoSF_version), isElectron=True, systName="highele_reco")
+
+            passpt = ('ptG20' if era !='2018' else(''))
+            elRecoSF= get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_%s_%s"%(passpt, elRecoSF_version)), isElectron=True, systName="ele_reco")
         else:
             passpt = ('ptG20' if era !='2018' else(''))
             elRecoSF= get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "reco_%s_%s"%(passpt, elRecoSF_version)), isElectron=True, systName="ele_reco")
