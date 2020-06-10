@@ -2,7 +2,6 @@ from bamboo.analysismodules import NanoAODHistoModule
 from bamboo.analysisutils import makeMultiPrimaryDatasetTriggerSelection
 
 from bamboo import treefunctions as op
-from bamboo.plots import EquidistantBinning as EqB
 
 #from bamboo.logging import getLogger
 #logger = getLogger(__name__)
@@ -451,18 +450,17 @@ class NanoHtoZA(NanoAODHistoModule):
         gen_ptll_lo = None
         from reweightDY import Plots_gen
         if era=='2016':
-            DYsamples= ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"] 
+            isDY_reweight = (sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"])
         else:
-            DYsamples= ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"] 
+            isDY_reweight = (sample in ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"])
         # it will crash if evaluated when there are no two leptons in the matrix element
-        if sample in DYsamples:
+        if isDY_reweight:
             genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
             gen_ptll_nlo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
             
             forceDefine(gen_ptll_nlo, noSel)
             plots.extend(Plots_gen(gen_ptll_nlo, noSel, "noSel", sample))
             plots.extend(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
-        
         #elif sampleCfg["group"] == "DYJetsToLL_M-10to50":
         #   gen_ptll_lo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
         #   forceDefine(gen_ptll_lo, noSel)
@@ -489,14 +487,7 @@ class NanoHtoZA(NanoAODHistoModule):
                                 lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3, op.abs(ele.sip3d) < 4., 
                                                     op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), 
                                                           op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
-       # cuts =[]
-       # if era == '2017': 
-       #     cuts.append(op.OR(
-       #                         op.AND(t.HLT.Ele32_WPTight_Gsf_L1DoubleEG, 
-       #                                 op.rng_any(t.TrigObj, lambda obj: op.AND(op.deltaR(obj.p4, ele_kin[0].p4) < 0.1, obj.filterBits & 1024))),
-       #                         t.HLT.Ele28_eta2p1_WPTight_Gsf_HT150))
-       # electrons = op.select( ele_kin, cuts)
-       # 
+
         elMediumIDSF = get_scalefactor("lepton", ("electron_{0}_{1}".format(era,sfTag), "id_medium"), isElectron=True, systName="elid")
         # FIXME  Need to be careful I didn't pass this before for 2016 -- and the plots are perfect  **** need to be tested *** 
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
@@ -570,14 +561,6 @@ class NanoHtoZA(NanoAODHistoModule):
     
             sfEffPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_eff_sf_%s"% puIdWP[0].upper()), systName="JetpuID_eff_sf_%s"%puIdWP)
             sfMistagPUID = get_scalefactor("lepton", ("JetId_InHighPileup_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "puid_mistag_sf_%s"% puIdWP[0].upper()), systName="JetpuID_mistagrates_sf_%s"%puIdWP)
-            
-            if isMC:
-                effPUID = lambda j : op.switch(j.genJet.isValid, mcEffPUID(j), mcMistagPUID(j))
-                data_effPUID = lambda j : op.switch(j.genJet.isValid, dataEffPUID(j), dataMistagPUID(j))
-                sfPUID = lambda j : op.switch(j.genJet.isValid, sfEffPUID(j), sfMistagPUID(j))
-                    
-                #puidWeight = op.rng_product( AK4jets, lambda j : op.switch(j.puId == puid, sfPUID(j), (1.-sfPUID(j)*effPUID(j))/(1.-effPUID(j))))
-                puidWeight = op.rng_product( AK4jets, lambda j : op.switch(jet_puID_wp.get("loOse"), (sfPUID(j)*data_effPUID(j))/effPUID(j), (1.-sfPUID(j)*data_effPUID(j))/(1.-effPUID(j))))
 
         cleaned_AK4JetsByDeepFlav = op.sort(AK4jets, lambda j: -j.btagDeepFlavB)
         cleaned_AK4JetsByDeepB = op.sort(AK4jets, lambda j: -j.btagDeepB)
@@ -588,8 +571,8 @@ class NanoHtoZA(NanoAODHistoModule):
         # The AK8 jets are required to have the nsubjettiness parameters tau2/tau1< 0.5 to be consistent with an AK8 jet having two subjets.
         AK8jetsSel = op.select(sorted_AK8jets, 
                                 lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
-                                                  j.subJet1._idx.result != -1, 
-                                                  j.subJet2._idx.result != -1,
+                                                  j.subJet1.isValid,
+                                                  j.subJet2.isValid,
                                                   j.tau2/j.tau1 < 0.5))
         
         AK8jets= op.select(AK8jetsSel, 
@@ -714,18 +697,10 @@ class NanoHtoZA(NanoAODHistoModule):
                 "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
                 "ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(LowMass_cut(ele, mu), ele.pt > mu.pt )),
                 "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), mu.pt > ele.pt )),
-                
-                #"comb" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep_Z(mu,ele))),
-                
-                #"MuMu" : op.combine((muons, muons), pred=lambda mu1, mu2 : op.AND(osdilep_Z(mu1, mu2), mu1.pt > 25.)),
-                #"ElEl" : op.combine((electrons, electrons), pred=lambda ele1, ele2 : op.AND(osdilep_Z(ele1, ele2), ele1.pt > 25.)),
-                #"ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(LowMass_cut(ele, mu), osdilep_Z(ele,mu), ele.pt > mu.pt , ele.pt > 25.)),
-                #"MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep_Z(mu,ele), mu.pt > ele.pt, mu.pt > 20.))
                 }
          
         # FIXME maybe for 2017 or 2018 --> The leading pT for the �µ or µe channel should be above 20 Gev !
         hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) 
-        #hasOSLL_cmbRng = lambda cmbRng : op.rng_len(cmbRng) > 0
         
         ## helper selection (OR) to make sure jet calculations are only done once
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
@@ -748,18 +723,11 @@ class NanoHtoZA(NanoAODHistoModule):
             elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
             mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
             
-            #lepUnknownFlav= osLLRng.get("comb")[0][1]
-            #if lepUnknownFlav.pt > 15. :
-            #    mixed_catgoriesSFs = lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF(ll[0]), elemuTrigSF(ll), L1Prefiring]
-            #elif lepUnknownFlav.pt > 10.:
-            #    mixed_catgoriesSFs = lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF(ll), L1Prefiring]
-            
             llSFs = {
                 "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring]),#, mutrackingSF(ll[0]), mutrackingSF(ll[1])]),
                 "ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF(ll[0]), elemuTrigSF(ll), L1Prefiring]), #, elChargeSF(ll[0])]),
                 "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF(ll), L1Prefiring]), #,  elChargeSF(ll[1])]),
                 "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[0]), elRecoSF(ll[1]), doubleEleTrigSF(ll), L1Prefiring]) #FIXME, elChargeSF(ll[0]), elChargeSF(ll[1])]),
-                #"comb" : ( mixed_catgoriesSFs)
                 }
         else:
             # tth SFs and others ... 
@@ -778,7 +746,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]),elMediumIDSF(ll[1]), elRecoSF(ll[1]), mueleTrigSF, L1Prefiring]),#, elChargeSF(ll[1])]),
                 "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF(ll[0]), elRecoSF(ll[1]), doubleEleTrigSF, L1Prefiring])#, elChargeSF(ll[0]), elChargeSF(ll[1])])
                 }
-        print ( llSFs) 
+
         categories = dict((channel, (catLLRng[0], hasOSLL.refine("hasOs{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None)) )) for channel, catLLRng in osLLRng.items())
 
         make_ZpicPlots = True
@@ -860,7 +828,6 @@ class NanoHtoZA(NanoAODHistoModule):
                 TwoLeptonsTwoJets_Resolved_NopuWeight = TwoLeptonsTwoJets_Resolved
                 if isMC:
                     pu_weight= makePUIDSF(AK4jets, era, wp=puIdWP[0].upper(), wpToCut=jet_puID_wp.get(puIdWP))
-                    #pu_weight= op.switch(op.OR(op.in_range(30., AK4jets[0].pt, 50.), op.in_range(30, AK4jets[1].pt, 50.)), puidWeight, op.c_float(1.))
                 TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved_NopuWeight.refine( "TwoJet_{0}Sel_resolved_inclusive_puWeight_{0}".format(channel, puIdWP), weight= pu_weight)
             # N.B : boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -875,12 +842,9 @@ class NanoHtoZA(NanoAODHistoModule):
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                      # DY - Reweighting  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            #ptllDYW_NLO = (0.876979+gen_ptll*(4.11598e-03)-(2.35520e-05)*gen_ptll*gen_ptll)*(1.10211 * (0.958512 - 0.131835*TMath::Erf((gen_ptll-14.1972)/10.1525)))*(gen_ptll<140)+0.891188*(gen_ptll>=140)
-            #ptllDYW_LO  = (8.61313e-01+gen_ptll*4.46807e-03-1.52324e-05*gen_ptll*gen_ptll)*(1.08683 * (0.95 - 0.0657370*TMath::Erf((gen_ptll-11.)/5.51582)))*(gen_ptll<140)+1.141996*(gen_ptll>=140)
-            #TwoLeptonsTwoJets_Resolved_DYReweighting = TwoLeptonsTwoJets_Resolved.refine("{0}_2lep2jets_DYweight_fromtth".format(channel), weight=(get_tthDYreweighting(era, sample, AK4jets)))
             from reweightDY import plotsWithDYReweightings, Plots_gen, PLots_withtthDYweight
             if channel in ['ElEl', 'MuMu']:
-                if sample in DYsamples:
+                if isDY_reweight:
                     plots.extend(Plots_gen(gen_ptll_nlo, TwoLeptonsTwoJets_Resolved, '%s_resolved_2lep2jSel'%channel, sample))
                 plots.extend(PLots_withtthDYweight(channel, dilepton, AK4jets, TwoLeptonsTwoJets_Resolved, 'resolved', sample, era))
                 if make_DYReweightingPlots_2017Only and era =='2017':
