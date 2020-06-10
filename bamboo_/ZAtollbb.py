@@ -980,9 +980,9 @@ class NanoHtoZA(NanoAODHistoModule):
                 GetBestJetPair(bestDeepFlavourPair,"DeepFlavour", wp)
                 bestJetPairs["DeepCSV"]=bestDeepCSVPair
                 bestJetPairs["DeepFlavour"]=bestDeepFlavourPair
-                print ("bestJetPairs AK4--->", bestJetPairs, wp)
-                print ("bestJetPairs_deepcsv  AK4--->", bestJetPairs["DeepCSV"][0], bestJetPairs["DeepCSV"][1], wp)
-                print ("bestJetPairs_deepflavour  AK4 --->", bestJetPairs["DeepFlavour"][0],bestJetPairs["DeepFlavour"][1], wp)
+                #print ("bestJetPairs AK4--->", bestJetPairs, wp)
+                #print ("bestJetPairs_deepcsv  AK4--->", bestJetPairs["DeepCSV"][0], bestJetPairs["DeepCSV"][1], wp)
+                #print ("bestJetPairs_deepflavour  AK4 --->", bestJetPairs["DeepFlavour"][0],bestJetPairs["DeepFlavour"][1], wp)
                 # resolved 
                 bJets_resolved_PassdeepflavourWP=safeget(bjets_resolved, "DeepFlavour", wp)
                 bJets_resolved_PassdeepcsvWP=safeget(bjets_resolved, "DeepCSV", wp)
