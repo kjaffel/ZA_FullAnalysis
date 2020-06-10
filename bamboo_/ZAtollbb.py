@@ -1030,19 +1030,10 @@ class NanoHtoZA(NanoAODHistoModule):
         #    json.dump(len(self.plotList), handle, indent=4)
         #    json.dump(maxrssmb, handle, indent=4)
         #    json.dump(end - start, handle, indent=4)
-
-        # merge processes using their cross sections
-        #utils.normalizeAndMergeSamples(self.plotList, self.readCounters, config, resultsdir, os.path.join(resultsdir, "output_sum.root"))
         
         # save generated-events for each samples--- > mainly needed for the DNN
         plotList_cutflowreport = [ ap for ap in self.plotList if isinstance(ap, CutFlowReport) ]
         bambooToOls.SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
-
-        # QCD scale variations .
-        #for (inputs, output), kwargs in taskList:
-        #    if self.doSysts and self.isMC(output):
-        #        self.qcdScaleVariations= { f"qcdScalevar{i}" for i in [0, 1, 3, 5, 7, 8] }
-        #        utils.produceMEScaleEnvelopes(self.plotList, self.qcdScaleVariations, os.path.join(resultsdir, output))
 
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
