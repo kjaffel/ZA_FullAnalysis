@@ -1061,16 +1061,13 @@ class NanoHtoZA(NanoAODHistoModule):
         return plots
 
     def postProcess(self, taskList, config=None, workdir=None, resultsdir=None):
+        # run plotIt as defined in HistogramsModule - this will also ensure that self.plotList is present
+        super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
+
         from bamboo.plots import CutFlowReport, DerivedPlot
         import bambooToOls
         import json 
 
-        # Get list of plots (taken from bamboo.HistogramsModule)
-        #if not self.plotList:
-        #    tup, smpName, smpCfg = self.getATree()
-        #    tree, noSel, backend, runAndLS = self.prepareTree(tup, sample=smpName, sampleCfg=smpCfg)
-        #    self.plotList = self.definePlots(tree, noSel, sample=smpName, sampleCfg=smpCfg)
-            
         # memory usage 
         # FIXME I want to plots these ! 
         #start= timer()
@@ -1094,12 +1091,7 @@ class NanoHtoZA(NanoAODHistoModule):
         #    if self.doSysts and self.isMC(output):
         #        self.qcdScaleVariations= { f"qcdScalevar{i}" for i in [0, 1, 3, 5, 7, 8] }
         #        utils.produceMEScaleEnvelopes(self.plotList, self.qcdScaleVariations, os.path.join(resultsdir, output))
-       
-        
-        # finally, run plotIt as defined in HistogramsModule
-        # keep above your changes in the post-process 
-        super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
-        
+
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
@@ -1119,7 +1111,3 @@ class NanoHtoZA(NanoAODHistoModule):
             obsStack.obj.Draw("COLZ0")
             cv.Update()
             cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
-        
-        #for smpName, smpCfg in config["samples"].items():
-        #    smpCfg.pop("files")
-
