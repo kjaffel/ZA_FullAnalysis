@@ -1,10 +1,8 @@
 from bamboo.analysismodules import NanoAODHistoModule
 from bamboo.analysisutils import makeMultiPrimaryDatasetTriggerSelection
-from bamboo.scalefactors import binningVariables_nano
 
 from bamboo import treefunctions as op
 from bamboo.plots import EquidistantBinning as EqB
-from bamboo import scalefactors
 
 #from bamboo.logging import getLogger
 #logger = getLogger(__name__)
@@ -12,6 +10,7 @@ import logging
 logger = logging.getLogger("H->ZA->llbb Plotter")
 
 from itertools import chain
+from functools import partial
 import os.path
 import collections
 import math
@@ -23,8 +22,6 @@ if zabPath not in sys.path:
     sys.path.append(zabPath)
 import utils
 from systematics import getTriggerSystematcis, get_tthDYreweighting
-import HistogramTools as HT
-from bambooToOls import Plot
 
 from  ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots, MakePuppiMETPlots
 from EXtraPlots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots
@@ -34,15 +31,6 @@ from ControlPLots import *
 from boOstedEvents import addBoOstedTagger, getBoOstedWeight
 from extraplots2017 import zoomplots, ptcuteffectOnJetsmultiplicty, choosebest_jetid_puid, varsCutsPlotsforLeptons, LeptonsInsideJets
 from scalefactorslib import all_scalefactors
-from za_selections import get_selections
-
-binningVariables = {
-      "Eta"       : lambda obj : obj.eta
-    , "ClusEta"   : lambda obj : obj.eta + obj.deltaEtaSC
-    , "AbsEta"    : lambda obj : op.abs(obj.eta)
-    , "AbsClusEta": lambda obj : op.abs(obj.eta + obj.deltaEtaSC)
-    , "Pt"        : lambda obj : obj.pt
-    }
 
 puScenarios = {
     "2016" : "Moriond17",
@@ -75,10 +63,10 @@ def makePUIDSF(jets, year=None, wp=None, wpToCut=None):
         ))
 
 def get_scalefactor(objType, key, periods=None, combine=None, additionalVariables=dict(), getFlavour=None, isElectron=False, systName=None):
-    return scalefactors.get_scalefactor(objType, key, periods=periods, combine=combine, 
-                                        additionalVariables=additionalVariables, 
-                                        sfLib=all_scalefactors, 
-                                        paramDefs=binningVariables, 
+    return bamboo.scalefactors.get_scalefactor(objType, key, periods=periods, combine=combine,
+                                        additionalVariables=additionalVariables,
+                                        sfLib=all_scalefactors,
+                                        paramDefs=bamboo.scalefactors.binningVariables_nano,
                                         getFlavour=getFlavour,
                                         isElectron=isElectron,
                                         systName=systName)
@@ -952,7 +940,7 @@ class NanoHtoZA(NanoAODHistoModule):
                                                     # DeepCSV for both boosted && resolved , DeepFlavour  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             for wp in WorkingPoints: 
-                for tagger,bScore in {"DeepCSV":btagDeepB, "DeepFlavour": btagDeepFlavourB}.items():
+                for tagger,bScore in {"DeepCSV": "btagDeepB", "DeepFlavour": "btagDeepFlavB"}.items():
                     jets_by_score = op.sort(safeget(bjets_resolved, tagger, wp),
                             partial((lambda j,bSc=None : -getattr(j, bSc)), bSc=bScore))
                     bestJetPairs[tagger] = (jets_by_score[0], jets_by_score[1])
