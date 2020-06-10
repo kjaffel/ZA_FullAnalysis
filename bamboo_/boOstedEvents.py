@@ -21,7 +21,7 @@ def key_for_value(d):
         if k == "350-850" or k == "350-840":
             return k
 
-def getBoOstedWeight(self, era, tagger, wp, fatjet):
+def getBoOstedWeight(era, tagger, wp, fatjet):
     if era == '2016':
         DeepDoubleBvL= {
                 "350-850":{  
@@ -113,7 +113,7 @@ def getBoOstedWeight(self, era, tagger, wp, fatjet):
 
     return wgt 
 
-def addBoOstedTagger( self, AK8jets, BoostedTopologiesWP):
+def addBoOstedTagger(AK8jets, BoostedTopologiesWP):
 
     # DoubleB and DeepDoubleBvL 13 TeV data
     cleaned_AK8JetsByDDBvL = op.sort(AK8jets, lambda j: -j.btagDDBvL)

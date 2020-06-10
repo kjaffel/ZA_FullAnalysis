@@ -13,7 +13,7 @@ import utils
 from utils import *
 
 
-def zoomplots(self, oslepsel, oslep_plus2jet_sel, leptons, jets, suffix, uname):
+def zoomplots(oslepsel, oslep_plus2jet_sel, leptons, jets, suffix, uname):
     plots = []
     binScaling=1
     Jets_ = (jets[0].p4 if suffix=="boosted" else(jets[0].p4+jets[1].p4))
@@ -39,7 +39,7 @@ def zoomplots(self, oslepsel, oslep_plus2jet_sel, leptons, jets, suffix, uname):
     
     return plots
 
-def ptcuteffectOnJetsmultiplicty(self, TwoLepsel, leptons, jets_noptcut, jet_ptcut, corrMET, era, uname):
+def ptcuteffectOnJetsmultiplicty(TwoLepsel, leptons, jets_noptcut, jet_ptcut, corrMET, era, uname):
     plots = []
     binScaling=1
     for i in range(2):
@@ -90,7 +90,7 @@ def ptcuteffectOnJetsmultiplicty(self, TwoLepsel, leptons, jets_noptcut, jet_ptc
             
     return plots
 
-def makeJetPlots(self, sel, jets, uname, suffix, era, cuts):
+def makeJetPlots(sel, jets, uname, suffix, era, cuts):
     binScaling=1
     plots = []
     maxJet=( 1 if suffix=="boosted" else(2))
@@ -168,7 +168,7 @@ def leptonPlots_candVar(flavour, uName, categories, varFun, binning, saveSeparat
         toSave.append(SummedPlot(("_".join((combPrefix, flavour, uName)) if combPrefix is not None else "_".join((uName, flavour))), allPlots))
     return toSave
 
-def choosebest_jetid_puid(self, t, muons, electrons, osllSelCand, year, sample, isMC):
+def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
     plots = []
     binScaling = 1
     # look at PUID for 2017
@@ -192,7 +192,6 @@ def choosebest_jetid_puid(self, t, muons, electrons, osllSelCand, year, sample, 
         "M"   : lambda j : j.puId & 0x2,
         "T"   : lambda j : j.puId & 0x1
         }
-    isMC = self.isMC(sample)
     for jet_id, jets_noKin in jet_collections_id2017_beforeClean.items():
         jets_kin = { kinNm : op.select(jets_noKin, kinSel) for kinNm, kinSel in jet_sel_kin.items() }
         for puWP, puSel in jet_puID_wp.items():
@@ -244,10 +243,10 @@ def choosebest_jetid_puid(self, t, muons, electrons, osllSelCand, year, sample, 
                             EqB(50 // binScaling, 0., 450.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
                     kinematic_cuts = suffix + 'jId_'+ jet_id+'_puId'+puWP+'_'+kinNm+ '_Eta2p4'
                     for catName, lepjSel in sel.items(): 
-                        plots +=makeJetPlots(self, lepjSel, ak4jets_corr, catName, 'resolved', year, kinematic_cuts)
+                        plots +=makeJetPlots(lepjSel, ak4jets_corr, catName, 'resolved', year, kinematic_cuts)
     return plots
 
-def varsCutsPlotsforLeptons (self, lepton, sel, uname):
+def varsCutsPlotsforLeptons(lepton, sel, uname):
    plots = []
    # TODO this not going to work for mixed cat, no time to do this  now , fix it later 
    Flav = ('Electron' if uname[-1]=='l' else('Muon' if uname[-1]=='u' else('comb')))
@@ -268,7 +267,7 @@ def varsCutsPlotsforLeptons (self, lepton, sel, uname):
    return plots
 
 
-def LeptonsInsideJets( self, jets, sel, uname):
+def LeptonsInsideJets(jets, sel, uname):
     plots=[]
     binScaling=1
 

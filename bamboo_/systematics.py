@@ -3,7 +3,7 @@ logger = logging.getLogger("ZA systematics")
 
 from bamboo import treefunctions as op
 
-def  getHLTZvtxSF (self, era, sample, splitbyeras):
+def  getHLTZvtxSF (era, sample, splitbyeras):
         #2017B :  0.934±0.005 
         #2017C :  0.992±0.001 
         #2017DEF :  1.000 
@@ -17,8 +17,8 @@ def  getHLTZvtxSF (self, era, sample, splitbyeras):
         HLTZvtxSF = op.systematic(op.c_float(0.991), name='HLT_Zvtx_eff', up=op.c_float(0.992), down=op.c_float(0.990))
     return HLTZvtxSF
 
-def get_tthDYreweighting(self, era, sample, jets):
-#def getDYReweighting(self, era, sample, jets, bjets, WP):
+def get_tthDYreweighting(era, sample, jets):
+#def getDYReweighting(era, sample, jets, bjets, WP):
     DY_NLOWeight = 1.
     # to be applied only on the NLO DY+jets samples
     #if WP =='M': # Let's focus on the Medium Working Point 
@@ -54,7 +54,7 @@ def get_tthDYreweighting(self, era, sample, jets):
         
     return DY_NLOWeight 
 
-def getTriggerSystematcis(self, era, leptons, suffix, version):
+def getTriggerSystematcis(era, leptons, suffix, version):
     # taken from ttH studies:
     # https://gitlab.cern.ch/ttH_leptons/doc/blob/master/Legacy/data_to_mc_corrections.md#trigger-efficiency-scale-factors
     if version == "tth":

@@ -12,7 +12,7 @@ from bamboo import treefunctions as op
 import utils
 from utils import *
 
-def makeControlPlotsForZpic(self, sel, leptons, suffix, uname, reg ):
+def makeControlPlotsForZpic(sel, leptons, suffix, uname, reg ):
     plots = []
     binScaling=1
     for i in range(2):
@@ -37,7 +37,7 @@ def makeControlPlotsForZpic(self, sel, leptons, suffix, uname, reg ):
             plotopts=utils.getOpts(uname)))
     return plots
         
-def makeJetmultiplictyPlots(self, sel, jets, uname, suffix):
+def makeJetmultiplictyPlots(sel, jets, uname, suffix):
     binScaling=1
     plots=[]
     plots.append(Plot.make1D(f"{uname}_{suffix}_Jet_mulmtiplicity".format(suffix=suffix), op.rng_len(jets), sel,
@@ -46,7 +46,7 @@ def makeJetmultiplictyPlots(self, sel, jets, uname, suffix):
         
     return plots
 
-def makePrimaryANDSecondaryVerticesPlots(self, t, sel, uname):
+def makePrimaryANDSecondaryVerticesPlots(t, sel, uname):
     binScaling=1
     plots=[]
     sv_mass=op.map(t.SV, lambda sv: sv.mass)
@@ -77,7 +77,7 @@ def makePrimaryANDSecondaryVerticesPlots(self, t, sel, uname):
 
     return plots
 
-def makeControlPlotsForBasicSel(self, sel, jets, dilepton, uname, suffix):
+def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, suffix):
     binScaling =1
     plots =[]
     
@@ -116,7 +116,7 @@ def makeControlPlotsForBasicSel(self, sel, jets, dilepton, uname, suffix):
                 title="mlljj vs mjj invariant mass [Gev]", plotopts=utils.getOpts(uname)))
     return plots
 
-def makeControlPlotsForFinalSel(self, sel, bjets, leptons, wp, uname, suffix, cut):
+def makeControlPlotsForFinalSel(sel, bjets, leptons, wp, uname, suffix, cut):
     plots =[]
     binScaling=1
     for key in sel.keys():
@@ -174,7 +174,7 @@ def makeControlPlotsForFinalSel(self, sel, bjets, leptons, wp, uname, suffix, cu
         
     return plots 
 
-def makeJetPlots(self, sel, jets, uname, suffix, era):
+def makeJetPlots(sel, jets, uname, suffix, era):
     binScaling=1
     plots = []
     maxJet=( 1 if suffix=="boosted" else(2))
@@ -197,7 +197,7 @@ def makeJetPlots(self, sel, jets, uname, suffix, era):
                     EqB(50 // binScaling, -3.1416, 3.1416), title=f"{utils.getCounter(i+1)} jet #phi", plotopts=utils.getOpts(uname)))
     return plots
 
-def makedeltaRPlots( self, sel, jets, leptons, uname, suffix):
+def makedeltaRPlots(sel, jets, leptons, uname, suffix):
     plots = []
     if suffix=="resolved":
         plots.append(Plot.make1D(f"{uname}_{suffix}_jet1jet2_deltaR".format(suffix=suffix), op.deltaR(jets[0].p4, jets[1].p4),
@@ -220,7 +220,7 @@ def makedeltaRPlots( self, sel, jets, leptons, uname, suffix):
                     plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
-def makeBJetPlots(self, sel, bjets, wp, uname, suffix, cut, era):
+def makeBJetPlots(sel, bjets, wp, uname, suffix, cut, era):
     binScaling=1
     plots = []
     
@@ -256,7 +256,7 @@ def makeBJetPlots(self, sel, bjets, wp, uname, suffix, cut, era):
                         plotopts=utils.getOpts(uname)))
     return plots
 
-def makeExtraFatJetBOostedPlots(self, sel, bjets, wp, uname):
+def makeExtraFatJetBOostedPlots(sel, bjets, wp, uname):
     binScaling=1
     plots = []
     """
@@ -281,7 +281,7 @@ def makeExtraFatJetBOostedPlots(self, sel, bjets, wp, uname):
 
     return plots
 
-def makeAK8JetsPLots(self, sel, fatjet, uname):
+def makeAK8JetsPLots(sel, fatjet, uname):
     
     binScaling=1
     plots = []
@@ -311,7 +311,7 @@ def makeAK8JetsPLots(self, sel, fatjet, uname):
 
 
 
-def makehistosforTTbarEstimation(self, sel, leptons, bjets, wp, uname, suffix, met):
+def makehistosforTTbarEstimation(sel, leptons, bjets, wp, uname, suffix, met):
 
     plots=[]
     for key in sel.keys():

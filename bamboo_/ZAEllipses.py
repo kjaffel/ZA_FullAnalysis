@@ -5,7 +5,7 @@ from bamboo import treefunctions as op
 import utils
 from utils import safeget
 
-def MakeEllipsesPLots(self, sel, bjets, lepton, wp, uname, suffix):
+def MakeEllipsesPLots(sel, bjets, lepton, wp, uname, suffix):
     plots = []
     binScaling=1
     for key in sel.keys():
@@ -47,7 +47,7 @@ def MakeEllipsesPLots(self, sel, bjets, lepton, wp, uname, suffix):
                         plotopts=utils.getOpts(uname)))
     return plots
 
-def MakeMETPlots(self, sel, corrmet, met, uname, suffix):    
+def MakeMETPlots(sel, corrmet, met, uname, suffix):
     plots = []
     binScaling=1
     for key in sel.keys():
@@ -62,7 +62,7 @@ def MakeMETPlots(self, sel, corrmet, met, uname, suffix):
                     plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
-def MakePuppiMETPlots(self, PuppiMET, sel, uname):
+def MakePuppiMETPlots(PuppiMET, sel, uname):
     plots = []
     binScaling=1
     plots.append(Plot.make1D("PuppiMET_sumEt_%s"%uname,
@@ -81,7 +81,7 @@ def MakePuppiMETPlots(self, PuppiMET, sel, uname):
                         plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
-def MakeExtraMETPlots(self, sel, lepton, met, uname, suffix):
+def MakeExtraMETPlots(sel, lepton, met, uname, suffix):
     binScaling=1
     plots = []
     for key in sel.keys():

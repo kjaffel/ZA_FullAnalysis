@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("DY-Reweighting Plotter")
 
 
-def computeMjjDYweight(self, polyfit, mjj, sample):
+def computeMjjDYweight(polyfit, mjj, sample):
     
     DYsamples = ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"]
     if sample in DYsamples:
@@ -26,7 +26,7 @@ def computeMjjDYweight(self, polyfit, mjj, sample):
         mjj_weight = op.c_float(1.)
     return mjj_weight
 
-def computeMlljjDYweight(self, polyfit, mlljj, sample):
+def computeMlljjDYweight(polyfit, mlljj, sample):
     
     DYsamples = ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"]
     if sample in DYsamples:
@@ -41,7 +41,7 @@ def computeMlljjDYweight(self, polyfit, mlljj, sample):
     return mlljj_weight
 
 class DY_weightclass(object):
-    def __init__(self, ij, mjj, mlljj, sample, systematic):
+    def __init__(self, mjj, mlljj, sample, systematic):
         
         DYsamples=["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"]
         
@@ -302,7 +302,7 @@ class DY_weightclass(object):
         #if systematic == "DY_weight88up":
         #if systematic == "DY_weight88down":
         
-def getWDY_acrossmassplane(self, uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj, mlljj, sample, systematic):
+def getWDY_acrossmassplane(uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj, mlljj, sample, systematic):
     mjj_BinEdges= [0., 100., 250., 400., 550.,700., 850., 1000., 1200.]
     inveretd_mlljj_BinEdges = [ 1200., 1000., 750., 600., 450., 300., 150., 100., 0. ]
 
@@ -312,7 +312,7 @@ def getWDY_acrossmassplane(self, uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj
             if op.AND( op.in_range( mjj_BinEdges[i], mjj,  mjj_BinEdges[i+1]),
                         op.in_range(  inveretd_mlljj_BinEdges[j+1], mlljj,   inveretd_mlljj_BinEdges[j]) ):
                 ij= str(i+1)+str(j+1)
-                getfromDYclass = DY_weightclass(self, mjj, mlljj, sample, "DY_weight%s"%ij)
+                getfromDYclass = DY_weightclass(mjj, mlljj, sample, "DY_weight%s"%ij)
                 if systematic == "nominal":
                     DY_weight = getattr(getfromDYclass , "DY_weight%s"%ij)
                     #with open(os.path.join(".","DYweight_%s_%s_%s.json"%(uname, suffix, systematic)), "w") as handle:
@@ -330,7 +330,7 @@ def getWDY_acrossmassplane(self, uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj
     #f.close()
     return sel
 
-def plotsWithDYReweightings(self, jets, dilepton, TwoLepTwoJetsSel_NoDYweight, uname, suffix, sample, splitDY_weightIn64Regions):
+def plotsWithDYReweightings(jets, dilepton, TwoLepTwoJetsSel_NoDYweight, uname, suffix, sample, splitDY_weightIn64Regions):
     # TODO up and down variations
     plots = []
     binScaling =1
@@ -371,8 +371,8 @@ def plotsWithDYReweightings(self, jets, dilepton, TwoLepTwoJetsSel_NoDYweight, u
         NLO_DYweight = 0.
         for polyfit in [6, 7, 8]:
                 
-            mjj_DYweight = computeMjjDYweight(self, polyfit, mjj, sample)
-            mlljj_DYweight = computeMlljjDYweight(self, polyfit, mlljj, sample) 
+            mjj_DYweight = computeMjjDYweight(polyfit, mjj, sample)
+            mlljj_DYweight = computeMlljjDYweight(polyfit, mlljj, sample)
             NLO_DYweight = op.product(mjj_DYweight, mlljj_DYweight )
             
             logger.info(" start DY reweighting no mass range splits ** ")
@@ -427,7 +427,7 @@ def plotsWithDYReweightings(self, jets, dilepton, TwoLepTwoJetsSel_NoDYweight, u
     
     if reweightDY_acrossmassplane:    
         for systematic in ["nominal"]:#, "up_and_down"]:
-            selection= getWDY_acrossmassplane(self, uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj, mlljj, sample, systematic)
+            selection= getWDY_acrossmassplane(uname, suffix, TwoLepTwoJetsSel_NoDYweight, mjj, mlljj, sample, systematic)
             plots.append(Plot.make1D("{0}_{1}_{2}_DYweightsplit64_mjj".format(uname, suffix, systematic),
                         mjj, selection,
                         EqBIns, title="mjj [GeV]", plotopts=utils.getOpts(uname)))
@@ -441,7 +441,7 @@ def plotsWithDYReweightings(self, jets, dilepton, TwoLepTwoJetsSel_NoDYweight, u
                         (EqBIns, EqBIns), title="mlljj vs mjj invariant mass [Gev]", plotopts=utils.getOpts(uname)))
     return plots
     
-def Plots_gen(self, gen_ptll_nlo, sel, suffix, sample):
+def Plots_gen(gen_ptll_nlo, sel, suffix, sample):
     plots =[]
     binScaling = 1
     EqBIns = EqB(60 // binScaling, 0., 1200.)
@@ -451,12 +451,12 @@ def Plots_gen(self, gen_ptll_nlo, sel, suffix, sample):
         
     # follow xavier methods 
     return plots
-def PLots_withtthDYweight(self, uname, dilepton, jets, sel, suffix, sample, era):
+def PLots_withtthDYweight(uname, dilepton, jets, sel, suffix, sample, era):
     plots =[]
     binScaling = 1
     EqBIns = EqB(60 // binScaling, 0., 1200.)
     from systematics import get_tthDYreweighting
-    nloDYweight= get_tthDYreweighting(self, era, sample, jets)
+    nloDYweight= get_tthDYreweighting(era, sample, jets)
     sel.refine("%s_DY_reweighting_%s_fromtthanalysis"%(uname, suffix), weight= nloDYweight)
     
     plots.append(Plot.make1D("{0}_{1}_njets_tthDYnloweight".format(uname, suffix),

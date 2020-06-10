@@ -15,7 +15,7 @@ from bamboo.plots import EquidistantBinning as EqBin
 from bamboo.plots import VariableBinning as VarBin
 from utils import *
 import utils 
-def MakeBtagEfficienciesPlots(self, jets, bjets, categories, era):
+def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
 
     if isMC:
         bFlavJets = op.select(jets, lambda j: j.hadronFlavour == 5)
@@ -84,7 +84,7 @@ def MakeBtagEfficienciesPlots(self, jets, bjets, categories, era):
     selLightJetsMaxDR = op.select(selLightJets, lambda jet: op.NOT(op.rng_any(jets, lambda j: op.AND(jet != j, op.deltaR(jet.p4, j.p4) < 0.4))))
     selLightJetsMinDR = op.select(selLightJets, lambda jet: op.rng_any(jets, lambda j: op.AND(jet != j, op.deltaR(jet.p4, j.p4) < 0.4)))
 
-    def returnselforchannel(self, categories, jets, nbJets, channel, ext):
+    def returnselforchannel(categories, jets, nbJets, channel, ext):
         for cat, (dilepton, catSel) in categories.items():
             if cat not in channel:
                 continue
@@ -124,10 +124,10 @@ def MakeBtagEfficienciesPlots(self, jets, bjets, categories, era):
         
         # b-tagger shape for specific jet multiplicities
         for vari, channel in zip(["1el1mu", "1mu1el"], ["ElMu", "MuEl"]):
-            zeroJetsSel= returnselforchannel(self, categories, jets, 0, channel, ext) 
-            oneJetsSel = returnselforchannel(self, categories, jets, 1, channel, ext)
-            twoJetsSel = returnselforchannel(self, categories, jets, 2, channel, ext)
-            atleast2JetsSel = returnselforchannel(self, categories, jets, "atlest2", channel, ext)
+            zeroJetsSel= returnselforchannel(categories, jets, 0, channel, ext)
+            oneJetsSel = returnselforchannel(categories, jets, 1, channel, ext)
+            twoJetsSel = returnselforchannel(categories, jets, 2, channel, ext)
+            atleast2JetsSel = returnselforchannel(categories, jets, "atlest2", channel, ext)
             for i, nJetSel in zip (["0", "1", "2", "atleast2"], [ zeroJetsSel, oneJetsSel, twoJetsSel, atleast2JetsSel]):
             
                 plots.append(Plot.make1D("%s_%sj_bJet_%s"%(vari, i, suffix), op.map(selBJets, lambda_), nJetSel, EqBin(30, 0., 1.)))
