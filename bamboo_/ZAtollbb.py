@@ -796,13 +796,36 @@ class NanoHtoZA(NanoAODHistoModule):
                 TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved_NopuWeight.refine( "TwoJet_{0}Sel_resolved_inclusive_puWeight_{0}".format(channel, puIdWP), weight= pu_weight)
             # N.B : boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            
+            lljjSelections = {
+                    "resolved": TwoLeptonsTwoJets_Resolved,
+                    "boosted" : TwoLeptonsOneJet_Boosted
+                    }
+            jlenOpts = {
+                    "resolved": (' at least 2' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2')),
+                    "boosted" :  'at least 1'
+                    }
+            lljj_jetType = {
+                    "resolved": "AK4",
+                    "boosted" : "AK8"
+                    }
+            lljj_selName = {
+                    "resolved": "has2Lep2ResolvedJets",
+                    "boosted" : "has2Lep1BoostedJets"
+                    }
+            lljj_jets = {
+                    "resolved": AK4jets,
+                    "boosted" : AK8jets
+                    }
+            lljj_bJets = {
+                    "resolved": bjets_resolved,
+                    "boosted" : bjets_boosted
+                    }
+
+            for regi,sele in lljjSelections.items():
+                yield_object.addYields(sele, f"{lljj_selName[regi]}_{channel}" , "2 Lep(OS)+ {jlenOpts[regi]} {lljj_jetType[regi]}Jets + $M_{{ll}}$ cut (channel : {optstex})")
+                plots.append(CutFlowReport(f"{channel.lower()}jj_{regi}", sele))
+
             jlenOpts_resolved = (' at least 2' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2'))
-            yield_object.addYields(TwoLeptonsTwoJets_Resolved,"has2Lep2ResolvedJets_%s"%channel,"2 Lep(OS)+ %s AK4Jets + $M_{ll}$ cut (channel : %s)"%(jlenOpts_resolved, optstex))
-            yield_object.addYields(TwoLeptonsOneJet_Boosted,"has2Lep1BoostedJets_%s"%channel,"2 Lep(OS)+ at least 1 AK8Jets+ $M_{ll}$ cut (channel : %s)"%optstex)
-            
-            plots.append(CutFlowReport("%sjj_resolved"%channel.lower(), TwoLeptonsTwoJets_Resolved))
-            plots.append(CutFlowReport("%sjj_boosted"%channel.lower(), TwoLeptonsOneJet_Boosted))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                      # DY - Reweighting  
@@ -810,22 +833,22 @@ class NanoHtoZA(NanoAODHistoModule):
             from reweightDY import plotsWithDYReweightings, Plots_gen, PLots_withtthDYweight
             if channel in ['ElEl', 'MuMu']:
                 if isDY_reweight:
-                    plots.extend(Plots_gen(gen_ptll_nlo, TwoLeptonsTwoJets_Resolved, '%s_resolved_2lep2jSel'%channel, sample))
-                plots.extend(PLots_withtthDYweight(channel, dilepton, AK4jets, TwoLeptonsTwoJets_Resolved, 'resolved', sample, era))
+                    plots.extend(Plots_gen(gen_ptll_nlo, lljjSelections["resolved"], '%s_resolved_2lep2jSel'%channel, sample))
+                plots.extend(PLots_withtthDYweight(channel, dilepton, AK4jets, lljjSelections["resolved"], 'resolved', sample, era))
                 if make_DYReweightingPlots_2017Only and era =='2017':
-                    plots.extend(plotsWithDYReweightings(AK4jets, dilepton, TwoLeptonsTwoJets_Resolved, channel, 'resolved', sample, split_DYWeightIn64Regions))
+                    plots.extend(plotsWithDYReweightings(AK4jets, dilepton, lljjSelections["resolved"], channel, 'resolved', sample, split_DYWeightIn64Regions))
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                 # more Investigation pffff ... :(
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
             if make_zoomplotsANDptcuteffect:
                 plots.extend(ptcuteffectOnJetsmultiplicty(catSel, dilepton, jets_noptcut, AK4jets, corrMET, era, channel))
-                plots.extend(zoomplots(catSel, TwoLeptonsTwoJets_Resolved, dilepton, AK4jets, 'resolved', channel))
+                plots.extend(zoomplots(catSel, lljjSelections["resolved"], dilepton, AK4jets, 'resolved', channel))
             
             if make_METPuppiPlots:
-                plots.extend(MakePuppiMETPlots(PuppiMET, TwoLeptonsTwoJets_Resolved, channel))
+                plots.extend(MakePuppiMETPlots(PuppiMET, lljjSelections["resolved"], channel))
             if make_LookInsideJets:
-                plots.extend(LeptonsInsideJets(AK4jets, TwoLeptonsTwoJets_Resolved, channel))
+                plots.extend(LeptonsInsideJets(AK4jets, lljjSelections["resolved"], channel))
 
             if make_reconstructedVerticesPlots:
                 plots.extend( makePrimaryANDSecondaryVerticesPlots(t, catSel, channel))
@@ -833,8 +856,8 @@ class NanoHtoZA(NanoAODHistoModule):
                                                 # Control Plots in boosted and resolved  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # ----- plots : mll, mlljj, mjj, nVX, pT, eta  : basic selection plots ------
-            for sel, jet, reg in zip ([TwoLeptonsTwoJets_Resolved, TwoLeptonsOneJet_Boosted], [AK4jets, AK8jets], ["resolved", "boosted"]):
-                
+            for reg, sel in lljjSelections.items():
+                jet = lljj_jets[reg]
                 if make_JetschecksPlots:
                     #plots.extend(makedeltaRPlots(sel, jet, dilepton, channel, reg))
                     plots.extend(makeJetmultiplictyPlots(sel, jet, channel, reg))
@@ -845,24 +868,23 @@ class NanoHtoZA(NanoAODHistoModule):
                     plots.extend(makeControlPlotsForZpic(sel, dilepton, 'lepplusjetSel', channel, reg))
             
             #FIXME errors when passing these plots ....
-            #plots.extend(makeAK8JetsPLots(TwoLeptonsOneJet_Boosted, AK8jets, channel))
+            #plots.extend(makeAK8JetsPLots(lljjSelections["boosted"], AK8jets, channel))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # DeepDoubleB for boosted events (L, M1, M2, T1, T2)  wp   
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            if make_DeepDoubleBPlots:
-                BoOstedJets = addBoOstedTagger(AK8jets, BoostedTopologiesWP)
-                for wp in sorted(safeget(BoostedTopologiesWP, 'DeepDoubleBvL').keys()):
-                    bJets_boosted_DeepDoubleBvL=safeget(BoOstedJets, "DeepDoubleBvL", wp)
-                    _2Lep2bjets_boOsted_NoMETcut = { 
-                        "DeepDoubleBvL{0}".format(wp)  :  
-                                            TwoLeptonsOneJet_Boosted.refine("TwoLeptonsOneBjets_NoMETcut_DeepDoubleBvL{0}_{1}_Boosted".format(wp, channel), 
-                                            cut=[ op.rng_len(bJets_boosted_DeepDoubleBvL) > 0],
-                                            weight=( getBoOstedWeight(era, 'DeepDoubleBvL', wp, AK8jets) if isMC else None))
-                                        }
-
-                    _2Lep2bjets_boOsted = dict((key, selNoMET.refine("TwoLeptonsOneBjets_{0}_{1}_Boosted".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in _2Lep2bjets_boOsted_NoMETcut.items())
-                    for sel, suffix in zip([ _2Lep2bjets_boOsted_NoMETcut, _2Lep2bjets_boOsted], [ '_NoMETCut_', '_METCut_']):
+            if make_DeepDoubleBPlots and "DeepDoubleBvL" in BoostedTopologiesWP:
+                for wp in sorted(BoostedTopologiesWP["DeepDoubleBvL"].keys()):
+                   _2Lep2bjets_boOsted_NoMETcut = { "DeepDoubleBvL{0}".format(wp) :
+                           lljjSelections["boosted"].refine("TwoLeptonsOneBjets_NoMETcut_DeepDoubleBvL{0}_{1}_Boosted".format(wp, channel),
+                               cut=[ op.rng_len(BoOstedJets["DeepDoubleBvL"][wp]) > 0],
+                               weight=( getBoOstedWeight(era, 'DeepDoubleBvL', wp, AK8jets) if isMC else None))
+                           }
+                   for suffix, sel in {
+                            '_NoMETCut_' : _2Lep2bjets_boOsted_NoMETcut,
+                            '_METCut_' : { key: selNoMET.refine(selNoMET.name.replace("NoMETcut_", ""), cut=(corrMET.pt < 80.))
+                                for key, selNoMET in _2Lep2bjets_boOsted_NoMETcut.keys() }
+                            }.items():
                         plots.extend(makeBJetPlots(sel, BoOstedJets, wp, channel, "boosted", suffix, era))
                         plots.extend(makeControlPlotsForFinalSel(sel, BoOstedJets, dilepton, wp, channel, "boosted", suffix))
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -884,7 +906,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # FIXME Wgt from DY can't pass on L, or T like this : problem with None
                 TwoLeptonsTwoBjets_NoMETCut_Res = {
-                    "DeepFlavour{0}".format(wp) :  TwoLeptonsTwoJets_Resolved.refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
+                    "DeepFlavour{0}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
                                                                         cut=[ op.rng_len(bJets_resolved_PassdeepflavourWP) > 1 ],
                                                                         weight=([ deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[0]), 
                                                                                   deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[1])
@@ -892,7 +914,7 @@ class NanoHtoZA(NanoAODHistoModule):
                                                                                 ] if isMC else None
                                                                                 )),
 
-                    "DeepCSV{0}".format(wp)     :  TwoLeptonsTwoJets_Resolved.refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Resolved".format(wp, channel), 
+                    "DeepCSV{0}".format(wp)     :  lljjSelections["resolved"].refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Resolved".format(wp, channel),
                                                                         # remove boosted bjets that pass deepcsv WP
                                                                         cut=[ op.rng_len(bJets_resolved_PassdeepcsvWP) > 1, op.rng_len(bJets_boosted_PassdeepcsvWP) ==0],
                                                                         weight=([ deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[0]), 
@@ -904,7 +926,7 @@ class NanoHtoZA(NanoAODHistoModule):
 
 
                 TwoLeptonsOneBjets_NoMETCut_Boo = {
-                    "DeepCSV{0}".format(wp)     :  TwoLeptonsOneJet_Boosted.refine("TwoLeptonsOneBjets_NoMETcut_DeepCSV{0}_{1}_Boosted".format(wp, channel), 
+                    "DeepCSV{0}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsOneBjets_NoMETcut_DeepCSV{0}_{1}_Boosted".format(wp, channel),
                                                                         cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) > 0 ])
                                                                         # FIXME ! can't pass boosted jets SFs with current version ---> move to v7  
                                                                         #weight=([ get_tthDYreweighting(era, sample, AK8jets, bJets_boosted_PassdeepcsvWP, wp)
@@ -912,67 +934,64 @@ class NanoHtoZA(NanoAODHistoModule):
                                                                         #         deepB_AK8ScaleFactor(bJets_boosted_PassdeepcsvWP[1]) 
                                                                         #        ] if isMC else None))
                                                 }
+                llbbSelections_noMETCut = {
+                        "resolved": TwoLeptonsTwoBjets_NoMETCut_Res,
+                        "boosted" : TwoLeptonsOneBjets_NoMETCut_Boo
+                        }
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  to optimize the MET cut 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # pass signal && bkg  
                 if make_METPlots:
-                    for sel, reg in zip( [TwoLeptonsTwoBjets_NoMETCut_Res,TwoLeptonsOneBjets_NoMETCut_Boo], ["resolved", "boosted"]):
+                    for reg, sel in llbbSelections_noMETCut.items():
                         plots.extend(MakeMETPlots(sel, corrMET, MET, channel, reg))
                         plots.extend(MakeExtraMETPlots(sel, dilepton, MET, channel, reg))
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  refine previous selections for SR : with MET cut  < 80. 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                TwoLeptonsTwoBjets_Res = dict((key, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut_Res.items())
-                TwoLeptonsOneBjets_Boo = dict((key, selNoMET.refine("TwoLeptonsOneBjets_{0}_{1}_Boosted".format(key, channel), cut=[ corrMET.pt < 80. ])) for key, selNoMET in TwoLeptonsOneBjets_NoMETCut_Boo.items())
+                llbbSelections = { reg:
+                        { key: selNoMET.refine(f"TwoLeptonsTwoBjets_{key}_{channel}_{reg}", cut=[ corrMET.pt < 80. ])
+                            for key, selNoMET in noMETSels.items() }
+                        for reg, noMETSels in llbbSelections_noMETCut.items()
+                        }
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  TTbar Esttimation  
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # ----- For ttbar Estimation -----
                 if make_ttbarEstimationPlots:
-                    TwoLeptonsTwoBjets_Res_InHighMET = dict((key, selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved_with_inverted_METcut".format(key, channel), cut=[ corrMET.pt > 80. ])) for key, selNoMET in TwoLeptonsTwoBjets_NoMETCut_Res.items())
-                
-                    for sel , met in zip([ TwoLeptonsTwoBjets_Res, TwoLeptonsTwoBjets_Res_InHighMET ], [ "METCut", "HighMET"]) :
-                        plots.extend(makehistosforTTbarEstimation(sel, dilepton, bjets_resolved, wp, channel, "resolved", met))
-                
+                    for metReg, sel in {
+                            "METCut" : llbbSelections["resolved"],
+                            "HighMET": {key: selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved_with_inverted_METcut".format(key, channel),
+                                cut=[ corrMET.pt > 80. ])
+                                for key, selNoMET in llbbSelections_noMETCut["resolved"].items() }
+                            }.items():
+                        plots.extend(makehistosforTTbarEstimation(sel, dilepton, bjets_resolved, wp, channel, "resolved", metReg))
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  Control Plots for  Final selections  : 2lep +2 bjets 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  MET cut included 
-                            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                JetType=( 'AK4' if reg=='resolved' else( 'AK8'))
+                llbb_metCut_forPlots = {}
                 if make_bJetsPlusLeptonsPlots_METcut :
-                    for sel, bjets, reg, jlen in zip([TwoLeptonsTwoBjets_Res, TwoLeptonsOneBjets_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"], [jlenOpts_resolved, 'at least 1']):
-                        plots.extend(makeBJetPlots(sel, bjets, wp, channel, reg, "_METCut_", era))
-                        plots.extend(makeControlPlotsForFinalSel(sel, bjets, dilepton, wp, channel, reg, "_METCut_"))
-                   
-                        if make_ellipsesPlots:
-                            plots.extend(MakeEllipsesPLots(sel, bjets, dilepton, wp, channel, reg))
-                    
-                        for key in sel.keys():
-                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_METCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + {0} {1}BJets {2} pass {3} + METcut (channel : {4})".format(jlen, JetType, reg, key, optstex))
-                            plots.append(CutFlowReport("{0}jj_{1}_METCut_{2}".format(channel.lower(), key, reg), sel.get(key)))
-                
-                            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  NO MET cut  
-                            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    llbb_metCut_forPlots["METCut"] = llbbSelections
                 if make_bJetsPlusLeptonsPlots_NoMETcut :
-                    # Control Plots, Yield Plots, FlowReport (passed to the postprocess)
-                    for sel, bjets, reg, jlen in zip([TwoLeptonsTwoBjets_NoMETCut_Res, TwoLeptonsOneBjets_NoMETCut_Boo], [bjets_resolved, bjets_boosted], ["resolved", "boosted"], [jlenOpts_resolved, 'at least 1']):
-                        
-                        plots.extend(makeBJetPlots(sel, bjets, wp, channel, reg, "_NoMETCut_", era))
-                        plots.extend(makeControlPlotsForFinalSel(sel, bjets, dilepton, wp, channel, reg, "_NoMETCut_"))
-                    
-                        for key in sel.keys():
-                            yield_object.addYields(sel.get(key),"has2Lep2{0}BJets_NoMETCut_{1}_{2}".format(reg.upper(), channel, key),"2 Lep(OS) + {0} {1}BJets {2} pass {3} + NoMETcut (channel : {4})".format(jlen, JetType, reg, key, optstex))
-                            plots.append(CutFlowReport("{0}jj_{1}_NoMETCut_{2}".format(channel.lower(), key, reg), sel.get(key)))
-            
-                #plots.extend(makeExtraFatJetBOostedPlots(TwoLeptonsOneBjets_Boo, bjets_boosted, wp, channel))
+                    llbb_metCut_forPlots["NoMETCut"] = llbbSelections_noMETCut
+                for metCutNm, metCutSelections_llbb in llbb_metCut_forPlots.items():
+                    metCutNm_ = f"_{metCutNm}_"
+                    for reg, selDict in metCutSelections_llbb.items():
+                        bjets = lljj_bJets[reg]
+                        plots.extend(makeBJetPlots(selDict, bjets, wp, channel, reg, metCutNm_, era))
+                        plots.extend(makeControlPlotsForFinalSel(selDict, bjets, dilepton, wp, channel, reg, metCutNm_))
+                        if make_ellipsesPlots:
+                            plots.extend(MakeEllipsesPLots(selDict, bjets, dilepton, wp, channel, reg))
+                        for key, sel in selDict.items():
+                            yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_{metCutNm}_{channel}_{key}",
+                                    "2 Lep(OS) + {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key} + {metCutNm} (channel : {optstex})")
+                            plots.append(CutFlowReport(f"{channel.lower()}jj_{key}_{metCutNm}_{reg}", sel))
+
+                #plots.extend(makeExtraFatJetBOostedPlots(llbbSelections["boosted"], bjets["boosted"], wp, channel))
         
         plots.extend(yield_object.returnPlots())
         return plots
