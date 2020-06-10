@@ -713,30 +713,7 @@ class NanoHtoZA(NanoAODHistoModule):
                     bjets_resolved[tagger]=bJets_AK4_deepcsv
                     bjets_boosted[tagger]=bJets_AK8_deepcsv
         
-        bestDeepFlavourPair={}
-        bestDeepCSVPair={}
-        bestJetPairs= {}
-        bjets = {}
-        # For the Resolved only 
-        class GetBestJetPair(object):
-            JetsPair={}
-            def __init__(self, JetsPair, tagger, wp):
-                def ReturnHighestDiscriminatorJet(tagger, wp):
-                    if tagger=="DeepCSV":
-                        return op.sort(safeget(bjets_resolved, tagger, wp), lambda j: - j.btagDeepB)
-                    elif tagger=="DeepFlavour":
-                        return op.sort(safeget(bjets_resolved, tagger, wp), lambda j: - j.btagDeepFlavB)
-                    else:
-                        raise RuntimeError("Something went wrong in returning {0} discriminator !".format(tagger))
-               
-                firstBest=ReturnHighestDiscriminatorJet(tagger, wp)[0]
-                JetsPair[0]=firstBest
-                secondBest=ReturnHighestDiscriminatorJet(tagger, wp)[1]
-                JetsPair[1]=secondBest
-        #  bestJetPairs= { "DeepFlavour": bestDeepFlavourPair,
-        #                  "DeepCSV":     bestDeepCSVPair    
-        #                }
-        
+        bestJetPairs = {}
         #######  Zmass reconstruction : Opposite Sign , Same Flavour leptons
         ########################################################
         # supress quaronika resonances and jets misidentified as leptons
@@ -975,14 +952,10 @@ class NanoHtoZA(NanoAODHistoModule):
                                                     # DeepCSV for both boosted && resolved , DeepFlavour  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             for wp in WorkingPoints: 
-                # Get the best AK4 JETS 
-                GetBestJetPair(bestDeepCSVPair,"DeepCSV", wp)
-                GetBestJetPair(bestDeepFlavourPair,"DeepFlavour", wp)
-                bestJetPairs["DeepCSV"]=bestDeepCSVPair
-                bestJetPairs["DeepFlavour"]=bestDeepFlavourPair
-                #print ("bestJetPairs AK4--->", bestJetPairs, wp)
-                #print ("bestJetPairs_deepcsv  AK4--->", bestJetPairs["DeepCSV"][0], bestJetPairs["DeepCSV"][1], wp)
-                #print ("bestJetPairs_deepflavour  AK4 --->", bestJetPairs["DeepFlavour"][0],bestJetPairs["DeepFlavour"][1], wp)
+                for tagger,bScore in {"DeepCSV":btagDeepB, "DeepFlavour": btagDeepFlavourB}.items():
+                    jets_by_score = op.sort(safeget(bjets_resolved, tagger, wp),
+                            partial((lambda j,bSc=None : -getattr(j, bSc)), bSc=bScore))
+                    bestJetPairs[tagger] = (jets_by_score[0], jets_by_score[1])
                 # resolved 
                 bJets_resolved_PassdeepflavourWP=safeget(bjets_resolved, "DeepFlavour", wp)
                 bJets_resolved_PassdeepcsvWP=safeget(bjets_resolved, "DeepCSV", wp)
