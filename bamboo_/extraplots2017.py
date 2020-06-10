@@ -113,12 +113,6 @@ def makeJetPlots(sel, jets, uname, suffix, era, cuts):
                     EqB(50 // binScaling, -3.1416, 3.1416), title=f"{utils.getCounter(i+1)} jet #phi", plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
-puScenarios = {
-    "2016" : "Moriond17",
-    "2017" : "Fall17",
-    "2018" : "Autumn18"
-    }
-
 puIDSFLib = {
         f"{year}_{wp}" : {
             f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_',
@@ -128,9 +122,8 @@ puIDSFLib = {
     for year in ("2016", "2017", "2018") for wp in "LMT"
     }
 
-import bamboo.scalefactors
-
 def makePUIDSF(jets, year=None, wp=None, wpToCut=None):
+    import bamboo.scalefactors
     sfwpyr = puIDSFLib[f"{year}_{wp}"]
     sf_eff = bamboo.scalefactors.get_scalefactor("lepton", "eff_sf"   , sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
     sf_mis = bamboo.scalefactors.get_scalefactor("lepton", "mistag_sf", sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
