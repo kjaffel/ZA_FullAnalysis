@@ -411,6 +411,7 @@ class NanoHtoZA(NanoAODHistoModule):
 
                 
         plots = []
+        selections_for_cutflowreport = []
         gen_ptll_nlo = None
         gen_ptll_lo = None
         from reweightDY import Plots_gen
@@ -424,7 +425,7 @@ class NanoHtoZA(NanoAODHistoModule):
             gen_ptll_nlo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
             
             forceDefine(gen_ptll_nlo, noSel)
-            plots.extend(Plots_gen(gen_ptll_nlo, noSel, "noSel", sample))
+            plots.extend(Plots_gen(gen_ptll_nlo, noSel, "noSel"))
             plots.extend(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
         #elif sampleCfg["group"] == "DYJetsToLL_M-10to50":
         #   gen_ptll_lo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
@@ -769,7 +770,7 @@ class NanoHtoZA(NanoAODHistoModule):
                 
             optstex = ('$e^+e^-$' if channel=="ElEl" else( '$\mu^+\mu^-$' if channel =="MuMu" else( '$\mu^+e^-$' if channel=="MuEl" else('$e^+\mu^-$'))))
             yield_object.addYields(catSel,"hasOs%s"%channel,"OS leptons + $M_{ll}$ cut (channel : %s)"%optstex)
-            plots.append(CutFlowReport("Os_%s"%channel, catSel))
+            selections_for_cutflowreport.append(catSel)
             if make_ZpicPlots:
                 plots.extend(makeControlPlotsForZpic(catSel, dilepton, 'oslepSel', channel, '_'))
             
@@ -823,7 +824,7 @@ class NanoHtoZA(NanoAODHistoModule):
 
             for regi,sele in lljjSelections.items():
                 yield_object.addYields(sele, f"{lljj_selName[regi]}_{channel}" , "2 Lep(OS)+ {jlenOpts[regi]} {lljj_jetType[regi]}Jets + $M_{{ll}}$ cut (channel : {optstex})")
-                plots.append(CutFlowReport(f"{channel.lower()}jj_{regi}", sele))
+                selections_for_cutflowreport.append(sele)
 
             jlenOpts_resolved = (' at least 2' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2'))
             
@@ -834,9 +835,9 @@ class NanoHtoZA(NanoAODHistoModule):
             if channel in ['ElEl', 'MuMu']:
                 if isDY_reweight:
                     plots.extend(Plots_gen(gen_ptll_nlo, lljjSelections["resolved"], '%s_resolved_2lep2jSel'%channel, sample))
-                plots.extend(PLots_withtthDYweight(channel, dilepton, AK4jets, lljjSelections["resolved"], 'resolved', sample, era))
+                plots.extend(PLots_withtthDYweight(channel, dilepton, AK4jets, lljjSelections["resolved"], 'resolved', isDY_reweight, era))
                 if make_DYReweightingPlots_2017Only and era =='2017':
-                    plots.extend(plotsWithDYReweightings(AK4jets, dilepton, lljjSelections["resolved"], channel, 'resolved', sample, split_DYWeightIn64Regions))
+                    plots.extend(plotsWithDYReweightings(AK4jets, dilepton, lljjSelections["resolved"], channel, 'resolved', isDY_reweight, split_DYWeightIn64Regions))
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                 # more Investigation pffff ... :(
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -989,10 +990,11 @@ class NanoHtoZA(NanoAODHistoModule):
                         for key, sel in selDict.items():
                             yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_{metCutNm}_{channel}_{key}",
                                     "2 Lep(OS) + {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key} + {metCutNm} (channel : {optstex})")
-                            plots.append(CutFlowReport(f"{channel.lower()}jj_{key}_{metCutNm}_{reg}", sel))
+                            selections_for_cutflowreport.append(sel)
 
                 #plots.extend(makeExtraFatJetBOostedPlots(llbbSelections["boosted"], bjets["boosted"], wp, channel))
         
+        plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
         plots.extend(yield_object.returnPlots())
         return plots
 

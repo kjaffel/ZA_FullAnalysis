@@ -5,10 +5,9 @@ import json
 import logging
 logger = logging.getLogger("ZAInfos Plotter")
 
-from bamboo.root import gbl
 import bamboo.plots
 class Plot(bamboo.plots.Plot):
-    def produceQCDEnvelopes(self, bareResults, fbe):
+    def produceResults(self, bareResults, fbe):
         if any("__qcdScale" in h.GetName() for h in bareResults):
             hNom = next(h for h in bareResults if "__" not in h.GetName())
             prefix = f"{hNom.GetName()}__qcdScale"
@@ -79,6 +78,7 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
             for c in entry.children:
                 saveEntry(c, printFun=printFun, recursive=recursive)
     ## retrieve results files
+    from bamboo.root import gbl
     resultsFiles = dict((smp, gbl.TFile.Open(os.path.join(resultsdir, f"{smp}.root"))) for smp, smpCfg in config["samples"].items() if smpCfg.get("era") in eras)
     for report in reportList:
         for smp, resultsFile in resultsFiles.items():
