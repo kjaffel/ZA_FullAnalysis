@@ -2,7 +2,9 @@ from itertools import chain
 import os.path
 import sys
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
+zabPath = os.path.dirname(__file__)
+if zabPath not in sys.path:
+    sys.path.append(zabPath)
 
 def localize_myanalysis(aPath, version="FullRunIIv1"):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(version), aPath)

@@ -3,7 +3,7 @@ logger = logging.getLogger("ZA systematics")
 
 from bamboo import treefunctions as op
 
-def  getHLTZvtxSF (self, era, sample, splitbyeras):
+def  getHLTZvtxSF (era, sample, splitbyeras):
         #2017B :  0.934±0.005 
         #2017C :  0.992±0.001 
         #2017DEF :  1.000 
@@ -17,44 +17,40 @@ def  getHLTZvtxSF (self, era, sample, splitbyeras):
         HLTZvtxSF = op.systematic(op.c_float(0.991), name='HLT_Zvtx_eff', up=op.c_float(0.992), down=op.c_float(0.990))
     return HLTZvtxSF
 
-def get_tthDYreweighting(self, era, sample, jets):
-#def getDYReweighting(self, era, sample, jets, bjets, WP):
-    DY_NLOWeight = 1.
+def get_tthDYreweighting(era, jets):
+#def getDYReweighting(era, sample, jets, bjets, WP):
     # to be applied only on the NLO DY+jets samples
     #if WP =='M': # Let's focus on the Medium Working Point 
-    if sample in ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J']:
-        if op.rng_len(jets) >= 4:
-        #if op.AND(op.rng_len(jets) >= 4, op.rng_len(bjets) >= 2):
-            if era == '2017':
-                nominal = 1.453
-                uncer = 0.081
-            elif era == '2018':
-                nominal = 1.329
-                uncer = 0.140
+    if op.rng_len(jets) >= 4:
+    #if op.AND(op.rng_len(jets) >= 4, op.rng_len(bjets) >= 2):
+        if era == '2017':
+            nominal = 1.453
+            uncer = 0.081
+        elif era == '2018':
+            nominal = 1.329
+            uncer = 0.140
 
-        elif op.rng_len(jets) == 3:
-        #elif op.AND(op.rng_len(jets) == 3 , op.rng_len(bjets) >= 2):
-            if era == '2017':
-                nominal = 1.054
-                uncer = 0.036
-            elif era == '2018':
-                nominal = 1.012
-                uncer = 0.046
+    elif op.rng_len(jets) == 3:
+    #elif op.AND(op.rng_len(jets) == 3 , op.rng_len(bjets) >= 2):
+        if era == '2017':
+            nominal = 1.054
+            uncer = 0.036
+        elif era == '2018':
+            nominal = 1.012
+            uncer = 0.046
 
-        elif op.rng_len(jets) == 2:
-        #elif op.AND(op.rng_len(jets) == 2 , op.rng_len(bjets) >= 2):
-            if era == '2017':
-                nominal = 0.0884
-                uncer = 0.033
-            elif era == '2018':
-                nominal = 0.822
-                uncer = 0.021
+    elif op.rng_len(jets) == 2:
+    #elif op.AND(op.rng_len(jets) == 2 , op.rng_len(bjets) >= 2):
+        if era == '2017':
+            nominal = 0.0884
+            uncer = 0.033
+        elif era == '2018':
+            nominal = 0.822
+            uncer = 0.021
 
-        DY_NLOWeight = op.systematic(op.c_float(nominal), name="NLO_DYReweighting", up=op.c_float(nominal+ uncer), down=op.c_float(nominal- uncer))
-        
-    return DY_NLOWeight 
+    return op.systematic(op.c_float(nominal), name="NLO_DYReweighting", up=op.c_float(nominal+ uncer), down=op.c_float(nominal- uncer))
 
-def getTriggerSystematcis(self, era, leptons, suffix, version):
+def getTriggerSystematcis(era, leptons, suffix, version):
     # taken from ttH studies:
     # https://gitlab.cern.ch/ttH_leptons/doc/blob/master/Legacy/data_to_mc_corrections.md#trigger-efficiency-scale-factors
     if version == "tth":
