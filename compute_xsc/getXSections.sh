@@ -7,7 +7,7 @@
 
 START=`date +%s`
 SAMPLEFILE="samples.txt"
-MAXFILES=-1
+MAXFILES=50
 
 
 

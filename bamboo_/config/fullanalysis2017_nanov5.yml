@@ -466,11 +466,11 @@ plotIt:
     experiment: CMS
     extra-label: 2017Data --Work in progress
     show-overflow: true
-    error-fill-style: 3154
-    error-fill-color: "#ee556270"
-    ratio-fit-error-fill-style: 1001
-    ratio-fit-error-fill-color: "#aa556270"
-    ratio-fit-line-color: "#0B486B"
+    #error-fill-style: 3154
+    #error-fill-color: "#ee556270"
+    #ratio-fit-error-fill-style: 1001
+    #ratio-fit-error-fill-color: "#aa556270"
+    #ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
 
   legend:

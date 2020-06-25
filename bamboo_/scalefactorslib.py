@@ -13,10 +13,10 @@ def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "TriggerEfficienciesStudies", aPath)
 
 def localize_PileupJetID(aPath):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "PileupJetID", aPath)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/PileupFullRunII/PileupJetID", aPath)
 
 def localize_eChargeMisIDRates(aPath):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "eChargeMisId", aPath)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/eChargeMisId", aPath)
 
 all_scalefactors = {
        ############################################
@@ -124,9 +124,9 @@ all_scalefactors = {
                                ("Muon_NUM_{wp}ID_DEN_genTracks_pt_abseta_{uncer}_2017RunBCDEF.json".format(wp=wp, uncer=uncer)))
                                 for wp in ("Loose", "Medium", "Tight", "Soft", "MediumPrompt")for uncer in ("syst","stat")).items(),
 
-                           dict(("id_{wp}_newTuneP".format(wp=wp.lower()), 
+                           dict(("id_{wp}id_newTuneP".format(wp=wp.lower()), 
                                ("Muon_NUM_{wp}ID_DEN_genTracks_pair_newTuneP_probe_pt_abseta_{uncer}_2017RunBCDEF.json".format(wp=wp,uncer=uncer))) 
-                               for wp in ("HighPt","TrkHighPtID")for uncer in ("syst", "stat")).items(),
+                               for wp in ("HighPt","TrkHighPt")for uncer in ("syst", "stat")).items(),
                           
                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),
                                 "Muon_NUM_{isowp}RelIso_DEN_{idwp}_pt_abseta_{uncer}_2017RunBCDEF.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
@@ -151,8 +151,8 @@ all_scalefactors = {
                           # periode dependency:
                           dict(("{algo}_{wp}_period_dependency".format(algo=algo, wp=wp), [ (tuple("Run2017{0}".format(ltr)for ltr in eras),
                             "BTagging_{wp}_{flav}_{calib}_{algo}_2017{era}.json".format(wp=wp, flav=flav, calib=calib, algo=algo, era=eras))
-                            #for eras in ("B", "CtoE_upto304671", "E_from304672_toF") for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb"))])
-                            for eras in ("B", "CDE", "EF") for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb"))])
+                            for eras in ("B", "CtoE_upto304671", "E_from304672_toF") for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb"))])
+                            #for eras in ("B", "CDE", "EF") for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb"))])
                             for wp in ("loose", "medium", "tight") for algo in ("DeepCSV",)).items(),
         # Boosted :
                           dict(("subjet_{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_subjet_{algo}_2017BtoF.json".format(wp=wp, flav=flav, calib=calib, algo=algo)

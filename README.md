@@ -33,7 +33,7 @@ function cms_env() {
     module load cms/cmssw
 }
 alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_97python3/x86_64-centos7-gcc9-opt/setup.sh"
-alias bambooenv="source bamboodev/bamboovenv/bin/activate"
+alias bambooenv="source $HOME/bamboodev/bamboovenv/bin/activate"
 ```
 - then every time you want to setup your bamboo enviroment:
 ```
@@ -53,9 +53,17 @@ pip install --upgrade .
 - I recommend to test locally first with --maxFiles=1, after you can submit to slurm with --distributed=driver
 
 ```
--s : --systematics add to your plots PSweight (FSR , ISR) , PDFs and six QCD scale variations
+-s : --systematics add to your plots PSweight (FSR , ISR) , PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
 -v : --verbose     give you more print out for debugging 
 -m : --module      your analysis script
 
 bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
+```
+- In case you want to run plotIt again (after changing few options such fill color, legend position, unable systematics, etc...)
+```
+plotIt -i /path_to_your_dir/ -o /path_to_your_dir/plots_{add_era: 2016, 2017, 2018} -y -e era /In_your_Output_dir/plots.yml
+```
+- Or --onlypost
+```
+bambooRun --onlypost -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
 ```

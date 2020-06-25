@@ -116,7 +116,7 @@ def makeJetPlots(sel, jets, uname, suffix, era, cuts):
 puIDSFLib = {
         f"{year}_{wp}" : {
             f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_',
-                "PileupJetID", "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
+                "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf")
         }
     for year in ("2016", "2017", "2018") for wp in "LMT"
@@ -192,42 +192,49 @@ def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
             if isMC:
                 w_noKin = makePUIDSF(jets_noKin, year=year, wp=puWP, wpToCut=jet_puID_wp)
             
-            OsLepplusJets_noKinematics = dict((catName, catSel.refine(f"OsLeptonsPlusJets_withonly_jId{jet_id}_puId{puWP}_cuts_{catName}", weight=w_noKin))
+            OsLepplus_allJets_noKinematics = dict((catName, catSel.refine(f"OsLeptonsPlusJets_withonly_jId{jet_id}_puId{puWP}_cuts_{catName}", weight=w_noKin))
                 for catName, (cand, catSel) in osllSelCand.items())
             
             for kinNm, kinSel in jet_sel_kin.items():
                 w_pu = None
                 ak4jets_corr = op.select(jets_kin[kinNm], lambda j :  op.switch(j.pt < 50, puSel(j), op.c_bool(True)))
                 #ak4jets_corr = op.select(jets_kin[kinNm], lambda j : op.OR(j.pt < 50, puSel(j)))
+                
                 if isMC:
                     w_pu = makePUIDSF(ak4jets_corr, year=year, wp=puWP, wpToCut=jet_puID_wp)
                 
                 ## selections
-                OsLepplusJets = dict((catName, catSel.refine(f"OsLepplusJets_jId{jet_id}_puId{puWP}_{kinNm}_Eta2p4_{catName}", weight=w_pu))
+                OsLepplus_allJets = dict((catName, catSel.refine(f"OsLepplus_allJets_jId{jet_id}_puId{puWP}_{kinNm}_Eta2p4_{catName}", weight=w_pu))
                     for catName, (cand, catSel) in osllSelCand.items())
                 OsLepplus_atleast2Jets = dict((catName, catSel.refine(f"OsLepplus_atleast2_jId{jet_id}_puId{puWP}_{kinNm}_Eta2p4_{catName}", cut=[op.rng_len(ak4jets_corr) > 1], weight=w_pu))
                     for catName, (cand, catSel) in osllSelCand.items())
                 OsLepplus_exactly2Jets = dict((catName, catSel.refine(f"OsLepplus_Only2_jId{jet_id}_puId{puWP}_{kinNm}_Eta2p4_{catName}", cut=[op.rng_len(ak4jets_corr) ==2], weight=w_pu))
                     for catName, (cand, catSel) in osllSelCand.items())
                 
-                plots += perCatPlots_sameVar("jetETAPHI", OsLepplusJets,
+                plots += perCatPlots_sameVar("jetETAPHI", OsLepplus_allJets,
                         (op.map(ak4jets_corr, lambda j : j.eta), op.map(ak4jets_corr, lambda j : j.phi)),
-                        (EqB(50, -2.5, 2.5), EqB(50,  -3.1416, 3.1416)), combPrefix="OsLepplusJets", nDim=2)
-                #plots += perCatPlots_sameVar(f"nJet{kinNm}", OsLepplusJets_noKinematics, op.rng_len(ak4jets_corr),
-                #        EqB(12, 0., 12.), saveSeparate=True, combPrefix="OsLepplusJets_noKinematics")
+                        (EqB(50, -2.5, 2.5), EqB(50,  -3.1416, 3.1416)), combPrefix="OsLepplus_allJets", nDim=2)
+                #plots += perCatPlots_sameVar(f"nJet{kinNm}", OsLepplus_allJets_noKinematics, op.rng_len(ak4jets_corr),
+                #        EqB(12, 0., 12.), saveSeparate=True, combPrefix="OsLepplus_allJets_noKinematics")
                 
                 sv_mass=op.map(t.SV, lambda sv: sv.mass)
                 sv_eta=op.map(t.SV, lambda sv: sv.eta)
                 sv_phi=op.map(t.SV, lambda sv: sv.phi)
                 sv_pt=op.map(t.SV, lambda sv: sv.pt)
-                for sel , suffix in zip([OsLepplus_atleast2Jets, OsLepplus_exactly2Jets],['_atleast2_', '_Only2_']):
+                
+                for sel , suffix in zip([OsLepplus_atleast2Jets],['_atleast2_']):
+                #for sel , suffix in zip([OsLepplus_atleast2Jets, OsLepplus_exactly2Jets],['_atleast2_', '_Only2_']):
+                    plots += perCatPlots_sameVar("jetETAPHI", sel,
+                            (op.map(ak4jets_corr, lambda j : j.eta), op.map(ak4jets_corr, lambda j : j.phi)),
+                            (EqB(50, -2.5, 2.5), EqB(50,  -3.1416, 3.1416)), combPrefix="OsLepplus_%s_aka4Jets"%suffix, nDim=2)
                 
                     plots += perCatPlots_sameVar("nJet", sel, op.rng_len(ak4jets_corr),
-                            EqB(12, 0., 12.), saveSeparate=True, combPrefix="OsLepplusJets_%s"%suffix)
+                            EqB(7, 0., 7.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
+
                     plots += perCatPlots_sameVar("vtx", sel, t.PV.npvsGood,
                             EqB(60 // binScaling, 0., 80.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
                     plots += perCatPlots_sameVar("sv_mass", sel, sv_mass,
-                            EqB(50 // binScaling, 0., 450.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
+                            EqB(50 // binScaling, 0., 80.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
                     plots += perCatPlots_sameVar("sv_eta", sel, sv_eta,
                             EqB(50 // binScaling,-2.4, 2.4), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
                     plots += perCatPlots_sameVar("sv_phi", sel, sv_phi,
@@ -271,4 +278,35 @@ def LeptonsInsideJets(jets, sel, uname):
             EqB(7, 0., 7.), title="Jet_nMuons",
             plotopts=utils.getOpts(uname, **{"log-y": True})))
         
-    return plots 
+    return plots
+
+
+def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
+
+    # sel : 2leptons os
+    plots = []
+    binScaling=1
+    Njets = op.rng_len(jets)
+    HT = op.rng_sum(Njets, lambda j : j.pt)
+    
+#    plots.append(Plot.make1D(f"NJets_%s"%uname, op.rng_len(jets), sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
+#            EqB(10, 0., 10.), title="Reco. Njets",
+#            plotopts=utils.getOpts(uname, **{"log-y": True})))
+#
+#    plots.append(Plot.make1D(f"HT_%s"%uname, HT, sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
+#            EqB(100//binScaling, 0., 2500.), title="GEN. HT",
+#            plotopts=utils.getOpts(uname, **{"log-y": True})))
+#   
+#
+#    plots.append(Plot.make1D(f"pt_ll_%s"%uname, (leptons[0].p4 + leptons[1].p4).Pt(), sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
+#            EqB(60//binScaling, 0., 1000.), title="GEN. pT(ll)",
+#            plotopts=utils.getOpts(uname, **{"log-y": True})))
+
+    plots.append(Plot.make1D(f"genWeight_%s"%uname, tree.genWeight, sel,
+            EqB(60//binScaling, 0., 1000.), title="GEN. Weight",
+            plotopts=utils.getOpts(uname, **{"log-y": True})))
+    plots.append(Plot.make1D(f"TotalWeight_%s"%uname, sel.weight, sel,
+            EqB(60//binScaling, 0., 1000.), title="Total. Weight",
+            plotopts=utils.getOpts(uname, **{"log-y": True})))
+    
+    return plots

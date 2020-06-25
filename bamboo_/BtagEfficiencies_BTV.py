@@ -1,7 +1,10 @@
 import os
 import sys
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_')
+zabPath = os.path.dirname(__file__)
+if zabPath not in sys.path:
+    sys.path.append(zabPath)
+
 import utils
 from ControlPLots import safeget
 import ControlPLots as cp
@@ -15,22 +18,22 @@ from bamboo.plots import EquidistantBinning as EqBin
 from bamboo.plots import VariableBinning as VarBin
 from utils import *
 import utils 
-def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
 
-    if isMC:
-        bFlavJets = op.select(jets, lambda j: j.hadronFlavour == 5)
-        cFlavJets = op.select(jets, lambda j: j.hadronFlavour == 4)
-        lFlavJets = op.select(jets, lambda j: j.hadronFlavour == 0)
-    #else:
-    #    bFlavJets = cFlavJets = lFlavJets = jets
-    for channel, (dilepton, catSel) in categories.items():
-        if channel=="ElMu":
+def MakeBtagEfficienciesPlots(jets, bjets, categories, era, WorkingPoints):
+
+    bFlavJets = op.select(jets, lambda j: j.hadronFlavour == 5)
+    cFlavJets = op.select(jets, lambda j: j.hadronFlavour == 4)
+    lFlavJets = op.select(jets, lambda j: j.hadronFlavour == 0)
+    
+    for cat, (dilepton, catSel) in categories.items():
+        channel =cat.lower() 
+        if channel=="elmu":
             muelJetsSel = catSel.refine("twoJet{0}Sel_".format(channel), cut=[ op.rng_len(jets) > 1 ])
-        elif channel=="MuEl":
+        elif channel=="muel":
             elmuTwoJetsSel = catSel.refine("twoJet{0}Sel_".format(channel), cut=[ op.rng_len(jets) > 1 ])
-        elif channel=="MuMu":
+        elif channel=="mumu":
             mumuTwoJetsSel = catSel.refine("twoJet{0}Sel_".format(channel), cut=[ op.rng_len(jets) > 1 ])
-        elif channel=="ElEl":
+        elif channel=="elel":
             elelTwoJetsSel = catSel.refine("twoJet{0}Sel_".format(channel), cut=[ op.rng_len(jets) > 1 ])
 
     plots = []
@@ -40,12 +43,13 @@ def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
 
         pt = op.map(flavJets, lambda j: j.pt)
         eta = op.map(flavJets, lambda j: op.abs(j.eta))
-        plots.append(Plot.make2D(f"1el1mu_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), elmuTwoJetsSel, binning))
-        plots.append(Plot.make2D(f"1mu1el_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), muelJetsSel, binning))
+
+        plots.append(Plot.make2D(f"elmu_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), elmuTwoJetsSel, binning))
+        plots.append(Plot.make2D(f"muel_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), muelJetsSel, binning))
         plots.append(SummedPlot(f"pair_lept_OSOF_atleast2j_jet_pt_eta_{flav}flav", plots[-2:-1]))
         
-        plots.append(Plot.make2D(f"1mu1mu_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), mumuTwoJetsSel, binning))
-        plots.append(Plot.make2D(f"1el1el_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), elelTwoJetsSel, binning))
+        plots.append(Plot.make2D(f"mumu_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), mumuTwoJetsSel, binning))
+        plots.append(Plot.make2D(f"elel_atleast2j_jet_pt_eta_{flav}flav", (pt, eta), elelTwoJetsSel, binning))
         plots.append(SummedPlot(f"pair_lept_OSSF_atleast2j_jet_pt_eta_{flav}flav", plots[-2:-1]))
 
     jetPairs = op.combine(jets, N=2)
@@ -55,12 +59,11 @@ def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
     lightJetPairs = op.combine(lFlavJets, N=2)
     minLightJetDR = op.rng_min(lightJetPairs, lambda pair: op.deltaR(pair[0].p4, pair[1].p4))
 
-    for vari, sel in zip(["1el1mu", "1mu1el"], [elmuTwoJetsSel, muelJetsSel]):
-        plots.append(Plot.make1D(vari +"_minJetDR", minJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(vari.replace("1",""))))
-        plots.append(Plot.make1D(vari + "_minBJetDR", minBJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(vari.replace("1", ""))))
-        plots.append(Plot.make1D(vari + "_minLightJetDR", minLightJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(vari.replace("1",""))))
+    for uname, sel in zip(["elmu", "muel", 'mumu', 'elel'], [elmuTwoJetsSel, muelJetsSel, mumuTwoJetsSel, elelTwoJetsSel]):
+        plots.append(Plot.make1D(uname + "_minAllJetDR", minJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(uname, **{"log-y": False})))
+        plots.append(Plot.make1D(uname + "_minBFlavJetDR", minBJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(uname, **{"log-y": False})))
+        plots.append(Plot.make1D(uname + "_minLightFlavJetDR", minLightJetDR, sel, EqBin(40, 0.4, 2.), plotopts=utils.getOpts(uname, **{"log-y": False})))
 
-        #plots += cp.makeJetPlots(sel, jets, vari, maxJet=2, binScaling=2)
     btagging = {
             "DeepCSV":{ # era: (loose, medium, tight)
                         "2016":(0.2217, 0.6321, 0.8953), 
@@ -94,15 +97,12 @@ def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
                 OSOFlep_JetsSel = catSel.refine("%s_atleast2jets_ext%s"%(channel, ext), cut=op.rng_len(jets)>1)
         return OSOFlep_JetsSel
     for ext, tagger in enumerate(btagging.keys()):
-        for wp, discr in zip(["L", "M", "T"], btagging[tagger][era]):
-            print ( tagger, wp)
-            print(  btagging[tagger][era])
-            print( discr )
+        for wp, discr in zip(WorkingPoints, btagging[tagger][era]):
+            
             bJets_ = safeget(bjets, tagger, wp)
-            print( bJets_)             
             if bJets_ is None:
                 #raise RuntimeError("era: {0}, {1} WorkingPoint not passed in --module NanoHtoZA".format(era, wp))
-                logger.info("era: {0}, {1} WorkingPoint not passed in --module NanoHtoZA ".format(era, wp))
+                logger.info("era: {0}, {1} WorkingPoint not passed in --module NanoHtoZA will proceed without ***".format(era, wp))
             if tagger == "DeepFlavour":
                 selJets = op.select(flavJets, lambda j: j.btagDeepFlavB >= discr)
                 lambda_ = lambda j: j.btagDeepFlavB
@@ -114,29 +114,32 @@ def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
 
             pt = op.map(selJets, lambda j: j.pt)
             eta = op.map(selJets, lambda j: op.abs(j.eta))
-            plots.append(Plot.make2D(f"1el1mu_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), elmuTwoJetsSel, binning))
-            plots.append(Plot.make2D(f"1mu1el_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), muelJetsSel, binning))
+            plots.append(Plot.make2D(f"elmu_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), elmuTwoJetsSel, binning))
+            plots.append(Plot.make2D(f"muel_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), muelJetsSel, binning))
+            plots.append(SummedPlot(f"pair_lept_OSOF_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", plots[-2:-1]))
+            
+            plots.append(Plot.make2D(f"mumu_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), mumuTwoJetsSel, binning))
+            plots.append(Plot.make2D(f"elel_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", (pt, eta), elelTwoJetsSel, binning))
             plots.append(SummedPlot(f"pair_lept_OSSF_atleast2j_jet_pt_eta_{flav}_{tagger}{wp}", plots[-2:-1]))
 
-            for vari, sel in zip(["1el1mu", "1mu1el"], [elmuTwoJetsSel, muelJetsSel]):
-                #plots += cp.makeBJetPlots(sel, bJets_, vari)
-                plots.append(Plot.make1D(vari + "_nbJets_%s%s"%(tagger, wp), op.rng_len(bJets_), sel, EqBin(7, 0., 7.), title="Number of %s%s b jets"%(tagger, wp), plotopts=utils.getOpts(vari.replace("1",""))))
+            for uname, sel in zip(["elmu", "muel", "mumu", "elel"], [elmuTwoJetsSel, muelJetsSel, mumuTwoJetsSel, elelTwoJetsSel]):
+                plots.append(Plot.make1D(uname + "_nbJets_%s%s"%(tagger, wp), op.rng_len(bJets_), sel, EqBin(7, 0., 7.), title="Number of %s%s b jets"%(tagger, wp), plotopts=utils.getOpts(uname, **{"log-y": False})))
         
         # b-tagger shape for specific jet multiplicities
-        for vari, channel in zip(["1el1mu", "1mu1el"], ["ElMu", "MuEl"]):
+        for channel in ["ElMu", "MuEl", "MuMu", "ElEl"]:
             zeroJetsSel= returnselforchannel(categories, jets, 0, channel, ext)
             oneJetsSel = returnselforchannel(categories, jets, 1, channel, ext)
             twoJetsSel = returnselforchannel(categories, jets, 2, channel, ext)
             atleast2JetsSel = returnselforchannel(categories, jets, "atlest2", channel, ext)
             for i, nJetSel in zip (["0", "1", "2", "atleast2"], [ zeroJetsSel, oneJetsSel, twoJetsSel, atleast2JetsSel]):
             
-                plots.append(Plot.make1D("%s_%sj_bJet_%s"%(vari, i, suffix), op.map(selBJets, lambda_), nJetSel, EqBin(30, 0., 1.)))
-                plots.append(Plot.make1D("%s_%sj_lightJet_%s"%(vari, i, suffix), op.map(selLightJets, lambda_), nJetSel, EqBin(30, 0., 1.)))
+                plots.append(Plot.make1D("%s_%sj_bJet_%s"%(channel.lower(), i, suffix), op.map(selBJets, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
+                plots.append(Plot.make1D("%s_%sj_lightJet_%s"%(channel.lower(), i, suffix), op.map(selLightJets, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
     
-                plots.append(Plot.make1D(f"%s_%sj_minDR_bJet_%s"%(vari, i, suffix), op.map(selBJetsMinDR, lambda_), nJetSel, EqBin(30, 0., 1.)))
-                plots.append(Plot.make1D(f"%s_%sj_minDR_lightJet_%s"%(vari, i, suffix), op.map(selLightJetsMinDR, lambda_), nJetSel, EqBin(30, 0., 1.)))
-                plots.append(Plot.make1D(f"%s_%sj_maxDR_bJet_%s"%(vari, i, suffix), op.map(selBJetsMaxDR, lambda_), nJetSel, EqBin(30, 0., 1.)))
-                plots.append(Plot.make1D(f"%s_%sj_maxDR_lightJet_%s"%(vari, i, suffix), op.map(selLightJetsMaxDR, lambda_), nJetSel, EqBin(30, 0., 1.)))
+                #plots.append(Plot.make1D(f"%s_%sj_minDR_bJet_%s"%(channel.lower(), i, suffix), op.map(selBJetsMinDR, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
+                #plots.append(Plot.make1D(f"%s_%sj_minDR_lightJet_%s"%(channel.lower(), i, suffix), op.map(selLightJetsMinDR, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
+                plots.append(Plot.make1D(f"%s_%sj_maxDR_bJet_%s"%(channel.lower(), i, suffix), op.map(selBJetsMaxDR, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
+                plots.append(Plot.make1D(f"%s_%sj_maxDR_lightJet_%s"%(channel.lower(), i, suffix), op.map(selLightJetsMaxDR, lambda_), nJetSel, EqBin(30, 0., 1.), plotopts=utils.getOpts(channel, **{"log-y": False})))
     
     return plots
     
@@ -160,11 +163,11 @@ def MakeBtagEfficienciesPlots(jets, bjets, categories, era):
             tf = HT.openFileAndGet(os.path.join(resultsdir, proc +".root"), "update")
 
             # compute ratio histogram needed to correct the jet multiplicity
-            getRatio(tf, "1lep_nJets", "1lep_shape_nJets", "_sfCorr").Write()
+            #getRatio(tf, "1lep_nJets", "1lep_shape_nJets", "_sfCorr").Write()
 
             # compute efficiencies (divide histo after cut by total histo)
             for flav in ["b", "c", "light"]:
-                for wp in ["L", "M", "T"]:
+                for wp in WorkingPoints:
                     getRatio(tf, f"pair_lept_OSSF_atleast2j_jet_pt_eta_{flav}_wp{wp}", f"pair_lept_OSSF_atleast2j_jet_pt_eta_{flav}", "_eff").Write()         
             
             tf.Close()

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import re
 
@@ -22,17 +23,15 @@ def safeget(dct, *keys):
 def getOpts(name, **kwargs):
     uname=name.lower()
     if "elmu" in uname:
-        label = "emu channel"
-        #label = "$e^+\mu^-$ channel"
+        label = "e^{+}#mu^{-}"+"channel"
     elif "muel" in uname:
-        label = "mue channel"
-        #label = "$mu^+\e^-$ channel"
+        label = "#mu^{+}e^{-}"+ "channel"
     elif "elel" in uname:
-        label = "ee channel"
-        #label = "$e^+e^-$ channel"
+        label = "e^{+}e^{-}"+"channel"
     elif "mumu" in uname:
-        label = "mumu channel"
-        #label = "$\mu^+\mu^-$ channel"
+        label = "#mu^{+}#mu^{-}"+"channel"
+    elif "comb" in uname:
+        label = "e^{#pm}#mu^{#pm}"+" combined"
     elif "lept" in uname:
         label = "1 lepton pair (e/#mu)"
     if "2j" in uname:
@@ -99,21 +98,30 @@ def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
 
 #### Common tasks (systematics, sample splittings...)
 
-def addTheorySystematics(plotter, tree, noSel, MEscale=True, PSISR=True, PSFSR=True):
+def addTheorySystematics(plotter, tree, noSel, qcdScale=True, PSISR=False, PSFSR=False, PDFs=False):
+    plotter.qcdScaleVariations = dict() 
+    import yaml
     
-    plotter.qcdScaleVariations = dict()
-    if MEscale:
-        plotter.qcdScaleVariations = { f"qcdScalevar{i}": tree.LHEScaleWeight[i] for i in [0, 1, 3, 5, 7, 8] }
+    # for 2017 hadronic is buggy sample 
+    #with open('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/config/SamplesWithWrongPSWeight.yml') as file_:
+    #    buggySamples = yaml.load(file_, Loader=yaml.FullLoader)
+    #    buggySyst = buggySamples.get(sample, "")
+    
+    if qcdScale:
+        qcdScaleVariations = { f"qcdScalevar{i}": tree.LHEScaleWeight[i] for i in [0, 1, 3, 5, 7, 8] }
         qcdScaleSyst = op.systematic(op.c_float(1.), name="qcdScale", **plotter.qcdScaleVariations)
         noSel = noSel.refine("qcdScale", weight=qcdScaleSyst)
 
-    if PSISR:
+    if PSISR :#and "PS" not in buggySyst:
         psISRSyst = op.systematic(op.c_float(1.), name="psISR", up=tree.PSWeight[2], down=tree.PSWeight[0])
         noSel = noSel.refine("psISR", weight=psISRSyst)
     
-    if PSFSR:
+    if PSFSR :#and "PS" not in buggySyst:
         psFSRSyst = op.systematic(op.c_float(1.), name="psFSR", up=tree.PSWeight[3], down=tree.PSWeight[1])
         noSel = noSel.refine("psFSR", weight=psFSRSyst)
+    
+    if PDFs:
+        pdfsWeight = op.systematic(op.c_float(1.), name="pdfsWgt", up=tree.LHEPdfWeight, down=tree.LHEPdfWeight)
 
     return noSel
 

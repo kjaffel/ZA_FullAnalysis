@@ -298,7 +298,7 @@ plotIt:
     - muid
     - muiso
     - elid
-    - ele_reco
+      #- ele_reco
       # on the pileup
     - puweights2016_Moriond17
     # on the trigger

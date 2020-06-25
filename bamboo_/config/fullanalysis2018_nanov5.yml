@@ -120,13 +120,13 @@ samples:
     era: '2018'
         
 ######## ZZ
-  ZZTo2L2Nu:
-    db: das:/ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext2-v1/NANOAODSIM
-    files: dascache/ZZTo2L2Nu_2018.dat
-    generated-events: 'genEventSumw'
-    cross-section:  0.5644  # uncer= 0.0002688 pb
-    group: ZZ
-    era: '2018'
+#ZZTo2L2Nu:
+#    db: das:/ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext2-v1/NANOAODSIM
+#    files: dascache/ZZTo2L2Nu_2018.dat
+#    generated-events: 'genEventSumw'
+#    cross-section:  0.5644  # uncer= 0.0002688 pb
+#    group: ZZ
+#    era: '2018'
 
 
   ZZTo2L2Q:
@@ -424,11 +424,11 @@ plotIt:
     experiment: CMS
     extra-label: 2018Data --Work in progress
     show-overflow: true
-    error-fill-style: 3154
-    error-fill-color: "#ee556270"
-    ratio-fit-error-fill-style: 1001
-    ratio-fit-error-fill-color: "#aa556270"
-    ratio-fit-line-color: "#0B486B"
+    #error-fill-style: 3154
+    #error-fill-color: "#ee556270"
+    #ratio-fit-error-fill-style: 1001
+    #ratio-fit-error-fill-color: "#aa556270"
+    #ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
 
   legend:
@@ -484,20 +484,20 @@ plotIt:
     - jer
     - jesTotal
       # sys on jet pileup Id loOse from SF, eff, and mistagrates
-    - JetpuID_eff_mc_loOse
-    - JetpuID_mistagrates_mc_loOse
-    - JetpuID_eff_sf_loOse
-    - JetpuID_mistagrates_sf_loOse
+      #- JetpuID_eff_mc_loOse
+      #- JetpuID_mistagrates_mc_loOse
+      #- JetpuID_eff_sf_loOse
+      #- JetpuID_mistagrates_sf_loOse
       # medium
-    - JetpuID_eff_mc_medium
-    - JetpuID_mistagrates_mc_medium
-    - JetpuID_eff_sf_medium
-    - JetpuID_mistagrates_sf_medium
+      #- JetpuID_eff_mc_medium
+      #- JetpuID_mistagrates_mc_medium
+      #- JetpuID_eff_sf_medium
+      #- JetpuID_mistagrates_sf_medium
       # tight
-    - JetpuID_eff_mc_tight
-    - JetpuID_mistagrates_mc_tight
-    - JetpuID_eff_sf_tight
-    - JetpuID_mistagrates_sf_tight
+      #- JetpuID_eff_mc_tight
+      #- JetpuID_mistagrates_mc_tight
+      #- JetpuID_eff_sf_tight
+      #- JetpuID_mistagrates_sf_tight
       # on the lepton id /iso 
     - muid
     - muiso
@@ -510,8 +510,8 @@ plotIt:
     - mumutrig
     - elmutrig
     - mueltrig
-    - single_mutrig
-    - single_eletrig
+      #- single_mutrig
+      #- single_eletrig
     # sys from theory  
     - qcdScale
     - psISR

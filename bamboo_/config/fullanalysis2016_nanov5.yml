@@ -52,7 +52,8 @@ samples:
     db: das:/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/TT_2016.dat
     generated-events: 'genEventSumw'
-    cross-section: 730.6  # pb
+    cross-section: 831.76 # pb NNLO +19.77 -29.20  Scale uncer./ PDF+alphaS uncert.+35.06 -35.06 :https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
+        #730.6 # pb NLO  +- 0.5572 uncer. : https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTT_TuneCUETP8M2T4_13TeV-powheg-pythia8
     group: Inclusive
     era: '2016'
     split: 4
@@ -61,7 +62,8 @@ samples:
     db: das:/TTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
     files: dascache/TTTo2L2Nu_2016.dat
     generated-events: 'genEventSumw'
-    cross-section:   76.7       # pb
+    cross-section:  88.40 # pb (taken from Agni )
+                 #76.7  # pb NLO +- 0.0585 uncer.: https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8
     group: ttbar_FullLeptonic
     era: '2016'
     split: 4
@@ -149,7 +151,7 @@ samples:
     group: SM
     era: '2016'
 
-  ggZH_HToBB_ZToLL:
+  ggZH_HToBB_ZToLL: # TODO this one and the above I should check if I have double counting !
     db: das:/ggZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext2-v1/NANOAODSIM
     files: dascache/ZH_HToBB_ZToLL_2016.dat
     generated-events: 'genEventSumw'
@@ -262,7 +264,7 @@ samples:
     group: others
     era: '2016'
 
-  WJetsToLNu:
+  WJetsToLNu: #this one take forever to finish run !!!
     db: das:/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext2-v1/NANOAODSIM
     files: dascache/WJetsToLNu_2016.dat
     generated-events: 'genEventSumw'
@@ -489,11 +491,11 @@ plotIt:
     experiment: CMS
     extra-label: 2016Data --Work in progress
     show-overflow: true
-    error-fill-style: 3154
-    error-fill-color: "#ee556270"
-    ratio-fit-error-fill-style: 1001
-    ratio-fit-error-fill-color: "#aa556270"
-    ratio-fit-line-color: "#0B486B"
+    #error-fill-style: 3154
+    #error-fill-color: "#ee556270"
+    #ratio-fit-error-fill-style: 1001
+    #ratio-fit-error-fill-color: "#aa556270"
+    #ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
   
   legend:
@@ -544,9 +546,9 @@ plotIt:
       # on the jets
     - jer
     - jesTotal
-    - JetpuID_loOse
-    - JetpuID_medium
-    - JetpuID_tight
+      #- JetpuID_loOse
+      #- JetpuID_medium
+      #- JetpuID_tight
       # on the lepton id /iso 
     - muid
     - muiso
@@ -578,8 +580,13 @@ plotIt:
       # L1 pre-firing event correction weight
     - L1PreFiring
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
-    - ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
-    - TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
+      # ttbar at the NLO
+      #- ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
+      #- TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
+      # at the NNLO
+      # TODO
+      #- ttxsc: {type: const, value:  , on: 'TT'}   # uncer= 
+      #- TTTo2L2Nuxsc: {type: const, value:  , on: 'TTTo2L2Nu'}  # uncer= 
     - DYJetsToLLxsc: {type: const, value: 1.0032721956406168, on: 'DYJetsToLL'}    # uncer= 61.55
     - DYToLL_0Jxsc: {type: const, value: 1.0013216312802187, on: 'DYToLL_0J'} # uncer= 6.287
     - DYToLL_2Jxsc: {type: const, value: 1.0032481644640234, on: 'DYToLL_2J'}   # uncer= 1.106
