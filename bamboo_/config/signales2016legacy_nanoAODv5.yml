@@ -14,6 +14,7 @@ samples:
     line-type: 1
     legend: MH-1000_MA-200
     #split: 4
+    Branching-ratio: 0.0187466283
     type: signal
 
   HToZATo2L2B_MH-1000_MA-500:
@@ -25,6 +26,7 @@ samples:
     line-color: "#450808"
     line-type: 1
     legend: MH-1000_MA-500
+    Branching-ratio: 0.984163569
     #split: 4
     type: signal
         
@@ -37,6 +39,7 @@ samples:
     line-color: "#080845"
     line-type: 1
     legend: MH-1000_MA-50
+    Branching-ratio: 0.0194209925
     #split: 4
     type: signal
         
@@ -49,6 +52,7 @@ samples:
     line-color: "#8383f1"
     line-type: 1
     legend: MH-2000_MA-1000 
+    Branching-ratio: 0.984163569
     #split: 4
     type: signal
         
@@ -61,6 +65,7 @@ samples:
     line-color: "#31dce5"
     line-type: 1
     legend: MH-200_MA-100
+    Branching-ratio: 0.133580202
     #split: 4
     type: signal
         
@@ -73,6 +78,7 @@ samples:
     line-color: "#e59431"
     line-type: 1
     legend: MH-200_MA-50
+    Branching-ratio: 0.00774323362
     #split: 4
     type: signal
         
@@ -85,6 +91,7 @@ samples:
     line-color: "#e56731"
     line-type: 1
     legend: MH-250_MA-100
+    Branching-ratio: 0.00895124458
     #split: 4
     type: signal
         
@@ -97,6 +104,7 @@ samples:
     line-color: "#b3175d"
     line-type: 1
     legend: MH-250_MA-50
+    Branching-ratio: 0.0118183882
     #split: 4
     type: signal
 
@@ -109,6 +117,7 @@ samples:
     line-color: "#5c1499"
     line-type: 1
     legend: MH-3000_MA-2000
+    Branching-ratio: 0.984163569
     #split: 4
     type: signal
         
@@ -121,6 +130,7 @@ samples:
     line-color: "#519914"
     line-type: 1
     legend: MH-300_MA-100
+    Branching-ratio: 0.0123097954
     #split: 4
     type: signal
         
@@ -133,6 +143,7 @@ samples:
     line-color: "#86777c"
     line-type: 1
     legend: MH-300_MA-200
+    Branching-ratio: 0.142050329
     #split: 4
     type: signal
         
@@ -145,6 +156,7 @@ samples:
     line-color: "#1b2105"
     line-type: 1
     legend: MH-300_MA-50
+    Branching-ratio: 0.0141961587
     #split: 4
     type: signal
         
@@ -157,6 +169,7 @@ samples:
     line-color: "#c876ea"
     line-type: 1
     legend: MH-500_MA-200
+    Branching-ratio: 0.0166486812
     #split: 4
     type: signal
         
@@ -169,6 +182,7 @@ samples:
     line-color: "#76eac8"
     line-type: 1
     legend: MH-500_MA-300
+    Branching-ratio: 0.877020233
     #split: 4
     type: signal
         
@@ -181,6 +195,7 @@ samples:
     line-color: "#ea8e76"
     line-type: 1
     legend: MH-500_MA-400
+    Branching-ratio: 0.111645738
     #split: 4
     type: signal
         
@@ -193,6 +208,7 @@ samples:
     line-color: "#a9381a"
     line-type: 1
     legend: MH-500_MA-50
+    Branching-ratio: 0.0178301354
     #split: 4
     type: signal
         
@@ -205,6 +221,7 @@ samples:
     line-color: "#1a8ba9"
     line-type: 1
     legend: MH-650_MA-50
+    Branching-ratio: 0.0186920568
     #split: 4
     type: signal
         
@@ -217,6 +234,7 @@ samples:
     line-color: "#a91a8b"
     line-type: 1
     legend: MH-800_MA-200
+    Branching-ratio: 0.0181325595,
     #split: 4
     type: signal
 
@@ -229,6 +247,7 @@ samples:
     line-color: "#083211"
     line-type: 1
     legend: MH-800_MA-400
+    Branching-ratio: 0.974575852
     #split: 4
     type: signal
         
@@ -241,6 +260,7 @@ samples:
     line-color: "#d3db23"
     line-type: 1
     legend: MH-800_MA-50
+    Branching-ratio: 0.019120201
     #split: 4
     type: signal 
 
@@ -254,6 +274,7 @@ samples:
     line-color: "#5923db"
     line-type: 1
     legend: MH-800_MA-700
+    Branching-ratio: 0.0812198056
     #split: 4
     type: signal 
 
@@ -265,10 +286,10 @@ plotIt:
     experiment: CMS
     extra-label: 2016Data --Work in progress
     show-overflow: true
-    error-fill-style: 3154
-    error-fill-color: "#ee556270"
-    ratio-fit-error-fill-style: 1001
-    ratio-fit-error-fill-color: "#aa556270"
+    #error-fill-style: 3154
+    #error-fill-color: "#ee556270"
+    #ratio-fit-error-fill-style: 1001
+    #ratio-fit-error-fill-color: "#aa556270"
     ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
 
