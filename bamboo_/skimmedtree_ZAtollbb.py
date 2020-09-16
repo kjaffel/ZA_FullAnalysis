@@ -9,19 +9,25 @@ from bamboo import treefunctions as op
 zabPath = os.path.dirname(__file__)
 if zabPath not in sys.path:
     sys.path.append(zabPath)
-from ObjectsReco import NanoHtoZABase, safeget
+
+from ZAtollbb import NanoHtoZABase
+import utils
+from utils import safeget
 
 import logging
-logger = logging.getLogger("SKIMMER")
+logger = logging.getLogger("ZA SKIMMER")
 
 def value_for_channel(d, channel, return_dilepton):
     """Return a value in neseted dic `d` having a key == channel ."""
+    if channel not in d.keys():
+        return logger.error(" AhAh ... somthing  went wrong with  your selection !!")
     for key, (leptons, sel) in d.items():
         if key == channel:
             if return_dilepton ==True:
                 return leptons
             else:
                 return sel
+
 
 class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
     def __init__(self, args):
@@ -43,7 +49,7 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
     
     def defineSkimSelection(self, t, noSel, sample=None, sampleCfg=None):
 
-        noSel, PUWeight, corrMET, muons, electrons, AK4jets, AK8jets, bjets_resolved, bjets_boosted, categories, WorkingPoints, selections_2lep2bjets_METCut, selections_2lep2bjets_NoMET, selections_2lep2jets = self.defineObjects(t, noSel, sample, sampleCfg)
+        noSel, PUWeight, categories, isDY_reweight, WorkingPoints, deepBFlavScaleFactor, deepB_AK4ScaleFactor, AK4jets, AK8jets, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt = self.defineObjects(t, noSel, sample, sampleCfg)
 
         era = sampleCfg["era"]
         isMC = self.isMC(sample)
@@ -77,30 +83,25 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
                 print ('[Skimedtree_NanoHtoZA]: WP is MANDATORY ***  ')
                 sys.exit(0)
     
-            if self.SetWP not in WorkingPoints:
+            if self.SetWP not in ['L', 'M', 'T']:
                 print ('[Skimedtree_NanoHtoZA]: %s not found in WorkingPoints ' % self.SetWP)
-                print ('[Skimedtree_NanoHtoZA]: I could only find in ObjectsReco ** ')
-                print (WorkingPoints)
                 sys.exit(1)
         
-        logger.info("Start filling the Tree ...")
-        print ("GIVING INFOS TO ZA SKIMMER :", 'Region=', self.SetRegion, ', Catgorie=', self.SetCat, ', Tagger=', self.SetTagger, ', WP=', self.SetWP)
-
         if self.SetRegion== "resolved":
             jets= AK4jets
             bjets= bjets_resolved
             suffix = "AK4Jets"
-            maxJets = 2
         
         elif self.SetRegion=="boosted":
             jets= AK8jets
             bjets= bjets_boosted
             suffix= "AK8Jets"
-            maxJets = 1
         
         else:
-            raise RuntimeError('ERROR : %s Unkown args' %self.SetRegion)
+            raise RuntimeError('[Skimedtree_NanoHtoZA]: %s Unkown args' %self.SetRegion)
         
+        logger.info("Start filling the Tree ...")
+        logger.info(f"[Skimedtree_NanoHtoZA]: Region= {self.SetRegion}, Channel= {self.SetCat}, Tagger= {self.SetTagger}, WP={self.SetWP}")
         #variables to keep from the input tree
         varsToKeep = {"run": None, "luminosityBlock": None, "event": None}
         
@@ -149,65 +150,85 @@ class Skimedtree_NanoHtoZA(NanoHtoZABase, NanoAODSkimmerModule):
             ll_M   = op.invariant_mass(dilepton[0].p4, dilepton[1].p4)
             varsToKeep["ll_M"]  = ll_M
     
-        
-        # boosted or resolved 
-        ### Two OS SF Leptons _ Two Jets  selection
-        if self.SetSel=="2Lep2Jets":
+        TwoLeptonsTwoJets_Resolved= value_for_channel(categories, self.SetCat, False).refine("TwoJet_{0}Sel_resolved".format(self.SetCat), cut=[ op.rng_len(AK4jets) > 1])
+        TwoLeptonsOneJet_Boosted = value_for_channel(categories, self.SetCat, False).refine("OneJet_{0}Sel_boosted".format(self.SetCat), cut=[ op.rng_len(AK8jets) > 0 ])
+
+        lljjSelections = {
+                "resolved": TwoLeptonsTwoJets_Resolved,
+                "boosted" : TwoLeptonsOneJet_Boosted
+                }
+        for wp in WorkingPoints:
+            bJets_resolved_PassdeepflavourWP=safeget(bjets_resolved, "DeepFlavour", wp)
+            bJets_resolved_PassdeepcsvWP=safeget(bjets_resolved, "DeepCSV", wp)
+            bJets_boosted_PassdeepcsvWP=safeget(bjets_boosted, "DeepCSV", wp)
             
+            print ( bJets_resolved_PassdeepflavourWP, bjets_resolved, '**********************')
+            TwoLeptonsTwoBjets_NoMETCut_Res = {
+                "DeepFlavour{0}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsTwoBjets_NoMETcut_DeepFlavour{0}_{1}_Resolved".format(wp, self.SetCat),
+                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepflavourWP) > 1 ],
+                                                                        weight=([ deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[0]), 
+                                                                                  deepBFlavScaleFactor(bJets_resolved_PassdeepflavourWP[1])
+                                                                                ] if isMC else None
+                                                                                )),
+
+                "DeepCSV{0}".format(wp)     :  lljjSelections["resolved"].refine("TwoLeptonsTwoBjets_NoMETcut_DeepCSV{0}_{1}_Resolved".format(wp, self.SetCat),
+                                                                        # here where the selection become exclusive 
+                                                                        cut=[ op.rng_len(bJets_resolved_PassdeepcsvWP) > 1, op.rng_len(bJets_boosted_PassdeepcsvWP) ==0],
+                                                                        weight=([ deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[0]), 
+                                                                                  deepB_AK4ScaleFactor(bJets_resolved_PassdeepcsvWP[1])
+                                                                                ] if isMC else None
+                                                                                ))
+                                            }
+
+
+            TwoLeptonsOneBjets_NoMETCut_Boo = {
+                "DeepCSV{0}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsOneBjets_NoMETcut_DeepCSV{0}_{1}_Boosted".format(wp, self.SetCat),
+                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) > 0 ])
+                                                }
+        llbbSelections_noMETCut = {
+                "resolved": TwoLeptonsTwoBjets_NoMETCut_Res,
+                "boosted" : TwoLeptonsOneBjets_NoMETCut_Boo
+                }
+                
+        # boosted or resolved 
+        ### Two OS SF Leptons _ Two Jets  selection inclusive 
+        if self.SetSel=="2Lep2Jets":
+            FinalSel = lljjSelections[self.SetRegion]
             if self.SetRegion=="resolved":
-                FinalSel = selections_2lep2jets[self.SetCat][0]
                 lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4+jets[1].p4).M()
                 jj_M=op.invariant_mass(jets[0].p4, jets[1].p4)
         
             elif self.SetRegion=="boosted":
-                FinalSel = selections_2lep2jets[self.SetCat][1]
                 lljj_M= (dilepton[0].p4 +dilepton[1].p4+jets[0].p4).M()
                 jj_M=op.invariant_mass(jets[0].p4)
-            
-            #for i in range(maxJets):
-            #    varsToKeep["{0}_{1}_pt".format(suffix, i)]  = jets[i].p4.pt
-            #    varsToKeep["{0}_{1}_eta".format(suffix, i)] = jets[i].p4.eta
-            #    varsToKeep["{0}_{1}_phi".format(suffix, i)] = jets[i].p4.phi
             
             # For the DNN better have variables with the same name ...
             varsToKeep["lljj_M"]= lljj_M
             varsToKeep["jj_M"]  = jj_M
             varsToKeep["nB_{0}".format( suffix)] = op.static_cast("UInt_t", op.rng_len(jets))
             
-            #varsToKeep["lljj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= lljj_M
-            #varsToKeep["jj_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]  = jj_M
-            #varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
-        
-            ### Two OS SF Leptons _ Two bJets  selection +MET cut (xy corr applied too )
+            ### Two OS SF Leptons _ Two bJets  selection + no MET cut
         elif self.SetSel=="2Lep2bJets":
             key = self.SetTagger + self.SetWP
             bJets = safeget(bjets, self.SetTagger, self.SetWP)
-        
+            FinalSel = safeget( llbbSelections_noMETCut [self.SetRegion], key)
+            
             if self.SetRegion=="resolved":
-                FinalSel = safeget( selections_2lep2bjets_METCut [self.SetCat][0], self.SetWP, key)
                 llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
                 bb_M= op.invariant_mass(bJets[0].p4+bJets[1].p4)
             
             elif self.SetRegion=="boosted":
-                FinalSel = safeget( selections_2lep2bjets_METCut [self.SetCat][1], self.SetWP, key)
                 llbb_M= (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4).M()
                 bb_M= op.invariant_mass(bJets[0].p4)
 
-            #for i in range(maxJets):
-            #    varsToKeep["{0}_{1}_pt".format(suffix, i)]  = bJets[i].p4.pt
-            #    varsToKeep["{0}_{1}_eta".format(suffix, i)] = bJets[i].p4.eta
-            #    varsToKeep["{0}_{1}_phi".format(suffix, i)] = bJets[i].p4.phi
             
             varsToKeep["llbb_M"]= llbb_M
             varsToKeep["bb_M"]= bb_M
             varsToKeep["nB_{0}".format( suffix)] = op.static_cast("UInt_t", op.rng_len(bJets))
             
-            #varsToKeep["llbb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= llbb_M
-            #varsToKeep["bb_M_{0}_{1}{2}_{3}".format(self.SetRegion, self.SetTagger, self.SetWP, self.SetCat)]= bb_M
-            #varsToKeep["nB_{0}_{1}{2}_{3}".format( suffix, self.SetTagger, self.SetWP, self.SetCat)] = op.static_cast("UInt_t", op.rng_len(bJets))
         else:
             raise RuntimeError('ERROR : %s  in selection args' %self.SetSel)
 
         varsToKeep['total_weight'] = FinalSel.weight            
-    
+        print ( '*** ALL DONE ***' )    
         return FinalSel, varsToKeep
