@@ -1,0 +1,697 @@
+tree: Events
+eras:
+    # brilcalc lumi -u /pb --normtag /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json -i /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+    #Summary: 
+    #+-------+------+--------+--------+-------------------+------------------+
+    #| nfill | nrun | nls    | ncms   | totdelivered(/pb) | totrecorded(/pb) |
+    #+-------+------+--------+--------+-------------------+------------------+
+    #| 196   | 478  | 234186 | 233794 | 62223.541021631   | 59740.565201546  |
+    #+-------+------+--------+--------+-------------------+------------------+
+  '2018':
+    luminosity: 59740.565201546  
+    luminosity-error: 0.025 
+samples:
+#### Drell-Yen
+  DYJetsToLL_M-10to50:
+    #Number of events: 46976952 Number of files: 79  * v21_ext1-v1
+    #Number of events: 39392062 Number of files: 27  * v21-v1   
+    db: das:/DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/DYJetsToLL_M-10to50_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 15810 # +- 5.764 pb
+    group: DY
+    era: '2018'
+    split: 4
+    
+  DYJetsToLL_0J:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/DYJetsToLL_0J_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5334.0 #+- 5.858e+00 pb (NLO) , no info in the XSCDB I compute them ! need to be approved !!
+    group: DY
+    era: '2018'
+    split: 4
+    
+  DYJetsToLL_1J:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/DYToLL_1J_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  963.2 #+- 2.407e+00 pb #  with  50 root file  
+    group: DY
+    era: '2018'
+    split: 4
+
+  DYJetsToLL_2J:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/DYToLL_2J_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 362.5 #+- 1.554e+00 pb (NLO) #  with 50 root file
+    group: DY
+    era: '2018'
+    split: 4
+
+######## ttbar
+  TTHadronic:
+    # Dataset size: 259914024254 (259.9GB) Number of blocks: 7 Number of events: 128640000 Number of files: 109 
+    # /TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # ext : 
+    # Dataset size: 401556264993 (401.6GB) Number of blocks: 6 Number of events: 198756000 Number of files: 161 
+    db: das:/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM
+    files: dascache/nanov7/TTHadronic_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 377.96  # pb  # uncer= +4.8%-6.1%  
+    group: ttbar_FullHadronic
+    era: '2018'
+    split: 4
+
+  TTToSemiLeptonic:
+    #  Dataset size: 202797760629 (202.8GB) Number of blocks: 6 Number of events: 100790000 Number of files: 94 
+    # /TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # ext : 
+    # Dataset size: 402026925624 (402.0GB) Number of blocks: 6 Number of events: 199829998 Number of files: 151 
+    db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext3-v1/NANOAODSIM
+    files: dascache/nanov7/TTToSemiLeptonic_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  365.34 # +- +4.8%-6.1%  pb
+    group: ttbar_SemiLeptonic
+    era: '2018'
+    split: 6 
+
+  TTTo2L2Nu: # no ext found 
+    db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/TTTo2L2Nu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 88.29 # pb   # uncer= +4.8%-6.1% 
+    group: ttbar_FullLeptonic
+    era: '2018'
+    split: 4
+
+########### 
+  ST_tW_top_5f:  
+    #Dataset size: 1980934475 (2.0GB) Number of blocks: 6 Number of events: 1085847 Number of files: 9 
+    #db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    #Dataset size: 13786899836 (13.8GB) Number of blocks: 11 Number of events: 7636887 Number of files: 18
+    db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT1_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/ST_tWtop_5f_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  34.91 # pb +- 0.02817
+    group: ST
+    era: '2018'
+    split: 8
+
+  ST_tW_antitop_5f:
+    # Dataset size: 1971577335 (2.0GB) Number of blocks: 6 Number of events: 1086487 Number of files: 6
+    #db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    # Dataset size: 10515752361 (10.5GB) Number of blocks: 11 Number of events: 5823328 Number of files: 15
+    db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT1_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/ST_tWantitop_5f_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:    34.97 # pb +- 0.02827
+    group: ST
+    era: '2018'
+    split: 8
+
+  ST_tchannel_antitop_4f:  
+    db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ST_tchannelantitop_4f_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:   67.91     # uncer= 0.3487 pb
+    group: ST
+    era: '2018'
+    split: 8
+
+  ST_tchannel_top_4f:
+    db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ST_tchanneltop_4f_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  113.3    # uncer=  0.6404  pb
+    group: ST
+    era: '2018'
+    split: 8
+
+  ST_schannel_4f:
+    #Dataset size: 31210751852 (31.2GB) Number of blocks: 3 Number of events: 19890000 Number of files: 19  
+    #db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # Dataset size: 31305326920 (31.3GB) Number of blocks: 4 Number of events: 19965000 Number of files: 20 
+    #db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-madgraph-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    # Dataset size: 31293090634 (31.3GB) Number of blocks: 2 Number of events: 19952000 Number of files: 16
+    db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-madgraph-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM
+    files: dascache/nanov7/ST_schannel_4f_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  3.74 # uncer= 0.003533 pb
+    group: ST
+    era: '2018'
+    split: 8
+        
+######## ZZ
+  ZZTo2L2Nu:
+    # Dataset size: 11227382160 (11.2GB) Number of blocks: 32 Number of events: 8382600 Number of files: 42  
+    #db: das:/ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    # Dataset size: 63783956240 (63.8GB) Number of blocks: 11 Number of events: 48046000 Number of files: 45 
+    db: das:/ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM
+    files: dascache/nanov7/ZZTo2L2Nu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  0.5644  # uncer= 0.0002688 pb#
+    group: ZZ
+    era: '2018'
+    split: 12
+
+  ZZTo2L2Q:
+    db: das:/ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ZZTo2L2Q_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  3.222 # pb +- 0.004901 approved 
+    group: ZZ
+    era: '2018'
+    split: 8
+
+  ZZTo4L:
+    # Dataset size: 24446372613 (24.4GB) Number of blocks: 41 Number of events: 19089600 Number of files: 59 
+    #db: das:/ZZTo4L_13TeV_powheg_pythia8_TuneCP5/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # Dataset size: 8692204990 (8.7GB) Number of blocks: 38 Number of events: 6689900 Number of files: 46
+    #db: das:/ZZTo4L_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    # Dataset size: 126582377684 (126.6GB) Number of blocks: 10 Number of events: 98870000 Number of files: 64  
+    db: das:/ZZTo4L_TuneCP5_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM
+    files: dascache/nanov7/ZZTo4L_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  0.5644  # uncer= 0.0002688 pb
+    group: ZZ
+    era: '2018'
+    split: 12
+
+###### Standrd model higgs : Zh & tth  
+
+  HZJ_HToWW:
+    db: das:/HZJ_HToWW_M125_13TeV_powheg_jhugen714_pythia8_TuneCP5/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/HZJ_HToWW_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.7524   # uncer= 0.003643 pb 
+    group: SM
+    era: '2018'
+    split: 8
+
+  ZH_HToBB_ZToLL:
+    # Dataset size: 8729798862 (8.7GB) Number of blocks: 4 Number of events: 4814600 Number of files: 6 
+    #db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # Dataset size: 4142500550 (4.1GB) Number of blocks: 31 Number of events: 2222100 Number of files: 40 
+    db: das:/ZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/ZH_HToBB_ZToLL_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.07523 # pb +- 0.0003138 approved 
+    group: SM
+    era: '2018'
+    split: 8
+
+  ggZH_HToBB_ZToLL:
+    db: das:/ggZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ZH_HToBB_ZToLL_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.006954 # pb +- 7.737e-06 approved 
+    group: SM
+    era: '2018'
+    split: 8
+
+  ggZH_HToBB_ZToNuNu:
+    db: das:/ggZH_HToBB_ZToNuNu_M125_13TeV_powheg_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ZH_HToBB_ZToNuNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.01373 # pb +- 1.529e-05 approved 
+    group: SM
+    era: '2018'
+    split: 8
+
+  ttHTobb:
+    # Dataset size: 25211552762 (25.2GB) Number of blocks: 11 Number of events: 9484000 Number of files: 22
+    #db: das:/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    #  Dataset size: 31491756203 (31.5GB) Number of blocks: 20 Number of events: 11835999 Number of files: 34 
+    db: das:/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/ttHTobb_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5269 # pb +- 0.003834
+    group: SM
+    era: '2018'
+    split: 8
+
+  ttHToNonbb:
+    db: das:/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/ttHToNonbb_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.5638 # pb +- 0.02855
+    group: SM
+    era: '2018'
+    split: 12 
+
+########## VV(except the ZZ) //  VVV / W+Jets / ttbar+V
+  WWToLNuQQ:
+    db: das:/WWToLNuQQ_NNPDF31_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WWToLNuQQ_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 45.99 # +- 0.0293
+    group: others
+    era: '2018'
+    split: 8
+
+  WWTo2L2Nu:
+    db: das:/WWTo2L2Nu_NNPDF31_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WWTo2L2Nu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 12.178  # taken from Alessia 
+    group: others
+    era: '2018'
+    split: 8
+
+  WZTo2L2Q:
+    db: das:/WZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WZTo2L2Q_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.606 # pb +- 0.01897 approved 
+    group: others
+    era: '2018'
+    split: 8
+
+  WZTo1L3Nu:
+    db: das:/WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WZTo1L3Nu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 3.054 # pb +- 0.01222  approved 
+    group: others
+    era: '2018'
+    split: 8
+
+  WZTo1L1Nu2Q:
+    db: das:/WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WZTo1L1Nu2Q_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 10.73   #  uncer = 0.01824  pb
+    group: others
+    era: '2018'
+    split: 12
+        
+  WZTo3LNu:
+    # Dataset size: 15445974626 (15.4GB) Number of blocks: 2 Number of events: 11248318 Number of files: 9 
+    db: das:/WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    # Dataset size: 14767815444 (14.8GB) Number of blocks: 3 Number of events: 10749269 Number of files: 11 
+    #db: das:/WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WZTo3LNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 5.052    #  uncer = 0.0175 pb
+    group: others
+    era: '2018'
+    split: 12
+
+  WWW:
+    db: das:/WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/WWW_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2086 # pb +-  0.0002024
+    group: others 
+    era: '2018'
+    split: 12
+
+  WWZ:
+    db: das:/WWZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv5-Nano1June2019_102X_upgrade2018_realistic_v19_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/WWZ_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section:  0.1651  # uncer = 0.0001724 pb 
+    group: others
+    era: '2018'
+    split: 4
+
+  WZZ:
+    db: das:/WZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/WZZ_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.05565 # pb  +- 5.5e-05 
+    group: others
+    era: '2018'
+    split: 4
+
+  ZZZ:
+    db: das:/ZZZ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/ZZZ_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.01398 # pb +- 1.496e-05
+    group: others
+    era: '2018'
+    split: 4
+
+  WJetsToLNu:
+    db: das:/WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/WJetsToLNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 52940.0 # pb +- 121.9
+    group: others
+    era: '2018'
+    split: 4
+
+  TTWJetsToQQ:
+    db: das:/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    files: dascache/nanov7/TTWJetsToQQ_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.4316 # pb +- 0.001658
+    group: others
+    era: '2018'
+    split: 4
+
+  TTWJetsToLNu:
+    db: das:/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/TTWJetsToLNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2149 # pb +- 0.0008133
+    group: others
+    era: '2018'
+    split: 4
+
+  TTZToQQ:
+    #  Dataset size: 1988374789 (2.0GB) Number of blocks: 12 Number of events: 750000 Number of files: 13 
+    #db: das:/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM
+    # Dataset size: 22933714821 (22.9GB) Number of blocks: 2 Number of events: 8822000 Number of files: 11 
+    db: das:/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/TTZToQQ_2018.dat
+    generated-events: 'genEventSumw' 
+    cross-section: 0.5104 # pb +- 0.000697
+    group: others
+    era: '2018'
+    split: 4
+
+  TTZToLLNuNu:
+    db: das:/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM
+    files: dascache/nanov7/TTZToLLNuNu_2018.dat
+    generated-events: 'genEventSumw'
+    cross-section: 0.2432 # pb +-  0.0003054
+    group: others
+    era: '2018'
+    split: 4
+
+###### era A
+  DoubleMuon_2018A:
+    db: das:/DoubleMuon/Run2018A-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/DoubleMuon_2018A.dat
+    group: data
+    era: '2018'
+    run_range: [315252, 316995]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+  
+  MuonEG_2018A:
+    db: das:/MuonEG/Run2018A-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/MuonEG_2018A.dat
+    group: data
+    era: '2018'
+    run_range: [315252, 316995]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+  
+  EGamma_2018A:
+    db: das:/EGamma/Run2018A-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/EGamma_2018A.dat
+    group: data
+    era: '2018'
+    run_range: [315252, 316995]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+  
+#### era B
+  DoubleMuon_2018B:
+    db: das:/DoubleMuon/Run2018B-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/DoubleMuon_2018B.dat
+    group: data
+    era: '2018'
+    run_range: [317080, 319310]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  EGamma_2018B:
+    db: das:/EGamma/Run2018B-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/EGamma_2018B.dat
+    group: data
+    era: '2018'
+    run_range: [317080, 319310]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  MuonEG_2018B:
+    db: das:/MuonEG/Run2018B-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/MuonEG_2018B.dat
+    group: data
+    era: '2018'
+    run_range: [317080, 319310]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+###### era C
+  DoubleMuon_2018C:
+    db: das:/DoubleMuon/Run2018C-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/DoubleMuon_2018C.dat
+    group: data
+    era: '2018'
+    run_range: [319337, 320065]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  EGamma_2018C:
+    db: das:/EGamma/Run2018C-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/EGamma_2018C.dat
+    group: data
+    era: '2018'
+    run_range: [319337, 320065]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  MuonEG_2018C:
+    db: das:/MuonEG/Run2018C-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/MuonEG_2018C.dat
+    group: data
+    era: '2018'
+    run_range: [319337, 320065]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+########## era D
+  DoubleMuon_2018D:
+    db: das:/DoubleMuon/Run2018D-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/DoubleMuon_2018D.dat
+    group: data
+    era: '2018'
+    run_range: [320673, 325175]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  EGamma_2018D:
+    db: das:/EGamma/Run2018D-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/EGamma_2018D.dat
+    group: data
+    era: '2018'
+    split: 20
+    run_range: [320673, 325175]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  MuonEG_2018D:
+    db: das:/MuonEG/Run2018D-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/MuonEG_2018D.dat
+    group: data
+    era: '2018'
+    run_range: [320673, 325175]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+
+  SingleMuon_2018A:
+    group: data
+    era: "2018"
+    db: das:/SingleMuon/Run2018A-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/SingleMuon_2018A.dat
+    run_range: [315252, 316995]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+    split: 5
+  SingleMuon_2018B:
+    group: data
+    era: "2018"
+    db: das:/SingleMuon/Run2018B-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/SingleMuon_2018B.dat
+    run_range: [317080, 319310]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+    split: 3
+  SingleMuon_2018C:
+    group: data
+    era: "2018"
+    db: das:/SingleMuon/Run2018C-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/SingleMuon_2018C.dat
+    run_range: [319337, 320065]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+    split: 3
+  SingleMuon_2018D:
+    group: data
+    era: "2018"
+    db: das:/SingleMuon/Run2018D-02Apr2020-v1/NANOAOD
+    files: dascache/nanov7/SingleMuon_2018D.dat
+    run_range: [320673, 325175]
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+    split: 12
+  
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
+    experiment: CMS
+    extra-label: 2018Data --Work in progress
+    show-overflow: true
+    #error-fill-style: 3154
+    #error-fill-color: "#ee556270"
+    #ratio-fit-error-fill-style: 1001
+    #ratio-fit-error-fill-color: "#aa556270"
+    #ratio-fit-line-color: "#0B486B"
+    y-axis-format: "%1% / %2$.2f"
+
+  legend:
+    position: [0.7, 0.6, 0.91, 0.91]
+  
+  groups:
+    data:
+      legend: data
+    DY:
+      fill-color: "#0000FF" 
+      legend: Drell-Yan
+      order: 8
+    ttbar_FullLeptonic:
+      legend: tt Full Leptonic
+      fill-color: "#B20027" 
+      order: 7
+    ttbar_SemiLeptonic:
+      legend: tt SemiLeptonic
+      fill-color: "#00ffc7" 
+      order: 6
+    ttbar_FullHadronic:
+      legend: tt Full Hadronic
+      fill-color: "#358f9a"
+      order: 5
+    ST:
+      fill-color: "#9890f0"    
+      legend: Single Top
+      order: 4
+    ZZ: 
+      fill-color: "#ff4800"
+      legend: ZZ
+      order: 3
+    SM:
+      fill-color: "#ff0038"
+      legend: tth, Zh
+      order: 2
+    others: 
+      fill-color: "#c4ffff"
+      legend: others (tt+V, W+Jets , VVV, VV)
+      order: 1    
+  
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6,1.4]
+      sort-by-yields: False
+  
+  systematics:
+      # on the jets
+    - jer
+      # splited  between (kinematic) regions
+    - Jer_backward
+    - Jer_eta_1p93TO2p5
+    - Jer_eta_2p5TO3_bin1
+    - Jer_eta_2p5TO3_bin2
+    - Jer_eta_3TO2p5_bin1
+    - Jer_eta_3TO2p5_bin2
+    - Jer_forward
+    
+    - jesTotal
+      # splited by source
+    - Absolute
+    - Absolute_2018
+    - BBEC1
+    - BBEC1_2018
+    - EC2
+    - EC2_2018
+    - FlavorQCD
+    - HF
+    - HF_2018
+    - RelativeBal
+    - RelativeSample_2018
+      # sys on jet pileup Id loOse from SF, eff, and mistagrates
+      # - JetpuID_eff_mc_loOse
+      # - JetpuID_mistagrates_mc_loOse
+      # - JetpuID_eff_sf_loOse
+      # - JetpuID_mistagrates_sf_loOse
+      # - # medium
+      # - JetpuID_eff_mc_medium
+      # - JetpuID_mistagrates_mc_medium
+      # - JetpuID_eff_sf_medium
+      # - JetpuID_mistagrates_sf_medium
+      # - # tight
+      # - JetpuID_eff_mc_tight
+      # - JetpuID_mistagrates_mc_tight
+      # - JetpuID_eff_sf_tight
+      # - JetpuID_mistagrates_sf_tight
+      # - # on the lepton id /iso 
+    - muid
+    - muiso
+    - elid
+    - ele_reco
+    # on the pileup
+    - puweights2018_Autumn18
+    # on the trigger
+    - eleltrig
+    - mumutrig
+    - elmutrig
+    - mueltrig
+    - single_mutrig
+    - single_eletrig
+    # sys from theory  
+    - qcdScale
+    - psISR
+    - psFSR
+    - pdfWgt
+    # on the b-tagged jets
+      # resolved
+    - DeepFlavourL
+    - DeepFlavourM
+    - DeepFlavourT
+    - DeepCSVL
+    - DeepCSVM
+    - DeepCSVT
+      # boosted
+    - DeepDoubleBvLL
+    - DeepDoubleBvLM1
+    - DeepDoubleBvLM2
+    - DeepDoubleBvLT1
+    - DeepDoubleBvLT2
+      # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
+    - TTHadronicxsc: {type: const, value: 1.0007530199388735263, on: 'TTHadronic'} # uncer= 0.5174 pb 
+    - TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= +4.8%-6.1% 
+    #- TTToSemiLeptonicxsc: {type: const, value: , on: 'TTToSemiLeptonicxsc'} # uncer= +4.8%-6.1% 
+    #--- DY
+    - DYJetsToLL_M-10to50xsc: {type: const, value: 1.00036457938013915244, on: 'DYJetsToLL_M-10to50'}    # uncer= 5.764
+    - DYToLL_0Jxsc: {type: const, value: 1.0010982377202849642, on: 'DYJetsToLL_0J'} # uncer= 5.858 pb
+    - DYToLL_1Jxsc: {type: const, value: 1.0024989617940199336, on: 'DYJetsToLL_1J'} # uncer= 2.407 pb
+    - DYToLL_2Jxsc: {type: const, value: 1.004286896551724138, on: 'DYJetsToLL_2J'}   # uncer=  1.554 pb 
+    #----- ST
+    - ST_t-channel_antitop_4fxsc: {type: const, value: 1.005134737152113, on: 'ST_tchannel_antitop_4f'} # uncer= 0.3487 pb
+    - ST_t-channel_top_4fxsc: {type: const, value: 1.0056522506619594, on: 'ST_tchannel_top_4f'} # uncer=  0.6404  pb
+    - ST_s-channel_4fxsc: {type: const, value: 1.0009446524064171122, on: 'ST_schannel_4f'} # uncer = 0.003533
+    - ST_tW_top_5fxsc: {type: const, value: 1.000806932111142939, on: 'ST_tW_top_5f'}  # uncer=0.02817
+    - ST_tW_antitop_5fxsc: {type: const, value: 1.000808407206176723, on: 'ST_tW_antitop_5f'} # uncer= 0.02827
+    # ---- ZZ
+    - ZZTo2L2Nuxsc: {type: const, value: 1.0004762579730688, on: 'ZZTo2L2Nu'} # uncer= 0.0002688
+    - ZZTo2L2Qxsc: {type: const, value: 1.0015211049037864, on: 'ZZTo2L2Q'} # uncer= 0.004901
+    - ZZTo4Lxsc: {type: const, value: 1.00047625797306874554, on: 'ZZTo4L'} # uncer= 0.0002688
+    # ---- SM
+    - HZJ_HToWWxsc: {type: const, value: 1.0048418394471026, on: 'HZJ_HToWW'} # uncer= 0.003643
+    - ZH_HToBB_ZToLLxsc: {type: const, value: 1.004171208294563338, on: 'ZH_HToBB_ZToLL'} # uncer=0.0003138 
+    - ggZH_HToBB_ZToLLxsc: {type: const, value: 1.0011125970664365, on: 'ggZH_HToBB_ZToLL'} # uncer= 7.737e-06
+    - ggZH_HToBB_ZToNuNuxsc: {type: const, value: 1.0011136198106336, on: 'ggZH_HToBB_ZToNuNu'} # uncer= 1.529e-05
+    - ttHTobbxsc: {type: const, value: 1.0072765230594040615, on: 'ttHTobb'} # uncer= 0.003834
+    - ttHToNonbbxsc: {type: const, value: 1.050638524299397, on: 'ttHToNonbb'}  # uncer= 0.02855
+    #  others 
+    - ZZZxsc: {type: const, value: 1.0010701001430615, on: 'ZZZ'} # uncer= 1.496e-05
+    - WWWxsc: {type: const, value: 1.0009702780441037, on: 'WWW'} # uncer= 0.0002024
+    - WWZxsc: {type: const, value: 1.0010442156268928, on: 'WWZ'} # uncer= 0.0001724
+    - WZZxsc: {type: const, value: 1.0009883198562444, on: 'WZZ'} # uncer= 5.5e-05
+    - WJetsToLNuxsc: {type: const, value: 1.00230260672459388, on: 'WJetsToLNu'} # uncer= 121.9
+    - TTZToLLNuNuxsc: {type: const, value: 1.0012557565789473684, on: 'TTZToLLNuNu'} # uncer= 0.0003054
+    - TTZToQQxsc: {type: const, value: 1.0013655956112852666, on: 'TTZToQQ'} # uncer= 0.000697
+    - TTWJetsToLNuxsc: {type: const, value: 1.003784550953932061, on: 'TTWJetsToLNu'} # uncer= 0.0008133
+    - TTWJetsToQQxsc: {type: const, value: 1.0038415199258572752, on: 'TTWJetsToQQ'} #uncer= 0.001658
+    #- WWTo2L2Nuxsc: {type: const, value: , on: 'WWTo2L2Nu'} # uncer= taken from Alessia no info about uncer ! 
+    - WWToLNuQQxsc: {type: const, value: 1.0006370950206566645, on: 'WWToLNuQQ'} # uncer= 0.0293
+    - WZTo1L1Nu2Qxsc: {type: const, value: 1.0016999068033552, on: 'WZTo1L1Nu2Q'} #  uncer = 0.01824 pb
+    - WZTo2L2Qxsc: {type: const, value: 1.003383874420264003, on: 'WZTo2L2Q'} # uncer= 0.01897 pb
+    - WZTo1L3Nuxsc: {type: const, value: 1.0040013097576947, on: 'WZTo1L3Nu'}  # uncer= 0.01222 pb
+    - WZTo3LNuxsc: {type: const, value: 1.0034639746634996045, on: 'WZTo3LNu'}   # uncer= +-0.0175 pb
