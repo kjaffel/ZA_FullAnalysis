@@ -257,8 +257,8 @@ def main():
         nodes = ['TT','DY','ZA']
         channels = ['ElEl','MuMu']
         data_dict = {}
-        strSelect = []
         for node in nodes:
+            strSelect = []
             list_sample = []
             if opt.resolved:
                 strSelect.extend(['resolved_{}_{}'.format(channel,node) for channel in channels])
@@ -291,10 +291,11 @@ def main():
                     data_node = data_node_era
                 else:
                     data_node = pd.concat([data_node,data_node_era],axis=0)
-                logging.info('{} Sample size for era {} : {}'.format(node,era,data_node_era.shape[0]))
+                #logging.info('{} Sample size for era {} : {}'.format(node,era,data_node_era.shape[0]))
+                logging.info('\t{} class in era {} : sample size = {}, weight sum = {:.3e} (with normalization = {:.3e})'.format(node,era,data_node_era.shape[0],data_node_era[parameters.weights].sum(),data_node_era['event_weight'].sum()))
             data_dict[node] = data_node
-            logging.info('{} Sample size for all eras : {}'.format(node,data_node.shape[0]))
-
+            #logging.info('{} Sample size for all eras : {}'.format(node,data_node.shape[0]))
+            logging.info('{} class for all eras : sample size = {}, weight sum = {:.3e} (with normalization = {:.3e})'.format(node,data_node.shape[0],data_node[parameters.weights].sum(),data_node['event_weight'].sum()))
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
         # Modify MA and MH for background #
