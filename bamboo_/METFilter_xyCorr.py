@@ -13,8 +13,8 @@ def METFilter(flags, era, isMC):
             flags.BadPFMuonFilter ]
     if era == '2017' or era =='2018':
         cuts.append(flags.ecalBadCalibFilterV2)
-    #if not isMC:
-    #    cuts.append(flags.eeBadScFilter)
+    if not isMC:
+        cuts.append(flags.eeBadScFilter)
 
     return cuts
 
