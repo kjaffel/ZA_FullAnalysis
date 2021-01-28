@@ -4,44 +4,32 @@ from bamboo.plots import EquidistantBinning as EqB
 from bamboo import treefunctions as op
 import utils
 
-def MakeEllipsesPLots(selections, bjets, lepton, wp, uname, suffix):
+def MakeEllipsesPLots(selections, bjets, lepton, wp, uname, suffix, metcut):
     plots = []
     binScaling=1
     for key, sel in selections.items():
         bjets_ = bjets[key.replace(wp, "")][wp]
         sorted_bJets= ((bjets_[0].p4+bjets_[1].p4) if suffix=="resolved" else( bjets_[0].p4))
         
-        plots.append(Plot.make1D("jj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key),
-                        op.invariant_mass(sorted_bJets), 
-                        sel,
+        plots.append(Plot.make1D(f"jj_M_{suffix}_{uname}_hZA_lljj_{key}{metcut}",
+                        op.invariant_mass(sorted_bJets), sel,
                         EqB(60 // binScaling, 0., 1000.), 
-                        title="invariant mass of two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
-                        xTitle= "mbb [GeV]",
-                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+                        title= "mbb [GeV]", plotopts=utils.getOpts(uname, **{"log-y": False})))
             
-        plots.append(Plot.make1D("lljj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                        (lepton[0].p4 + lepton[1].p4 + sorted_bJets).M(),
-                        sel,
+        plots.append(Plot.make1D(f"lljj_M_{suffix}_{uname}_hZA_lljj_{key}{metcut}", 
+                        (lepton[0].p4 + lepton[1].p4 + sorted_bJets).M(), sel,
                         EqB(60 // binScaling, 0., 1000.), 
-                        title="invariant mass of 2 leptons two b-tagged jets wrt {0} Discriminator".format(suffix, key), 
-                        xTitle="mllbb [GeV]",
-                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+                        title="mllbb [GeV]", plotopts=utils.getOpts(uname, **{"log-y": False})))
             
-        plots.append(Plot.make2D("Mjj_vs_Mlljj_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                        (op.invariant_mass(sorted_bJets),(
-                        lepton[0].p4 + lepton[1].p4 + sorted_bJets).M()),
-                        sel,
+        plots.append(Plot.make2D(f"Mjj_vs_Mlljj_{suffix}_{uname}_hZA_lljj_{key}{metcut}", 
+                        (op.invariant_mass(sorted_bJets),( lepton[0].p4 + lepton[1].p4 + sorted_bJets).M()), sel,
                         (EqB(60 // binScaling, 0., 1000.), EqB(60 // binScaling, 0., 1000.)), 
-                        title="mllbb vs mbb [GeV]",
-                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+                        title="mllbb vs mbb [GeV]", plotopts=utils.getOpts(uname, **{"log-y": False})))
         
-        plots.append(Plot.make1D("ll_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
-                        op.invariant_mass(lepton[0].p4, lepton[1].p4), 
-                        sel,
+        plots.append(Plot.make1D(f"ll_M_{suffix}_{uname}_hZA_lljj_{key}{metcut}", 
+                        op.invariant_mass(lepton[0].p4, lepton[1].p4), sel,
                         EqB(60 // binScaling, 70., 110.), 
-                        title=" dilepton invariant mass {0} wrt {1} Discriminator".format(suffix, key), 
-                        xTitle= "mll [GeV]",
-                        plotopts=utils.getOpts(uname)))
+                        title= "mll [GeV]", plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
 def MakeMETPlots(selections, corrmet, met, uname, suffix):
@@ -100,3 +88,22 @@ def MakeExtraMETPlots(selections, lepton, met, uname, suffix):
                             EqB(60 // binScaling, 0., 600.), title="Lepton M_{T} [GeV]",
                             plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
+
+def MHMAforCombinedLimits( selections, bjets, lepton, wp, uname, suffix):
+    plots = []
+    binScaling=1
+    for key, sel in selections.items():
+        bjets_ = bjets[key.replace(wp, "")][wp]
+        sorted_bJets= ((bjets_[0].p4+bjets_[1].p4) if suffix=="resolved" else( bjets_[0].p4))
+    
+        plots.append(Plot.make1D("jj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key),
+                        op.invariant_mass(sorted_bJets), sel,
+                        EqB(15 // binScaling, 0., 1000.), title= "mbb [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+        
+        plots.append(Plot.make1D("lljj_M_{0}_{1}_hZA_lljj_{2}_mll_and_met_cut".format(suffix, uname, key), 
+                        (lepton[0].p4 + lepton[1].p4 + sorted_bJets).M(), sel,
+                        EqB(15 // binScaling, 0., 1000.), title="mllbb [GeV]",
+                        plotopts=utils.getOpts(uname, **{"log-y": False})))
+
+    return plots 

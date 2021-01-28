@@ -1,6 +1,6 @@
-# HH Machine Learning 
+# ZA Machine Learning 
 
-Software to do multi classification for HH->bbWW analysis
+Software to do multi classification for H/A->Z(ll)A/H(bb) analysis
 
 These scripts are used to make hyperparameter scans with Talos and learning on Keras
 

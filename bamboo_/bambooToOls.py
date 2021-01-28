@@ -44,7 +44,7 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
             sumTotal = entry.parent.nominal.GetBinContent(1)
             if sumTotal != 0.:
                 effMsg = f", Eff={sumPass/sumTotal:.2%}"
-        printFun(f"Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}")
+        #printFun(f"Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}")
         f.write((f"- Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}\n"))
         
         
@@ -83,7 +83,7 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
     for report in reportList:
         for smp, resultsFile in resultsFiles.items():
             smpCfg = config["samples"][smp]
-            logger.info(f"Cutflow report {report.name} for sample {smp}")
+            #logger.info(f"Cutflow report {report.name} for sample {smp}")
             f.write('\n')
             f.write(f"Cutflow report for sample {smp}:\n")
             
@@ -92,7 +92,7 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
                     generated_events = readCounters(resultsFile)[smpCfg["generated-events"]]
                 else:
                     generated_events = smpCfg["generated-events"]
-                logger.info(f"Sum of event weights for processed files: {generated_events:e}")
+                #logger.info(f"Sum of event weights for processed files: {generated_events:e}")
                 SumWgt [smp] = generated_events
                 xsc [smp] = smpCfg["cross-section"]
                 f.write(f"Sum of event weights for processed files: {generated_events:e}\n")
