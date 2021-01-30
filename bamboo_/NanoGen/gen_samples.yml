@@ -5,25 +5,40 @@ eras:
     luminosity-error: 0.025 
 samples:
   MH-500p00_MA-300p00_tb-1p5:
-     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/HToZATo2L2B_500p00_300p00_1p5_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
+     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_500p00_300p00_1p5_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
      generated-events: 'genEventSumw'
-     cross-section:  0.03356 #pb
-     Branching-ratio: 0.0187466283
+     cross-section:  1. #0.03356 #pb
+     Branching-ratio: 0.30915395
      line-color: "#e31b1b"
      line-type: 1
+     line-width: 2
      legend: MH-500_MA-300_TANBETA-1.5
      type: signal
      era: '2016'
   MH-500p00_MA-300p00_tb-2:
-     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/HToZATo2L2B_500p00_300p00_2p0_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
+     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_500p00_300p00_2p0_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
      generated-events: 'genEventSumw'
-     cross-section:  0.03356 #pb
-     Branching-ratio: 0.0187466283
+     cross-section:  1. #0.03356 #pb
+     Branching-ratio: 0.52166844
      line-color: "#1BE3E3"
      line-type: 1
+     line-width: 2
      legend: MH-500_MA-300_TANBETA-2
      type: signal
      era: '2016'
+
+  HToZATo2L2B_MH-500_MA-300:
+     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_132p00_30p00_tb1p5_old.root]
+     generated-events: 'genEventSumw'
+     cross-section: 1. #2.25992253 # pb  
+     Branching-ratio: 0.877020233
+     line-color: "#1C2A4C"
+     line-type: 1
+     line-width: 2
+     legend: MH-500_MA-300-OLD
+     type: signal
+     era: '2016'
+
 
 plotIt:
   configuration:
@@ -34,9 +49,22 @@ plotIt:
     extra-label: Bamboo prelimenary --2016NanoGen 
     show-overflow: true
     y-axis-format: "%1% / %2$.2f"
+    margin-left: 0.15
+    margin-right: 0.03
+    margin-top: 0.05 
+    margin-bottom: 0.13
   legend:
-    position: [0.7, 0.6, 0.91, 0.91]
+    position: [0.6, 0.6, 0.9, 0.9]
+    line_width: 2
   groups:
     signal:
       fill-color: "#0000FF"
       legend: Signal
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False
