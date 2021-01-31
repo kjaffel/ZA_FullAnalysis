@@ -207,7 +207,7 @@ class NanoHtoZABase(NanoAODModule):
         #TODO
         from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoJetMETCalc_METFixEE2017
         #from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoFatJetCalc, nanoJetMETCalc_METFixEE2017, CalcCollectionsGroups
-        nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), MET=("pt", "phi"), systName="jet", changes={"MET": ("MET", "MET_T1noSmear")})
+        #nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), MET=("pt", "phi"), systName="jet", changes={"MET": ("MET", "MET_T1noSmear")})
 
         
         # production version should be changed, maybe .... !
@@ -801,7 +801,7 @@ class NanoHtoZABase(NanoAODModule):
                 "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep(ele, mu))),
                 }
          
-        # FIXME maybe for 2017 or 2018 --> The leading pT for the �µ or µe channel should be above 20 Gev !
+        # FIXME maybe for 2017 or 2018 --> The leading pT for the ÂÂµ or Âµe channel should be above 20 Gev !
         hasOSLL_cmbRng = lambda cmbRng : op.AND(op.rng_len(cmbRng) > 0, cmbRng[0][0].pt > 25.) 
         
         ## helper selection (OR) to make sure jet calculations are only done once
