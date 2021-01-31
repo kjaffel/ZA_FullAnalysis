@@ -207,16 +207,12 @@ class NanoHtoZABase(NanoAODModule):
         #TODO
         from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoJetMETCalc_METFixEE2017
         #from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoFatJetCalc, nanoJetMETCalc_METFixEE2017, CalcCollectionsGroups
-<<<<<<< HEAD
         #nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), MET=("pt", "phi"), systName="jet", changes={"MET": ("MET", "MET_T1noSmear")})
-=======
         nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), MET=("pt", "phi"), systName="jet", changes={"MET": ("MET", "MET_T1noSmear")})
->>>>>>> 6b09504cdd0d3812d7e1120c69f8180b82d4eac4
-
         
         # production version should be changed, maybe .... !
         tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, description=NanoAODDescription.get("v7", year=(era if era else "2016"), isMC=isMC, systVariations=[ nanoRochesterCalc, (nanoJetMETCalc_METFixEE2017 if era == "2017" else nanoJetMETCalc) ]), lazyBackend=(self.args.backend == "lazy")) ## will do Jet and MET variations, and the Rochester correction
-            #systVariations=[ nanoRochesterCalc, (nanoJetMETCalc_METFixEE2017 if era == "2017" else nanoJetMETCalc_both), nanoFatJetCalc ]), 
+        #systVariations=[ nanoRochesterCalc, (nanoJetMETCalc_METFixEE2017 if era == "2017" else nanoJetMETCalc_both), nanoFatJetCalc ]), 
         triggersPerPrimaryDataset = {}
         jec, smear, jesUncertaintySources = None, None, None
 
