@@ -4,41 +4,28 @@ eras:
     luminosity: 35921.875594646 #pb 
     luminosity-error: 0.025 
 samples:
-  MH-500p00_MA-300p00_tb-1p5:
-     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_500p00_300p00_1p5_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
+  HToZATo2L2B_500p00_300p00_1p5_ggH_TuneCP5_13TeV_pythia8:
+     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
      generated-events: 'genEventSumw'
-     cross-section:  1. #0.03356 #pb
-     Branching-ratio: 0.30915395
+     cross-section: 1.91895272 #pb
+     Branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
      line-color: "#e31b1b"
-     line-type: 1
+     line-type: 2
      line-width: 2
-     legend: MH-500_MA-300_TANBETA-1.5
+     legend: ggH, MH-500_MA-300_TANBETA-1.5
      type: signal
      era: '2016'
-  MH-500p00_MA-300p00_tb-2:
-     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_500p00_300p00_2p0_ggH_TuneCP5_13TeV-madgraphMLM-pythia8.root]
+  HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+      files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
      generated-events: 'genEventSumw'
-     cross-section:  1. #0.03356 #pb
-     Branching-ratio: 0.52166844
+     cross-section: 1.04056455E+00 # pb
+     Branching-ratio: 0.5952128  # BR(H->ZA)*BR(A->bb) = 6.643e-01 * 8.960e-01
      line-color: "#1BE3E3"
-     line-type: 1
+     line-type: 2
      line-width: 2
-     legend: MH-500_MA-300_TANBETA-2
+     legend: bbH, MH-500_MA-300_TANBETA-20.
      type: signal
      era: '2016'
-
-  HToZATo2L2B_MH-500_MA-300:
-     files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/nanogen_samples/HToZATo2L2B_132p00_30p00_tb1p5_old.root]
-     generated-events: 'genEventSumw'
-     cross-section: 1. #2.25992253 # pb  
-     Branching-ratio: 0.877020233
-     line-color: "#1C2A4C"
-     line-type: 1
-     line-width: 2
-     legend: MH-500_MA-300-OLD
-     type: signal
-     era: '2016'
-
 
 plotIt:
   configuration:
@@ -48,7 +35,7 @@ plotIt:
     experiment: CMS
     extra-label: Bamboo prelimenary --2016NanoGen 
     show-overflow: true
-    y-axis-format: "%1% / %2$.2f"
+    y-axis-format: "%1% / %2$.2f [GeV]"
     margin-left: 0.15
     margin-right: 0.03
     margin-top: 0.05 
