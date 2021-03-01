@@ -50,7 +50,7 @@ git pull upstream master
 pip install --upgrade .
 ```
 # How to run:
-- I recommend to test locally first with --maxFiles=1, after you can submit to slurm with --distributed=driver
+- I recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`
 
 ```
 -s : --systematics add to your plots PSweight (FSR , ISR) , PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
@@ -61,7 +61,7 @@ bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_
 ```
 - In case you want to run plotIt again (after changing few options such fill color, legend position, unable systematics, etc...)
 ```
-plotIt -i /path_to_your_dir/ -o /path_to_your_dir/plots_{add_era: 2016, 2017, 2018} -y -e era /In_your_Output_dir/plots.yml
+plotIt -i /path_to_your_dir/ -o /path_to_your_dir/plots_{add_era: 2016, 2017 or 2018} -y -e era /path_to_your_Output_dir/plots.yml
 ```
 - Or --onlypost
 ```

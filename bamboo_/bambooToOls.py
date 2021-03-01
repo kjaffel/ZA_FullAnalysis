@@ -44,17 +44,16 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
             sumTotal = entry.parent.nominal.GetBinContent(1)
             if sumTotal != 0.:
                 effMsg = f", Eff={sumPass/sumTotal:.2%}"
-        #printFun(f"Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}")
+        printFun(f"Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}")
         f.write((f"- Selection {entry.name}: N={entry.nominal.GetEntries()}, SumW={entry.nominal.GetBinContent(1)}{effMsg}\n"))
-        
-        
         #if "TwoLeptonsTwoBjets_" in entry.name and ("ElEl" or "MuMu") in entry.name:
         #    if "2016" not in smp:
         #        evWgt [smp] = sumPass
         #        with open(os.path.join(resultsdir,f"{entry.name}_event_weight.json"), "w") as handle:
         #            json.dump(evWgt, handle, indent=4)
         
-        #TwoLeptonsTwoBjets_NoMETcut_DeepCSVM_MuMu_Boosted
+        key= ('elel' if 'elel' in entry.name else ('mumu' if 'mumu' in entry.name else( 'total_generated_events')))
+        Tosave[key].append([f"{entry.name}", f"{entry.nominal.GetEntries()}", f"{entry.nominal.GetBinContent(1)}{effMsg}"])
         if "TwoLeptonsTwoBjets_" in entry.name:
             opts = entry.name.split('_')
             cat= opts[-2]
@@ -72,7 +71,6 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
                         evWgt[smp][tagger][cat]= sumPass
                         with open(os.path.join(resultsdir,"backgrounds_{0}_{1}_event_weight.json".format(opts[-1], cut)), "w") as handle:
                             json.dump(evWgt, handle, indent=4)
-
                 #evWgt[smp][tagger] = collections.defaultdict(dict)
         if recursive:
             for c in entry.children:
@@ -80,29 +78,38 @@ def SaveCutFlowReports(config, reportList, resultsdir=".", readCounters=lambda f
     ## retrieve results files
     from bamboo.root import gbl
     resultsFiles = dict((smp, gbl.TFile.Open(os.path.join(resultsdir, f"{smp}.root"))) for smp, smpCfg in config["samples"].items() if smpCfg.get("era") in eras)
+    if not os.path.isdir(os.path.join(resultsdir, "Cutflow")):
+        os.makedirs(os.path.join(resultsdir,"Cutflow"))
     for report in reportList:
         for smp, resultsFile in resultsFiles.items():
+            Tosave = {
+                'elel':[],
+                'mumu':[],
+                'total_generated_events':[]
+                }
             smpCfg = config["samples"][smp]
-            #logger.info(f"Cutflow report {report.name} for sample {smp}")
+            logger.info(f"\nCutflow report {report.name} for sample {smp}")
             f.write('\n')
             f.write(f"Cutflow report for sample {smp}:\n")
-            
-            if "generated-events" in smpCfg:
-                if isinstance(smpCfg["generated-events"], str):
-                    generated_events = readCounters(resultsFile)[smpCfg["generated-events"]]
-                else:
-                    generated_events = smpCfg["generated-events"]
-                #logger.info(f"Sum of event weights for processed files: {generated_events:e}")
-                SumWgt [smp] = generated_events
-                xsc [smp] = smpCfg["cross-section"]
-                f.write(f"Sum of event weights for processed files: {generated_events:e}\n")
-                suffix = ("signals" if "type" in smpCfg else("backgrounds"))
-                # cut independant , from NanoAOD
-                with open(os.path.join(resultsdir,"%s_sum_event_weight.json"%suffix), "w") as handle:
-                    json.dump(SumWgt, handle, indent=4)
-                with open(os.path.join(resultsdir,"%s_cross_sections.json"%suffix), "w") as handle:
-                    json.dump(xsc, handle, indent=4)
-            smpReport = report.readFromResults(resultsFile)
-            for root in smpReport.rootEntries():
-                saveEntry(root)
+            with open(os.path.join(resultsdir, 'Cutflow/report_{}.json'.format(smp)), 'w+') as flowpersmp:
+                if "generated-events" in smpCfg:
+                    if isinstance(smpCfg["generated-events"], str):
+                        generated_events = readCounters(resultsFile)[smpCfg["generated-events"]]
+                    else:
+                        generated_events = smpCfg["generated-events"]
+                    #logger.info(f"Sum of event weights for processed files: {generated_events:e}")
+                    SumWgt [smp] = generated_events
+                    xsc [smp] = smpCfg["cross-section"]
+                    f.write(f"Sum of event weights for processed files: {generated_events:e}\n")
+                    suffix = ("signals" if "type" in smpCfg else("backgrounds"))
+                    # cut independant , from NanoAOD
+                    with open(os.path.join(resultsdir,"%s_sum_event_weight.json"%suffix), "w") as handle:
+                        json.dump(SumWgt, handle, indent=4)
+                    with open(os.path.join(resultsdir,"%s_cross_sections.json"%suffix), "w") as handle:
+                        json.dump(xsc, handle, indent=4)
+                smpReport = report.readFromResults(resultsFile)
+                for root in smpReport.rootEntries():
+                    saveEntry(root)
+                    f.write('\n')
+                json.dump(Tosave, flowpersmp)
     f.close()
