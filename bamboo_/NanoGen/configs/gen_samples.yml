@@ -1,0 +1,233 @@
+tree: Events
+eras:
+  '2016':
+    luminosity: 35921.875594646 #pb 
+    luminosity-error: 0.025 
+  #'2017':
+  #  luminosity: 41529.152060112 #pb
+  #  luminosity-error: 0.023  
+  #'2018':
+  #  luminosity: 59740.565201546 #pb
+  #  luminosity-error: 0.025 
+samples:
+# gg fusion loop induced 
+  HToZATo2L2B_500p00_300p00_0p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_0p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 17.6239569 # pb from Sushi 
+    branching-ratio: 0.00220693695645  # BR(H->ZA)*BR(A->bb): 0.127108192 * 0.017362665
+    line-color: "#480048" 
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-0.5
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_1p00_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_1p00_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 4.36158429 # pb from Sushi 
+    branching-ratio: 0.0772129248228  # BR(H->ZA)*BR(A->bb): 0.369985782* 0.2086916
+    line-color: "#81d82e"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-1
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/test.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.91895272 # pb from Sushi 
+    branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
+    line-color: "#00b8ff"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-1.5
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_2p00_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_2p00_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section:  1.06867232   # pb from Sushi 
+    branching-ratio: 0.521708388315  # BR(H->ZA)*BR(A->bb):  0.702318557* 0.742837254
+    line-color: "#d51669"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-2
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_5p00_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_5p00_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section:  0.1640527 # pb from Sushi
+    branching-ratio: 0.813124023509 # BR(H->ZA)*BR(A->bb): 0.912001737 * 0.891581661
+    line-color: "#0660bd"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-5
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_6p00_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_6p00_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 0.114375615 # pb from Sushi 
+    branching-ratio: 0.819970322134  # BR(H->ZA)*BR(A->bb) : 0.917256724* 0.893937652
+    line-color: "#b789b7"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-6
+    type: signal
+    era: '2016'
+  
+  HToZATo2L2B_500p00_300p00_8p00_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_8p00_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 0.068415934 # pb from Sushi  
+    branching-ratio: 0.809892920633  # BR(H->ZA)*BR(A->bb) : 0.90449981* 0.895404191 
+    line-color: "#de9c2b"
+    line-type: 1
+    line-width: 2
+    legend: ggH, MH-500_MA-300_TANBETA-8
+    type: signal
+    era: '2016'
+  
+#  HToZATo2L2B_500p00_300p00_10p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_10p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#94aec5"
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-10.
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_500p00_300p00_15p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_15p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#54b5c5"
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-15
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_500p00_300p00_20p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_20p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#660000" 
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-20
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_500p00_300p00_30p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_30p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#6e00c2"
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-30
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_500p00_300p00_40p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_40p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#cc88ff"
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-40
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_500p00_300p00_50p00_ggH_TuneCP5_13TeV_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_50p00_ggH_TuneCP5_13TeV_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 
+#    branching-ratio:   # BR(H->ZA)*BR(A->bb) 
+#    line-color: "#a888ff"
+#    line-type: 2
+#    line-width: 2
+#    legend: ggH, MH-500_MA-300_TANBETA-50
+#    type: signal
+#    era: '2016'
+#        
+#### b-associated production 4FS 
+#  HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 1.04056455E+00 # pb from Sushi 
+#    branching-ratio: 0.5952128  # BR(H->ZA)*BR(A->bb) = 6.643e-01 * 8.960e-01
+#    line-color: "#1BE3E3"
+#    line-type: 2
+#    line-width: 3
+#    legend: bbH, MH-500_MA-300_TANBETA-20.
+#    type: signal
+#    era: '2016'
+#
+#  HToZATo2L2B_200p00_100p00_6p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_200p00_100p00_6p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section:  3.78357379 # pb from Sushi 
+#    branching-ratio:  0.273309415537 # BR(H->ZA)*BR(A->bb) = 0.299362489 *0.912971483
+#    line-color: "#1BE3E3"
+#    line-type: 2
+#    line-width: 3
+#    legend: bbH, MH-200_MA-100_TANBETA-6.
+#    type: signal
+#    era: '2016'
+#  
+#  HToZATo2L2B_200p00_100p00_8p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_200p00_100p00_8p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 6.72075832 # pb from Sushi 
+#    branching-ratio: 0.177095927854 # BR(H->ZA)*BR(A->bb) = 0.194009461 * 0.912821091
+#    line-color: "#fcba03"
+#    line-type: 2
+#    line-width: 3
+#    legend: bbH, MH-200_MA-100_TANBETA-8.
+#    type: signal
+#    era: '2016'
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
+    experiment: CMS
+    extra-label: Bamboo prelimenary --2016NanoGen 
+    show-overflow: true
+    y-axis-format: "%1% / %2$.2f [GeV]"
+    margin-left: 0.15
+    margin-right: 0.03
+    margin-top: 0.05 
+    margin-bottom: 0.13
+  legend:
+    position: [0.6, 0.6, 0.9, 0.9]
+    line_width: 2
+  groups:
+    signal:
+      fill-color: "#0000FF"
+      legend: Signal
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False

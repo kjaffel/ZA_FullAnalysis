@@ -1,0 +1,66 @@
+tree: Events
+eras:
+  '2016':
+    luminosity: 35921.875594646 #pb 
+    luminosity-error: 0.025 
+  #'2017':
+  #  luminosity: 41529.152060112 #pb
+  #  luminosity-error: 0.023  
+  #'2018':
+  #  luminosity: 59740.565201546 #pb
+  #  luminosity-error: 0.025 
+samples:
+#### b-associated production 4FS 
+  HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.04056455E+00 # pb from Sushi 
+    branching-ratio: 0.5952128  # BR(H->ZA)*BR(A->bb) = 6.643e-01 * 8.960e-01
+    line-color: "#1BE3E3"
+    line-type: 1
+    line-width: 3
+    legend: bbH, MH-500_MA-300_TANBETA-20.
+    type: signal
+    era: '2016'
+
+#### gg fusion Loop induced  
+  HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/test.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.91895272 # pb from Sushi 
+    branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
+    line-color: "#00b8ff"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-500_MA-300_TANBETA-1.5
+    type: signal
+    era: '2016'
+
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
+    experiment: CMS
+    extra-label: Bamboo prelimenary --2016NanoGen 
+    show-overflow: true
+    y-axis-format: "%1% / %2$.2f [GeV]"
+    margin-left: 0.15
+    margin-right: 0.03
+    margin-top: 0.05 
+    margin-bottom: 0.13
+  legend:
+    position: [0.6, 0.6, 0.9, 0.9]
+    line_width: 2
+  groups:
+    signal:
+      fill-color: "#0000FF"
+      legend: Signal
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False

@@ -65,9 +65,34 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         
         plotsToSum = defaultdict(list)
         selections_for_cutflowreport.append(noSel)
+        
+        GEN_FLAGS = {
+            "IsPrompt": 0,
+            "IsDecayedLeptonHadron": 1,
+            "IsTauDecayProduct": 2,
+            "IsPromptTauDecayProduct": 3,
+            "IsDirectTauDecayProduct": 4,
+            "IsDirectPromptTauDecayProduct": 5,
+            "IsDirectHadronDecayProduct": 6,
+            "IsHardProcess": 7,
+            "FromHardProcess": 8,
+            "IsHardProcessTauDecayProduct": 9,
+            "IsDirectHardProcessTauDecayProduct": 10,
+            "FromHardProcessBeforeFSR": 11,
+            "IsFirstCopy": 12,
+            "IsLastCopy": 13,
+            "IsLastCopyBeforeFSR": 14,
+            }
 
         plots += [ Plot.make1D('GenPartmap_pdgIDs', op.map(t.GenPart, lambda p : p.pdgId), noSel, EqBin(100, -50., 50.), title="GenPart PdgID")]
         plots += [ Plot.make1D('LHEPartmap_pdgIDs', op.map(t.LHEPart, lambda p : p.pdgId), noSel, EqBin(100, -50., 50.), title="LHEPart PdgID")]
+       
+        for flag in ["IsFirstCopy", "IsHardProcess", "FromHardProcess"]:
+            genB= op.select(t.GenPart, lambda j :  op.AND( op.abs(j.pdgId)==5, j.statusFlags & 2**GEN_FLAGS[flag]))
+            plots += [ Plot.make1D(f'Mbb_{flag}_fromGenPart', (genB[0].p4 + genB[1].p4).M(), noSel, EqBin(50 // binScaling, 0., 800.), title=f"GenPart {flag} Mbb [GeV]")]
+        
+        genbs = op.select(t.GenPart, lambda j : op.abs(j.pdgId)==5 )
+        plots += [ Plot.make1D('bs_statusflags_map', op.map(genbs, lambda jb: jb.statusFlags), noSel, EqBin(50 // binScaling, 0., 100.), title="genBjets status Flags")]
 
         ##############################################################################################
         #                           No Filter Plots 
@@ -83,7 +108,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
 
         #FIXME craches for these three ==> 
         #for obj, genPart in zip(["h2_fromLHEPart", "h3_fromLHEPart", "z_fromLHEPart"], [h2_fromLHEPart, h3_fromLHEPart, z_fromLHEPart]):
-        for obj, genPart in zip(["h2_fromGenPart", "h3_fromGenPart", "z_fromGenPart"], [h2_fromGenPart, h3_fromGenPart, z_fromGenPart]):
+        for obj, genPart in zip(["h3_fromGenPart", "z_fromGenPart"], [h3_fromGenPart, z_fromGenPart]):
             plots += [ Plot.make1D(f"{obj}_{nm}", var, noSel, binning,
                     title=f"GEN {obj} {title}")
                     for nm, (var, binning, title) in {
@@ -160,24 +185,6 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             bjetsscenarios.update( {'at_least_3bjets': op.rng_len(genBJets) > 2})
 
         ##############################################################################################
-        GEN_FLAGS = {
-            "IsPrompt": 0,
-            "IsDecayedLeptonHadron": 1,
-            "IsTauDecayProduct": 2,
-            "IsPromptTauDecayProduct": 3,
-            "IsDirectTauDecayProduct": 4,
-            "IsDirectPromptTauDecayProduct": 5,
-            "IsDirectHadronDecayProduct": 6,
-            "IsHardProcess": 7,
-            "FromHardProcess": 8,
-            "IsHardProcessTauDecayProduct": 9,
-            "IsDirectHardProcessTauDecayProduct": 10,
-            "FromHardProcessBeforeFSR": 11,
-            "IsFirstCopy": 12,
-            "IsLastCopy": 13,
-            "IsLastCopyBeforeFSR": 14,
-            }
-
         GoodGenParticles = op.select(t.GenPart, lambda p : op.OR(p.statusFlags & 2**GEN_FLAGS["IsHardProcess"], p.statusFlags & 2**GEN_FLAGS["FromHardProcess"]))#, p.parent.idx >= 0 ))
         sorted_GoodGenParticles = op.sort(GoodGenParticles, lambda lep : -lep.pt)
         GoodGenElectrons = op.select(sorted_GoodGenParticles, lambda l : op.AND(op.abs(l.pdgId) == 11, op.abs(l.eta) < 2.5, l.pt > 15.))
