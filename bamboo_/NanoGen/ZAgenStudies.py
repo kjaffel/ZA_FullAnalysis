@@ -18,9 +18,9 @@ if GENPath not in sys.path:
     sys.path.append(GENPath)
 
 import utils
-from bamboo.treedecorators import NanoAODDescription
 from itertools import product, repeat
 
+from bamboo.treedecorators import NanoAODDescription
 nanoGenDescription = NanoAODDescription(
     groups=["HTXS_", "Generator_", "MET_", "GenMET_", "LHE_", "GenVtx_"],
     collections=["nGenPart", "nGenJet", "nGenJetAK8", "nGenVisTau", "nGenDressedLepton", "nGenIsolatedPhoton", "nLHEPart"]
@@ -116,21 +116,34 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             
             plots += [ Plot.make1D('GenPartmap_pdgIDs', op.map(t.GenPart, lambda p : p.pdgId), noSel, EqBin(100, -50., 50.), title="GenPart PdgID")]
             
+            genbs = op.select(t.GenPart, lambda j : op.abs(j.pdgId)==5 )
+            plots += [ Plot.make1D('bs_statusflags_map', op.map(genbs, lambda jb: jb.statusFlags), noSel, EqBin(1000 // binScaling, 0., 30000.), title="genBjets status Flags")]
+            
             h2_fromGenPart = op.select(t.GenPart,lambda obj: obj.pdgId == 35 )
             h3_fromGenPart = op.select(t.GenPart,lambda obj: obj.pdgId == 36 )
             z_fromGenPart  = op.select(t.GenPart,lambda obj: obj.pdgId == 23)
-            #gamma_fromGenPart  = op.select(t.GenPart,lambda obj: obj.pdgId == 22)
+            gamma_fromGenPart  = op.select(t.GenPart,lambda obj: obj.pdgId == 22)
             
             for obj, genPart in {"h2_fromGenPart":h2_fromGenPart, 
                                  "h3_fromGenPart": h3_fromGenPart, 
                                  "z_fromGenPart" : z_fromGenPart, 
-                                 #"gamma_fromGenPart" : gamma_fromGenPart, 
+                                 "gamma_fromGenPart" : gamma_fromGenPart, 
                                 }.items():
                 plots.append(Plot.make1D(f"Nbr_{suffix}_{obj}", op.rng_len(genPart), noSel, EqBin(10, 0., 10.), title=f"Nbr {obj}"))
+                plots.append(Plot.make1D(f"{obj}_mother_pdgids", op.map(genPart, lambda p: op.switch(p.genPartMother.isValid, p.genPartMother.pdgId, op.c_int(-1))), noSel, EqBin(100, -50., 50.), title=f"pdgid of {obj} mother particle"))
+                onegenPart_atleast = noSel.refine(f'remove_empty_{obj}_events', cut=(op.rng_len(genPart) > 0))
+                plots += [ Plot.make1D(f"{obj}_{nm}", var, onegenPart_atleast, binning,
+                        title=f"GEN {obj} {title}")
+                        for nm, (var, binning, title) in {
+                            "PT" : (genPart[0].p4.Pt() , EqBin(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
+                            "Phi": (genPart[0].p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "#phi"),
+                            "Eta": (genPart[0].p4.Eta(), EqBin(50 // binScaling, -3., 3.), "Eta"),
+                            "Mass": (genPart[0].p4.M(), EqBin(60//binScaling, 0., 1200.), "Mass [GeV]"),
+                    }.items() ]
 
             mRanges = {
-                "H": EqBin(50, 0., 850.),
-                "A": EqBin(50, 0., 850.),
+                "H": EqBin(50, 0., 1300.),
+                "A": EqBin(50, 0., 1300.),
                 "Z": EqBin(50, 60., 120.),
                 #"Z": EqBin(50, 0., 650.),
                 #"gamma": EqBin(50,  0., 650.)
@@ -141,11 +154,8 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                 plots += [
                         Plot.make1D(f"{resNm}_nChildren", op.rng_len(res_children), noSel, EqBin(10, 0., 10.), title=f"Number of children for {resNm}"),
                         Plot.make1D(f"{resNm}_child_pdgids", op.map(res_children, lambda gp : gp.pdgId), noSel, EqBin(100, -50., 50.), title=f"{resNm} children pdgid"), ]
-                #if resNm == "A":
-                #    plots.append(Plot.make1D(f"{resNm}_m2ChME", (res_children[0].p4+res_children[1].p4).M(), noSel, mRanges[resNm], title=f"{resNm} first two children invariant mass"))
-                #else:
-                #    has2Ch = noSel.refine(f"{resNm}Has2Children", cut=(op.rng_len(res_children) > 0))
-                #    plots.append(Plot.make1D(f"{resNm}_m2ChME", (res_children[0].p4+res_children[1].p4).M(), has2Ch, mRanges[resNm], title=f"{resNm} first two children invariant mass"))
+                has2Ch = noSel.refine(f"{resNm}Has2Children", cut=(op.rng_len(res_children) > 0))
+                plots.append(Plot.make1D(f"{resNm}_m2ChME", (res_children[0].p4+res_children[1].p4).M(), has2Ch, mRanges[resNm], title=f"{resNm} first two children invariant mass"))
     
             #for flag in ["IsFirstCopy", "IsHardProcess", "FromHardProcess"]:
             #    genB= op.select(t.GenPart, lambda j :  op.AND( op.abs(j.pdgId)==5, j.statusFlags & 2**GEN_FLAGS[flag], j.parent.idx >= 0))
@@ -153,21 +163,6 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             #    plots.append(Plot.make1D(f"Nbr_{flag}_Bhadrons", op.rng_len(genB), noSel, EqBin(10, 0., 10.), title=f"Nbr {flag} B-hadrons"))
             #    plots += [ Plot.make1D(f'Mbb_{flag}_fromGenPart', (genB[0].p4 + genB[1].p4).M(), twogenBs, EqBin(50 // binScaling, 0., 800.), title=f"GenPart {flag} Mbb [GeV]")]
             
-            genbs = op.select(t.GenPart, lambda j : op.abs(j.pdgId)==5 )
-            plots += [ Plot.make1D('bs_statusflags_map', op.map(genbs, lambda jb: jb.statusFlags), noSel, EqBin(1000 // binScaling, 0., 30000.), title="genBjets status Flags")]
-            
-            plots.append(Plot.make1D(f"{obj}_mother_pdgids", op.map(genPart, lambda p: op.switch(p.genPartMother.isValid, p.genPartMother.pdgId, op.c_int(-1))), noSel, EqBin(100, -50., 50.), title=f"{obj} pdgid"))
-            onegenPart_atleast = noSel.refine(f'remove_empty_{obj}_events', cut=(op.rng_len(genPart) > 0))
-            plots += [ Plot.make1D(f"{obj}_{nm}", var, onegenPart_atleast, binning,
-                        title=f"GEN {obj} {title}")
-                        for nm, (var, binning, title) in {
-                            #"mother" : (genPart[0].genPartMother , EqBin(100, -50., 50.), "mother"),
-                            "PT" : (genPart[0].p4.Pt() , EqBin(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
-                            "Phi": (genPart[0].p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "#phi"),
-                            "Eta": (genPart[0].p4.Eta(), EqBin(50 // binScaling, -3., 3.), "Eta"),
-                            "Mass": (genPart[0].p4.M(), EqBin(60//binScaling, 0., 1200.), "Mass [GeV]"),
-                            }.items() ]
-
         ################################################################################################
         ################################################################################################
         if doPlot_GenratorVars:
@@ -205,12 +200,12 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                             op.NOT(op.rng_any(genElectrons, lambda el: op.deltaR(j.p4, el.p4) < 0.8 )),
                             op.NOT(op.rng_any(genMuons, lambda mu: op.deltaR(j.p4, mu.p4) < 0.8 ))
                         ))
-
-        genBJets = op.select(genCleanedJets, lambda jet: jet.hadronFlavour == 5)
-        genLightJets = op.select(genCleanedJets, lambda jet: jet.hadronFlavour != 5)
+        resID = ( 35 if 'HToZATo2L2B' in sample else (36))
+        genBJets = op.select(genCleanedJets, lambda jet: jet.hadronFlavour == 5)#, jet.genPartMother.pdgId == resID, jet.pdgId != resID) )
+        genLightJets = op.select(genCleanedJets, lambda jet: jet.hadronFlavour != 5)#, jet.genPartMother.pdgId == resID, jet.pdgId != resID))
         
-        genBJetsAK8 = op.select(genCleanedJetsAK8, lambda jet: jet.hadronFlavour == 5)
-        genLightJetsAK8 = op.select(genCleanedJetsAK8, lambda jet: jet.hadronFlavour != 5)
+        genBJetsAK8 = op.select(genCleanedJetsAK8, lambda jet: jet.hadronFlavour == 5)#, jet.genPartMother.pdgId == resID, jet.pdgId != resID))
+        genLightJetsAK8 = op.select(genCleanedJetsAK8, lambda jet: jet.hadronFlavour != 5)#, jet.genPartMother.pdgId == resID, jet.pdgId != resID))
 
 
         resolved_Jets_dict = { "nGenJets": genCleanedJets,
@@ -228,7 +223,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
 
         ################################################################################################
         ################################################################################################
-        OSSFLeptons_Zmass = lambda lep1,lep2 : op.AND(lep1.pdgId == -lep2.pdgId, op.in_range(70., op.invariant_mass(lep1.p4, lep2.p4), 120.))
+        OSSFLeptons_Zmass = lambda lep1,lep2 : op.AND(lep1.pdgId == -lep2.pdgId)#, op.in_range(70., op.invariant_mass(lep1.p4, lep2.p4), 120.))
         OSSFLeptons = lambda lep1,lep2 : op.AND(lep1.pdgId == -lep2.pdgId)
         LowMass_cut = lambda lep1, lep2: op.invariant_mass(lep1.p4, lep2.p4)>12.
 
@@ -243,16 +238,16 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         categories = dict((channel, (catLLRng[0], TwoOSLeptonsSel.refine("hasOs{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng)))) for channel, catLLRng in OSLeptons.items())
         
         jetsscenarios = { "resolved": { 'at_least_2jets': op.rng_len(genCleanedJets) > 1,
-                                        #'exactly_2jets' : op.rng_len(genCleanedJets) == 2,
+                                        #'exactly_2jets' : op.rng_len(genCleanedJets) == 2 
                                         },
-                         "boosted": { 'at_least_1fatjet': op.rng_len(genCleanedJetsAK8) > 0,},
-                        }
+                         #"boosted": { 'at_least_1fatjet': op.rng_len(genCleanedJetsAK8) > 0} 
+                         }
         
         bjetsscenarios = { "resolved": { 'at_least_2bjets': op.rng_len(genBJets) > 1,
-                                        #'exactly_2bjets' : op.rng_len(genBJets) == 2, 
-                                        },
-                           "boosted": { 'at_least_1fatbjet': op.rng_len(genBJetsAK8) > 1,}
-                        }
+                                         #'exactly_2bjets' : op.rng_len(genBJets) == 2 
+                                         },
+                           #"boosted": { 'at_least_1fatbjet': op.rng_len(genBJetsAK8) > 1} 
+                         }
         
         #if "_bbH4F_" in sample :
         #    jetsscenarios.update( {'at_least_3jets': op.rng_len(genCleanedJets) > 2})
@@ -281,7 +276,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         for channel, (TwoLeptons, catSel) in categories.items():
         
             selections_for_cutflowreport.append(catSel)
-            if doPlot_Leptonsdistributions:
+            if doPlot_Leptonsdistributions:# and sample not in ["HToZATo2L2B_200p00_125p00_1p50_ggH_TuneCP5_13TeV_pythia8","AToZHTo2L2B_200p00_125p00_1p50_ggH_TuneCP5_13TeV_pythia8"]:
                 for i in range(2):
                     plots.append(Plot.make1D(f"{channel}_lep{i+1}_pt", TwoLeptons[i].pt, catSel,
                                     EqBin(60 // binScaling, 0., 530.), title=f"{utils.getCounter(i+1)} Lepton pT [GeV]" ,
@@ -305,13 +300,10 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                 plots.append(Plot.make1D(f"{channel}_mll_2lepselection_mllcut", op.invariant_mass(TwoLeptons[0].p4, TwoLeptons[1].p4), catSel,
                             EqBin(60 // binScaling, 60., 120.), title= "mll [GeV]",
                             plotopts=utils.getOpts(channel)))
-                #plots.append(Plot.make1D(f"{channel}_mll_noSel_nomllcut", op.invariant_mass(TwoLeptons[0].p4, TwoLeptons[1].p4), noSel,
-                #            EqBin(60 // binScaling, 0., 600.), title= "mll [GeV]",
-                #            plotopts=utils.getOpts(channel)))
             
         ################################################################################################
         ################################################################################################
-            for regime in ["resolved" , "boosted"]:
+            for regime in jetsscenarios.keys():
                 leptons_plus_jets_selec ={}
                 leptons_plus_bjets_selec ={}
                 for (jk, jv), (bk,bv) in zip( jetsscenarios[regime].items(), bjetsscenarios[regime].items()): 
@@ -386,31 +378,31 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
     
         ################################################################################################
         ################################################################################################
-                    for bk_scenario, lepplusbjets in leptons_plus_bjets_selec.items():
-                        if doPlot_LeptonsPLusGenBJets:
-                            plots += [ Plot.make1D(f"{channel}_{regime}_{bk_scenario}_gen{nm}", var, lepplusbjets, binning,
-                                        title=f"GEN {title}", plotopts=utils.getOpts(channel))
-                                    for nm, (var, binning, title) in {
-                                    "bbPT" : (bb_p4.Pt() , EqBin(60 // binScaling, 0., 450.), "bb P_{T} [GeV]"),
-                                    "bbPhi": (bb_p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "bb #phi"),
-                                    "bbEta": (bb_p4.Eta(), EqBin(50 // binScaling, -3., 3.), "bb Eta"),
-                                    "mbb": (bb_p4.M(), EqBin(60 // binScaling, 0., 1300.), "M_{bb} [GeV]"),
-                                    "mllbb": (llbb_p4.M(), EqBin(60 // binScaling, 120., 1300.), "M_{llbb} [GeV]")
-                                }.items() ]
-            
+                for bk_scenario, lepplusbjets in leptons_plus_bjets_selec.items():
+                    if doPlot_LeptonsPLusGenBJets:
+                        plots += [ Plot.make1D(f"{channel}_{regime}_{bk_scenario}_gen{nm}", var, lepplusbjets, binning,
+                                    title=f"GEN {title}", plotopts=utils.getOpts(channel))
+                                for nm, (var, binning, title) in {
+                                "bbPT" : (bb_p4.Pt() , EqBin(60 // binScaling, 0., 450.), "bb P_{T} [GeV]"),
+                                "bbPhi": (bb_p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "bb #phi"),
+                                "bbEta": (bb_p4.Eta(), EqBin(50 // binScaling, -3., 3.), "bb Eta"),
+                                "mbb": (bb_p4.M(), EqBin(60 // binScaling, 0., 1300.), "M_{bb} [GeV]"),
+                                "mllbb": (llbb_p4.M(), EqBin(60 // binScaling, 120., 1300.), "M_{llbb} [GeV]")
+                            }.items() ]
+        
         ################################################################################################
         ################################################################################################
-                        maxBJet = ( 3 if 'at_least_3' in bk_scenario else(1 if regime=="boosted" else(2)))
-                        if doPlot_GenBJets:
-                            for i in range(maxBJet):
-                                plots += [ Plot.make1D(f"{channel}_{regime}_{bk_scenario}_GenBJet{i+1}_{nm}",
-                                        jVar(gen_BJets[i]), lepplusbjets, binning, title=f"{utils.getCounter(i+1)} GenBJet {title}",
-                                        plotopts=utils.getOpts(channel))
-                                    for nm, (jVar, binning, title) in {
-                                    "pT" : (lambda j : j.pt, eqBin_pt, "p_{T} [GeV]"),
-                                    "eta": (lambda j : j.eta, EqBin(50 // binScaling, -2.4, 2.4), "eta"),
-                                    "phi": (lambda j : j.phi, EqBin(50 // binScaling, -3.1416, 3.1416), "#phi")
-                                }.items() ]
+                    maxBJet = ( 3 if 'at_least_3' in bk_scenario else(1 if regime=="boosted" else(2)))
+                    if doPlot_GenBJets:
+                        for i in range(maxBJet):
+                            plots += [ Plot.make1D(f"{channel}_{regime}_{bk_scenario}_GenBJet{i+1}_{nm}",
+                                    jVar(gen_BJets[i]), lepplusbjets, binning, title=f"{utils.getCounter(i+1)} GenBJet {title}",
+                                    plotopts=utils.getOpts(channel))
+                                for nm, (jVar, binning, title) in {
+                                "pT" : (lambda j : j.pt, eqBin_pt, "p_{T} [GeV]"),
+                                "eta": (lambda j : j.eta, EqBin(50 // binScaling, -2.4, 2.4), "eta"),
+                                "phi": (lambda j : j.phi, EqBin(50 // binScaling, -3.1416, 3.1416), "#phi")
+                            }.items() ]
     
         plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
         return plots
