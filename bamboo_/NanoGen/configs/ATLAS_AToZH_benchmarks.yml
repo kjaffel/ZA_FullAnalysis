@@ -1,0 +1,134 @@
+tree: Events
+eras:
+  'run2':
+    luminosity: 137191.592856304 #pb 
+    luminosity-error: 0.025 
+samples:
+#### gg fusion Loop induced  
+# 3 Benchmarks
+# process : pp > h2 > h3 l+ l- $$ a [QCD] 
+# The decay of h3 in pythia8 
+  AToZHTo2L2B_240p00_130p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_240p00_130p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 11.8124745 # pb from Sushi 
+    branching-ratio: 0.8343271696628267  # BR(A->ZH)*BR(H->bb) = 0.943917126* 0.883898752
+    line-color: "#660066"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-240_MH-130_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_500p00_250p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_500p00_250p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 11.8124745 # pb from Sushi 
+    branching-ratio: 0.4551492543453816  # BR(A->ZH)*BR(H->bb) = 0.572816628 * 0.794581079
+    line-color: "#ff0000"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-500_MH-250_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.92222757 # pb from Sushi 
+    branching-ratio: 0.13701860830836143  # BR(A->ZH)*BR(H->bb) = 0.421857246 * 0.324798518
+    line-color: "#800080"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-500_MH-300_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_550p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_550p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.92222757 # pb from Sushi 
+    branching-ratio: 0.14145759680844588  # BR(A->ZH)*BR(H->bb) = 0.564401224 *0.250633044
+    line-color: "#dcab00"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-550_MH-300_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_670p00_500p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_670p00_500p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.92222757 # pb from Sushi 
+    branching-ratio: 0.0009497125419287344  # BR(A->ZH)*BR(H->bb) = 0.259563541 *0.00365888267
+    line-color: "#ff80ed"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-670_MH-500_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_700p00_200p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_700p00_200p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.92222757 # pb from Sushi 
+    branching-ratio: 0.7075865804888948  # BR(A->ZH)*BR(H->bb) = 0.842194266 *0.840170266
+    line-color: "#32a852"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-700_MH-200_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_780p00_680p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_780p00_680p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.92222757 # pb from Sushi 
+    branching-ratio: 2.0246893219188686e-05  # BR(A->ZH)*BR(H->bb) = 0.00858152669 *0.00235935795
+    line-color: "#0ff1ce"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-780_MH-680_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  AToZHTo2L2B_800p00_140p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0521/AToZHTo2L2B_800p00_140p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 11.8124745 # pb from Sushi 
+    branching-ratio: 0.7856312996392804  # BR(A->ZH)*BR(H->bb) =  0.893173674 *0.879595226
+    line-color: "#55f6ff"
+    line-type: 2
+    line-width: 3
+    legend: ggH, MA-800_MH-140_TANBETA-1.5
+    type: signal
+    era: "run2"
+
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
+    experiment: CMS
+    extra-label: Bamboo prelimenary --Full run2NanoGen 
+    show-overflow: true
+    y-axis-format: "%1% / %2$.2f [GeV]"
+    margin-left: 0.15
+    margin-right: 0.03
+    margin-top: 0.05 
+    margin-bottom: 0.13
+  legend:
+    position: [0.6, 0.6, 0.9, 0.9]
+    line_width: 2
+  groups:
+    signal:
+      fill-color: "#0000FF"
+      legend: Signal
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False
