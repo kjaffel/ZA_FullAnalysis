@@ -389,6 +389,10 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                                 "mbb": (bb_p4.M(), EqBin(60 // binScaling, 0., 1300.), "M_{bb} [GeV]"),
                                 "mllbb": (llbb_p4.M(), EqBin(60 // binScaling, 120., 1300.), "M_{llbb} [GeV]")
                             }.items() ]
+                        plots += [ Plot.make2D("{0}_{1}_{2}_mllbb_vs_mbb".format(channel, regime, bk_scenario),
+                                    (bb_p4.M(), llbb_p4.M()), lepplusjets,
+                                    (EqBin(60 // binScaling, 0., 1000.), EqBin(60 // binScaling, 0., 1000.)),
+                                    title="mllbb vs mbb invariant mass [Gev]", plotopts=utils.getOpts(channel)) ]
         
         ################################################################################################
         ################################################################################################
