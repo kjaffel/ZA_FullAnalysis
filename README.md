@@ -50,11 +50,11 @@ git pull upstream master
 pip install --upgrade .
 ```
 ## How to run:
-- I recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`
+- I do recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`.
 
-``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
-``-v : --verbose``     give you more print out for debugging 
-``-m : --module``      your analysis script
+    - ``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+    - ``-v : --verbose``     give you more print out for debugging. 
+    - ``-m : --module``      your analysis script.
 ```bash
 bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
 ```
