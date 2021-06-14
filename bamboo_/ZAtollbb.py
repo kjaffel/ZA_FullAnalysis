@@ -10,13 +10,14 @@ logger = logging.getLogger("H->ZA->llbb Plotter")
 
 from itertools import chain
 from functools import partial
-import os.path
+import os, os.path
 import collections
 import builtins
 import math
 import argparse
 import sys
 import json
+import yaml 
 
 zabPath = os.path.dirname(__file__)
 if zabPath not in sys.path:
@@ -169,6 +170,9 @@ def BTAGcalibration(tagger, wp , noSel, sample, era, mistagSF=False ):
     
     return sf
 
+
+
+
 class NanoHtoZABase(NanoAODModule):
     """ H->Z(ll)A(bb) analysis for the FullRunII using NanoAODv7 """
     
@@ -196,6 +200,12 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("-e", "--DNN_Evaluation", action="store_true", help="Pass TensorFlow model and evaluate DNN output")
         parser.add_argument("-blinded", "--blinded", action="store_true", help="Options to be blind on data if you want to Evaluate the training OR The Ellipses model ")
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy'")
+
+
+        def customizeAnalysisCfg(self, config):
+            if self.args.distributed == "driver" or not self.args.distributed:
+                with open(os.path.join(self.output, "config.yml"), "w") as cCfgF:
+                    yaml.dump(config, cCfgF)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
