@@ -274,22 +274,17 @@ class NanoHtoZABase(NanoAODModule):
                         tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL]
 
             if self.isMC(sample):
-                jec = "Summer16_07Aug2017_V11_MC"
-                smear="Summer16_25nsV1b_MC"
+                jec = "Summer19UL16APV_V7_MC"
+                smear="Summer20UL16_JRV3_MC"
                 if self.doSplit:
                     jesUncertaintySources=['Absolute', 'Absolute_2016', 'BBEC1', 'BBEC1_2016', 'EC2', 'EC2_2016', 'FlavorQCD', 'HF', 'HF_2016', 'RelativeBal', 'RelativeSample_2016']
                 else:
                     jesUncertaintySources=["Total"]
                 
             else:
-                if "2016B" in sample or "2016C" in sample or "2016D" in sample:
-                    jec="Summer16_07Aug2017BCD_V11_DATA"
-
-                elif "2016E" in sample or "2016F" in sample:
-                    jec="Summer16_07Aug2017EF_V11_DATA"
-                    
-                elif "2016G" in sample or "2016H" in sample:
-                    jec="Summer16_07Aug2017GH_V11_DATA"
+                runs = ["2016B", "2016C", "2016D", "2016E", "2016F", "2016G", "2016H"]
+                if any(x in sample for x in runs):
+                    jec= "Summer19UL16_RunBCDEFGH_Combined_V7_DATA"
                     
         elif era == "2017":
             
@@ -347,49 +342,43 @@ class NanoHtoZABase(NanoAODModule):
             #            tree.HLT.DoubleEle25_CaloIdL_MW ]
 
             if self.isMC(sample):
-                jec="Fall17_17Nov2017_V32_MC"
-                smear="Fall17_V3b_MC"
+                jec="Summer19UL17_V5_MC"
+                smear="Summer19UL17_JRV2_MC"
                 if self.doSplit:
                     jesUncertaintySources=['Absolute', 'Absolute_2017', 'BBEC1', 'BBEC1_2017', 'EC2', 'EC2_2017', 'FlavorQCD', 'HF', 'HF_2017', 'RelativeBal', 'RelativeSample_2017']
                 else:
                     jesUncertaintySources=["Total"]
-
             else:
                 if "2017B" in sample:
-                    jec="Fall17_17Nov2017B_V32_DATA"
-
+                    jec="Summer19UL17_RunB_V5_DATA"
                 elif "2017C" in sample:
-                    jec="Fall17_17Nov2017C_V32_DATA"
-
-                elif "2017D" in sample or "2017E" in sample:
-                    jec="Fall17_17Nov2017DE_V32_DATA"
-                
+                    jec="Summer19UL17_RunC_V5_DATA"
+                elif "2017D" in sample:
+                    jec="Summer19UL17_RunD_V5_DATA"
+                elif "2017E" in sample:
+                    jec="Summer19UL17_RunE_V5_DATA"
                 elif "2017F" in sample:
-                    jec="Fall17_17Nov2017F_V32_DATA"
+                    jec="Summer19UL17_RunF_V5_DATA"
 
         elif era == "2018":
             configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2018.txt"), isMC=isMC, backend=be, uName=sample)
             
             if self.isMC(sample):
-                jec="Autumn18_V19_MC"
-                smear="Autumn18_V7b_MC"
+                jec="Summer19UL18_V5_MC"
+                smear="Summer19UL18_JRV2_MC"
                 if self.doSplit:
                     jesUncertaintySources=['Absolute', 'Absolute_2018', 'BBEC1', 'BBEC1_2018', 'EC2', 'EC2_2018', 'FlavorQCD', 'HF', 'HF_2018', 'RelativeBal', 'RelativeSample_2018']
                 else:
                     jesUncertaintySources=["Total"]
-
             else:
                 if "2018A" in sample:
-                    jec="Autumn18_RunA_V19_DATA"
-
+                    jec="Summer19UL18_RunA_V5_DATA"
                 elif "2018B" in sample:
-                    jec="Autumn18_RunB_V19_DATA"
-
+                    jec="Summer19UL18_RunB_V5_DATA"
                 elif "2018C" in sample:
-                    jec="Autumn18_RunC_V19_DATA"
-        
+                    jec="Summer19UL18_RunC_V5_DATA"
                 elif "2018D" in sample:
-                    jec="Autumn18_RunD_V19_DATA"
+                    jec="Summer19UL18_RunD_V5_DATA"
         else:
             raise RuntimeError("Unknown era {0}".format(era))
         ## Configure jets 
