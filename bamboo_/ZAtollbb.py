@@ -248,9 +248,11 @@ class NanoHtoZABase(NanoAODModule):
             ellipses_handle.push_back(gbl.MassWindow(xc, yc, M11, M12, M21, M22))
 
         if era == "2016":
+            if "preVFP" in sample or "HIPM" in sample:
+                configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016aUL.txt"), isMC=isMC, backend=be, uName=sample)
+            else:
+                configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016bUL.txt"), isMC=isMC, backend=be, uName=sample)
 
-            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2016.txt"), isMC=isMC, backend=be, uName=sample)
-            
             triggersPerPrimaryDataset = {
                 "DoubleMuon" : [ tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL,
                                  tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ,
@@ -287,8 +289,7 @@ class NanoHtoZABase(NanoAODModule):
                     jec= "Summer19UL16_RunBCDEFGH_Combined_V7_DATA"
                     
         elif era == "2017":
-            
-            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2017.txt"), isMC=isMC, backend=be, uName=sample)
+            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2017UL.txt"), isMC=isMC, backend=be, uName=sample)
             
             # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2017
             triggersPerPrimaryDataset = {
@@ -297,7 +298,6 @@ class NanoHtoZABase(NanoAODModule):
                                  tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8,
                                  #tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8  # Not for era B
                                  ],
-                    
                 # it's recommended to not use the DoubleEG HLT _ DZ version  for 2017 and 2018, 
                 # using them it would be a needless efficiency loss !
                 #---> https://twiki.cern.ch/twiki/bin/view/CMS/EgHLTRunIISummary
@@ -307,15 +307,12 @@ class NanoHtoZABase(NanoAODModule):
                                  ], # the MW refers to the pixel match window being "medium window" working point
                                 # also require additional HLT Zvtx Efficiency Scale Factor 
                                     
-                "MuonEG"     : [ #tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,  #  Not for Era B
+                "MuonEG"     : [ # tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL,  #  Not for Era B
                                  tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
-                                 
                                  # tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,  # Not for Era B
                                  tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ,
-                                 
-                                 #tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,   # Not for Era B
+                                 # tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,   # Not for Era B
                                  tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ ],
-                
                 # FIXME : if you want to include them need to include the primary dataset too !!
                 #"SingleElectron": [ tree.HLT.Ele35_WPTight_Gsf,
                 #                    tree.HLT.Ele28_eta2p1_WPTight_Gsf_HT150 ],
@@ -330,13 +327,10 @@ class NanoHtoZABase(NanoAODModule):
                         tree.HLT.Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL,
                         #tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL  : prescaled 
                         ]
-                
                 triggersPerPrimaryDataset["DoubleMuon"] += [ 
                         tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8 ]
-
                 triggersPerPrimaryDataset["DoubleEG"] += [ 
                         tree.HLT.DiEle27_WPTightCaloOnly_L1DoubleEG ]
-
             #if "2017B" not in sample and "2017C" not in sample:
             #    triggersPerPrimaryDataset["DoubleEG"] += [ 
             #            tree.HLT.DoubleEle25_CaloIdL_MW ]
@@ -361,7 +355,7 @@ class NanoHtoZABase(NanoAODModule):
                     jec="Summer19UL17_RunF_V5_DATA"
 
         elif era == "2018":
-            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data", "RoccoR2018.txt"), isMC=isMC, backend=be, uName=sample)
+            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2018UL.txt"), isMC=isMC, backend=be, uName=sample)
             
             if self.isMC(sample):
                 jec="Summer19UL18_V5_MC"
