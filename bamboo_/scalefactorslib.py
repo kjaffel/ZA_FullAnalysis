@@ -6,21 +6,64 @@ zabPath = os.path.dirname(__file__)
 if zabPath not in sys.path:
     sys.path.append(zabPath)
 
+def localize_myRun2UlegacyAnalysis(aPath, version="FullRun2ULegacy"):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(version), aPath)
 def localize_myanalysis(aPath, version="FullRun2-ver0"):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_{0}".format(version), aPath)
-
 def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies", aPath)
-
 def localize_PileupJetID(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/PileupFullRunII/PileupJetID", aPath)
-
 def localize_eChargeMisIDRates(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/eChargeMisId", aPath)
 
+all_run2_Ulegacyscalefactors = {
+       ############################################
+       # 2016 ULegacy:
+       ############################################
+       # Electrons:  BCDE F-up to run 278807 
+            # preVFP BCDE F-up to run 278807 : https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2016_preVFP
+            # postVFP F from run 278808 to H : https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2016_postVF
+       # Muons  :    https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2016#Scale_and_Resolution_AN1
+       # Btagging :  
+       "electron_Summer20UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+                            if isinstance(v, str) 
+                            else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
+
+                            dict(("id_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "EGamma_SF2D_Run2016UL_{wp}_{era}.json".format(wp=wp, era=eras))
+                                for eras in ("postVFP", "preVFP") ]) for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")).items(),
+                            
+                            dict(("reco_{pt}".format(pt=pt), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "EGamma_SF2D_{pt}_UL2016{era}.json".format(pt=pt, era=eras))
+                                for eras in ("postVFP", "preVFP") ]) for pt in ("ptBelow20", "ptAbove20")).items(),
+      
+                        )),
+
+       # scale factor = (L(BCDEF)*sf(BCDEF) + L(GH)*sf(GH))/(L(BCDEF)+L(GH))  
+       "muon_Summer20UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+                            if isinstance(v, str) 
+                            else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
+
+                            dict(("id_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2016_UL_{era}ID.json".format(wp=wp, uncer=uncer, era=eras))
+                                # eras here similair to ("BCDEF", "GH") or (pre-VFP , post-VFP)
+                                for eras in ("HIPM_", "") for uncer in ("syst", "stat")]) for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")).items(),
+
+
+                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
+                                "Muon_NUM_{isowp}Iso_DEN_{idwp}_abseta_pt_{uncer}_Run2016_UL_{era}ISO.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))
+                                # eras here similair to ("BCDEF", "GH") or (pre-VFP , post-VFP)
+                                for eras in ("HIPM_", "") for uncer in ("syst","stat")]) 
+                                for (isowp,idwp) in (("LooseRel","LooseID"), ("LooseRel","MediumID"), ("LooseRel", "MediumPromptID"), ("LooseRel", "TightIDandIPCut"), ("LooseRelTk", "HighPtIDandIPCut"), ("LooseRelTk", "TrkHighPtIDandIPCut"), ("TightRel", "MediumID"), ("TightRel", "MediumPromptID"), ("TightRel","TightIDandIPCut"), ("TightRelTk", "HighPtIDandIPCut"), ("TightRelTk","TrkHighPtIDandIPCut"))).items(),
+                    
+                        )),
+
+    }
+
 all_scalefactors = {
        ############################################
-       # 2016 legacy:
+       # 2016 :
        ############################################
        # Electrons:  https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaRunIIRecommendations#Fall17v2
        # Muons  :    https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonReferenceEffs2016LegacyRereco#Efficiencies
@@ -100,9 +143,10 @@ all_scalefactors = {
                                             for wp in ("L", "M", "T")).items() 
                                         )),
         
-       ####################################
+      #####################################
       # 2017: 
       #####################################
+      # Electrons:  https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaRunIIRecommendations#Fall17v2
       # Muons:      https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2017
       # Btagging:   https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94X
        
@@ -179,6 +223,7 @@ all_scalefactors = {
       ##################################
       # 2018:
       ##################################
+      # Electrons:  https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaRunIIRecommendations#Fall17v2
       # Muons:      https://twiki.cern.ch/twiki/bin/view/CMS/MuonReferenceEffs2018      
       # Btagging:   https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation102X
 
