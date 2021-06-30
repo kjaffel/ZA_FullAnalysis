@@ -435,7 +435,7 @@ class NanoHtoZABase(NanoAODModule):
         from bamboo.plots import EquidistantBinning as EqB
         from bamboo import treefunctions as op
         from bamboo.analysisutils import makePileupWeight
-        from METFilter_xyCorr import METFilter, METcorrection
+        from METFilter_xyCorr import METFilter, METcorrection, ULMETXYCorrection
 
         isMC = self.isMC(sample)
         era = sampleCfg.get("era") if sampleCfg else None
@@ -559,7 +559,9 @@ class NanoHtoZABase(NanoAODModule):
         elChargeSF = get_scalefactor("lepton", ("eChargeMisID", "eCharge_{0}".format(era)), isElectron=True, systName="ele_charge")
         
         MET = t.MET if era != "2017" else t.METFixEE2017
-        corrMET=METcorrection(MET,t.PV,sample,era,self.isMC(sample))
+        #corrMET=METcorrection(MET,t.PV,sample,era,self.isMC(sample))
+        corrMET=ULMETXYCorrection(MET,t.PV,sample,era,self.isMC(sample))
+        
         PuppiMET = t.PuppiMET 
         
         #######  select jets  
