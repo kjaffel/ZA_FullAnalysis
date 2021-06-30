@@ -6,11 +6,11 @@ zabPath = os.path.dirname(__file__)
 if zabPath not in sys.path:
     sys.path.append(zabPath)
 
-def localize_myanalysis(aPath, version="FullRunIIv1"):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(version), aPath)
+def localize_myanalysis(aPath, version="FullRun2-ver0"):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_{0}".format(version), aPath)
 
 def localize_trigger(aPath):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "TriggerEfficienciesStudies", aPath)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies", aPath)
 
 def localize_PileupJetID(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/PileupFullRunII/PileupJetID", aPath)
