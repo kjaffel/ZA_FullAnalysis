@@ -63,10 +63,10 @@ samples:
     files: dascache/TTTo2L2Nu_2016.dat
     generated-events: 'genEventSumw'
     cross-section:  88.40 # pb (taken from Agni )
-                 #76.7  # pb NLO +- 0.0585 uncer.: https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8
+                    #76.7  # pb NLO +- 0.0585 uncer.: https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTTTo2L2Nu_TuneCUETP8M2_ttHtranche3_13TeV-powheg-pythia8
     group: ttbar_FullLeptonic
     era: '2016'
-    split: 4
+    split: 8
 ###########   single top
   ST_tW_top_5f:
     db: das:/ST_tW_top_5f_NoFullyHadronicDecays_13TeV-powheg_TuneCUETP8M1/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext1-v1/NANOAODSIM
@@ -91,6 +91,7 @@ samples:
     cross-section: 80.95  # TODO  to check !   Opb on the xsc uncertainty for now 
     group: ST
     era: '2016'
+    split: 4
 
   ST_tchannel_top_4f:
     db: das:/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
@@ -99,6 +100,7 @@ samples:
     cross-section: 136.02 # TODO  to check!  Opb on the xsc uncertainty for now 
     group: ST
     era: '2016'
+    split: 4
 
   ST_schannel_4f:
     db: das:/ST_s-channel_4f_leptonDecays_13TeV-amcatnlo-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
@@ -107,6 +109,7 @@ samples:
     cross-section: 3.365   
     group: ST
     era: '2016'
+    split: 4
         
 ######## ZZ
   ZZTo2L2Nu:
@@ -116,6 +119,7 @@ samples:
     cross-section: 0.5644     
     group: ZZ
     era: '2016'
+    split: 44
 
   ZZTo2L2Q:
     db: das:/ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
@@ -132,6 +136,7 @@ samples:
     cross-section: 1.256 
     group: ZZ
     era: '2016'
+    split: 90
 
 ###### Standrd model higgs : Zh & tth  
 
@@ -264,13 +269,14 @@ samples:
     group: others
     era: '2016'
 
-  WJetsToLNu: #this one take forever to finish run !!!
+  WJetsToLNu: #this one always take forever to finish run !!!
     db: das:/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7_ext2-v1/NANOAODSIM
     files: dascache/WJetsToLNu_2016.dat
     generated-events: 'genEventSumw'
     cross-section: 60430.0
     group: others
     era: '2016'
+    split: 183
 
   TTWJetsToQQ:
     db: das:/TTWJetsToQQ_TuneCUETP8M1_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
@@ -482,6 +488,279 @@ samples:
     run_range: [280919, 284044]
     certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt
 
+  HToZATo2L2B_MH-1000_MA-200:
+    db: das:/HToZATo2L2B_MH-1000_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-200_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.0544515273 
+    line-color: "#e31b1b"
+    line-type: 1
+    legend: MH-1000_MA-200
+    #split: 4
+    Branching-ratio: 0.0187466283
+    type: signal
+
+  HToZATo2L2B_MH-1000_MA-500:
+    db: das:/HToZATo2L2B_MH-1000_MA-500_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-500_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.0544515273 # pb 
+    line-color: "#450808"
+    line-type: 1
+    legend: MH-1000_MA-500
+    Branching-ratio: 0.984163569
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-1000_MA-50:
+    db: das:/HToZATo2L2B_MH-1000_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-1000_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.0544515273  # pb
+    line-color: "#080845"
+    line-type: 1
+    legend: MH-1000_MA-50
+    Branching-ratio: 0.0194209925
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-2000_MA-1000:
+    db: das:/HToZATo2L2B_MH-2000_MA-1000_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-2000_MA-1000_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.00039350271 # pb  
+    line-color: "#8383f1"
+    line-type: 1
+    legend: MH-2000_MA-1000 
+    Branching-ratio: 0.984163569
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-200_MA-100:
+    db: das:/HToZATo2L2B_MH-200_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-200_MA-100_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 11.4750091 # pb  
+    line-color: "#31dce5"
+    line-type: 1
+    legend: MH-200_MA-100
+    Branching-ratio: 0.133580202
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-200_MA-50:
+    db: das:/HToZATo2L2B_MH-200_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-200_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 11.4750091 # pb  
+    line-color: "#e59431"
+    line-type: 1
+    legend: MH-200_MA-50
+    Branching-ratio: 0.00774323362
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-250_MA-100:
+    db: das:/HToZATo2L2B_MH-250_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-250_MA-100_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 7.39851887 # pb  
+    line-color: "#e56731"
+    line-type: 1
+    legend: MH-250_MA-100
+    Branching-ratio: 0.00895124458
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-250_MA-50:
+    db: das:/HToZATo2L2B_MH-250_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-250_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 7.39851887 # pb  
+    line-color: "#b3175d"
+    line-type: 1
+    legend: MH-250_MA-50
+    Branching-ratio: 0.0118183882
+    #split: 4
+    type: signal
+
+  HToZATo2L2B_MH-3000_MA-2000:
+    db: das:/HToZATo2L2B_MH-3000_MA-2000_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-3000_MA-2000_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 9.69657296e-06 # pb  
+    line-color: "#5c1499"
+    line-type: 1
+    legend: MH-3000_MA-2000
+    Branching-ratio: 0.984163569
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-300_MA-100:
+    db: das:/HToZATo2L2B_MH-300_MA-100_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-100_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 5.52976379 # pb  
+    line-color: "#519914"
+    line-type: 1
+    legend: MH-300_MA-100
+    Branching-ratio: 0.0123097954
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-300_MA-200:
+    db: das:/HToZATo2L2B_MH-300_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-200_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 5.52976379 # pb  
+    line-color: "#86777c"
+    line-type: 1
+    legend: MH-300_MA-200
+    Branching-ratio: 0.142050329
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-300_MA-50:
+    db: das:/HToZATo2L2B_MH-300_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-300_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 5.52976379 # pb  
+    line-color: "#1b2105"
+    line-type: 1
+    legend: MH-300_MA-50
+    Branching-ratio: 0.0141961587
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-500_MA-200:
+    db: das:/HToZATo2L2B_MH-500_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-200_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 2.25992253 # pb  
+    line-color: "#c876ea"
+    line-type: 1
+    legend: MH-500_MA-200
+    Branching-ratio: 0.0166486812
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-500_MA-300:
+    db: das:/HToZATo2L2B_MH-500_MA-300_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-300_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 2.25992253 # pb  
+    line-color: "#76eac8"
+    line-type: 1
+    legend: MH-500_MA-300
+    Branching-ratio: 0.877020233
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-500_MA-400:
+    db: das:/HToZATo2L2B_MH-500_MA-400_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-400_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 2.25992253 # pb  
+    line-color: "#ea8e76"
+    line-type: 1
+    legend: MH-500_MA-400
+    Branching-ratio: 0.111645738
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-500_MA-50:
+    db: das:/HToZATo2L2B_MH-500_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-500_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 2.25992253  # pb  
+    line-color: "#a9381a"
+    line-type: 1
+    legend: MH-500_MA-50
+    Branching-ratio: 0.0178301354
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-650_MA-50:
+    db: das:/HToZATo2L2B_MH-650_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-650_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.643213228 # pb  
+    line-color: "#1a8ba9"
+    line-type: 1
+    legend: MH-650_MA-50
+    Branching-ratio: 0.0186920568
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-800_MA-200:
+    db: das:/HToZATo2L2B_MH-800_MA-200_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-200_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.206443572 # pb  
+    line-color: "#a91a8b"
+    line-type: 1
+    legend: MH-800_MA-200
+    Branching-ratio: 0.0181325595
+    #split: 4
+    type: signal
+
+  HToZATo2L2B_MH-800_MA-400:
+    db: das:/HToZATo2L2B_MH-800_MA-400_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-400_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.206443572 # pb  
+    line-color: "#083211"
+    line-type: 1
+    legend: MH-800_MA-400
+    Branching-ratio: 0.974575852
+    #split: 4
+    type: signal
+        
+  HToZATo2L2B_MH-800_MA-50:
+    db: das:/HToZATo2L2B_MH-800_MA-50_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-50_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.206443572  # pb  
+    line-color: "#d3db23"
+    line-type: 1
+    legend: MH-800_MA-50
+    Branching-ratio: 0.019120201
+    #split: 4
+    type: signal 
+
+
+  HToZATo2L2B_MH-800_MA-700:
+    db: das:/HToZATo2L2B_MH-800_MA-700_13TeV-madgraph-pythia8/RunIISummer16NanoAODv5-PUMoriond17_Nano1June2019_102X_mcRun2_asymptotic_v7-v1/NANOAODSIM
+    files: dascache/HToZATo2L2B_MH-800_MA-700_2016.dat
+    generated-events: 'genEventSumw'
+    era: '2016'
+    cross-section: 0.206443572 # pb  
+    line-color: "#5923db"
+    line-type: 1
+    legend: MH-800_MA-700
+    Branching-ratio: 0.0812198056
+    #split: 4
+    type: signal 
 
 plotIt:
   configuration:
@@ -504,6 +783,9 @@ plotIt:
   groups:
     data:
       legend: data
+    signal:
+      fill-color: "#0000FF"
+      legend: Signal
     DY:
       fill-color: "#0000FF" 
       legend: Drell-Yan
@@ -540,8 +822,7 @@ plotIt:
       save-extensions: [pdf]
       show-ratio: True
       ratio-y-axis-range: [0.6,1.4]
-      sort-by-yields: False
-  
+      sort-by-yields: False 
   systematics:
       # on the jets
     - jer
@@ -563,8 +844,8 @@ plotIt:
     - mueltrig
       # sys from theory  
     - qcdScale
-    - psISR
-    - psFSR
+      #- psISR
+      #- psFSR
       # on the btagged jets 
     - DeepFlavourL
     - DeepFlavourM
@@ -572,19 +853,18 @@ plotIt:
     - DeepCSVL
     - DeepCSVM
     - DeepCSVT
-    - DeepDoubleBvLL
-    - DeepDoubleBvLM1
-    - DeepDoubleBvLM2
-    - DeepDoubleBvLT1
-    - DeepDoubleBvLT2
+      #- DeepDoubleBvLL
+      #- DeepDoubleBvLM1
+      #- DeepDoubleBvLM2
+      #- DeepDoubleBvLT1
+      #- DeepDoubleBvLT2
       # L1 pre-firing event correction weight
     - L1PreFiring
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
-      # ttbar at the NLO
+        # ttbar at the NLO
       #- ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
       #- TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
-      # at the NNLO
-      # TODO
+        # at the NNLO
       #- ttxsc: {type: const, value:  , on: 'TT'}   # uncer= 
       #- TTTo2L2Nuxsc: {type: const, value:  , on: 'TTTo2L2Nu'}  # uncer= 
     - DYJetsToLLxsc: {type: const, value: 1.0032721956406168, on: 'DYJetsToLL'}    # uncer= 61.55
