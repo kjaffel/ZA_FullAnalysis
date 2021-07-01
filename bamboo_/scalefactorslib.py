@@ -26,13 +26,13 @@ all_run2_Ulegacyscalefactors = {
             # postVFP F from run 278808 to H : https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2016_postVF
        # Muons  :    https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2016#Scale_and_Resolution_AN1
        # Btagging :  
-       "electron_Summer20UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+       "electron_Summer19UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
                             if isinstance(v, str) 
                             else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
 
                             dict(("id_{wp}".format(wp=wp.lower()), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
                                 "EGamma_SF2D_Run2016UL_{wp}_{era}.json".format(wp=wp, era=eras))
-                                for eras in ("postVFP", "preVFP") ]) for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")).items(),
+                                for eras in ("postVFP", "preVFP") ]) for wp in ("Veto", "Loose", "Medium", "Tight", "wpiso80", "wpiso90", "wp80noiso", "wp90noiso")).items(),
                             
                             dict(("reco_{pt}".format(pt=pt), [ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
                                 "EGamma_SF2D_{pt}_UL2016{era}.json".format(pt=pt, era=eras))
@@ -41,7 +41,7 @@ all_run2_Ulegacyscalefactors = {
                         )),
 
        # scale factor = (L(BCDEF)*sf(BCDEF) + L(GH)*sf(GH))/(L(BCDEF)+L(GH))  
-       "muon_Summer20UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+       "muon_Summer19UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
                             if isinstance(v, str) 
                             else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
 
@@ -49,7 +49,6 @@ all_run2_Ulegacyscalefactors = {
                                 "Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2016_UL_{era}ID.json".format(wp=wp, uncer=uncer, era=eras))
                                 # eras here similair to ("BCDEF", "GH") or (pre-VFP , post-VFP)
                                 for eras in ("HIPM_", "") for uncer in ("syst", "stat")]) for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")).items(),
-
 
                             dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),[ (tuple("Run2016{0}".format(ltr) for ltr in eras), 
                                 "Muon_NUM_{isowp}Iso_DEN_{idwp}_abseta_pt_{uncer}_Run2016_UL_{era}ISO.json".format(isowp=isowp, idwp=idwp,uncer=uncer, era=eras))
@@ -59,7 +58,68 @@ all_run2_Ulegacyscalefactors = {
                     
                         )),
 
+       ############################################
+       # 2017 ULegacy:
+       ############################################
+       # Electrons: https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2017        
+       # Muons: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2017#Medium_pT_from_15_to_120_GeV
+       # Btagging: 
+       "electron_Summer19UL17_106X" : dict((k,localize_myanalysis(v)) for k, v in chain(
+                            dict(("id_{wp}".format(wp=wp.lower()),
+                                ("EGamma_SF2D_Run2017UL_{wp}.json".format(wp=wp)))
+                                for wp in ("Veto", "Loose", "Medium", "Tight", "wpiso80", "wpiso90", "wp80noiso", "wp90noiso")).items(),
+       
+                            dict(("reco_{pt}".format(pt=pt),
+                                ("EGamma_SF2D_{pt}_UL2017.json".format(pt=pt)))
+                                for pt in ("ptBelow20", "ptAbove20")).items(),
+                         )),
+    
+       "muon_Summer19UL17_106X": dict((k,localize_myanalysis(v)) for k, v in chain(
+                            dict(("id_{wp}".format(wp=wp.lower()),
+                                ("Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2017_UL_ID.json".format(wp=wp, uncer=uncer)))
+                                for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")for uncer in ("syst","stat")).items(),
+                           
+                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),
+                                "Muon_NUM_{isowp}Iso_DEN_{idwp}_abseta_pt_{uncer}_Run2017_UL_ISO.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("LooseRel","LooseID"), ("LooseRel","MediumID"), ("LooseRel", "MediumPromptID"), ("LooseRel", "TightIDandIPCut"), ("LooseRelTk", "HighPtIDandIPCut"), ("LooseRelTk", "TrkHighPtIDandIPCut"), ("TightRel", "MediumID"), ("TightRel", "MediumPromptID"), ("TightRel","TightIDandIPCut"), ("TightRelTk", "HighPtIDandIPCut"), ("TightRelTk","TrkHighPtIDandIPCut"))
+                                for uncer in ("syst", "stat")).items(), 
+                        )),
+                            
+                            
+       ############################################
+       # 2018 ULegacy:
+       ############################################
+       # Electrons: https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2018
+       # Muons: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2018
+       # Btagging: 
+       "electron_Summer19UL18_106X" : dict((k,localize_myanalysis(v)) for k, v in chain(
+                            dict(("id_{wp}".format(wp=wp.lower()),
+                                ("EGamma_SF2D_Run2018UL_{wp}.json".format(wp=wp)))
+                                for wp in ("Veto", "Loose", "Medium", "Tight", "wpiso80", "wpiso90", "wp80noiso", "wp90noiso")).items(),
+       
+                            dict(("reco_{pt}".format(pt=pt),
+                                ("EGamma_SF2D_{pt}_UL2018.json".format(pt=pt)))
+                                for pt in ("ptBelow20", "ptAbove20")).items(),
+                        )),
+       
+       "muon_Summer19UL18_106X": dict((k,localize_myanalysis(v)) for k, v in chain(
+                            dict(("id_{wp}".format(wp=wp.lower()),
+                                ("Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2018_UL_ID.json".format(wp=wp, uncer=uncer)))
+                                for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")for uncer in ("syst","stat")).items(),
+                           
+                            dict(("iso_{isowp}_id_{idwp}".format(isowp=(isowp.replace("ID","")).lower(), idwp=(idwp.replace("ID","")).lower()),
+                                "Muon_NUM_{isowp}Iso_DEN_{idwp}_abseta_pt_{uncer}_Run2018_UL_ISO.json".format(isowp=isowp, idwp=idwp,uncer=uncer))
+                                for (isowp,idwp) in (("LooseRel","LooseID"), ("LooseRel","MediumID"), ("LooseRel", "MediumPromptID"), ("LooseRel", "TightIDandIPCut"), ("LooseRelTk", "HighPtIDandIPCut"), ("LooseRelTk", "TrkHighPtIDandIPCut"), ("TightRel", "MediumID"), ("TightRel", "MediumPromptID"), ("TightRel","TightIDandIPCut"), ("TightRelTk", "HighPtIDandIPCut"), ("TightRelTk","TrkHighPtIDandIPCut"))
+                                for uncer in ("syst", "stat")).items(), 
+                       )),
+                            
+                            
     }
+
+
+
+
+
 
 all_scalefactors = {
        ############################################
