@@ -85,7 +85,15 @@ all_run2_Ulegacyscalefactors = {
                                 for uncer in ("syst", "stat")).items(), 
                         )),
                             
-                            
+       
+       "btag_Summer19UL17_106X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+                            if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
+        ## Resolved:
+            # DeepCSV , DeepJet
+                            dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_106XUL17SF_WPonly_V2p1.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
+                        )),                    
        ############################################
        # 2018 ULegacy:
        ############################################
@@ -112,10 +120,18 @@ all_run2_Ulegacyscalefactors = {
                                 for (isowp,idwp) in (("LooseRel","LooseID"), ("LooseRel","MediumID"), ("LooseRel", "MediumPromptID"), ("LooseRel", "TightIDandIPCut"), ("LooseRelTk", "HighPtIDandIPCut"), ("LooseRelTk", "TrkHighPtIDandIPCut"), ("TightRel", "MediumID"), ("TightRel", "MediumPromptID"), ("TightRel","TightIDandIPCut"), ("TightRelTk", "HighPtIDandIPCut"), ("TightRelTk","TrkHighPtIDandIPCut"))
                                 for uncer in ("syst", "stat")).items(), 
                        )),
+       
+       "btag_Summer19UL18_106X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+                            if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
+                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
+        ## Resolved:
+            # DeepCSV , DeepJet
+                            dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_106XUL18SF_WPonly.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
+                        )),                    
                             
                             
     }
-
 
 
 
