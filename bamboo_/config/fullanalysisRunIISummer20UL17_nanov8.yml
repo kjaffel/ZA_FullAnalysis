@@ -293,7 +293,7 @@ samples:
     group: data
     era: '2017'
     run_range: [297046, 299329]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   DoubleEGamma_UL2017B:
     db: das:/DoubleEG/Run2017B-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -301,7 +301,7 @@ samples:
     group: data
     era: '2017'
     run_range: [297046, 299329] 
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   MuonEG_UL2017B:
     db: das:/MuonEG/Run2017B-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -309,7 +309,7 @@ samples:
     group: data
     era: '2017'
     run_range: [297046, 299329] 
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
         
 ###### era C
   DoubleMuon_UL2017C:
@@ -318,7 +318,7 @@ samples:
     group: data
     era: '2017'
     run_range: [299368, 302029]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   DoubleEGamma_UL2017C:
     db: das:/DoubleEG/Run2017C-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -326,7 +326,7 @@ samples:
     group: data
     era: '2017'
     run_range: [299368, 302029]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   MuonEG_UL2017C:
     db: das:/MuonEG/Run2017C-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -334,7 +334,7 @@ samples:
     group: data
     era: '2017'
     run_range: [299368, 302029]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
 ########## era D
   DoubleMuon_UL2017D:
@@ -343,7 +343,7 @@ samples:
     group: data
     era: '2017'
     run_range: [302030, 303434]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   DoubleEGamma_UL2017D:
     db: das:/DoubleEG/Run2017D-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -351,7 +351,7 @@ samples:
     group: data
     era: '2017'
     run_range: [302030, 303434]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   MuonEG_UL2017D:
     db: das:/MuonEG/Run2017D-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -359,7 +359,7 @@ samples:
     group: data
     era: '2017'
     run_range: [302030, 303434]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
 ######## era E
   DoubleMuon_UL2017E:
@@ -368,7 +368,7 @@ samples:
     group: data
     era: '2017'
     run_range: [303824, 304826]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   DoubleEGamma_UL2017E:
     db: das:/DoubleEG/Run2017E-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -376,7 +376,7 @@ samples:
     group: data
     era: '2017'
     run_range: [303824, 304826]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   MuonEG_UL2017E:
     db: das:/MuonEG/Run2017E-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -384,7 +384,7 @@ samples:
     group: data
     era: '2017'
     run_range: [303824, 304826]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
 #####  era F
 
@@ -394,7 +394,7 @@ samples:
     group: data
     era: '2017'
     run_range: [305040, 306462]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   DoubleEGamma_UL2017F:
     db: das:/DoubleEG/Run2017F-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -402,7 +402,7 @@ samples:
     group: data
     era: '2017'
     run_range:  [305040, 306462]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
   MuonEG_UL2017F:
     db: das:/MuonEG/Run2017F-UL2017_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -410,7 +410,7 @@ samples:
     group: data
     era: '2017'
     run_range:  [305040, 306462]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/ReReco/Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON_v1.txt
+    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
 plotIt:
   configuration:
