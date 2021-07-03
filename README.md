@@ -7,7 +7,7 @@
 mkdir bamboodev
 cd bamboodev
 # make a virtualenv
-source /cvmfs/sft.cern.ch/lcg/views/LCG_97python3/x86_64-centos7-gcc9-opt/setup.sh
+source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh
 python -m venv bamboovenv
 source bamboovenv/bin/activate
 # clone and install bamboo
@@ -32,7 +32,7 @@ function cms_env() {
     module load slurm/slurm_utils
     module load cms/cmssw
 }
-alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_99/x86_64-centos7-gcc10-opt/setup.sh"
+alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh"
 alias bambooenv="source $HOME/bamboodev/bamboovenv/bin/activate"
 ```
 - then every time you want to setup your bamboo enviroment:
@@ -47,14 +47,19 @@ bambooenv
 cd bamboodev/bamboo
 git checkout master
 git pull upstream master
-pip install --upgrade .
+pip install --upgrade . 
+# if the previous did not work try : 
+# python -m pip install .
 ```
 ## How to run:
-- I do recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`.
-
-    - ``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
-    - ``-v : --verbose``     give you more print out for debugging. 
-    - ``-m : --module``      your analysis script.
+I do recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`.
+- ``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+- ``-v : --verbose``     give you more print out for debugging. 
+- ``-m : --module``      your analysis script.
+- ``--split``: if True run2 reduced set of JES uncertainty splited by sources and JER systematic variation will be splitted between kinematics regions to decorrelate the nuisance parameters.
+- ``--hlt``: Produce HLT efficiencies maps
+- ``--blinded``: blinded data from 0.6 to 1 bin for the dnn output 
+- ``--nanoversion``: EOY-latest ``v7`` or Ulegacy campaign-workingversion ``v8``
 ```bash
 bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
 ```
