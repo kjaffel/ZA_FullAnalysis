@@ -1,4 +1,4 @@
-Pileup : 
+Pileup Reweighting: 
 
 2018: /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PileUp/UltraLegacy/pileup_latest.txt
 2017: /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/13TeV/PileUp/UltraLegacy/pileup_latest.txt
@@ -7,8 +7,7 @@ Pileup :
 Create Pileup Histograms based on the Golden JSON for 2016, 2017 and 2018: 
 pileupCalc.py -i ~/lumicertifications/*.txt --inputLumiJSON /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions*/13TeV/PileUp/UltraLegacy/pileup_latest.txt --calcMode true --minBiasXsec 69200 --maxPileupBin 80 --numPileupBins 80 ./2016UltraLegacyPUHist_nominal.root
 
-
-Or simply use the root files available with for Nominal / Up and Down with 99 bins: 
+Or simply use the root files available for Nominal/Up and Down with 99 bins: 
 /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions1*/13TeV/PileUp/UltraLegacy/PileupHistogram-goldenJSON-13tev***/*.root  
 
 Useful Links : 
