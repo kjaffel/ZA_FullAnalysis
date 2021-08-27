@@ -268,9 +268,11 @@ class NanoHtoZABase(NanoAODModule):
         isMC = self.isMC(sample)
 
         if self.nanoaodversion == "v8":
-            metName = "MET"
+            metName   = "MET"
+            isULegacy = True
         else:
             metName = "METFixEE2017" if era == "2017" else "MET"
+            isULegacy = False
         
         ## initializes tree.Jet.calc so should be called first (better: use super() instead)
         from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoJetMETCalc_METFixEE2017, CalcCollectionsGroups
@@ -304,6 +306,7 @@ class NanoHtoZABase(NanoAODModule):
 
         if era == "2016":
             preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
+            
             if "preVFP" in sample or "HIPM" in sample or any(x in sample for x in preVFPruns):
                 configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016aUL.txt"), isMC=isMC, backend=be, uName=sample)
             else:
@@ -330,17 +333,24 @@ class NanoHtoZABase(NanoAODModule):
                         tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL]
 
             if self.isMC(sample):
-                jec = "Summer19UL16APV_V7_MC"
-                smear="Summer20UL16_JRV3_MC"
+                if "preVFP" in sample or "HIPM" in sample or "APV" in sample:
+                    jec   = "Summer19UL16APV_V7_MC"
+                    smear = "Summer20UL16APV_JRV3_MC"
+                else:
+                    jec   = "Summer19UL16_V7_MC"
+                    smear = "Summer20UL16_JRV3_MC"
+
                 if self.doSplit:
                     jesUncertaintySources=['Absolute', 'Absolute_2016', 'BBEC1', 'BBEC1_2016', 'EC2', 'EC2_2016', 'FlavorQCD', 'HF', 'HF_2016', 'RelativeBal', 'RelativeSample_2016']
                 else:
                     jesUncertaintySources=["Total"]
                 
             else:
-                runs = ["2016B", "2016C", "2016D", "2016E", "2016F", "2016G", "2016H"]
-                if any(x in sample for x in runs):
-                    jec= "Summer19UL16_RunBCDEFGH_Combined_V7_DATA"
+                jec   = "Summer19UL16_RunBCDEFGH_Combined_V7_DATA"
+                if "preVFP" in sample or "HIPM" in sample or any(x in sample for x in preVFPruns):
+                    smear = "Summer20UL16APV_JRV3_DATA"
+                else:
+                    smear = "Summer20UL16_JRV3_DATA"
                     
         elif era == "2017":
             configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2017UL.txt"), isMC=isMC, backend=be, uName=sample)
@@ -409,8 +419,10 @@ class NanoHtoZABase(NanoAODModule):
                     jec="Summer19UL17_RunF_V5_DATA"
 
         elif era == "2018":
-            year = sampleCfg.get("era") 
-            eraInYear = "" if isMC else next(tok for tok in sample.split("_") if tok.startswith(era))[4:]
+            year = sampleCfg.get("era")
+            suffix = "_UL" if isULegacy else "_"
+            eraInYear = "" if isMC else next(tok for tok in sample.split(suffix) if tok.startswith(era))[4:]
+            
             configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2018UL.txt"), isMC=isMC, backend=be, uName=sample)
             triggersPerPrimaryDataset = catchHLTforSubPrimaryDataset(era, eraInYear, tree, isMC=isMC)
             
@@ -510,10 +522,11 @@ class NanoHtoZABase(NanoAODModule):
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
         noSel = noSel.refine("passMETFlags", cut=METFilter(t.Flag, era, isMC) )
         
+        puWeightsFile      = None
+        mcprofile          = None
+        PUWeight           = None
+        version_TriggerSFs = None
         yield_object  = makeYieldPlots()
-        puWeightsFile = None
-        mcprofile     = None
-        PUWeight      = None
         binScaling    = 1
         plots         = []
         
@@ -615,12 +628,12 @@ class NanoHtoZABase(NanoAODModule):
         # 2016 seprate from 2017 &2018  because SFs need to be combined for BCDEF and GH eras !
         # 2016 ULegacy is split into two different reconstruction versions pre/post VFP 
         if era=="2016":
-            muMediumIDSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), combine="weight", systName="muid-medium")
+            muMediumIDSF  = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), combine="weight", systName="muid-medium")
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), combine="weight", systName="muiso-tight")
         else:
-            muMediumIDSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), systName="muid-medium")
+            muMediumIDSF  = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), systName="muid-medium")
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), systName="muiso-tight") 
-            #mutrackingSF =  get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
+            #mutrackingSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
 
         ###############################################
         # Electrons : ID , RECO cuts and scale factors
@@ -633,13 +646,13 @@ class NanoHtoZABase(NanoAODModule):
                                                                     op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), 
                                                                           op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
         if era=="2016":
-            elMediumIDSF = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "id_medium"), isElectron=True, combine="weight", systName="elid-medium")
+            elMediumIDSF   = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "id_medium"), isElectron=True, combine="weight", systName="elid-medium")
             elRecoSF_lowpt = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptBelow20"), isElectron=True, combine="weight", systName="lowpt-ele_reco")
-            elRecoSF_highpt = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptAbove20"), isElectron=True, combine="weight", systName="highpt-ele_reco")
+            elRecoSF_highpt= get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptAbove20"), isElectron=True, combine="weight", systName="highpt-ele_reco")
         else:
-            elMediumIDSF = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "id_medium"), isElectron=True, systName="elid-medium")
+            elMediumIDSF   = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "id_medium"), isElectron=True, systName="elid-medium")
             elRecoSF_lowpt = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptBelow20"), isElectron=True, systName="lowpt-ele_reco")
-            elRecoSF_highpt = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptAbove20"), isElectron=True, systName="highpt-ele_reco")
+            elRecoSF_highpt= get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptAbove20"), isElectron=True, systName="highpt-ele_reco")
 
         #elChargeSF = get_scalefactor("lepton", ("eChargeMisID", "eCharge_{0}".format(era)), isElectron=True, systName="ele_charge")
         
@@ -952,13 +965,13 @@ class NanoHtoZABase(NanoAODModule):
         #    barrel_ele = get_scalefactor("lepton", ("eletrig_2018_102X", "Barrel"), isElectron=True, systName="hltSFs_BarrelEle")
         #    single_mutrig = get_scalefactor("lepton", ("mutrig_2018_102X", "IsoMu24_beforeAfterHLTupdate"), combine="weight", systName="single_mutrig")
         
-        version_TriggerSFs = None
         if version_TriggerSFs == None or (version_TriggerSFs =='tth' and era=='2018'): # will pass HHMoriond17 the default version 
             
             doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")  
             doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")
             elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
             mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
+
             if era == "2018":
                 llSFs = {
                     "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring ]), #single_mutrig(ll[0]), single_mutrig(ll[1]), L1Prefiring ]), # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
@@ -976,9 +989,9 @@ class NanoHtoZABase(NanoAODModule):
             if era == '2016': 
                 llSFs = {
                     "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring ]), # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
-                    #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elemuTrigSF(ll), L1Prefiring, ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])   ]),
-                    "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), mueleTrigSF(ll), L1Prefiring, ZvtxSF ]), # mutrackingSF(ll[0]), elChargeSF(ll[1])   ]),
-                    "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), doubleEleTrigSF(ll), L1Prefiring, ZvtxSF ])   # elChargeSF(ll[0]), elChargeSF(ll[1])     ]),
+                   #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF_lowpt(ll[0]), elRecoSF_highpt(ll[0]), elemuTrigSF(ll), L1Prefiring, ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])   ]),
+                    "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[1]), mueleTrigSF(ll), L1Prefiring, ZvtxSF ]), # mutrackingSF(ll[0]), elChargeSF(ll[1])   ]),
+                    "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[0]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[0]), elRecoSF_highpt(ll[1]), doubleEleTrigSF(ll), L1Prefiring, ZvtxSF ])   # elChargeSF(ll[0]), elChargeSF(ll[1])     ]),
                     }
         else:
             # tth SFs and others ... 
@@ -1076,7 +1089,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_ZpicPlots              = True  #*
         make_JetmultiplictyPlots    = False #*
         make_JetschecksPlots        = False # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
-        make_JetsPlusLeptonsPlots   =  True #*
+        make_JetsPlusLeptonsPlots   = True #*
         make_DeepDoubleBPlots       = False
         make_METPlots               = False
         make_METPuppiPlots          = False
