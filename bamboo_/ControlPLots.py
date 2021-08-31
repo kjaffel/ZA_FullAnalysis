@@ -6,8 +6,9 @@ if zabPath not in sys.path:
     sys.path.append(zabPath)
 
 import utils
-from bamboo import treefunctions as op
+from utils import *
 from bambooToOls import Plot
+from bamboo import treefunctions as op
 from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
 
@@ -224,19 +225,19 @@ def makeExtraFatJetBOostedPlots(selections, bjets, wp, uname, suffix, process):
     plots = []
     """
         sel = 2lep OSSF + 2bjets 
-        wp = medium 
+        wp  = medium 
     """
     for key, sel in selections.items():
         tagger=key.replace(wp, "")
         bjets_ = safeget(bjets, tagger, wp)
-
-        plots.append(Plot.make1D("{uname}_{key}_{suffix}_{process}_boosted_fatjet_mass",
+        print( "helooooooooooooooooooooooooo", bjets_)
+        plots.append(Plot.make1D(f"{uname}_{key}_{suffix}_{process}_boosted_fatjet_mass",
                             bjets_[0].mass, sel,
                             EqB(60 // binScaling, 0., 850.),
                             title="fatjet mass",
                             plotopts = utils.getOpts(uname)))
         # Corrected soft drop mass with PUPPI"
-        plots.append(Plot.make1D("{uname}_{key}_{suffix}_{process}_boosted_fatjet_softdropmass",
+        plots.append(Plot.make1D(f"{uname}_{key}_{suffix}_{process}_boosted_fatjet_softdropmass",
                             bjets_[0].msoftdrop, sel,
                             EqB(60 // binScaling, 0., 850.),
                             title="M_{Soft Drop}(fatjet) [GeV]",
@@ -246,13 +247,13 @@ def makeExtraFatJetBOostedPlots(selections, bjets, wp, uname, suffix, process):
 def makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, suffix):
     binScaling=1
     plots = []
-    plots.append(Plot.make1D("{0}_boosted_fatjet_mass{1}".format(uname, suffix),
+    plots.append(Plot.make1D("{}_boosted_fatjet_mass{}".format(uname, suffix),
                         fatjet[0].mass, lepPlusJetssel,
                         EqB(60 // binScaling, 0., 450.),
                         title="fatjet mass",
                         plotopts = utils.getOpts(uname)))
     # Corrected soft drop mass with PUPPI"
-    plots.append(Plot.make1D("{0}_boosted_fatjet_softdropmass{1}".format(uname, suffix),
+    plots.append(Plot.make1D("{}_boosted_fatjet_softdropmass{}".format(uname, suffix),
                         fatjet[0].msoftdrop, lepPlusJetssel,
                         EqB(60 // binScaling, 0., 450.),
                         title="M_{Soft Drop}(fatjet) [GeV]",
@@ -260,7 +261,7 @@ def makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, suffix):
     return plots
 
 
-def makeAK8JetsPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettinesscut, uname, NsubjettinessChoice =False):
+def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettinesscut, uname):
     
     binScaling=1
     plots = []
@@ -276,37 +277,35 @@ def makeAK8JetsPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettinesscut, u
    #                     EqB(60 // binScaling, 0., 650.),
    #                     title= " subJet2 p_{T} [GeV]",
    #                     plotopts = utils.getOpts(uname)))
-    if NsubjettinessChoice :
-        # https://arxiv.org/pdf/1011.2268.pdf
-        twolep_OneboOstedFatJet = lepSel.refine("OnboOstedeJet_{0}Sel_NosubjettinessCut".format(uname), cut=[ op.rng_len(fatjet_Nosubjettinesscut) > 0 ])    
-        plots.extend(makeBoOstedInvariantMass( uname, fatjet_Nosubjettinesscut, twolep_OneboOstedFatJet, "NosubjettinessCut"))
-        plots.append(Plot.make1D("{0}_boosted_ratio_tau2tau1".format(uname),
-                            fatjet_Nosubjettinesscut[0].tau2/fatjet_Nosubjettinesscut[0].tau1, twolep_OneboOstedFatJet,
+   # https://arxiv.org/pdf/1011.2268.pdf
+    TwoLep_AtLeast1FatJetBoosted_notau21cut = lepSel.refine("OnboOstedeJet_{}Sel_NosubjettinessCut".format(uname), cut=[ op.rng_len(fatjet_Nosubjettinesscut) > 0 ])    
+    plots.extend(makeBoOstedInvariantMass( uname, fatjet_Nosubjettinesscut, TwoLep_AtLeast1FatJetBoosted_notau21cut, "NosubjettinessCut"))
+    
+    plots.append(Plot.make1D("{}_boosted_ratio_tau2tau1".format(uname),
+                            fatjet_Nosubjettinesscut[0].tau2/fatjet_Nosubjettinesscut[0].tau1, TwoLep_AtLeast1FatJetBoosted_notau21cut,
                             EqB(60 // binScaling, 0., 1.),
                             title= " N-subjettiness #tau2/#tau1 [GeV]",
                             plotopts = utils.getOpts(uname)))
-        
-        plots.append(Plot.make1D("{0}_boostedfatjet_tau1".format(uname),
-                            fatjet_Nosubjettinesscut[0].tau1, twolep_OneboOstedFatJet,
+    
+    plots.append(Plot.make1D("{}_boostedfatjet_tau1".format(uname),
+                            fatjet_Nosubjettinesscut[0].tau1, TwoLep_AtLeast1FatJetBoosted_notau21cut,
                             EqB(60 // binScaling, 0., 1.),
                             title= " #tau1",
                             plotopts = utils.getOpts(uname)))
-    
-        plots.append(Plot.make1D("{0}_boostedfatjet_tau2".format(uname),
-                            fatjet_Nosubjettinesscut[0].tau2, twolep_OneboOstedFatJet,
+    plots.append(Plot.make1D("{}_boostedfatjet_tau2".format(uname),
+                            fatjet_Nosubjettinesscut[0].tau2, TwoLep_AtLeast1FatJetBoosted_notau21cut,
                             EqB(60 // binScaling, 0., 1.),
                             title= " #tau2",
                             plotopts = utils.getOpts(uname)))
-        plots.append(Plot.make2D("{0}_tau1_vs_tau2".format(uname),
-                            (fatjet_Nosubjettinesscut[0].tau1, fatjet_Nosubjettinesscut[0].tau2), twolep_OneboOstedFatJet,
+    plots.append(Plot.make2D("{}_tau1_vs_tau2".format(uname),
+                            (fatjet_Nosubjettinesscut[0].tau1, fatjet_Nosubjettinesscut[0].tau2), TwoLep_AtLeast1FatJetBoosted_notau21cut,
                             (EqB(60 // binScaling, 0., 1.), EqB(60 // binScaling, 0., 1.)),
                             title=" #tau1 vs #tau2 ", plotopts=utils.getOpts(uname)))
     
-        for r in [0.4, 0.5, 0.75, 0.8] :
-            fatjet_withsubjettinesscut = op.select(fatjet_Nosubjettinesscut,
-                                        lambda j : op.AND(j.tau2/j.tau1 < r ))
-            twolep_OneboOstedFatJet = lepSel.refine("OnboOstedeJet_{0}Sel_WITHsubjettiness{1}Cut".format(uname, str(r).replace('.','p')), cut=[ op.rng_len(fatjet_withsubjettinesscut) > 0 ])
-            plots.extend(makeBoOstedInvariantMass( uname, fatjet_Nosubjettinesscut, twolep_OneboOstedFatJet, "ratio_tau2tau1_{0}".format( str(r).replace('.','p')) ))
+    for r in [0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9] :
+        fatjet_withsubjettinesscut = op.select(fatjet_Nosubjettinesscut, lambda j : op.AND(j.tau2/j.tau1 < r ))
+        TwoLep_AtLeast1FatBoostedJet = lepSel.refine("OneBoostedFatJet_{}Sel_WithNsubjettinessCut{}".format(uname, str(r).replace('.','p')), cut=[ op.rng_len(fatjet_withsubjettinesscut) > 0 ])
+        plots.extend(makeBoOstedInvariantMass( uname, fatjet_Nosubjettinesscut, TwoLep_AtLeast1FatBoostedJet, "ratio_tau2tau1_{0}".format( str(r).replace('.','p')) ))
 
     return plots
 
