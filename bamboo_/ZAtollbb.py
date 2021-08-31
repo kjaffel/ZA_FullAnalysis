@@ -215,15 +215,14 @@ def BTAGcalibration(tagger, wp , noSel, sample, era, nanoaodversion, mistagSF=Fa
     return sf
 
 
-def JetsEnergyRegression(jet_withnoregression):
-    corrected_jetEnergyRegression = op.map( jet_withnoregression, lambda j: op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >",
-                                                            ( op.product( j.pt, op.multiSwitch( (j.hadronFlavour == 5 , j.bRegCorr),
-                                                                                                (j.hadronFlavour == 4, j.cRegCorr),
-                                                                                                op.c_float(1) ) ), 
-                                                            j.eta, j.phi, 
-                                                            op.product ( j.mass, op.multiSwitch( (j.hadronFlavour == 5 , j.bRegCorr),
-                                                                                                (j.hadronFlavour == 4, j.cRegCorr),
-                                                                                                op.c_float(1) ))  )) )
+def bJetEnergyRegression(bjet):
+    return op.map(bjet, lambda j : op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float>>", (j.pt*j.bRegCorr, j.eta, j.phi, j.mass*j.bRegCorr)))
+
+def JetsEnergyRegression(jet):
+    corrected_jetEnergyRegression = op.map( jet, lambda j: op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >",
+                                                                        (op.product( j.pt, op.multiSwitch( (j.hadronFlavour == 5 , j.bRegCorr), (j.hadronFlavour == 4, j.cRegCorr), op.c_float(1) ) ), 
+                                                                        j.eta, j.phi, 
+                                                                        op.product ( j.mass, op.multiSwitch( (j.hadronFlavour == 5 , j.bRegCorr), (j.hadronFlavour == 4, j.cRegCorr), op.c_float(1) ))  )) )
     return corrected_jetEnergyRegression
 
 
@@ -248,7 +247,8 @@ class NanoHtoZABase(NanoAODModule):
         self.BeBlind        = self.args.blinded
         self.nanoaodversion = self.args.nanoaodversion
         self.doMETT1Smear   = self.args.doMETT1Smear
-    
+        self.dobJetER       = self.args.dobJetEnergyRegression
+
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -258,11 +258,14 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--blinded", action="store_true", help="Options to be blind on data if you want to Evaluate the training OR The Ellipses model ")
         parser.add_argument("--nanoaodversion", type=str, default="v8", choices = ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
         parser.add_argument("--doMETT1Smear", action="store_true", default = False, help="do T1 MET smearing")
+        parser.add_argument("--dobJetEnergyRegression", action="store_true", default = False, help="apply b jets energy regreqqion to improve the bjets mass resolution")
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy'")
 
     def customizeAnalysisCfg(self, config=None):
-        with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
-            yaml.dump(config, backupCfg)
+       # if not os.path.exists(self.args.output):
+       #     os.makedirs(self.args.output)
+       # with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
+       #     yaml.dump(config, backupCfg)
         os.system('(git log -n 1;git diff) &> %s/git.log' % self.args.output)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
@@ -794,29 +797,31 @@ class NanoHtoZABase(NanoAODModule):
         # The AK8 jets are required to have the nsubjettiness parameters tau2/tau1< 0.5 
         # to be consistent with an AK8 jet having two subjets.
         ###############################################
-        sorted_AK8jets=op.sort(t.FatJet, lambda j : -j.pt)
+        sorted_AK8jets = op.sort(t.FatJet, lambda j : -j.pt)
         AK8jetsSel = op.select(sorted_AK8jets, 
                                 lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
                                                   j.subJet1.isValid,
                                                   j.subJet2.isValid
-                                                  , j.tau2/j.tau1 < 0.75 ))
-        AK8jets= op.select(AK8jetsSel, 
+                                                  , j.tau2/j.tau1 < 0.7 ))
+        AK8jets = op.select(AK8jetsSel, 
                             lambda j : op.AND(
                                             op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.8 )), 
                                             op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 ))))
         
         cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
         
+        # No tau2/tau1 cut 
         fatjetsel_nosubjettinessCut = op.select(sorted_AK8jets, 
-                                                    lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), j.subJet1.isValid,j.subJet2.isValid))
+                                                    lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
+                                                        j.subJet1.isValid,
+                                                        j.subJet2.isValid) )
         
-        fatjets_nosubjettinessCut= op.select(fatjetsel_nosubjettinessCut, 
+        fatjets_nosubjettinessCut = op.select(fatjetsel_nosubjettinessCut, 
                                                     lambda j : op.AND(
                                                         op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.8 )), 
                                                         op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 ))))
         cleaned_fatjet = op.sort(fatjets_nosubjettinessCut, lambda j: -j.btagDeepB)
 
-        
         ###############################################
         # btagging requirements :
         # Now,  let's ask for the jets to be a b-jets 
@@ -862,31 +867,34 @@ class NanoHtoZABase(NanoAODModule):
                         }
         
 
-        bjets_boosted = {}
-        bjets_resolved = {}
-        lightJets_boosted = {}
+        bjets_boosted      = {}
+        bjets_resolved     = {}
+        lightJets_boosted  = {}
         lightJets_resolved = {}
+        
         # WorkingPoints = ["L", "M", "T"] 
-        # Need to be careful; as the boosted have only DeepCSV as tagger with WPs`cut on dicriminator` same as AK4jets in resolved region , only L and M are available 
+        # For Boosted : DeepCSV available as b-tagger with WPs `cut on dicriminator` same as in resolved region for AK4Jets
+        # .ie. only L and M are available !
         WorkingPoints = ["M"]
-        SFsperiod_dependency = False
-        btagging_Onboth_subjets = True
+        
+        SFsperiod_dependency            = False
+        doRequest_2subjets_TopassBtagWP = True
         
         for tagger  in legacy_btagging_wpdiscr_cuts.keys():
             
-            bJets_AK4_deepflavour ={}
-            bJets_AK4_deepcsv ={}
-            bJets_AK8_deepcsv ={}
+            bJets_AK4_deepflavour = {}
+            bJets_AK4_deepcsv = {}
+            bJets_AK8_deepcsv = {}
             
-            lightJets_AK4_deepflavour ={}
-            lightJets_AK4_deepcsv ={}
-            lightJets_AK8_deepcsv ={}
+            lightJets_AK4_deepflavour = {}
+            lightJets_AK4_deepcsv = {}
+            lightJets_AK8_deepcsv = {}
 
             for wp in sorted(WorkingPoints):
                 
                 suffix = ("loose" if wp=='L' else ("medium" if wp=='M' else "tight"))
                 idx = ( 0 if wp=="L" else ( 1 if wp=="M" else 2))
-                key_fromscalefactors_libray = "btag_Summer19UL{}_106X".format(era) if self.args.nanoaodversion in ["v8", "v9"] else( "btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"))
+                key_fromscalefactors_libray = "btag_Summer19UL{}_106X".format(era) if isULegacy else( "btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"))
                     
                 logger.info(f"{key_fromscalefactors_libray}: {tagger}{wp}, discriminator_cut = {legacy_btagging_wpdiscr_cuts[tagger][era][idx]}" )
                 
@@ -916,7 +924,7 @@ class NanoHtoZABase(NanoAODModule):
                     bJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx] )   
                     lightJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB < legacy_btagging_wpdiscr_cuts[tagger][era][idx] )   
                     
-                    if btagging_Onboth_subjets :
+                    if doRequest_2subjets_TopassBtagWP :
                         bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, 
                                                             lambda j : op.AND(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx] , 
                                                                               j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx]))   
@@ -1142,21 +1150,21 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
 
 
         make_ZpicPlots              = True  #*
-        make_JetmultiplictyPlots    = False #*
+        make_JetmultiplictyPlots    = True #*
         make_JetschecksPlots        = False # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
         make_JetsPlusLeptonsPlots   = True #*
         make_DeepDoubleBPlots       = False
-        make_METPlots               = False
-        make_METPuppiPlots          = False
+        make_METPlots               = True
+        make_METPuppiPlots          = True
         make_ttbarEstimationPlots   = False
         make_ellipsesPlots          = False #*
         make_PlotsforCombinedLimits = False
         
         # One of these two should be True if you want to get the final sel plots ll +bb  
-        make_bJetsPlusLeptonsPlots_METcut   = False
+        make_bJetsPlusLeptonsPlots_METcut   = True
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
-        make_FinalSelControlPlots    = False #*
+        make_FinalSelControlPlots    = True #*
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
         make_LookInsideJets          = False
@@ -1310,7 +1318,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 if make_ZpicPlots:
                     plots.extend(makeControlPlotsForZpic(sel, dilepton, 'lepplusjetSel', channel, reg))
            
-            plots.extend(makeAK8JetsPLots(lljjSelections["boosted"], AK8jets, catSel, fatjets_nosubjettinessCut, channel, NsubjettinessChoice =True))
+            plots.extend(makeNsubjettinessPLots(lljjSelections["boosted"], AK8jets, catSel, fatjets_nosubjettinessCut, channel))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # DeepDoubleB for boosted events (L, M1, M2, T1, T2)  wp   
@@ -1340,14 +1348,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
                 
                 for tagger,bScore in {"DeepCSV": "btagDeepB", "DeepFlavour": "btagDeepFlavB"}.items():
-                    jets_by_score = op.sort(safeget(bjets_resolved, tagger, wp), partial((lambda j,bSc=None : -getattr(j, bSc)), bSc=bScore))
+                    jets_by_score = op.sort(bjets_resolved[tagger][wp], partial((lambda j,bSc=None : -getattr(j, bSc)), bSc=bScore))
                     bestJetPairs[tagger] = (jets_by_score[0], jets_by_score[1])
                 
                 # resolved 
-                bJets_resolved_PassdeepflavourWP  = safeget(bjets_resolved, "DeepFlavour", wp)
-                bJets_resolved_PassdeepcsvWP      = safeget(bjets_resolved, "DeepCSV", wp)
+                bJets_resolved_PassdeepflavourWP  = bjets_resolved["DeepFlavour"][wp]
+                bJets_resolved_PassdeepcsvWP      = bjets_resolved["DeepCSV"][wp]
                 # boosted
-                bJets_boosted_PassdeepcsvWP       = safeget(bjets_boosted, "DeepCSV", wp)
+                bJets_boosted_PassdeepcsvWP       = bjets_boosted["DeepCSV"][wp]
+                
+                if self.dobJetER:
+                    bJets_resolved_PassdeepflavourWP = bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
+                    bJets_resolved_PassdeepcsvWP     = bJetEnergyRegression( bJets_resolved_PassdeepcsvWP)
+                    bJets_boosted_PassdeepcsvWP      = bJetEnergyRegression( bJets_boosted_PassdeepcsvWP)
+                
                 
                 pathtoRoOtmaps = { '2016': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
                                    '2017': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2017__btv_effmaps__ext2/results/summedProcessesForEffmaps/summedProcesses_2017_ratios.root",
@@ -1400,7 +1414,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # No MET cut : selections 2 lep +2b-tagged jets
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # NO PROCESS SPLITTING  
+               ###########################
+                # NO PROCESS SPLITTING  
+               ###########################
                # TwoLeptonsTwoBjets_NoMETCut_NobTagEventWeight_Res = {
                #     "DeepFlavour{0}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsTwoBjets_NoMETcut_NobTagEventWeight_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
                #                                                         cut=[ op.rng_len(bJets_resolved_PassdeepflavourWP) > 1, op.rng_len(bJets_boosted_PassdeepflavourWP) == 0] ),
@@ -1413,7 +1429,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                #                                                         cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) > 0 ] )
                #                             }
                     
+               ###########################
                 # ADD PROCESS SPLITTING
+               ###########################
                 LeptonsPlusBjets_NoMETCut_NobTagEventWeight_Res = {
                         "gg_fusion": {
                                     "DeepFlavour{0}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsExactlyTwoBjets_NoMETcut_NobTagEventWeight_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
@@ -1430,10 +1448,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 LeptonsPlusBjets_NoMETCut_NobTagEventWeight_Boo = {
                         "gg_fusion": {
                                     "DeepCSV{0}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
-                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 ] ) },
+                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1, op.rng_len(bJets_resolved_PassdeepcsvWP) == 0] ) },
                         "bb_associatedProduction": {
                                     "DeepCSV{0}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_with_AtLeast1AK4_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
-                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepcsvWP) >= 1] ) },
+                                                                        cut=[ op.OR( op.AND(op.rng_len(bJets_boosted_PassdeepcsvWP) >= 2 , op.rng_len(bJets_resolved_PassdeepcsvWP) == 0),
+                                                                                     op.AND(op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepcsvWP) >= 1)
+                                                                                     )] )},
                             }
                 
                 
@@ -1568,7 +1588,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         f"{process}: 2 Lep(OS)+ {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key}+ {metCutNm}+ bTagEventWeight(channel: {optstex})")
                                 selections_for_cutflowreport.append(sel)
             
-                    plots.extend(makeExtraFatJetBOostedPlots(llbbSelections['boosted'], lljj_bJets['boosted'], wp, channel, 'withmetCut', process))
+                for process in ['gg_fusion', 'bb_associatedProduction']:
+                    plots.extend(makeExtraFatJetBOostedPlots(llbbSelections[process]['boosted'], lljj_bJets['boosted'], wp, channel, 'withmetCut', process))
         
         plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
         plots.extend(yield_object.returnPlots())
