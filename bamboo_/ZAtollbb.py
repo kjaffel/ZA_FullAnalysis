@@ -14,7 +14,7 @@ from bamboo.analysismodules import NanoAODModule, NanoAODHistoModule, Histograms
 from bamboo.analysisutils import makeMultiPrimaryDatasetTriggerSelection
 from bamboo import treefunctions as op
 from bamboo.root import addIncludePath, loadHeader
-from bamboo.scalefactors import BtagSF
+from bamboo.scalefactors import BtagSF#, get_correction
 
 import logging
 LOG_LEVEL = logging.DEBUG
@@ -241,13 +241,14 @@ class NanoHtoZABase(NanoAODModule):
                             "sort-by-yields"   : False,
                             "legend-columns"   : 2 }
 
-        self.doEvaluate= self.args.DNN_Evaluation
-        self.doSysts = self.args.systematic
-        self.doSplit = self.args.split
-        self.doHLT = self.args.hlt
-        self.BeBlind = self.args.blinded
+        self.doSysts        = self.args.systematic
+        self.doEvaluate     = self.args.DNN_Evaluation
+        self.doSplit        = self.args.split
+        self.doHLT          = self.args.hlt
+        self.BeBlind        = self.args.blinded
         self.nanoaodversion = self.args.nanoaodversion
-
+        self.doMETT1Smear   = self.args.doMETT1Smear
+    
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -255,19 +256,20 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--split", action="store_true", help="Run 2 reduced set of JES uncertainty splited by sources AND Split JER systematic variation between (kinematic) regions (to decorrelate the nuisance parameter)")
         parser.add_argument("--hlt", action="store_true", help="Produce HLT efficiencies maps")
         parser.add_argument("--blinded", action="store_true", help="Options to be blind on data if you want to Evaluate the training OR The Ellipses model ")
+        parser.add_argument("--nanoaodversion", type=str, default="v8", choices = ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
+        parser.add_argument("--doMETT1Smear", action="store_true", default = False, help="do T1 MET smearing")
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy'")
-        parser.add_argument("--nanoaodversion", type=str, default="v8", choices = ["v9", "v8", "v7", "v5"], help="NanoAOD version v8/v9 == Uleagacy compaign , the rest are pre-legacy == EOY ")
 
-    #def customizeAnalysisCfg(self, config=None):
-    #    if self.args.distributed == "driver" or not self.args.distributed:
-    #        with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
-    #            yaml.dump(config, backupCfg)
+    def customizeAnalysisCfg(self, config=None):
+        with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
+            yaml.dump(config, backupCfg)
+        os.system('(git log -n 1;git diff) &> %s/git.log' % self.args.output)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
 
-        if self.nanoaodversion == "v8":
+        if self.nanoaodversion in ["v8", "v9"]:
             metName   = "MET"
             isULegacy = True
         else:
@@ -275,11 +277,16 @@ class NanoHtoZABase(NanoAODModule):
             isULegacy = False
         
         ## initializes tree.Jet.calc so should be called first (better: use super() instead)
-        from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoJetMETCalc_METFixEE2017, CalcCollectionsGroups
-        nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), MET=("pt", "phi"), systName="jet", changes={"MET": ("MET", "MET_T1noSmear")})
-        
-        # production version should be changed, maybe .... !                                                                                     # self.args.nanoaodversion !
-        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, description=NanoAODDescription.get("v7", year=(era if era else "2016"), isMC=isMC, systVariations=[ nanoRochesterCalc, (nanoJetMETCalc_METFixEE2017 if era == "2017" and self.nanoaodversion != "v8" else nanoJetMETCalc) ]), backend=self.args.backend ) ## will do Jet and MET variations, and the Rochester correction
+        from bamboo.treedecorators import NanoAODDescription, nanoRochesterCalc, nanoJetMETCalc, nanoJetMETCalc_METFixEE2017, CalcCollectionsGroups, nanoFatJetCalc
+        nanoJetMETCalc_both = CalcCollectionsGroups(Jet=("pt", "mass"), systName="jet", changes={metName: (f"{metName}T1", f"{metName}T1Smear")}, **{metName: ("pt", "phi")})
+        nanoJetMETCalc_data = CalcCollectionsGroups(Jet=("pt", "mass"), systName="jet", changes={metName: (f"{metName}T1",)}, **{metName: ("pt", "phi")})
+
+        nanoJetMETCalc_ = (nanoJetMETCalc_METFixEE2017 if era == "2017" and not isULegacy else( (nanoJetMETCalc_both if isMC else nanoJetMETCalc_data) if self.doMETT1Smear else (nanoJetMETCalc)))
+        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, 
+                                                                description=NanoAODDescription.get("v7", year=(era if era else "2016"), 
+                                                                                                    isMC=isMC, 
+                                                                                                    systVariations=[ nanoRochesterCalc, nanoJetMETCalc_, nanoFatJetCalc ]), 
+                                                                                                    backend=self.args.backend ) 
         
         triggersPerPrimaryDataset = {}
         jec, smear, jesUncertaintySources = None, None, None
@@ -449,12 +456,27 @@ class NanoHtoZABase(NanoAODModule):
         ## Configure Jet Energy corrections and Jets Energy resolutions 
         # JEC's Recommendation for Full RunII: https://twiki.cern.ch/twiki/bin/view/CMS/JECDataMC
         # JER : -----------------------------: https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
+        # list of supported para in JER : https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyResolution#List_of_supported_parameters 
         #############################
+        
+        cmJMEArgs = {
+                "jec": jec,
+                "smear": smear,
+                "splitJER": True,
+                "jesUncertaintySources": jesUncertaintySources,
+                ## Alternative, for regrouped
+                ##"jesUncertaintySources": ("Merged" if isMC else None),
+                ##"regroupTag": "V2",
+                "mayWriteCache": isNotWorker,
+                "isMC": isMC,
+                "backend": be,
+                "uName": sample
+                }
         try:
-            configureJets(tree._Jet, "AK4PFchs", jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-            #configureJets(tree._FatJet, "AK8PFPuppi", jec=jec, smear=smear, jesUncertaintySources=(jesUncertaintySources if isMC else None), mcYearForFatJets=era, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
+            configureJets(tree._Jet, "AK4PFchs", **cmJMEArgs)
+            configureJets(tree._FatJet, "AK8PFPuppi", mcYearForFatJets=era, **cmJMEArgs)
         except Exception as ex:
-            logger.exception("Problem while configuring jet correction and variations")
+            logger.exception("Problem while configuring jet energy corrections and variations")
         
         if self.doSplit:
             try: 
@@ -471,9 +493,15 @@ class NanoHtoZABase(NanoAODModule):
         ## Configure Type 1 MET corrections
         #############################
         try:
-            configureType1MET(getattr(tree, f"_{metName}"), jec=jec, smear=smear, jesUncertaintySources=jesUncertaintySources, mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=sample)
-            #if metName != "METFixEE2017":
-            #    configureType1MET(getattr(tree, "_MET_T1noSmear"), jec=jec, jesUncertaintySources=jesUncertaintySources, regroupTag="V2", mayWriteCache=isNotWorker, isMC=isMC, backend=be, uName=f"{sample}NoSmear")
+            if self.doMETT1Smear:
+                if isMC:
+                    configureType1MET(getattr(tree, f"_{metName}T1Smear"), isT1Smear=True, **cmJMEArgs)
+                del cmJMEArgs["uName"]
+                configureType1MET(getattr(tree, f"_{metName}T1"), enableSystematics=((lambda v : not v.startswith("jer")) if isMC else None), uName=f"{sample}NoSmear", **cmJMEArgs)
+                cmJMEArgs["uName"] = sample
+                cmJMEArgs.update({ "jesUncertaintySources": (jesUncertaintySources), "regroupTag": "V2" })
+            else:
+                configureType1MET(getattr(tree, f"_{metName}"), **cmJMEArgs)
         except Exception as ex:
             logger.exception("Problem while configuring MET correction and variations")
         #############################
@@ -481,7 +509,7 @@ class NanoHtoZABase(NanoAODModule):
         sampleCut = None
         if self.isMC(sample):
             # remove double counting passing TTbar Inclusive + TTbar Full Leptonic ==> mainly for 2016 Analysis 
-            if sample =="TT":
+            if sample == "TT":
                 genLeptons_hard = op.select(tree.GenPart, 
                                             lambda gp : op.AND((gp.statusFlags & (0x1<<7)), 
                                                                 op.in_range(10, op.abs(gp.pdgId), 17)))
@@ -526,6 +554,8 @@ class NanoHtoZABase(NanoAODModule):
         mcprofile          = None
         PUWeight           = None
         version_TriggerSFs = None
+        gen_ptll_nlo       = None
+        gen_ptll_lo        = None
         yield_object  = makeYieldPlots()
         binScaling    = 1
         plots         = []
@@ -597,8 +627,6 @@ class NanoHtoZABase(NanoAODModule):
             forceDefine(gen_pt, noSel)
             plots.append(Plot.make1D("gen_ToppT_withReweighting".format(suffix), gen_pt, noSel, EqB(60 // binScaling, 0., 1200.), title="gen Top p_{T} [GeV]")) 
         
-        gen_ptll_nlo = None
-        gen_ptll_lo = None
         if era=='2016':
             isDY_reweight = (sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"])
         else:
@@ -627,14 +655,32 @@ class NanoHtoZABase(NanoAODModule):
 
         # 2016 seprate from 2017 &2018  because SFs need to be combined for BCDEF and GH eras !
         # 2016 ULegacy is split into two different reconstruction versions pre/post VFP 
-        if era=="2016":
+        if era == "2016":
             muMediumIDSF  = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), combine="weight", systName="muid-medium")
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), combine="weight", systName="muiso-tight")
         else:
             muMediumIDSF  = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), systName="muid-medium")
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), systName="muiso-tight") 
             #mutrackingSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
-
+            
+            # Additional SFs 
+            if era == "2018":
+                TkMuLowpT_reco = get_correction("Efficiency_muon_generalTracks_Run2018_UL_trackerMuon_below30.json", 
+                                                "NUM_TrackerMuons_DEN_genTracks", 
+                                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+                                                systName= "TkMuonLowpTRECO", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                
+                TkMuLowpT_id = get_correction("Efficiency_muon_trackerMuon_Run2018_UL_ID_below30.json", 
+                                              "NUM_MediumID_DEN_TrackerMuons", 
+                                               params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+                                               systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                
+                TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
+                                                  "Eff_TrackerMuons_HighMomentum", 
+                                                   params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
+                                                   systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                
+                SLHLTMu  = get_legacyscalefactor("lepton", ("hlt_Summer19UL2018_106X", "HLT_Mu50-TkMu100-Mu100"), isElectron=True, systName="hltMu50-TkMu100-Mu100")
         ###############################################
         # Electrons : ID , RECO cuts and scale factors
         # Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
@@ -661,10 +707,10 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         MET = t.MET if self.nanoaodversion =="v8" else (t.MET if era != "2017" else (t.METFixEE2017))
         PuppiMET = t.PuppiMET 
-        if self.args.nanoaodversion in ["v8", "v9"]:
-            corrMET = METcorrection(MET,t.PV,sample,era,self.isMC(sample))
+        if isULegacy:
+            corrMET = ULMETXYCorrection(MET,t.PV,sample,f"UL{era}",self.isMC(sample))
         else:
-            corrMET = ULMETXYCorrection(MET,t.PV,sample,era,self.isMC(sample))
+            corrMET = METcorrection(MET,t.PV,sample,era,self.isMC(sample))
         
         ###############################################
         # AK4 Jets selections
@@ -936,8 +982,15 @@ class NanoHtoZABase(NanoAODModule):
         hasOSLL = noSel.refine("hasOSLL", cut=op.OR(*( hasOSLL_cmbRng(rng) for rng in osLLRng.values())))
        
         forceDefine(t._Jet.calcProd, hasOSLL)
-        forceDefine(getattr(t, "_{0}".format("MET" if self.nanoaodversion =="v8" else ("MET" if era != "2017" else "METFixEE2017"))).calcProd, hasOSLL)
-       
+        metName = ("MET" if isULegacy else ("MET" if era != "2017" else "METFixEE2017"))
+        if self.doMETT1Smear:
+            forceDefine(getattr(t, f"_{metName}T1").calcProd, hasOSLL)
+            if self.isMC(sample):
+                forceDefine(getattr(t, f"_{metName}T1Smear").calcProd, hasOSLL)
+        else:
+            forceDefine(getattr(t, f"_{metName}").calcProd, hasOSLL)
+
+
         ########################################################
         # https://lathomas.web.cern.ch/lathomas/TSGStuff/L1Prefiring/PrefiringMaps_2016and2017/
         # https://twiki.cern.ch/twiki/bin/view/CMS/L1PrefiringWeightRecipe#Introduction
@@ -951,8 +1004,8 @@ class NanoHtoZABase(NanoAODModule):
         ########################################################
         ########################################################
         ZvtxSF = 1.
-        if era =='2017':
-            ZvtxSF= getHLTZvtxSF(era, sample, splitbyeras=False)
+        if era == '2017':
+            ZvtxSF = getHLTZvtxSF(era, sample, splitbyeras=False)
        
         ########################################################
         # HLT 
@@ -972,6 +1025,8 @@ class NanoHtoZABase(NanoAODModule):
             elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
             mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
 
+        ########################################################
+        ########################################################
             if era == "2018":
                 llSFs = {
                     "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring ]), #single_mutrig(ll[0]), single_mutrig(ll[1]), L1Prefiring ]), # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
@@ -1141,8 +1196,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                     # Zmass (2Lepton OS && SF ) 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 
-            optstex = ('$e^+e^-$' if channel=="ElEl" else( '$\mu^+\mu^-$' if channel =="MuMu" else( '$\mu^+e^-$' if channel=="MuEl" else('$e^+\mu^-$'))))
-            yield_object.addYields(catSel,"hasOs%s"%channel,"OS leptons + M_{ll} cut (channel : %s)"%optstex)
+            optstex = ('$e^+e^-$' if channel=="ElEl" else( '$\mu^+\mu^-$' if channel=="MuMu" else( '$\mu^+e^-$' if channel=="MuEl" else('$e^+\mu^-$'))))
+            yield_object.addYields(catSel,"hasOs%s"%channel,"OS leptons+ M_{ll} cut(channel: %s)"%optstex)
             selections_for_cutflowreport.append(catSel)
             if make_ZpicPlots:
                 plots += varsCutsPlotsforLeptons(dilepton, catSel, channel)
@@ -1185,8 +1240,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             lljjSelections = { "resolved": TwoLeptonsTwoJets_Resolved,
                                "boosted" : TwoLeptonsOneJet_Boosted }
             
-            jlenOpts = { "resolved": (' at least 2 ' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2 ')),
-                         "boosted" :  'at least 1 '}
+            jlenOpts = { "resolved": ('at least 2' if chooseJetsLen=='_at_least2Jets_' else ( 'exactly 2')),
+                         "boosted" :  'at least 1'}
             
             lljj_jetType = { "resolved": "AK4",
                              "boosted" : "AK8"}
@@ -1209,7 +1264,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
            #                     }
            # 
             for regi,sele in lljjSelections.items():
-                yield_object.addYields(sele, f"{lljj_selName[regi]}_{channel}" , f"2 Lep(OS)+ {jlenOpts[regi]} {lljj_jetType[regi]}Jets + $M_{{ll}}$ cut (channel : {optstex})")
+                yield_object.addYields(sele, f"{lljj_selName[regi]}_{channel}" , f"2 Lep(OS)+ {jlenOpts[regi]} {lljj_jetType[regi]}Jets+ $M_{{ll}}$ cut(channel: {optstex})")
                 selections_for_cutflowreport.append(sele)
 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1394,7 +1449,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     for reg,  dic_selections in allsel_fortaggerWp_per_reg_and_process.items():
                         for key, sel in dic_selections.items():
                             yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_NoMETCut_NobTagEventWeight_{channel}_{key}_{process}",
-                                    f"{process}: 2 Lep(OS) + {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key} + NoMETCut + No bTagEventWeight (channel : {optstex})")
+                                    f"{process}: 2 Lep(OS)+ {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key}+ NoMETCut+ NobTagEventWeight(channel: {optstex})")
                 
                 
                 llbbSelections_NoMETCut_bTagEventWeight = { process: 
@@ -1510,7 +1565,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                 plots.extend(MakeEllipsesPLots(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process))
                             for key, sel in selDict.items():
                                 yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_{metCutNm}_{channel}_{key}_{process}",
-                                        f"{process}: 2 Lep(OS) + {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key} + {metCutNm} + bTagEventWeight (channel : {optstex})")
+                                        f"{process}: 2 Lep(OS)+ {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key}+ {metCutNm}+ bTagEventWeight(channel: {optstex})")
                                 selections_for_cutflowreport.append(sel)
             
                     plots.extend(makeExtraFatJetBOostedPlots(llbbSelections['boosted'], lljj_bJets['boosted'], wp, channel, 'withmetCut', process))
