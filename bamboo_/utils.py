@@ -138,30 +138,34 @@ def splitTTjetFlavours(cfg, tree, noSel):
     return noSel
 
 # FIXME also merge systematic variations
-def normalizeAndMergeSamples(plots, counterReader, config, inDir, outPath):
+def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, outPath):
     toMerge = {}
     for plot in plots:
         toMerge[plot.name] = []
 
     for proc, cfg in config["samples"].items():
         tf = HT.openFileAndGet(os.path.join(inDir, proc + ".root"))
-
-        sumWgt = counterReader(tf)[cfg["generated-events"]]
-        xs = cfg["cross-section"]
+        
+        if cfg["group"] != "data":
+            sumWgt = counterReader(tf)[cfg["generated-events"]]
+            xs = cfg["cross-section"]
 
         for plot in plots:
             hist = tf.Get(plot.name)
-            hist.Scale(xs / sumWgt)
+            if cfg["group"] != "data":
+                hist.Scale(xs / sumWgt)
             hist.SetDirectory(0)
             toMerge[plot.name].append(hist)
 
         tf.Close()
-
-    mergedFile = HT.openFileAndGet(outPath, "recreate")
-    for name, mergeList in toMerge.items():
-        merged = HT.addHists(mergeList, name)
-        merged.Write()
-    mergedFile.Close()
+    eras = list(config["eras"].keys())
+    for era in eras:
+        mergedFile = HT.openFileAndGet(f"{outPath}_{era}.root", "recreate")
+        for name, mergeList in toMerge.items():
+            merged = HT.addHists(mergeList, name)
+            merged.Write()
+        mergedFile.Close()
+    os.system("hadd -f " + outPath + "_run2.root " + " ".join([ f"{outPath}_{era}.root" for era in eras ]))
 
 def produceMEScaleEnvelopes(plots, scaleVariations, path):
     _tf = HT.openFileAndGet(path, "update")
