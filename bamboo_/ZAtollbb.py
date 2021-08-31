@@ -547,8 +547,8 @@ class NanoHtoZABase(NanoAODModule):
         era  = sampleCfg.get("era") if sampleCfg else None
         preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
         
-        globalTag = "106X" if self.args.nanoaodversion in ["v8", "v9"] else( "94X" if era != "2018" else ( "102X"))
-        isULegacy   = True if globalTag =="106X" else False
+        globalTag  = "106X" if self.nanoaodversion in ["v8", "v9"] else( "94X" if era != "2018" else ( "102X"))
+        isULegacy  = True if globalTag =="106X" else False
         
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
         noSel = noSel.refine("passMETFlags", cut=METFilter(t.Flag, era, isMC) )
@@ -1086,10 +1086,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         from bamboo.plots import CutFlowReport
         from reweightDY import plotsWithDYReweightings, Plots_gen, PLots_withtthDYweight
     
-    def getIDX(wp = None):
-        return 0 if wp=="L" else ( 1 if wp=="M" else 2)
-    def getOperatingPoint(wp = None):
-        return "Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight")
+        def getIDX(wp = None):
+            return (0 if wp=="L" else ( 1 if wp=="M" else 2))
+        def getOperatingPoint(wp = None):
+            return ("Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight"))
         
         noSel, PUWeight, categories, isDY_reweight, WorkingPoints, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, nanoaodversion = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
         
@@ -1097,6 +1097,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         yield_object = makeYieldPlots()
         isMC = self.isMC(sample)
         binScaling = 1 
+        
+        plots = []
+        selections_for_cutflowreport = []
 
         scalesfactorsLIB = {
             "DeepFlavour": {
@@ -1121,8 +1124,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         cleaned_AK4JetsByDeepB = op.sort(AK4jets, lambda j: -j.btagDeepB)
         cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
 
-        plots = []
-        selections_for_cutflowreport = []
         if self.doEvaluate:
             ZAmodel_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'ZAMachineLearning/tf_model','tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
             if not os.path.exists(ZAmodel_path):
