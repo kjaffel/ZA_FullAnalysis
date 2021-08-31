@@ -41,17 +41,17 @@ samples:
 
 ######## ttbar
   ttbar_SemiLeptonic:
-    db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAOD-106X_mcRun2_asymptotic_v13-v1/NANOAODSIM
+    db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/TTToSemiLeptonic_2016.dat
     generated-events: 'genEventSumw'
-    cross-section: 831.76 # pb NNLO +19.77 -29.20  Scale uncer./ PDF+alphaS uncert.+35.06 -35.06 :https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
-        #730.6 # pb NLO  +- 0.5572 uncer. : https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTT_TuneCUETP8M2T4_13TeV-powheg-pythia8
+    cross-section: 831.76 # pb NNLO +  19.77 -29.20  Scale uncer./ PDF+alphaS uncert.+35.06 -35.06 :https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
+                   #730.6 # pb NLO  +- 0.5572 uncer. : https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=DAS%3DTT_TuneCUETP8M2T4_13TeV-powheg-pythia8
     group: ttbar_SemiLeptonic
     era: '2016'
     split: 4
    
   TTTo2L2Nu:
-    db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAOD-106X_mcRun2_asymptotic_v13-v1/NANOAODSIM
+    db: das:/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/TTTo2L2Nu_2016.dat
     generated-events: 'genEventSumw'
     cross-section:  88.40 # pb 
@@ -75,24 +75,24 @@ samples:
     group: ST
     era: '2016'
 
-        #  ST_tchannel_antitop_4f:
-        #    db: das:/ST_t-channel_antitop_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
-        #    files: dascache/nanov8/ST_tchannelantitop_4f_2016.dat
-        #    generated-events: 'genEventSumw'
-        #    cross-section: 80.95  # TODO  to check !   Opb on the xsc uncertainty for now 
-        #    group: ST
-        #    era: '2016'
-        #    split: 4
-        #
-        #  ST_tchannel_top_4f:
-        #    db: das:/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v2/NANOAODSIM
-        #    files: dascache/nanov8/ST_tchanneltop_4f_2016.dat
-        #    generated-events: 'genEventSumw'
-        #    cross-section: 136.02 # TODO  to check!  Opb on the xsc uncertainty for now 
-        #    group: ST
-        #    era: '2016'
-        #    split: 4
-        #
+    #  ST_tchannel_antitop_4f:
+    #    db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    #    files: dascache/nanov8/ST_tchannelantitop_4f_2016.dat
+    #    generated-events: 'genEventSumw'
+    #    cross-section: 80.95  # TODO  to check !   Opb on the xsc uncer
+    #    group: ST
+    #    era: '2016'
+    #    split: 4
+    #  
+    #ST_tchannel_top_4f:
+    #  db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    #  files: dascache/nanov8/ST_tchanneltop_4f_2016.dat
+    #  generated-events: 'genEventSumw'
+    #  cross-section: 136.02 # TODO  to check !   Opb on the xsc uncer
+    #  group: ST
+    #  #era: '2016'
+    #  split: 4
+    #
   ST_schannel_4f:
     db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/ST_schannel_4f_2016.dat
@@ -112,32 +112,32 @@ samples:
     era: '2016'
     split: 44
 
-        #  ZZTo2L2Q:
-        #    db: das:/ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
-        #    files: dascache/nanov8/ZZTo2L2Q_2016.dat
-        #    generated-events: 'genEventSumw'
-        #    cross-section: 3.222     
-        #    group: ZZ
-        #    era: '2016'
-        #
-        #  ZZTo4L:
-        #    db: das:/ZZTo4L_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8_ext1-v1/NANOAODSIM
-        #    files: dascache/nanov8/ZZTo4L_2016.dat
-        #    generated-events: 'genEventSumw'
-        #    cross-section: 1.256 
-        #    group: ZZ
-        #    era: '2016'
-        #    split: 90
-
-###### Standrd model higgs : Zh & tth  
-#  HZJ_HToWW:
-#    db: das:/HZJ_HToWW_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
-#    files: dascache/nanov8/HZJ_HToWW_2016.dat
-#    generated-events: 'genEventSumw'
-#    cross-section: 0.7524   
-#    group: SM
-#    era: '2016'
-#
+    #  ZZTo2L2Q:
+    #    db: das:/ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
+    #    files: dascache/nanov8/ZZTo2L2Q_2016.dat
+    #    generated-events: 'genEventSumw'
+    #    cross-section: 3.222     
+    #    group: ZZ
+    #    era: '2016'
+    #
+    #  ZZTo4L:
+    #    db: das:/ZZTo4L_M-1toInf_TuneCP5_13TeV_powheg_pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    #    files: dascache/nanov8/ZZTo4L_2016.dat
+    #    generated-events: 'genEventSumw'
+    #    cross-section: 1.256 
+    #    group: ZZ
+    #    #era: '2016'
+    #    split: 90
+    #
+    ###### Standrd model higgs : Zh & tth  
+    #  HZJ_HToWW:
+    #    db: das:/HZJ_HToWW_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
+    #    files: dascache/nanov8/HZJ_HToWW_2016.dat
+    #    generated-events: 'genEventSumw'
+    #    cross-section: 0.7524   
+    #    group: SM
+    #    era: '2016'
+    #
   ttHJetTobb:
     db: das:/ttHJetTobb_M125_TuneCP5_13TeV_amcatnloFXFX_madspin_pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/ttHJetTobb_2016.dat
@@ -235,15 +235,15 @@ samples:
     group: others
     era: '2016'
 
-  WJetsToLNu: 
-    db: das:/WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-    files: dascache/nanov8/WJetsToLNu_2016.dat
-    generated-events: 'genEventSumw'
-    cross-section: 60430.0
-    group: others
-    era: '2016'
-    split: 141
-
+  #  WJetsToLNu: 
+  #    db: das:/WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+  #    files: dascache/nanov8/WJetsToLNu_2016.dat
+  #    generated-events: 'genEventSumw'
+  #    cross-section: 60430.0
+  #    group: others
+  #    era: '2016'
+  #    split: 141
+  #
   TTWJetsToQQ:
     db: das:/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/TTWJetsToQQ_2016.dat
@@ -269,37 +269,37 @@ samples:
     era: '2016'
 
   TTZToLLNuNu_preVFP:
-    db: das:/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
+    db: das:/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/TTZToLLNuNu_2016.dat
     generated-events: 'genEventSumw'
     cross-section: 0.2529   
     group: others
     era: '2016'
-
+############# DATA
 ###### era B
-  DoubleMuon_UL2016B_HIPM:
+  DoubleMuon_UL2016B:
     db: [das:/DoubleMuon/Run2016B-ver2_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD,das:/DoubleMuon/Run2016B-ver1_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD]
     files: dascache/nanov8/DoubleMuon_2016B.dat
     group: data
     era: '2016'
     run_range: [272007, 275376]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
   
-  DoubleEGamma_UL2016B_HIPM:
+  DoubleEGamma_UL2016B:
     db: [das:/DoubleEG/Run2016B-ver2_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD,das:/DoubleEG/Run2016B-ver1_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD]
     files: dascache/nanov8/DoubleEGamma_2016B.dat
     group: data
     era: '2016'
     run_range: [272007, 275376]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
-  MuonEG_UL2016B_HIPM:
+  MuonEG_UL2016B:
     db: [das:/MuonEG/Run2016B-ver2_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD,das:/MuonEG/Run2016B-ver1_HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD] 
     files: dascache/nanov8/MuonEG_2016B.dat
     group: data
     era: '2016'
     run_range: [272007, 275376]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 ####### era C
   DoubleMuon_UL2016C:
@@ -308,7 +308,7 @@ samples:
     group: data
     era: '2016'
     run_range: [275657, 276283]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   DoubleEGamma_UL2016C:
     db: das:/DoubleEG/Run2016C-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -316,7 +316,7 @@ samples:
     group: data
     era: '2016'
     run_range: [275657, 276283]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   MuonEG_UL2016C:
     db: das:/MuonEG/Run2016C-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -324,7 +324,7 @@ samples:
     group: data
     era: '2016'
     run_range: [275657, 276283]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 ############# era D
   DoubleMuon_UL2016D:
@@ -333,7 +333,7 @@ samples:
     group: data
     era: '2016'
     run_range: [276315, 276811]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   DoubleEGamma_UL2016D:
     db: das:/DoubleEG/Run2016D-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -341,7 +341,7 @@ samples:
     group: data
     era: '2016'
     run_range: [276315, 276811]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   MuonEG_UL2016D:
     db: das:/MuonEG/Run2016D-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -349,7 +349,7 @@ samples:
     group: data
     era: '2016'
     run_range: [276315, 276811]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 ######## era E
   DoubleMuon_UL2016E:
@@ -358,7 +358,7 @@ samples:
     group: data
     era: '2016'
     run_range: [276831, 277420]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   DoubleEGamma_UL2016E:
     db: das:/DoubleEG/Run2016E-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -366,7 +366,7 @@ samples:
     group: data
     era: '2016'
     run_range: [276831, 277420]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   MuonEG_UL2016E:
     db: das:/MuonEG/Run2016E-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -374,32 +374,32 @@ samples:
     group: data
     era: '2016'
     run_range: [276831, 277420]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 #####  era F
-  DoubleMuon_UL2016F_HIPM:
+  DoubleMuon_UL2016F:
     db: das:/DoubleMuon/Run2016F-HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/DoubleMuon_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
-  DoubleEGamma_UL2016F_HIPM:
+  DoubleEGamma_UL2016F:
     db: das:/DoubleEG/Run2016F-HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/DoubleEGamma_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
-  MuonEG_UL2016F_HIPM:
+  MuonEG_UL2016F:
     db: das:/MuonEG/Run2016F-HIPM_UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/MuonEG_2016F.dat
     group: data
     era: '2016'
     run_range: [277772, 278808]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 ######### era G
   DoubleMuon_UL2016G:
@@ -408,7 +408,7 @@ samples:
     group: data
     era: '2016'
     run_range: [278820, 280385]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   DoubleEGamma_UL2016G:
     db: das:/DoubleEG/Run2016G-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -416,7 +416,7 @@ samples:
     group: data
     era: '2016'
     run_range: [278820, 280385]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   MuonEG_UL2016G:
     db: das:/MuonEG/Run2016G-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -424,7 +424,7 @@ samples:
     group: data
     era: '2016'
     run_range: [278820, 280385]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 ###### era H
   DoubleMuon_UL2016H:
@@ -433,7 +433,7 @@ samples:
     group: data
     era: '2016'
     run_range: [280919, 284044]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   DoubleEGamma_UL2016H:
     db: das:/DoubleEG/Run2016H-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -441,7 +441,7 @@ samples:
     group: data
     era: '2016'
     run_range: [280919, 284044]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
   MuonEG_UL2016H:
     db: das:/MuonEG/Run2016H-UL2016_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -449,7 +449,7 @@ samples:
     group: data
     era: '2016'
     run_range: [280919, 284044]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016//Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
 
 plotIt:
   configuration:
@@ -457,7 +457,7 @@ plotIt:
     height: 600
     luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
     experiment: CMS
-    extra-label: 2016Data --Work in progress
+    extra-label: 2016ULegacy Data --Work in progress
     show-overflow: true
     #error-fill-style: 3154
     #error-fill-color: "#ee556270"
@@ -467,25 +467,22 @@ plotIt:
     y-axis-format: "%1% / %2$.2f"
   
   legend:
-    position: [0.7, 0.6, 0.91, 0.91]
-  
+    position: [0.6, 0.7, 0.9, 0.9]
+    #columns: 2
   groups:
     data:
       legend: data
-    signal:
-      fill-color: "#0000FF"
-      legend: Signal
     DY:
       fill-color: "#0000FF" 
       legend: Drell-Yan
       order: 7
-    Inclusive: 
+    ttbar_SemiLeptonic: 
       fill-color: "#B20027"
-      legend: tt Inclusive
+      legend: tt Semi Lept
       order: 6
     ttbar_FullLeptonic:
-      legend: tt Full Lept
       fill-color: "#00ffc7" 
+      legend: tt Full Lept
       order: 5
     ST:
       fill-color: "#9890f0"    
@@ -501,7 +498,7 @@ plotIt:
       order: 2
     others: 
       fill-color: "#c4ffff"
-      legend: others #: tt+V, W+Jets , VVV, VV
+      legend: others( tt+V, W+Jets , VVV, VV)
       order: 1    
   
   plotdefaults:
@@ -603,5 +600,3 @@ plotIt:
     - WZTo1L3Nuxsc: {type: const, value: 1.004001309757694827, on: 'WZTo1L3Nu'} # uncer= 0.01222
     - WZ1L1Nu2Qxsc: {type: const, value: 1.001699906803355079, on: 'WZ1L1Nu2Q'} # uncer= 0.01824
     - WZTo3LNuxsc: {type: const, value:  1.011286681715575623, on: 'WZTo3LNu'} # uncer= 0.05
-   
-

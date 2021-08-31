@@ -23,9 +23,9 @@ samples:
     group: DY
     era: '2018'
     split: 4
- 
+
   DYJetsToLL_1J:
-    db: das:/DY2JetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer19UL18NanoAOD-106X_upgrade2018_realistic_v11_L1v1-v1/NANOAODSIM
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
     files: dascache/nanov8/DYJetsToLL_1J_2018.dat
     generated-events: 'genEventSumw'
     cross-section: 5334.0 #+- 5.858e+00 pb (NLO) 
@@ -70,7 +70,7 @@ samples:
     era: '2018'
     split: 4
 
-########### 
+########### ST 
   ST_tW_top_5f:  
     db: das:/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv2-106X_upgrade2018_realistic_v15_L1v1-v1/NANOAODSIM
     files: dascache/nanov8/ST_tWtop_5f_2018.dat
@@ -343,7 +343,7 @@ samples:
     group: data
     era: '2018'
     run_range: [315252, 316995]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
   
   MuonEG_UL2018A:
     db: das:/MuonEG/Run2018A-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -351,7 +351,7 @@ samples:
     group: data
     era: '2018'
     run_range: [315252, 316995]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
   
   EGamma_UL2018A:
     db: das:/EGamma/Run2018A-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -359,7 +359,7 @@ samples:
     group: data
     era: '2018'
     run_range: [315252, 316995]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
   
   SingleMuon_UL2018A:
     group: data
@@ -367,7 +367,7 @@ samples:
     db: das:/SingleMuon/Run2018A-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/SingleMuon_2018A.dat
     run_range: [315252, 316995]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
     split: 5
 ##### era B
   DoubleMuon_UL2018B:
@@ -376,7 +376,7 @@ samples:
     group: data
     era: '2018'
     run_range: [317080, 319310]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   EGamma_UL2018B:
     db: das:/EGamma/Run2018B-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -384,7 +384,7 @@ samples:
     group: data
     era: '2018'
     run_range: [317080, 319310]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   MuonEG_UL2018B:
     db: das:/MuonEG/Run2018B-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -392,7 +392,7 @@ samples:
     group: data
     era: '2018'
     run_range: [317080, 319310]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   SingleMuon_UL2018B:
     group: data
@@ -400,7 +400,7 @@ samples:
     db: das:/SingleMuon/Run2018B-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/SingleMuon_2018B.dat
     run_range: [317080, 319310]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
     split: 3
 ###### era C
   DoubleMuon_UL2018C:
@@ -409,7 +409,7 @@ samples:
     group: data
     era: '2018'
     run_range: [319337, 320065]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   EGamma_UL2018C:
     db: das:/MuonEG/Run2018C-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -417,7 +417,7 @@ samples:
     group: data
     era: '2018'
     run_range: [319337, 320065]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   MuonEG_UL2018C:
     db: das:/MuonEG/Run2018C-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -425,7 +425,7 @@ samples:
     group: data
     era: '2018'
     run_range: [319337, 320065]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   SingleMuon_UL2018C:
     group: data
@@ -433,7 +433,7 @@ samples:
     db: das:/SingleMuon/Run2018C-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/SingleMuon_2018C.dat
     run_range: [319337, 320065]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
     split: 3
 ########## era D
   DoubleMuon_UL2018D:
@@ -442,7 +442,7 @@ samples:
     group: data
     era: '2018'
     run_range: [320673, 325175]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   EGamma_UL2018D:
     db: das:/EGamma/Run2018D-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -451,7 +451,7 @@ samples:
     era: '2018'
     split: 20
     run_range: [320673, 325175]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
   MuonEG_UL2018D:
     db: das:/MuonEG/Run2018D-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
@@ -459,7 +459,7 @@ samples:
     group: data
     era: '2018'
     run_range: [320673, 325175]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
   
   SingleMuon_UL2018D:
     group: data
@@ -467,7 +467,7 @@ samples:
     db: das:/SingleMuon/Run2018D-UL2018_MiniAODv1_NanoAODv2-v1/NANOAOD
     files: dascache/nanov8/SingleMuon_2018D.dat
     run_range: [320673, 325175]
-    certified_lumi_file: https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
     split: 12
   
 plotIt:
@@ -476,7 +476,7 @@ plotIt:
     height: 600
     luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
     experiment: CMS
-    extra-label: 2018Data --Work in progress
+    extra-label: 2018ULegacy Data --Work in progress
     show-overflow: true
     #error-fill-style: 3154
     #error-fill-color: "#ee556270"
