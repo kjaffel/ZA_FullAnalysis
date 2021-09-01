@@ -908,13 +908,13 @@ class NanoHtoZABase(NanoAODModule):
                         deepBFlavScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix)),
                                                             additionalVariables=Jet_DeepFlavourBDisc, 
                                                             getFlavour=(lambda j : j.hadronFlavour),
-                                                            systName="DeepFlavour{0}".format(wp))  
+                                                            systName="DeepFlavour{0}sys".format(wp))  
 
                     else:
                         deepBFlavScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "{0}_{1}".format('DeepJet', suffix)),
                                                             additionalVariables=Jet_DeepFlavourBDisc, 
                                                             getFlavour=(lambda j : j.hadronFlavour),
-                                                            systName="DeepFlavour{0}".format(wp))  
+                                                            systName="DeepFlavour{0}sys".format(wp))  
                     
                     bjets_resolved[tagger]=bJets_AK4_deepflavour
                     lightJets_resolved[tagger]=lightJets_AK4_deepflavour
@@ -943,26 +943,26 @@ class NanoHtoZABase(NanoAODModule):
                                                     additionalVariables=Jet_DeepCSVBDis,
                                                     getFlavour=(lambda j : j.hadronFlavour),
                                                     combine ="weight",
-                                                    systName="DeepCSV{0}_SFsperiod_dependency".format(wp))  
+                                                    systName="DeepCSV{0}_sysbyEra".format(wp))  
                     else:
                         if era == "2016": # NO 2016UL scale factor yet , keep it this way for now
                             deepB_AK4ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix)), 
                                                     additionalVariables=Jet_DeepCSVBDis,
                                                     getFlavour=(lambda j : j.hadronFlavour),
-                                                    systName="DeepCSV{0}".format(wp))  
+                                                    systName="DeepCSV{0}sys".format(wp))  
                         else:
                             deepB_AK4ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "{0}_{1}".format('DeepCSV', suffix)), 
                                                     additionalVariables=Jet_DeepCSVBDis,
                                                     getFlavour=(lambda j : j.hadronFlavour),
-                                                    systName="DeepCSV{0}".format(wp))  
-                            # FIXME no fat jets scale factors yet : use EOY  
+                                                    systName="DeepCSV{0}sys".format(wp))  
+                    # FIXME no fat jets scale factors yet : use EOY  
                     deepB_AK8ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "subjet_{0}_{1}".format('DeepCSV', suffix)), 
                                                 additionalVariables=Jet_DeepCSVBDis,
                                                 getFlavour=(lambda j : j.hadronFlavour),
-                                                systName="btagging{0}".format(era))  
+                                                systName="boostedDeepCSV{0}sys".format(wp))  
                 
-                    bjets_resolved[tagger]    = bJets_AK4_deepcsv
-                    bjets_boosted[tagger]     = bJets_AK8_deepcsv
+                    bjets_resolved[tagger]     = bJets_AK4_deepcsv
+                    bjets_boosted[tagger]      = bJets_AK8_deepcsv
                     lightJets_resolved[tagger] = lightJets_AK4_deepcsv
                     lightJets_boosted[tagger]  = lightJets_AK8_deepcsv
         
@@ -1028,10 +1028,10 @@ class NanoHtoZABase(NanoAODModule):
         
         if version_TriggerSFs == None or (version_TriggerSFs =='tth' and era=='2018'): # will pass HHMoriond17 the default version 
             
-            doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="mumutrig")  
-            doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="eleltrig")
-            elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="elmutrig")
-            mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="mueltrig")
+            doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="HHMoriond17-mumutrig")  
+            doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="HHMoriond17-eleltrig")
+            elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17-elmutrig")
+            mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17-mueltrig")
 
         ########################################################
         ########################################################
@@ -1210,7 +1210,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                     # Zmass (2Lepton OS && SF ) 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 
-            optstex = ('$e^+e^-$' if channel=="ElEl" else( '$\mu^+\mu^-$' if channel=="MuMu" else( '$\mu^+e^-$' if channel=="MuEl" else('$e^+\mu^-$'))))
+            optstex = ('e^{+}e^{-}' if channel=="ElEl" else( '$\mu^+\mu^-$' if channel=="MuMu" else( '$\mu^+e^-$' if channel=="MuEl" else('$e^+\mu^-$'))))
             yield_object.addYields(catSel,"hasOs%s"%channel,"OS leptons+ M_{ll} cut(channel: %s)"%optstex)
             selections_for_cutflowreport.append(catSel)
             if make_ZpicPlots:
@@ -1222,8 +1222,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             if make_JetmultiplictyPlots :
-                for sel, jet, reg in zip ([catSel, catSel], [AK4jets, AK8jets], ["resolved", "boosted"]):
-                    plots.extend(makeJetmultiplictyPlots(catSel, AK4jets, channel,"_NoCutOnJetsLen_" + reg))
+                for jet, reg in zip ([AK4jets, AK8jets], ["resolved", "boosted"]):
+                    plots.extend(makeJetmultiplictyPlots(catSel, jet, channel,"_NoCutOnJetsLen_" + reg))
+                for bjet, reg in zip ([bjets_resolved, bjets_boosted], ["resolved", "boosted"]):
+                    plots.extend(makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_" + reg))
             
             # This's an Inclusive selection *** 
             #       boosted : at least 1 AK8jets  && resolved: at least 2 AK4jets  
@@ -1269,14 +1271,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             lljj_bJets = { "resolved": bjets_resolved,
                            "boosted" : bjets_boosted }
         
-           # bjets_catagories = { "gg_fusion": {
-           #                         "resolved": op.AND(op.rng_len(AK4bjets) == 2, op.rng_len(AK8bjets)==0),
-           #                         "boosted": op.AND(op.rng_len(AK4bjets) == 0, op.rng_len(AK8bjets)==1)},
-           #                      "bb_associatedProduction": {
-           #                         "resolved": op.AND(op.rng_len(AK4bjets) >= 3, op.rng_len(AK8bjets)==0),
-           #                         "boosted": op.AND(op.rng_len(AK4bjets) > 1, op.rng_len(AK8bjets) > 1) }
-           #                     }
-           # 
             for regi,sele in lljjSelections.items():
                 yield_object.addYields(sele, f"{lljj_selName[regi]}_{channel}" , f"2 Lep(OS)+ {jlenOpts[regi]} {lljj_jetType[regi]}Jets+ $M_{{ll}}$ cut(channel: {optstex})")
                 selections_for_cutflowreport.append(sele)

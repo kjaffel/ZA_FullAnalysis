@@ -75,24 +75,24 @@ samples:
     group: ST
     era: '2016'
 
-    #  ST_tchannel_antitop_4f:
-    #    db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-    #    files: dascache/nanov8/ST_tchannelantitop_4f_2016.dat
-    #    generated-events: 'genEventSumw'
-    #    cross-section: 80.95  # TODO  to check !   Opb on the xsc uncer
-    #    group: ST
-    #    era: '2016'
-    #    split: 4
-    #  
-    #ST_tchannel_top_4f:
-    #  db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-    #  files: dascache/nanov8/ST_tchanneltop_4f_2016.dat
-    #  generated-events: 'genEventSumw'
-    #  cross-section: 136.02 # TODO  to check !   Opb on the xsc uncer
-    #  group: ST
-    #  #era: '2016'
-    #  split: 4
-    #
+  ST_tchannel_antitop_4f:
+    db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    files: dascache/nanov8/ST_tchannelantitop_4f_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 80.95  # TODO  to check !   Opb on the xsc uncer
+    group: ST
+    era: '2016'
+    split: 4
+  
+  ST_tchannel_top_4f:
+    db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    files: dascache/nanov8/ST_tchanneltop_4f_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 136.02 # TODO  to check !   Opb on the xsc uncer
+    group: ST
+    era: '2016'
+    split: 4
+
   ST_schannel_4f:
     db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/ST_schannel_4f_2016.dat
@@ -120,15 +120,15 @@ samples:
     #    group: ZZ
     #    era: '2016'
     #
-    #  ZZTo4L:
-    #    db: das:/ZZTo4L_M-1toInf_TuneCP5_13TeV_powheg_pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-    #    files: dascache/nanov8/ZZTo4L_2016.dat
-    #    generated-events: 'genEventSumw'
-    #    cross-section: 1.256 
-    #    group: ZZ
-    #    #era: '2016'
-    #    split: 90
-    #
+  ZZTo4L:
+    db: das:/ZZTo4L_M-1toInf_TuneCP5_13TeV_powheg_pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    files: dascache/nanov8/ZZTo4L_2016.dat
+    generated-events: 'genEventSumw'
+    cross-section: 1.256 
+    group: ZZ
+    era: '2016'
+    split: 90
+
     ###### Standrd model higgs : Zh & tth  
     #  HZJ_HToWW:
     #    db: das:/HZJ_HToWW_M125_13TeV_powheg_pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8-v1/NANOAODSIM
@@ -513,7 +513,6 @@ plotIt:
       # on the jets
     - jer
     - jesTotal
-      # on the lepton id /iso 
       # splited  between (kinematic) regions
     - Jer_backward
     - Jer_eta_1p93TO2p5
@@ -522,8 +521,6 @@ plotIt:
     - Jer_eta_3TO2p5_bin1
     - Jer_eta_3TO2p5_bin2
     - Jer_forward
-
-    - jesTotal
       # splited by source
     - Absolute
     - Absolute_2016
@@ -537,33 +534,36 @@ plotIt:
     - RelativeBal
     - RelativeSample_2016
      # leptons ID, ISO and RCO SFs 
-    - muid
-    - muiso
-    - elid
-    - ele_reco
+    - muid-medium
+    - muiso-tight
+    - elid-medium
+    - lowpt-ele_reco
+    - highpt-ele_reco
       # on the pileup
-    - puweights2016_Moriond17
+    - pileup-UL2016
       # on the trigger
-    - eleltrig
-    - mumutrig
-    - elmutrig
-    - mueltrig
+    - HHMoriond17-eleltrig
+    - HHMoriond17-mumutrig
+    - HHMoriond17-elmutrig
+    - HHMoriond17-mueltrig
       # sys from theory  
     - qcdScale
     - psISR
     - psFSR
       # on the btagged jets 
-    - DeepFlavourL
-    - DeepFlavourM
-    - DeepFlavourT
-    - DeepCSVL
-    - DeepCSVM
-    - DeepCSVT
-    - DeepDoubleBvLL
-    - DeepDoubleBvLM1
-    - DeepDoubleBvLM2
-    - DeepDoubleBvLT1
-    - DeepDoubleBvLT2
+    - DeepFlavourLsys
+    - DeepFlavourMsys
+    - DeepFlavourTsys
+    - DeepCSVLsys
+    - DeepCSVMsys
+    - DeepCSVTsys
+    - boostedDeepCSVLsys
+    - boostedDeepCSVMsys
+    - DeepDoubleBvLLsys
+    - DeepDoubleBvLM1sys
+    - DeepDoubleBvLM2sys
+    - DeepDoubleBvLT1sys
+    - DeepDoubleBvLT2sys
       # L1 pre-firing event correction weight
     - L1PreFiring
       # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
