@@ -543,6 +543,11 @@ class NanoHtoZABase(NanoAODModule):
         from reweightDY import Plots_gen
         from systematics import getHLTZvtxSF 
 
+        def getIDX(wp = None):
+            return (0 if wp=="L" else ( 1 if wp=="M" else 2))
+        def getOperatingPoint(wp = None):
+            return ("Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight"))
+        
         isMC = self.isMC(sample)
         era  = sampleCfg.get("era") if sampleCfg else None
         preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
@@ -708,7 +713,7 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         # MET 
         ###############################################
-        MET = t.MET if self.nanoaodversion =="v8" else (t.MET if era != "2017" else (t.METFixEE2017))
+        MET = t.MET if isULegacy else (t.MET if era != "2017" else (t.METFixEE2017))
         PuppiMET = t.PuppiMET 
         if isULegacy:
             corrMET = ULMETXYCorrection(MET,t.PV,sample,f"UL{era}",self.isMC(sample))
@@ -733,7 +738,7 @@ class NanoHtoZABase(NanoAODModule):
         sorted_AK4jets= op.sort(t.Jet, lambda j : -j.pt)
         if era == '2016':
             # j.jetId &2 means tight 
-            AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.4, (j.jetId &2)))        
+            AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.5, (j.jetId &2)))        
         else:
 
             ###############################################
@@ -799,7 +804,7 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         sorted_AK8jets = op.sort(t.FatJet, lambda j : -j.pt)
         AK8jetsSel = op.select(sorted_AK8jets, 
-                                lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
+                                lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.5, (j.jetId &2), 
                                                   j.subJet1.isValid,
                                                   j.subJet2.isValid
                                                   , j.tau2/j.tau1 < 0.7 ))
@@ -812,9 +817,9 @@ class NanoHtoZABase(NanoAODModule):
         
         # No tau2/tau1 cut 
         fatjetsel_nosubjettinessCut = op.select(sorted_AK8jets, 
-                                                    lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
-                                                        j.subJet1.isValid,
-                                                        j.subJet2.isValid) )
+                                                    lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.5, (j.jetId &2), 
+                                                                      j.subJet1.isValid,
+                                                                      j.subJet2.isValid) )
         
         fatjets_nosubjettinessCut = op.select(fatjetsel_nosubjettinessCut, 
                                                     lambda j : op.AND(
@@ -875,10 +880,12 @@ class NanoHtoZABase(NanoAODModule):
         # WorkingPoints = ["L", "M", "T"] 
         # For Boosted : DeepCSV available as b-tagger with WPs `cut on dicriminator` same as in resolved region for AK4Jets
         # .ie. only L and M are available !
-        WorkingPoints = ["M"]
+        WorkingPoints = ["L", "M"]
         
-        SFsperiod_dependency            = False
-        doRequest_2subjets_TopassBtagWP = True
+        SFsperiod_dependency      = False
+        
+        nBr_subjets_passBtagDiscr = "atleast_1subjet_pass"
+        nBr_light_subjets_NotpassBtagDiscr = "fatjet_notpass"
         
         for tagger  in legacy_btagging_wpdiscr_cuts.keys():
             
@@ -892,79 +899,97 @@ class NanoHtoZABase(NanoAODModule):
 
             for wp in sorted(WorkingPoints):
                 
-                suffix = ("loose" if wp=='L' else ("medium" if wp=='M' else "tight"))
-                idx = ( 0 if wp=="L" else ( 1 if wp=="M" else 2))
+                idx = getIDX(wp)
+                suffix  = ("{}".format(getOperatingPoint(wp))).lower()
+
+                wpdiscr_cut = legacy_btagging_wpdiscr_cuts[tagger][era][idx]
+
                 key_fromscalefactors_libray = "btag_Summer19UL{}_106X".format(era) if isULegacy else( "btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"))
                     
-                logger.info(f"{key_fromscalefactors_libray}: {tagger}{wp}, discriminator_cut = {legacy_btagging_wpdiscr_cuts[tagger][era][idx]}" )
+                subjets_btag_req = { "atleast_1subjet_pass": lambda j : op.OR(j.subJet1.btagDeepB >= wpdiscr_cut, j.subJet2.btagDeepB >= wpdiscr_cut),
+                                     "both_subjets_pass"   : lambda j : op.AND(j.subJet1.btagDeepB >= wpdiscr_cut, j.subJet2.btagDeepB >= wpdiscr_cut),
+                                     "fatjet_pass"         : lambda j : j.btagDeepB >= wpdiscr_cut,
+                                     }
+                subjets_btag_req_onlightjets = { "atleast_1subjet_notpass": lambda j : op.OR(j.subJet1.btagDeepB < wpdiscr_cut, j.subJet2.btagDeepB < wpdiscr_cut),
+                                                 "both_subjets_notpass"   : lambda j : op.AND(j.subJet1.btagDeepB < wpdiscr_cut, j.subJet2.btagDeepB < wpdiscr_cut),
+                                                 "fatjet_notpass"         : lambda j : j.btagDeepB < wpdiscr_cut,
+                                               }
                 
-                if tagger=="DeepFlavour":
+                logger.info(f"{key_fromscalefactors_libray}: {tagger}{wp}, discriminator_cut = {wpdiscr_cut}" )
+                
+                if tagger == "DeepFlavour":
+                    bJets_AK4_deepflavour[wp] = op.select(cleaned_AK4JetsByDeepFlav, lambda j : j.btagDeepFlavB >= wpdiscr_cut )
+                    lightJets_AK4_deepflavour[wp] = op.select(cleaned_AK4JetsByDeepFlav, lambda j : j.btagDeepFlavB < wpdiscr_cut)
+
+                    bjets_resolved[tagger] = bJets_AK4_deepflavour
+                    lightJets_resolved[tagger] = lightJets_AK4_deepflavour
                     
-                    bJets_AK4_deepflavour[wp] = op.select(cleaned_AK4JetsByDeepFlav, lambda j : j.btagDeepFlavB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx] )
-                    lightJets_AK4_deepflavour[wp] = op.select(cleaned_AK4JetsByDeepFlav, lambda j : j.btagDeepFlavB < legacy_btagging_wpdiscr_cuts[tagger][era][idx] )
+                    #############################################################
+                        # DeepJet scale factor:  
+                        # NB: These one aren't in use anymore !
+                    #############################################################
                     Jet_DeepFlavourBDisc = { "BTagDiscri": lambda j : j.btagDeepFlavB }
-
-                    if era == "2016":  # no Btag scale factor for 2016UL yet
-                        deepBFlavScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepJet', suffix)),
-                                                            additionalVariables=Jet_DeepFlavourBDisc, 
-                                                            getFlavour=(lambda j : j.hadronFlavour),
-                                                            systName="DeepFlavour{0}sys".format(wp))  
-
-                    else:
-                        deepBFlavScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "{0}_{1}".format('DeepJet', suffix)),
-                                                            additionalVariables=Jet_DeepFlavourBDisc, 
-                                                            getFlavour=(lambda j : j.hadronFlavour),
-                                                            systName="DeepFlavour{0}sys".format(wp))  
                     
-                    bjets_resolved[tagger]=bJets_AK4_deepflavour
-                    lightJets_resolved[tagger]=lightJets_AK4_deepflavour
+                    if era == "2016":  # FIXME no Btag scale factor for 2016UL yet
+                        deepBFlavScaleFactor = get_scalefactor("jet", ("btag_2016_94X", "DeepJet_{}".format(suffix)),
+                                                            additionalVariables=Jet_DeepFlavourBDisc, 
+                                                            getFlavour=(lambda j : j.hadronFlavour),
+                                                            systName="DeepFlavour{}sys".format(wp))  
+                    else:
+                        deepBFlavScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "DeepJet_{}".format(suffix)),
+                                                            additionalVariables=Jet_DeepFlavourBDisc, 
+                                                            getFlavour=(lambda j : j.hadronFlavour),
+                                                            systName="DeepFlavour{}sys".format(wp))  
                     
                 else:
+                    bJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB >= wpdiscr_cut)   
+                    lightJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB < wpdiscr_cut)   
                     
-                    bJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx] )   
-                    lightJets_AK4_deepcsv[wp] = op.select(cleaned_AK4JetsByDeepB, lambda j : j.btagDeepB < legacy_btagging_wpdiscr_cuts[tagger][era][idx] )   
+                    bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, subjets_btag_req.get(nBr_subjets_passBtagDiscr))   
+                    lightJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, subjets_btag_req_onlightjets.get(nBr_light_subjets_NotpassBtagDiscr))
                     
-                    if doRequest_2subjets_TopassBtagWP :
-                        bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, 
-                                                            lambda j : op.AND(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx] , 
-                                                                              j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx]))   
-                        lightJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, 
-                                                            lambda j : op.AND(j.subJet1.btagDeepB < legacy_btagging_wpdiscr_cuts[tagger][era][idx] , 
-                                                                              j.subJet2.btagDeepB < legacy_btagging_wpdiscr_cuts[tagger][era][idx]))   
-                    else:
-                        bJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, lambda j : j.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger][era][idx]) 
-                        lightJets_AK8_deepcsv[wp] = op.select(cleaned_AK8JetsByDeepB, lambda j : j.btagDeepB < legacy_btagging_wpdiscr_cuts[tagger][era][idx]) 
-                    
-                    Jet_DeepCSVBDis = { "BTagDiscri": lambda j : j.btagDeepB }
-                    subJet_DeepCSVBDis = { "BTagDiscri": lambda j : op.AND(j.subJet1.btagDeepB, j.subJet2.btagDeepB) }
-                    
-                    if era == '2017' and SFsperiod_dependency :
-                        deepB_AK4ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "DeepCSV_{1}_period_dependency".format(suffix)), 
-                                                    additionalVariables=Jet_DeepCSVBDis,
-                                                    getFlavour=(lambda j : j.hadronFlavour),
-                                                    combine ="weight",
-                                                    systName="DeepCSV{0}_sysbyEra".format(wp))  
-                    else:
-                        if era == "2016": # NO 2016UL scale factor yet , keep it this way for now
-                            deepB_AK4ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "{0}_{1}".format('DeepCSV', suffix)), 
-                                                    additionalVariables=Jet_DeepCSVBDis,
-                                                    getFlavour=(lambda j : j.hadronFlavour),
-                                                    systName="DeepCSV{0}sys".format(wp))  
-                        else:
-                            deepB_AK4ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "{0}_{1}".format('DeepCSV', suffix)), 
-                                                    additionalVariables=Jet_DeepCSVBDis,
-                                                    getFlavour=(lambda j : j.hadronFlavour),
-                                                    systName="DeepCSV{0}sys".format(wp))  
-                    # FIXME no fat jets scale factors yet : use EOY  
-                    deepB_AK8ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "subjet_{0}_{1}".format('DeepCSV', suffix)), 
-                                                additionalVariables=Jet_DeepCSVBDis,
-                                                getFlavour=(lambda j : j.hadronFlavour),
-                                                systName="boostedDeepCSV{0}sys".format(wp))  
-                
                     bjets_resolved[tagger]     = bJets_AK4_deepcsv
                     bjets_boosted[tagger]      = bJets_AK8_deepcsv
                     lightJets_resolved[tagger] = lightJets_AK4_deepcsv
                     lightJets_boosted[tagger]  = lightJets_AK8_deepcsv
+                    
+                    #############################################################
+                        # DeepCSV scale factors for AK4 Jets
+                    #############################################################
+                    Jet_DeepCSVBDis = { "BTagDiscri": lambda j : j.btagDeepB }
+                    subJet_DeepCSVBDis = { "BTagDiscri": lambda j : op.AND(j.subJet1.btagDeepB, j.subJet2.btagDeepB) }
+                    
+                    if era == '2017' and SFsperiod_dependency :
+                        deepB_AK4ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "DeepCSV_{}_period_dependency".format(suffix)), 
+                                                    additionalVariables=Jet_DeepCSVBDis,
+                                                    getFlavour=(lambda j : j.hadronFlavour),
+                                                    combine ="weight",
+                                                    systName="DeepCSV{}_sysbyEra".format(wp))  
+                    else:
+                        if era == "2016": # FIXME NO 2016UL scale factor yet , keep it this way for now
+                            deepB_AK4ScaleFactor = get_scalefactor("jet", ("btag_2016_94X", "DeepCSV_{}".format(suffix)), 
+                                                    additionalVariables=Jet_DeepCSVBDis,
+                                                    getFlavour=(lambda j : j.hadronFlavour),
+                                                    systName="DeepCSV{}sys".format(wp))
+                        else:
+                            deepB_AK4ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "DeepCSV_{}".format(suffix)), 
+                                                    additionalVariables=Jet_DeepCSVBDis,
+                                                    getFlavour=(lambda j : j.hadronFlavour),
+                                                    systName="DeepCSV{}sys".format(wp))  
+                        #############################################################
+                        # Subjet b-tagging  scale factors (not in use )
+                        #############################################################
+                        if era in ["2016", "2018"]: # FIXME 
+                            deepB_AK8ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "subjet_DeepCSV_{}".format(suffix)), 
+                                                    additionalVariables=Jet_DeepCSVBDis,
+                                                    getFlavour=(lambda j : j.hadronFlavour),
+                                                    systName="boostedDeepCSV{}sys".format(wp))  
+                        else:
+                            deepB_AK8ScaleFactor = get_legacyscalefactor("jet", (key_fromscalefactors_libray, "subjet_DeepCSV_{}".format(suffix)), 
+                                                    additionalVariables=Jet_DeepCSVBDis,
+                                                    getFlavour=(lambda j : j.hadronFlavour),
+                                                    systName="boostedDeepCSV{}sys".format(wp))  
+                
         
         ########################################################
         # Zmass reconstruction : Opposite Sign , Same Flavour leptons
@@ -1071,9 +1096,8 @@ class NanoHtoZABase(NanoAODModule):
                 }
 
         categories = dict((channel, (catLLRng[0], hasOSLL.refine("hasOs{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None)) )) for channel, catLLRng in osLLRng.items())
-        nanoaodversion = self.args.nanoaodversion
 
-        return noSel, PUWeight, categories, isDY_reweight, WorkingPoints, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, nanoaodversion
+        return noSel, PUWeight, categories, isDY_reweight, WorkingPoints, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isULegacy
 
 class NanoHtoZA(NanoHtoZABase, HistogramsModule):
     def __init__(self, args):
@@ -1091,7 +1115,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         def getOperatingPoint(wp = None):
             return ("Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight"))
         
-        noSel, PUWeight, categories, isDY_reweight, WorkingPoints, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, nanoaodversion = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
+        noSel, PUWeight, categories, isDY_reweight, WorkingPoints, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isULegacy = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
         
         era = sampleCfg.get("era") if sampleCfg else None
         yield_object = makeYieldPlots()
@@ -1106,15 +1130,25 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
                     {"2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017/Btag/DeepFlavour_94XSF_V4_B_F.csv", "2018": "2018/Btag/DeepJet_102XSF_V1.csv"}.items() },
             "DeepCSV" :{
-                "Ak4": 
-                        {
+                "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
                             {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , "2017": "2017/Btag/DeepCSV_94XSF_V5_B_F.csv" , "2018": "2018/Btag/DeepCSV_102XSF_V1.csv"}.items() },
-                "softdrop_subjets":
-                        {
+                "softdrop_subjets": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , "2017": "2017/Btag/subjet_DeepCSV_94XSF_V4_B_F_v2.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() },
-                }
+                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , "2017": "2017/Btag/subjet_DeepCSV_94XSF_V4_B_F_v2.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
+            }
+        
+        scalesfactorsULegacyLIB = {
+            "DeepFlavour": {
+                year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
+                    {"2016UL": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
+            "DeepCSV" :{
+                "Ak4": {
+                        year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
+                            {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
+                "softdrop_subjets": {
+                        year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
+                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
             }
 
         addIncludePath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "include"))
@@ -1370,10 +1404,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                    '2018': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2018__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2018_ratios.root"
                                    }
                 
-                
-                csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
-                csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
-                csv_deepflavour    = scalesfactorsLIB['DeepFlavour'][era]
+                if isULegacy:
+                    csv_deepcsvAk4     = scalesfactorsULegacyLIB['DeepCSV']['Ak4'][era]
+                    csv_deepcsvSubjets = scalesfactorsULegacyLIB['DeepCSV']['softdrop_subjets'][era]
+                    csv_deepflavour    = scalesfactorsULegcayLIB['DeepFlavour'][era]
+                else:
+                    csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
+                    csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
+                    csv_deepflavour    = scalesfactorsLIB['DeepFlavour'][era]
 
                 btagSF_deepcsv     = BtagSF('deepcsv', csv_deepcsvAk4, wp=OP, sysType="central", otherSysTypes=["up", "down"],
                                                         systName= f'mc_eff_deepcsv{wp}', measurementType={"B": "comb", "C": "comb", "UDSG": "incl"}, sel= noSel,
