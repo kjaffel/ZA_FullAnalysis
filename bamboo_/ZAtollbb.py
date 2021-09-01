@@ -1141,7 +1141,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         scalesfactorsULegacyLIB = {
             "DeepFlavour": {
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                    {"2016UL": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
+                    {"2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
             "DeepCSV" :{
                 "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
@@ -1191,7 +1191,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
 
         make_ZpicPlots              = True  #*
         make_JetmultiplictyPlots    = True #*
-        make_JetschecksPlots        = False # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
+        make_JetschecksPlots        = True # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
         make_JetsPlusLeptonsPlots   = True #*
         make_DeepDoubleBPlots       = False
         make_METPlots               = True
@@ -1201,8 +1201,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_PlotsforCombinedLimits = False
         
         # One of these two should be True if you want to get the final sel plots ll +bb  
-        make_bJetsPlusLeptonsPlots_METcut   = True
-        make_bJetsPlusLeptonsPlots_NoMETcut = False
+        make_bJetsPlusLeptonsPlots_METcut   = False
+        make_bJetsPlusLeptonsPlots_NoMETcut = True
         
         make_FinalSelControlPlots    = True #*
         make_zoomplotsANDptcuteffect = False
@@ -1214,8 +1214,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         # don't forget to set these 
         split_DYWeightIn64Regions   = False
-        HighPileupJetIdWeight       = None
         istthDY_weight              = False
+        
+        HighPileupJetIdWeight       = None
         
         chooseJetsLen  = '_at_least2Jets_'
         #chooseJetsLen = '_only2Jets_' 
@@ -1258,8 +1259,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             if make_JetmultiplictyPlots :
                 for jet, reg in zip ([AK4jets, AK8jets], ["resolved", "boosted"]):
                     plots.extend(makeJetmultiplictyPlots(catSel, jet, channel,"_NoCutOnJetsLen_" + reg))
-                for bjet, reg in zip ([bjets_resolved, bjets_boosted], ["resolved", "boosted"]):
-                    plots.extend(makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_" + reg))
             
             # This's an Inclusive selection *** 
             #       boosted : at least 1 AK8jets  && resolved: at least 2 AK4jets  
@@ -1393,6 +1392,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 # boosted
                 bJets_boosted_PassdeepcsvWP       = bjets_boosted["DeepCSV"][wp]
                 
+                for suffix, bjet in { "resolved_DeepFlavour{}".format(wp): bJets_resolved_PassdeepflavourWP, 
+                                      "resolved_DeepCSV{}".format(wp): bJets_resolved_PassdeepcsvWP,
+                                      "boosted_DeepCSV{}".format(wp): bJets_boosted_PassdeepcsvWP }.items():
+                    plots.extend(makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_"+ suffix))
+                
                 if self.dobJetER:
                     bJets_resolved_PassdeepflavourWP = bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
                     bJets_resolved_PassdeepcsvWP     = bJetEnergyRegression( bJets_resolved_PassdeepcsvWP)
@@ -1407,7 +1411,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 if isULegacy:
                     csv_deepcsvAk4     = scalesfactorsULegacyLIB['DeepCSV']['Ak4'][era]
                     csv_deepcsvSubjets = scalesfactorsULegacyLIB['DeepCSV']['softdrop_subjets'][era]
-                    csv_deepflavour    = scalesfactorsULegcayLIB['DeepFlavour'][era]
+                    csv_deepflavour    = scalesfactorsULegacyLIB['DeepFlavour'][era]
                 else:
                     csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
                     csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
@@ -1652,7 +1656,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         import bambooToOls
         import json 
 
-        # memory usage 
+        # memory usage
         #start= timer()
         #end= timer()
         #maxrssmb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024
