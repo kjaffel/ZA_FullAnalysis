@@ -56,7 +56,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         from bambooToOls import Plot
         from bamboo.plots import CutFlowReport
 
-        noSel, PUWeight, categories, isDY_reweight, WorkingPoints, btagging, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, nanoaodversion = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
+        noSel, PUWeight, categories, isDY_reweight, WorkingPoints, btagging, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isUlegacy = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
         
         year = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
@@ -92,7 +92,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     }
                 }
         
-        discriminatorcuts_lib = (legacy_btagging_wpdiscr_cuts if nanoaodversion in ["v8", "v9"] else (eoy_btagging_wpdiscr_cuts))  
+        discriminatorcuts_lib = (legacy_btagging_wpdiscr_cuts if isUlegacy else (eoy_btagging_wpdiscr_cuts))  
         
         processes_dic = { "gg_fusion":{ 
                                         "resolved": op.rng_len(AK4jets) == 2,
@@ -116,7 +116,6 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         
             for reg, lljj_selections_percat in lljj_selections_perreg.items():
     
-                #jets = (AK4jets if reg=="resolved" else (fatjets_nosubjettinessCut ) )
                 # Nbr of subjettiness cut to be studied 
                 jets = (AK4jets if reg=="resolved" else (AK8jets))
                 
@@ -162,7 +161,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                             firstpt= 30.
                             lastpt= 200.
                     else: 
-                        binning = ( VarBin([200., 300.,  450., 600., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) )
+                        binning = ( VarBin([200., 250., 300., 350., 450., 500., 600., 800., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) )
                         firstpt= 200.
                         lastpt= 800.
     
@@ -290,15 +289,17 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         from plotit.plotit import Stack
         from bamboo.root import gbl
         import ROOT
+        from ROOT import TFile, TH1, TH2, TCanvas
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        #change default ROOT style
+        #  change default ROOT style
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        #gbl.gStyle.SetHistLineColor(4)
-        #gbl.gStyle.SetHistLineWidth(2)
-        #gbl.gStyle.SetMarkerColor(4)
-        #gbl.gStyle.SetMarkerStyle(8)
+        # gbl.gStyle.SetHistLineColor(4)
+        # gbl.gStyle.SetHistLineWidth(2)
+        # gbl.gStyle.SetMarkerColor(4)
+        # gbl.gStyle.SetMarkerStyle(8)
         gbl.gStyle.SetPalette(1)
-        
+        # https://root.cern.ch/doc/master/classTHistPainter.html#HP07
+        gbl.gStyle.SetOptStat(0) # stat box is OFF 
         for plot in plots_2D:
             if ('_2j_jet_pt_eta_') in plot.name  or plot.name.startswith('pair_lept_2j_jet_pt_vs_eta_'):
                 expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
@@ -338,6 +339,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         taggers_and_workingspoints = { "resolved": { "deepcsv": ["L","M","T"] , "deepflavour": ["L","M","T"] }, 
                                        "boosted" : { "deepcsv": ["L","M"]}
                                      } 
+        
         for proc in list(config["samples"].keys()) + ["summedProcesses_" + suff for suff in ["run2"] + list(config["eras"].keys())]:
             in_tf = HT.openFileAndGet(os.path.join(resultsdir, proc + ".root"), "read")
             out_tf = HT.openFileAndGet(os.path.join(resultsdir, "summedProcessesForEffmaps", proc + "_ratios.root"), "recreate")
@@ -353,3 +355,16 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                                 getRatio(in_tf, f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{process}", f"__mc_eff").Write()
             in_tf.Close()
             out_tf.Close()
+
+        ff = gbl.TFile(os.path.join(resultsdir, "summedProcessesForEffmaps/summedProcesses_run2_ratios.root"))
+        to_print2D = []
+        for obj_key in ff.GetListOfKeys():
+            obj = ff.Get(obj_key.GetName())
+            if isinstance(obj,TH2):
+                to_print2D.append(obj)
+        if len(to_print2D) != 0:
+            for i,obj in enumerate(to_print2D):
+                cv = gbl.TCanvas()
+                obj.Draw("COLZ0, TEXT")
+                cv.Update()
+                cv.SaveAs(os.path.join(resultsdir, f"summedProcessesForEffmaps/{obj.GetName()}.png"))
