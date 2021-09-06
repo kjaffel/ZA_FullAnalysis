@@ -277,8 +277,6 @@ requested_samples=(
 )
 
 
-# Subscribe/Transfer the container to a site  ( to be done just once )
-#rucio add-rule user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER 1 T2_BE_UCL
 for smp in ${requested_samples[*]}; do 
     #rucio add-rule cms:$smp 1 T2_BE_UCL
     # ! To be used when you don't have enouh quota; ask IT for approval and then later you can increase 
@@ -287,7 +285,8 @@ for smp in ${requested_samples[*]}; do
     rucio attach user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER cms:$smp
 done
 
-rucio add-rule --account kjaffel user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER 1 T2_BE_UCL
+# ! Subscribe/Transfer the container to a site
+rucio add-rule --account=kjaffel user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER 1 T2_BE_UCL
 #rucio list-rules --account=kjaffel
 rucio list-rules --account=kjaffel | grep "REPLICATING"
 # ! Check the current contents of the container 
