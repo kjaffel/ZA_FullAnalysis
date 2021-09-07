@@ -1,0 +1,87 @@
+tree: Events
+eras:
+  'run2':
+    luminosity: 137191.592856304 #pb 
+    luminosity-error: 0.025 
+samples:
+# LO samples 
+# ##########################
+  HToZATo2L2B_200p00_125p00_20p00_bbH4F_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/NanoGenScripts/resultsNanoGen/compare_bbH_aLO_vs_amacnlo__ext4/outputs/HToZATo2L2B_200p00_125p00_20p00_bbH4F_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 8.160e-03 # +- 3.031e-05 pb from pythia fragment # 3.53912000E+01 # +- 2.78324345E-04 pb from Sushi 
+    branching-ratio: 0.0005580116996328394  # BR(H->ZA )*BR(A-> bb) = 0.000608540857 *0.916966697
+    line-color: "#660066"
+    line-type: 2
+    line-width: 3
+    legend: bbH4F @LO, MH-200_MA-125_tb-20.
+    type: signal 
+    era: "run2"
+
+  HToZATo2L2B_750p00_610p00_20p00_bbH4F_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/NanoGenScripts/resultsNanoGen/compare_bbH_aLO_vs_amacnlo__ext4/outputs/HToZATo2L2B_750p00_610p00_20p00_bbH4F_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 2.777e-03 # +- 7.763e-06 pb from pythia fragment # 1.49484953E-01 # +- 9.59677718E-07 pb from Sushi 
+    branching-ratio:   0.2504152413903842 # BR(H-> ZA)*BR(A->bb) = 0.284793503 *0.879287058
+    line-color: "#6efdfd"
+    line-type: 2
+    line-width: 3
+    legend: bbH4F @LO, MH-750_MA-610_tb-20.
+    type: signal 
+    era: "run2"
+
+# NLO samples
+# ##################################
+  HToZATo2L2B_200p00_125p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/NanoGenScripts/resultsNanoGen/compare_bbH_aLO_vs_amacnlo__ext6/outputs/HToZATo2L2B_200p00_125p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 8.148e-03 # +- 3.021e-05 from pythia fragment # 3.90690610E+01  # +- 2.43185662E-04 pb from Sushi 
+    branching-ratio: 0.0005580116996328394  # BR(H->ZA )*BR(A-> bb) = 0.000608540857 *0.916966697
+    line-color: "#660066"
+    line-type: 1
+    line-width: 3
+    legend: bbH4F @NLO, MH-200_MA-125_tb-20.
+    type: signal
+    era: "run2"
+
+  HToZATo2L2B_750p00_610p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/NanoGenScripts/resultsNanoGen/compare_bbH_aLO_vs_amacnlo__ext6/outputs/HToZATo2L2B_750p00_610p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 2.795e-03 # +-  9.999e-06 from pythia fragment # 1.46038327E-01 # +- 8.08070302E-07  pb from Sushi 
+    branching-ratio: 0.2504152413903842 # BR(H-> ZA)*BR(A->bb) = 0.284793503 *0.879287058
+    line-color: "#6efdfd"
+    line-type: 1
+    line-width: 3
+    legend: bbH4F @NLO, MH-750_MA-610_tb-20.
+    type: signal
+    era: "run2"
+
+plotIt:
+  configuration:
+    width: 800
+    height: 600
+    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
+    experiment: CMS
+    extra-label: Bamboo prelimenary --Full run2NanoGen 
+    show-overflow: true
+    y-axis-format: "%1% / %2$.2f [GeV]"
+    margin-left: 0.15
+    margin-right: 0.03
+    margin-top: 0.05 
+    margin-bottom: 0.13
+  legend:
+    columns: 2 
+    position: [0.2, 0.7, 0.9, 0.9]
+    line_width: 2
+  groups:
+    signal:
+      fill-color: "#0000FF"
+      legend: Signal
+  plotdefaults:
+      y-axis: Events
+      log-y: both
+      y-axis-show-zero: True
+      save-extensions: [pdf]
+      show-ratio: True
+      ratio-y-axis-range: [0.6, 1.4]
+      sort-by-yields: False
