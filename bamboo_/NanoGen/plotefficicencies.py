@@ -14,7 +14,7 @@ colors = ['blue', 'purple', 'aquamarine', 'crimson', 'turquoise', 'forestgreen',
 linestyles = ['-', '--', '-.', ':']
 
 
-def Plot_Eff(path=None):
+def Plot_Eff(path= None, eff_x_acc_vs_mH= False):
 
     PATHBASE ="/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/NanoGen/"
     
@@ -34,24 +34,27 @@ def Plot_Eff(path=None):
     fig= plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
     
-    nlo_dics_sorted = defaultdict(dict)
-    for k in lo_dics.keys():
-        nlo_dics_sorted[k.replace("13TeV", "13TeV-amcatnlo")]= nlo_dics[k.replace("13TeV", "13TeV-amcatnlo")]
-    
     selec_vals   = defaultdict(dict) 
     SumW_vals    = defaultdict(dict) 
-    Nevents_vals = defaultdict(dict)
-    eff_vals     = defaultdict(dict)
-    for cat in ["oslep"]:#"elel", "mumu", "elmu"]:
+    Nevents_vals  = defaultdict(dict)
+    eff_vals      = defaultdict(dict)
+    acc_vals      = defaultdict(dict)
+    mH_vals       = defaultdict(dict)
+    eff_X_acc_vals= defaultdict(dict)
 
+    for cat in ["oslep"]:#"elel", "mumu", "elmu"]:
         for idx, dics in enumerate([lo_dics, nlo_dics]):
+            mH_vals[cat]        = []
+            eff_X_acc_vals[cat] = []
             for j, (smpNm, vals) in enumerate(sorted(dics.items())):
                 
-                print( smpNm, vals )
+                #print( smpNm, vals )
 
                 MH = string_to_mass(smpNm.split('_')[2])
                 MA = string_to_mass(smpNm.split('_')[3])
                 tb = string_to_mass(smpNm.split('_')[4])
+                
+                mH_vals[cat].append(MH)
                 
                 process = "bbH4F@NLO" if "amcatnlo" in smpNm else "bbH4F@LO"
                 legend ="{}, MH-{}_MA-{}_tb-{}".format(process, string_to_mass(str(MH)), string_to_mass(str(MA)), string_to_mass(str(tb)))
@@ -62,34 +65,53 @@ def Plot_Eff(path=None):
                 eff_vals[cat]     = []
                 
                 SumW_tot = float(vals["total_generated_events"][0][2])
+                
                 for i, list in enumerate(vals[cat]):
 
                     selec_vals[cat].append(list[0])
                     Nevents_vals[cat].append(float(list[1]))
-                    
+                
                     SumW_pass = float(list[2])
                     SumW_vals[cat].append(float(list[2]))
-                   
-                    
+                
                     eff_vals[cat].append(SumW_pass/SumW_tot)
                 eff = eff_vals[cat] +[1.] 
+                sorted_eff = sorted(eff, reverse=True)
                 sorted_cuts = ['generated_events', '2 OSSF Leptons', '>= 3GenJets', '>= 3GenBJets']
+                acc = sorted_eff[2]
+                eff_X_acc_vals[cat].append(sorted_eff[3]*acc)
                 print( " warning : be careful , watch out your selection , xtick labes done manually ") 
-                ax.plot(sorted_cuts, sorted(eff, reverse=True), "o", linestyle=linestyles[idx], color=colors[j], label="%s"%legend)
+                if not eff_x_acc_vs_mH:
+                    ax.plot(sorted_cuts, sorted_eff, "o", linestyle=linestyles[idx], color=colors[j], label="%s"%legend)
+                
+
+            order = "@LO" if idx==0 else "@NLO"
+            legend = "OSSF-Lep {}".format(order) if cat =="oslep" else "{} {}".format(order,cat.upper())
+            if eff_x_acc_vs_mH:
+                ax.plot(mH_vals[cat], eff_X_acc_vals[cat], "o", linestyle=linestyles[idx], color=colors[idx], label="%s"%legend)
+
+        plt.title('CMS Simulation Preliminary', fontsize=14., loc='left')
+        plt.title('$\sqrt{s}= 13TeV, 139fb{-1}$', fontsize=14., loc='right')
+        plt.legend(fontsize=14., loc="best", frameon=False)
         
-        plt.title('CMS Preliminary', fontsize=12., loc='left')
-        ax.set_xticks([0., 1., 2., 3.])
-        ax.set_xticklabels(sorted_cuts, rotation=20., fontsize=8)
-        ax.set_ylabel("Efficiencies @mcatnlo vs lo ")
-        plt.legend(loc="best")
+        if eff_x_acc_vs_mH:
+            ax.set_ylabel("Acceptance x Efficiency", fontsize=14.)
+            ax.set_xlabel("$M_{H} [GeV]$", fontsize=14.)
+        else:
+            ax.set_xticks([0., 1., 2., 3.])
+            ax.set_xticklabels(sorted_cuts, rotation=20., fontsize=14.)
+            ax.set_ylabel("Efficiencies @mcatnlo vs lo ", fontsize=14.)
         
-        fig.savefig("plots/eff_{}.png".format(cat))
-        print ("plot saved in : plots/eff_{}.png".format(cat))
+        suffix = 'eff_x_acc_vs_mH' if eff_x_acc_vs_mH else 'eff'
+        fig.savefig("plots/{}_{}.png".format(suffix, cat))
+        print ("plot saved in : plots/{}_{}.png".format(suffix, cat))
         plt.gcf().clear()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--path', required=True, help='bamboo output dir ')
+    parser.add_argument('-acc', '--acceptance', action='store_true', default= True, 
+            help='Acceptance times efficiency for the full analysis selection as a function of the resonance mass mH')
     options = parser.parse_args()
     
-    Plot_Eff(path=options.path)
+    Plot_Eff(path= options.path, eff_x_acc_vs_mH= options.acceptance)
