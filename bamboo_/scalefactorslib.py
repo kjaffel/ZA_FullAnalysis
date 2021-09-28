@@ -6,12 +6,14 @@ zabPath = os.path.dirname(__file__)
 if zabPath not in sys.path:
     sys.path.append(zabPath)
 
+def localize_myanalysis(aPath, version="FullRun2"):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_{0}".format(version), aPath)
 def localize_myRun2UlegacyAnalysis(aPath, version="FullRun2ULegacy"):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ScaleFactors_{0}".format(version), aPath)
-def localize_myanalysis(aPath, version="FullRun2-ver0"):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_{0}".format(version), aPath)
 def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies", aPath)
+def localize_run2Ultrigger(aPath):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies/run2UlegacyHLT", aPath)
 def localize_PileupJetID(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/PileupFullRunII/PileupJetID", aPath)
 def localize_eChargeMisIDRates(aPath):
@@ -21,12 +23,12 @@ all_run2_Ulegacyscalefactors = {
        ############################################
        # 2016 ULegacy:
        ############################################
-       # Electrons:  BCDE F-up to run 278807 
+       # Electrons: 
             # preVFP BCDE F-up to run 278807 : https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2016_preVFP
             # postVFP F from run 278808 to H : https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2016_postVF
        # Muons  :    https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2016#Scale_and_Resolution_AN1
        # Btagging :  
-       "electron_Summer19UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+       "electron_Summer19UL2016_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
                             if isinstance(v, str) 
                             else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
 
@@ -41,7 +43,7 @@ all_run2_Ulegacyscalefactors = {
                         )),
 
        # scale factor = (L(BCDEF)*sf(BCDEF) + L(GH)*sf(GH))/(L(BCDEF)+L(GH))  
-       "muon_Summer19UL16_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
+       "muon_Summer19UL2016_106X" : dict((k,( localize_myRun2UlegacyAnalysis(v) 
                             if isinstance(v, str) 
                             else [ (eras, localize_myRun2UlegacyAnalysis(path)) for eras,path in v ])) for k, v in chain(
 
@@ -57,14 +59,15 @@ all_run2_Ulegacyscalefactors = {
                                 for (isowp,idwp) in (("LooseRel","LooseID"), ("LooseRel","MediumID"), ("LooseRel", "MediumPromptID"), ("LooseRel", "TightIDandIPCut"), ("LooseRelTk", "HighPtIDandIPCut"), ("LooseRelTk", "TrkHighPtIDandIPCut"), ("TightRel", "MediumID"), ("TightRel", "MediumPromptID"), ("TightRel","TightIDandIPCut"), ("TightRelTk", "HighPtIDandIPCut"), ("TightRelTk","TrkHighPtIDandIPCut"))).items(),
                     
                         )),
+       "hlt_Summer19UL2016_106X" : { "HLT_Mu50-TkMu50": localize_run2Ultrigger("UL2016/HLT_Mu50_TkMu50_highpT_Run2016_UL_cp3format.json"),},
 
        ############################################
        # 2017 ULegacy:
        ############################################
        # Electrons: https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2017        
        # Muons: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2017#Medium_pT_from_15_to_120_GeV
-       # Btagging: 
-       "electron_Summer19UL17_106X" : dict((k,localize_myanalysis(v)) for k, v in chain(
+       # Btagging: https://twiki.cern.ch/twiki/bin/view/CMS/BtagRecommendation106XUL17 
+       "electron_Summer19UL2017_106X" : dict((k,localize_myRun2UlegacyAnalysis(v)) for k, v in chain(
                             dict(("id_{wp}".format(wp=wp.lower()),
                                 ("EGamma_SF2D_Run2017UL_{wp}.json".format(wp=wp)))
                                 for wp in ("Veto", "Loose", "Medium", "Tight", "wpiso80", "wpiso90", "wp80noiso", "wp90noiso")).items(),
@@ -74,7 +77,7 @@ all_run2_Ulegacyscalefactors = {
                                 for pt in ("ptBelow20", "ptAbove20")).items(),
                          )),
     
-       "muon_Summer19UL17_106X": dict((k,localize_myanalysis(v)) for k, v in chain(
+       "muon_Summer19UL2017_106X": dict((k,localize_myRun2UlegacyAnalysis(v)) for k, v in chain(
                             dict(("id_{wp}".format(wp=wp.lower()),
                                 ("Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2017_UL_ID.json".format(wp=wp, uncer=uncer)))
                                 for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")for uncer in ("syst","stat")).items(),
@@ -86,21 +89,25 @@ all_run2_Ulegacyscalefactors = {
                         )),
                             
        
-       "btag_Summer19UL17_106X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+       "btag_Summer19UL2017_106X" : dict((k,( tuple(localize_myRun2UlegacyAnalysis(fv) for fv in v) 
                             if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
-                            else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
+                            else [ (eras, tuple(localize_myRun2UlegacyAnalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
         ## Resolved:
             # DeepCSV , DeepJet
                             dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_106XUL17SF_WPonly_V2p1.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
                             for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
+            # Subjet b-tagging:
+                            dict(("subjet_{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_106X_UL17_SF.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
+                            for (flav, calib) in (("lightjets", "incl"), ("cjets", "lt"), ("bjets","lt")))) for wp in ("loose", "medium") for algo in ("DeepCSV", ) ).items(),
                         )),                    
+       "hlt_Summer19UL2017_106X" : { "HLT_Mu50-TkMu100-Mu100": localize_run2Ultrigger("UL2017/HLT_Mu50_TkMu100_Mu100_highpT_Run2017_UL_cp3format.json"),},
        ############################################
        # 2018 ULegacy:
        ############################################
        # Electrons: https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#SFs_for_Electrons_UL_2018
        # Muons: https://twiki.cern.ch/twiki/bin/viewauth/CMS/MuonUL2018
-       # Btagging: 
-       "electron_Summer19UL18_106X" : dict((k,localize_myanalysis(v)) for k, v in chain(
+       # Btagging: https://twiki.cern.ch/twiki/bin/view/CMS/BtagRecommendation106XUL18 
+       "electron_Summer19UL2018_106X" : dict((k,localize_myRun2UlegacyAnalysis(v)) for k, v in chain(
                             dict(("id_{wp}".format(wp=wp.lower()),
                                 ("EGamma_SF2D_Run2018UL_{wp}.json".format(wp=wp)))
                                 for wp in ("Veto", "Loose", "Medium", "Tight", "wpiso80", "wpiso90", "wp80noiso", "wp90noiso")).items(),
@@ -110,7 +117,8 @@ all_run2_Ulegacyscalefactors = {
                                 for pt in ("ptBelow20", "ptAbove20")).items(),
                         )),
        
-       "muon_Summer19UL18_106X": dict((k,localize_myanalysis(v)) for k, v in chain(
+       #  High pT (above 120 GeV)  
+       "muon_Summer19UL2018_106X": dict((k,localize_myRun2UlegacyAnalysis(v)) for k, v in chain(
                             dict(("id_{wp}".format(wp=wp.lower()),
                                 ("Muon_NUM_{wp}ID_DEN_TrackerMuons_abseta_pt_{uncer}_Run2018_UL_ID.json".format(wp=wp, uncer=uncer)))
                                 for wp in ("HighPt", "Loose", "Medium", "MediumPrompt", "Soft","Tight", "TrkHighPt")for uncer in ("syst","stat")).items(),
@@ -121,19 +129,18 @@ all_run2_Ulegacyscalefactors = {
                                 for uncer in ("syst", "stat")).items(), 
                        )),
        
-       "btag_Summer19UL18_106X" : dict((k,( tuple(localize_myanalysis(fv) for fv in v) 
+       "btag_Summer19UL2018_106X" : dict((k,( tuple(localize_myRun2UlegacyAnalysis(fv) for fv in v) 
                             if isinstance(v,tuple) and all(isinstance(fv, str) for fv in v)
                             else [ (eras, tuple(localize_myanalysis(fpath) for fpath in paths)) for eras,paths in v ])) for k, v in chain(
         ## Resolved:
             # DeepCSV , DeepJet
                             dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_106XUL18SF_WPonly.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
                             for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
-                        )),                    
-                            
-                            
+                        )),          
+
+       "hlt_Summer19UL2018_106X" : { "HLT_Mu50-TkMu100-Mu100": localize_run2Ultrigger("UL2018/HLT_Mu50_TkMu100_Mu100_highpT_Run2018_UL_cp3format.json"),},
+                                
     }
-
-
 
 
 
@@ -189,8 +196,6 @@ all_scalefactors = {
                             dict(("{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_{algo}_2016Legacy.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
                             for (flav, calib) in (("lightjets", "incl"), ("cjets", "comb"), ("bjets","comb")))) for wp in ("loose", "medium", "tight") for algo in ("DeepCSV", "DeepJet") ).items(),
         ## Boosted event topologies:
-            # FIXME : to be passed later for nanov7
-            # DeepCSV ( same WP as AK4jets in DeepCSV but different SFs : *** need to be careful ! )
                             dict(("subjet_{algo}_{wp}".format(algo=algo, wp=wp), tuple("BTagging_{wp}_{flav}_{calib}_subjet_{algo}_2016Legacy.json".format(wp=wp, flav=flav, calib=calib, algo=algo) 
                             for (flav, calib) in (("lightjets", "incl"), ("cjets", "lt"), ("bjets","lt")))) for wp in ("loose", "medium") for algo in ("DeepCSV", ) ).items(),
                          )),

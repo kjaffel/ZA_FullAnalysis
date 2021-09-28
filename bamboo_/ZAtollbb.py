@@ -410,7 +410,7 @@ class NanoHtoZABase(NanoAODModule):
 
             if self.isMC(sample):
                 jec="Summer19UL17_V5_MC"
-                smear="Summer19UL17_JRV2_MC"
+                smear="Summer19UL17_JRV3_MC"
                 if self.doSplit:
                     jesUncertaintySources=['Absolute', 'Absolute_2017', 'BBEC1', 'BBEC1_2017', 'EC2', 'EC2_2017', 'FlavorQCD', 'HF', 'HF_2017', 'RelativeBal', 'RelativeSample_2017']
                 else:
@@ -459,6 +459,7 @@ class NanoHtoZABase(NanoAODModule):
         # JEC's Recommendation for Full RunII: https://twiki.cern.ch/twiki/bin/view/CMS/JECDataMC
         # JER : -----------------------------: https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution
         # list of supported para in JER : https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyResolution#List_of_supported_parameters 
+        # github : https://github.com/cms-jet/JRDatabase/tree/master/textFiles
         #############################
         
         cmJMEArgs = {
@@ -549,6 +550,7 @@ class NanoHtoZABase(NanoAODModule):
         
         isMC = self.isMC(sample)
         era  = sampleCfg.get("era") if sampleCfg else None
+        era_ = era if "VFP" not in era else "2016"
         preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
         
         globalTag  = "106X" if self.nanoaodversion in ["v8", "v9"] else( "94X" if era != "2018" else ( "102X"))
@@ -666,24 +668,26 @@ class NanoHtoZABase(NanoAODModule):
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), systName="muiso-tight") 
             #mutrackingSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
             
-            # Additional SFs 
-            #if era == "2018":
-                #TkMuLowpT_reco = get_correction("Efficiency_muon_generalTracks_Run2018_UL_trackerMuon_below30.json", 
-                #                                "NUM_TrackerMuons_DEN_genTracks", 
-                #                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
-                #                                systName= "TkMuonLowpTRECO", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                #
-                #TkMuLowpT_id = get_correction("Efficiency_muon_trackerMuon_Run2018_UL_ID_below30.json", 
-                #                              "NUM_MediumID_DEN_TrackerMuons", 
-                #                               params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
-                #                               systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                #
-                #TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
-                #                                  "Eff_TrackerMuons_HighMomentum", 
-                #                                   params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
-                #                                   systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                #
-                #SLHLTMu  = get_legacyscalefactor("lepton", ("hlt_Summer19UL2018_106X", "HLT_Mu50-TkMu100-Mu100"), isElectron=True, systName="hltMu50-TkMu100-Mu100")
+        ########################################
+        # Additional SFs 
+        ########################################
+        # TkMuLowpT_reco = get_correction("Efficiency_muon_generalTracks_Run2018_UL_trackerMuon_below30.json", 
+        #                                 "NUM_TrackerMuons_DEN_genTracks", 
+        #                                 params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+        #                                 systName= "TkMuonLowpTRECO", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+        # 
+        # TkMuLowpT_id = get_correction("Efficiency_muon_trackerMuon_Run2018_UL_ID_below30.json", 
+        #                               "NUM_MediumID_DEN_TrackerMuons", 
+        #                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+        #                                systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+        # 
+        TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
+                                          "Eff_TrackerMuons_HighMomentum", 
+                                           params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
+                                           systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+        
+        trig_filter = "HLT_Mu50-TkMu100-Mu100" if "VFP" not in era else "HLT_Mu50-TkMu50"
+        SLHLTMu  = get_legacyscalefactor("lepton", (f"hlt_Summer19UL{era_}_106X", trig_filter), isElectron=True, systName=trig_filter.lower())
         ###############################################
         # Electrons : ID , RECO cuts and scale factors
         # Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
@@ -1188,7 +1192,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         (846.11, 475.64), (846.11,  74.80), (997.14, 160.17), (997.14, 217.19), (997.14, 254.82), (997.14, 64.24) ]
 
 
-        make_ZpicPlots              = True  #*
+        make_ZpicPlots              = True #*
         make_JetmultiplictyPlots    = True #*
         make_JetschecksPlots        = True # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
         make_JetsPlusLeptonsPlots   = True #*
@@ -1199,7 +1203,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_ellipsesPlots          = False #*
         make_PlotsforCombinedLimits = False
         
-        # One of these two should be True if you want to get the final sel plots ll +bb  
+        # One of these two should be True if you want to get the final sel plots (.ie. ll + bb )
         make_bJetsPlusLeptonsPlots_METcut   = False
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
@@ -1671,7 +1675,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 plotstoNormalized.append(plots)
         if not os.path.isdir(os.path.join(resultsdir, "normalizedForCombined")):
             os.makedirs(os.path.join(resultsdir,"normalizedForCombined"))
-        #FIXME
         normalizeAndMergeSamplesForCombined(plotstoNormalized, self.readCounters, config, resultsdir, os.path.join(resultsdir, "normalizedForCombined"))
         
         # save generated-events for each samples--- > mainly needed for the DNN
