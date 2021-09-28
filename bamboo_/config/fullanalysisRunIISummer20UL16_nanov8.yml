@@ -21,7 +21,7 @@ eras:
         #    | 66    | 164  | 94094 | 93787 | 17796.657942688   | 16977.701784453  |
         #    +-------+------+-------+-------+-------------------+------------------+
 samples:
-  DYToLL_0J_postVFP:
+  DYJetsToLL_0J_postVFP:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_0J_2016UL_postVFP.dat
     generated-events: 'genEventSumw'
@@ -30,7 +30,7 @@ samples:
     era: '2016-postVFP'
     split: 4
 
-  DYToLL_0J_preVFP:
+  DYJetsToLL_0J_preVFP:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_0J_2016UL_preVFP.dat
     generated-events: 'genEventSumw'
@@ -39,7 +39,7 @@ samples:
     era: '2016-preVFP'
     split: 4
     
-  DYToLL_1J_postVFP:
+  DYJetsToLL_1J_postVFP:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_1J_2016UL_postVFP.dat
     generated-events: 'genEventSumw'
@@ -48,7 +48,7 @@ samples:
     era: '2016-postVFP'
     split: 4
 
-  DYToLL_1J_preVFP:
+  DYJetsToLL_1J_preVFP:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_1J_2016UL_preVFP.dat
     generated-events: 'genEventSumw'
@@ -57,7 +57,7 @@ samples:
     era: '2016-preVFP'
     split: 4
   
-  DYToLL_2J_postVFP:
+  DYJetsToLL_2J_postVFP:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_2J_2016UL_postVFP.dat
     generated-events: 'genEventSumw'
@@ -66,7 +66,7 @@ samples:
     era: '2016-postVFP'
     split: 4
 
-  DYToLL_2J_preVFP:
+  DYJetsToLL_2J_preVFP:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
     files: dascache/nanov8/DYToLL_2J_2016UL_preVFP.dat
     generated-events: 'genEventSumw'
