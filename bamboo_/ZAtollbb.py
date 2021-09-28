@@ -681,10 +681,15 @@ class NanoHtoZABase(NanoAODModule):
         #                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
         #                                systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
         # 
-        TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
-                                          "Eff_TrackerMuons_HighMomentum", 
-                                           params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
-                                           systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+        #TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
+        #                                  "Eff_TrackerMuons_HighMomentum", 
+        #                                   params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
+        #                                   systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+        #
+        # WORK AROUND !!
+        HighPt_Muons_f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_FullRun2ULegacy", f"HighpTMuon_above120_Run{era_}UL_RECO_cp3format.json")
+        TkMuHighMom_reco_mu0  = Get_POG_highPT_MU_RECO_EFF(muons[0].p, HighPt_Muons_f, era_)
+        TkMuHighMom_reco_mu1  = Get_POG_highPT_MU_RECO_EFF(muons[0].p, HighPt_Muons_f, era_)
         
         trig_filter = "HLT_Mu50-TkMu100-Mu100" if "VFP" not in era else "HLT_Mu50-TkMu50"
         SLHLTMu  = get_legacyscalefactor("lepton", (f"hlt_Summer19UL{era_}_106X", trig_filter), isElectron=True, systName=trig_filter.lower())
@@ -828,7 +833,7 @@ class NanoHtoZABase(NanoAODModule):
 
         ###############################################
         # btagging requirements :
-        # Now,  let's ask for the jets to be a b-jets 
+        # Now,  let's ask for the jets to be a b tagged b-jets 
         # DeepCSV or DeepJet==DeepFlavour medium b-tagging working point
         # bjets ={ "DeepFlavour": {"L": ( pass loose, fail medium, fail tight), 
         #                          "M": ( pass loose, pass medium  fail tight), 
@@ -1056,10 +1061,10 @@ class NanoHtoZABase(NanoAODModule):
         
         if version_TriggerSFs == None or (version_TriggerSFs =='tth' and era=='2018'): # will pass HHMoriond17 the default version 
             
-            doubleMuTrigSF = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="HHMoriond17-mumutrig")  
+            doubleMuTrigSF  = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="HHMoriond17-mumutrig")  
             doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="HHMoriond17-eleltrig")
-            elemuTrigSF = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17-elmutrig")
-            mueleTrigSF = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17-mueltrig")
+            elemuTrigSF     = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17-elmutrig")
+            mueleTrigSF     = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17-mueltrig")
 
         ########################################################
         ########################################################
@@ -1086,10 +1091,10 @@ class NanoHtoZABase(NanoAODModule):
                     }
         else:
             # tth SFs and others ... 
-            doubleMuTrigSF= getTriggerSystematcis(era, osLLRng.get('MuMu')[0], 'MuMu', version_TriggerSFs)
+            doubleMuTrigSF  = getTriggerSystematcis(era, osLLRng.get('MuMu')[0], 'MuMu', version_TriggerSFs)
             doubleEleTrigSF = getTriggerSystematcis(era, osLLRng.get('ElEl')[0], 'ElEl', version_TriggerSFs)
-            elemuTrigSF = getTriggerSystematcis(era, osLLRng.get('ElMu')[0], 'ElMu', version_TriggerSFs)
-            mueleTrigSF = getTriggerSystematcis(era, osLLRng.get('MuEl')[0], 'MuEl', version_TriggerSFs)
+            elemuTrigSF     = getTriggerSystematcis(era, osLLRng.get('ElMu')[0], 'ElMu', version_TriggerSFs)
+            mueleTrigSF     = getTriggerSystematcis(era, osLLRng.get('MuEl')[0], 'MuEl', version_TriggerSFs)
             
             llSFs = {
                 "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF, L1Prefiring ]), # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),

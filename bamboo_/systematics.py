@@ -1,6 +1,7 @@
+import os, os.path
+import json
 import logging
 logger = logging.getLogger("ZA systematics")
-
 from bamboo import treefunctions as op
 
 def  getHLTZvtxSF (era, sample, splitbyeras):
@@ -129,4 +130,32 @@ def getTriggerSystematcis(era, leptons, suffix, version):
                 # SF = 0.992 ± 0.005
                 wgt = op.systematic(op.c_float(0.992), name="{0}trig".format(suffix.lower()), up=op.c_float(0.997), down=op.c_float(0.987))
         
-    return wgt 
+    return wgt
+
+def Get_POG_highPT_MU_RECO_EFF(mu_mom, mu_eta, corr_file, era):
+    
+
+    with open(corr_file) as f:
+        corrections = json.load(f)
+
+    nominal    = 1. 
+    error_high = 0.
+    error_low  = 0.
+
+    for i in range(len(corrections['data'])):
+        print( "*/*", "eta:", corrections['data'][i]['bin'])
+        eta_min = corrections['data'][i]['bin'][0]
+        eta_max = corrections['data'][i]['bin'][1]
+        while  op.in_range(eta_min, mu_eta, eta_max):
+            momentum_min = corrections['data'][i]['bin'][0] 
+            momentum_max = corrections['data'][i]['bin'][1]
+            while j in range(len(corrections['data'][i]['values'])):
+                print ( "momentum :", corrections['data'][i]['values'][j]['bin'], "values : ", corrections['data'][i]['values'][j])
+                
+                if op.in_range(momentum_min, mu_mom, momentum_max):
+
+                    nominal     = corrections['data'][i]['values'][j]['value']
+                    error_high  = corrections['data'][i]['values'][j]['error_high']
+                    error_low   = corrections['data'][i]['values'][j]['error_low']
+                    break
+    return op.systematic(op.c_float(nominal), name="TkMuonHighpTReco", up=op.c_float(error_high), down=op.c_float(error_low))
