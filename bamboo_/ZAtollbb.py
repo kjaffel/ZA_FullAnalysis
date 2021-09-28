@@ -262,15 +262,16 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy'")
 
     def customizeAnalysisCfg(self, config=None):
-       # if not os.path.exists(self.args.output):
-       #     os.makedirs(self.args.output)
-       # with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
-       #     yaml.dump(config, backupCfg)
-        os.system('(git log -n 1;git diff) &> %s/git.log' % self.args.output)
+        if self.args.distributed == "driver" or not self.args.distributed:
+            os.system('(git log -n 1;git diff) &> %s/git.log' % self.args.output)
+       #    with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
+       #        yaml.dump(config, backupCfg)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
+        preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
+        postVFPruns = ["2016G", "2016H"]
 
         if self.nanoaodversion in ["v8", "v9"]:
             metName   = "MET"
@@ -314,13 +315,11 @@ class NanoHtoZABase(NanoAODModule):
             M22 = math.cos(theta)/math.sqrt(b)
             ellipses_handle.push_back(gbl.MassWindow(xc, yc, M11, M12, M21, M22))
 
-        if era == "2016":
-            preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
-            
-            if "preVFP" in sample or "HIPM" in sample or any(x in sample for x in preVFPruns):
-                configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016aUL.txt"), isMC=isMC, backend=be, uName=sample)
-            else:
-                configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016bUL.txt"), isMC=isMC, backend=be, uName=sample)
+        if era == "2016-preVFP":
+        #if "preVFP" in sample or any(x in sample for x in preVFPruns):
+            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016aUL.txt"), isMC=isMC, backend=be, uName=sample)
+        elif era == "2016-postVFP":
+            configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016bUL.txt"), isMC=isMC, backend=be, uName=sample)
 
             triggersPerPrimaryDataset = {
                 "DoubleMuon" : [ tree.HLT.Mu17_TrkIsoVVL_Mu8_TrkIsoVVL,
@@ -343,7 +342,7 @@ class NanoHtoZABase(NanoAODModule):
                         tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL]
 
             if self.isMC(sample):
-                if "preVFP" in sample or "HIPM" in sample or "APV" in sample:
+                if "preVFP" in sample:
                     jec   = "Summer19UL16APV_V7_MC"
                     smear = "Summer20UL16APV_JRV3_MC"
                 else:
@@ -357,7 +356,7 @@ class NanoHtoZABase(NanoAODModule):
                 
             else:
                 jec   = "Summer19UL16_RunBCDEFGH_Combined_V7_DATA"
-                if "preVFP" in sample or "HIPM" in sample or any(x in sample for x in preVFPruns):
+                if "preVFP" in sample or any(x in sample for x in preVFPruns):
                     smear = "Summer20UL16APV_JRV3_DATA"
                 else:
                     smear = "Summer20UL16_JRV3_DATA"
@@ -574,11 +573,11 @@ class NanoHtoZABase(NanoAODModule):
         #   https://cp3-mm.irmp.ucl.ac.be/cp3-llbb/pl/w9srgswcabf1xfzxxnw9sjzt4e
         ##################################################
         
-        if era == "2016":
+        if "2016" in era:
             if isULegacy:
-                if "preVFP" in sample or "HIPM" in sample or any(x in sample for x in preVFPruns):
+                if "preVFP" in era :
                     puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII/run2Ulegacy", "Ulegacy2016-preVFP_pileupWeights.json")
-                else:
+                elif "postVFP" in era:
                     puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII/run2Ulegacy", "Ulegacy2016-postVFP_pileupWeights.json")
             else:
                 puWeightsFile = os.path.join(os.path.dirname(__file__), "data/PileupFullRunII/run2EOY", "puweights2016_Moriond17.json")
@@ -617,7 +616,7 @@ class NanoHtoZABase(NanoAODModule):
         # Top reweighting :
         # https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf
         ###########################################
-        if era != '2016' and self.isMC(sample) and sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
+        if self.isMC(sample) and sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
             genTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==6))
             gen_antiTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==-6))
             gen_pt = op.map(genTop_pt, lambda top: top.pt)
@@ -635,15 +634,11 @@ class NanoHtoZABase(NanoAODModule):
             forceDefine(gen_pt, noSel)
             plots.append(Plot.make1D("gen_ToppT_withReweighting".format(suffix), gen_pt, noSel, EqB(60 // binScaling, 0., 1200.), title="gen Top p_{T} [GeV]")) 
         
-        if era=='2016':
-            isDY_reweight = (sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"])
-        else:
-            isDY_reweight = (sample in ["DYToLL_0J", "DYToLL_1J", "DYToLL_2J"])
         # it will crash if evaluated when there are no two leptons in the matrix element
+        isDY_reweight = (sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"])
+        genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
         if isDY_reweight:
-            genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
             gen_ptll_nlo = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
-            
             forceDefine(gen_ptll_nlo, noSel)
             #plots.extend(Plots_gen(gen_ptll_nlo, noSel, "noSel"))
             #plots.extend(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
@@ -663,7 +658,7 @@ class NanoHtoZABase(NanoAODModule):
 
         # 2016 seprate from 2017 &2018  because SFs need to be combined for BCDEF and GH eras !
         # 2016 ULegacy is split into two different reconstruction versions pre/post VFP 
-        if era == "2016":
+        if "2016" in era:
             muMediumIDSF  = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "id_medium"), combine="weight", systName="muid-medium")
             muMediumISOSF = get_legacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era, globalTag), "iso_tightrel_id_medium"), combine="weight", systName="muiso-tight")
         else:
@@ -672,23 +667,23 @@ class NanoHtoZABase(NanoAODModule):
             #mutrackingSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
             
             # Additional SFs 
-            if era == "2018":
-                TkMuLowpT_reco = get_correction("Efficiency_muon_generalTracks_Run2018_UL_trackerMuon_below30.json", 
-                                                "NUM_TrackerMuons_DEN_genTracks", 
-                                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
-                                                systName= "TkMuonLowpTRECO", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                
-                TkMuLowpT_id = get_correction("Efficiency_muon_trackerMuon_Run2018_UL_ID_below30.json", 
-                                              "NUM_MediumID_DEN_TrackerMuons", 
-                                               params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
-                                               systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                
-                TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
-                                                  "Eff_TrackerMuons_HighMomentum", 
-                                                   params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
-                                                   systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
-                
-                SLHLTMu  = get_legacyscalefactor("lepton", ("hlt_Summer19UL2018_106X", "HLT_Mu50-TkMu100-Mu100"), isElectron=True, systName="hltMu50-TkMu100-Mu100")
+            #if era == "2018":
+                #TkMuLowpT_reco = get_correction("Efficiency_muon_generalTracks_Run2018_UL_trackerMuon_below30.json", 
+                #                                "NUM_TrackerMuons_DEN_genTracks", 
+                #                                params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+                #                                systName= "TkMuonLowpTRECO", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                #
+                #TkMuLowpT_id = get_correction("Efficiency_muon_trackerMuon_Run2018_UL_ID_below30.json", 
+                #                              "NUM_MediumID_DEN_TrackerMuons", 
+                #                               params={"pt": lambda mu :mu.pt, "abseta": lambda mu: op.abs(mu.eta)}, 
+                #                               systName= "TkMuonLowpTID", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                #
+                #TkMuHighMom_reco = get_correction("HighpTMuon_above120_Run2018UL_RECO_POGformat.json", 
+                #                                  "Eff_TrackerMuons_HighMomentum", 
+                #                                   params={"p": lambda mu :mu.p, "abseta": lambda mu: op.abs(mu.eta)}, 
+                #                                   systName= "TkMuonHighpTReco", systParam="weight", systNomName="nominal", systVariations=("up", "down"))
+                #
+                #SLHLTMu  = get_legacyscalefactor("lepton", ("hlt_Summer19UL2018_106X", "HLT_Mu50-TkMu100-Mu100"), isElectron=True, systName="hltMu50-TkMu100-Mu100")
         ###############################################
         # Electrons : ID , RECO cuts and scale factors
         # Wp  // 2016: Electron_cutBased_Sum16==3  -> medium     // 2017 -2018  : Electron_cutBased ==3   --> medium ( Fall17_V2)
@@ -699,7 +694,7 @@ class NanoHtoZABase(NanoAODModule):
         electrons = op.select(sorted_electrons, lambda ele : op.AND(ele.pt > 15., op.abs(ele.eta) < 2.5 , ele.cutBased>=3, op.abs(ele.sip3d) < 4., 
                                                                     op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), 
                                                                           op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
-        if era=="2016":
+        if "2016" in era:
             elMediumIDSF   = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "id_medium"), isElectron=True, combine="weight", systName="elid-medium")
             elRecoSF_lowpt = get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptBelow20"), isElectron=True, combine="weight", systName="lowpt-ele_reco")
             elRecoSF_highpt= get_legacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era,globalTag), "reco_ptAbove20"), isElectron=True, combine="weight", systName="highpt-ele_reco")
@@ -728,7 +723,7 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         puIdWP = "loOse"
         CleanJets_fromPileup = False
-        deltaR = (0.3 if era == '2016' else (0.4))
+        deltaR = 0.4
         jet_puID_wp = {
                     "loOse"    : lambda j : j.puId & 0x4,
                     "medium"   : lambda j : j.puId & 0x2,
@@ -736,9 +731,9 @@ class NanoHtoZABase(NanoAODModule):
                 }
         
         sorted_AK4jets= op.sort(t.Jet, lambda j : -j.pt)
-        if era == '2016':
+        if era "2016" in era:
             # j.jetId &2 means tight 
-            AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.5, (j.jetId &2)))        
+            AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.4, (j.jetId &2)))        
         else:
 
             ###############################################
@@ -804,7 +799,7 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         sorted_AK8jets = op.sort(t.FatJet, lambda j : -j.pt)
         AK8jetsSel = op.select(sorted_AK8jets, 
-                                lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.5, (j.jetId &2), 
+                                lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
                                                   j.subJet1.isValid,
                                                   j.subJet2.isValid
                                                   , j.tau2/j.tau1 < 0.7 ))
@@ -840,12 +835,14 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         eoy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
-                            "2016":(0.2217, 0.6321, 0.8953), 
+                            "2016-preVFP" :(0.2217, 0.6321, 0.8953), 
+                            "2016-postVFP":(0.2217, 0.6321, 0.8953), 
                             "2017":(0.1522, 0.4941, 0.8001), 
                             "2018":(0.1241, 0.4184, 0.7527) 
                           },
                 "DeepFlavour":{
-                            "2016":(0.0614, 0.3093, 0.7221), 
+                            "2016-preVFP" :(0.0614, 0.3093, 0.7221), 
+                            "2016-postVFP":(0.0614, 0.3093, 0.7221), 
                             "2017":(0.0521, 0.3033, 0.7489), 
                             "2018":(0.0494, 0.2770, 0.7264) 
                           }
@@ -853,12 +850,14 @@ class NanoHtoZABase(NanoAODModule):
         
         legacy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
-                    "2016":(0.2217, 0.6321, 0.8953),  # FIXME it's the same as EOY working points the btv doesn't not provide 2016UL btagging scale factors yet : to be fixed later on ! 
+                            "2016-preVFP" :(0.2217, 0.6321, 0.8953),  # FIXME it's the same as EOY working points the btv doesn't not provide 2016UL btagging scale factors yet : to be fixed later on ! 
+                            "2016-postVFP":(0.2217, 0.6321, 0.8953),  # FIXME
                             "2017":(0.1355, 0.4506, 0.7738), 
                             "2018":(0.1208, 0.4168,  0.7665) 
                           },
                 "DeepFlavour":{
-                            "2016":(0.0614, 0.3093, 0.7221), # FIXME The same there are old cuts !
+                            "2016-preVFP" :(0.0614, 0.3093, 0.7221), # FIXME The same there are old cuts !
+                            "2016-postVFP":(0.0614, 0.3093, 0.7221), # FIXME 
                             "2017":(0.0532, 0.3040, 0.7476), 
                             "2018":(0.0490, 0.2783, 0.7100) 
                           }
@@ -930,7 +929,7 @@ class NanoHtoZABase(NanoAODModule):
                     #############################################################
                     Jet_DeepFlavourBDisc = { "BTagDiscri": lambda j : j.btagDeepFlavB }
                     
-                    if era == "2016":  # FIXME no Btag scale factor for 2016UL yet
+                    if "2016" in era:  # FIXME no Btag scale factor for 2016UL yet
                         deepBFlavScaleFactor = get_scalefactor("jet", ("btag_2016_94X", "DeepJet_{}".format(suffix)),
                                                             additionalVariables=Jet_DeepFlavourBDisc, 
                                                             getFlavour=(lambda j : j.hadronFlavour),
@@ -966,7 +965,7 @@ class NanoHtoZABase(NanoAODModule):
                                                     combine ="weight",
                                                     systName="DeepCSV{}_sysbyEra".format(wp))  
                     else:
-                        if era == "2016": # FIXME NO 2016UL scale factor yet , keep it this way for now
+                        if "2016" in era: # FIXME NO 2016UL scale factor yet , keep it this way for now
                             deepB_AK4ScaleFactor = get_scalefactor("jet", ("btag_2016_94X", "DeepCSV_{}".format(suffix)), 
                                                     additionalVariables=Jet_DeepCSVBDis,
                                                     getFlavour=(lambda j : j.hadronFlavour),
@@ -979,7 +978,7 @@ class NanoHtoZABase(NanoAODModule):
                         #############################################################
                         # Subjet b-tagging  scale factors (not in use )
                         #############################################################
-                        if era in ["2016", "2018"]: # FIXME 
+                        if era in ["2016-postVFP", "2016-preVFP", "2018"]: # FIXME 
                             deepB_AK8ScaleFactor = get_scalefactor("jet", ("btag_{0}_94X".format(era).replace("94X", "102X" if era=="2018" else "94X"), "subjet_DeepCSV_{}".format(suffix)), 
                                                     additionalVariables=Jet_DeepCSVBDis,
                                                     getFlavour=(lambda j : j.hadronFlavour),
@@ -1002,7 +1001,7 @@ class NanoHtoZABase(NanoAODModule):
         
         osLLRng = {
                 "MuMu" : op.combine(muons, N=2, pred= osdilep_Z),
-                "ElEl" : op.combine(electrons, N=2, pred=osdilep_Z),
+                "ElEl" : op.combine(electrons, N=2, pred= osdilep_Z),
                 #"ElMu" : op.combine((electrons, muons), pred=lambda ele,mu : op.AND(LowMass_cut(ele, mu), osdilep(ele, mu) , ele.pt > mu.pt )),
                 #"MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep(ele, mu), mu.pt > ele.pt )),
                 "MuEl" : op.combine((muons, electrons), pred=lambda mu,ele : op.AND(LowMass_cut(mu, ele), osdilep(ele, mu))),
@@ -1031,7 +1030,7 @@ class NanoHtoZABase(NanoAODModule):
         # Lower versions include an earlier version of the ECAL prefiring weight and do not include the muon weights!
         ########################################################
         L1Prefiring = 1.
-        if era in ["2016", "2017"]:
+        if era in ["2016-postVFP", "2016-preVFP", "2017"]:
             L1Prefiring = getL1PreFiringWeight(t) 
         
         ########################################################
@@ -1074,7 +1073,7 @@ class NanoHtoZABase(NanoAODModule):
                     "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[1]), mueleTrigSF(ll), L1Prefiring, ZvtxSF ]), # mutrackingSF(ll[0]), elChargeSF(ll[1])   ]),
                     "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[0]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[0]), elRecoSF_highpt(ll[1]), doubleEleTrigSF(ll), L1Prefiring, ZvtxSF ])   # elChargeSF(ll[0]), elChargeSF(ll[1])     ]),
                     }
-            if era == '2016': 
+            if "2016" in era: 
                 llSFs = {
                     "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), doubleMuTrigSF(ll), L1Prefiring ]), # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
                    #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), muMediumISOSF(ll[1]), elRecoSF_lowpt(ll[0]), elRecoSF_highpt(ll[0]), elemuTrigSF(ll), L1Prefiring, ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])   ]),
@@ -1141,14 +1140,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         scalesfactorsULegacyLIB = {
             "DeepFlavour": {
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                    {"2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
+                {"2016-preVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2016-postVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
             "DeepCSV" :{
                 "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
+                        {"2016-preVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
                 "softdrop_subjets": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
+                        {"2016-preVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
             }
 
         addIncludePath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "include"))
@@ -1194,17 +1193,17 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_JetschecksPlots        = True # check the distance in deltaR of the closest electron to a given jet and a view more control histograms which might be of interest. 
         make_JetsPlusLeptonsPlots   = True #*
         make_DeepDoubleBPlots       = False
-        make_METPlots               = True
-        make_METPuppiPlots          = True
+        make_METPlots               = False
+        make_METPuppiPlots          = False
         make_ttbarEstimationPlots   = False
         make_ellipsesPlots          = False #*
         make_PlotsforCombinedLimits = False
         
         # One of these two should be True if you want to get the final sel plots ll +bb  
         make_bJetsPlusLeptonsPlots_METcut   = False
-        make_bJetsPlusLeptonsPlots_NoMETcut = True
+        make_bJetsPlusLeptonsPlots_NoMETcut = False
         
-        make_FinalSelControlPlots    = True #*
+        make_FinalSelControlPlots    = False #*
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
         make_LookInsideJets          = False
@@ -1403,7 +1402,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     bJets_boosted_PassdeepcsvWP      = bJetEnergyRegression( bJets_boosted_PassdeepcsvWP)
                 
                 
-                pathtoRoOtmaps = { '2016': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
+                pathtoRoOtmaps = { '2016-preVFP' : "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
+                                   '2016-postVFP': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
                                    '2017': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2017__btv_effmaps__ext2/results/summedProcessesForEffmaps/summedProcesses_2017_ratios.root",
                                    '2018': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2018__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2018_ratios.root"
                                    }
@@ -1430,7 +1430,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 
 
                 for process in ['gg_fusion', 'bb_associatedProduction']:
-
                     if os.path.exists(pathtoRoOtmaps[era]):
                         bTagEff_deepcsvAk4  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepcsv", {%s}, "%s");'%(pathtoRoOtmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
                         bTagEff_deepflavour = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepflavour", {%s}, "%s");'%(pathtoRoOtmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], process))

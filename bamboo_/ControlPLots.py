@@ -154,7 +154,7 @@ def makeJetPlots(sel, jets, uname, suffix, era):
         if suffix=="boosted":
             eqBin_pt = EqB(60 // binScaling, 200, 850.)
         elif suffix=="resolved":
-            jet_ptcut =(30. if era!='2016' else (20.))
+            jet_ptcut =(30. if "2016" in era else (20.))
             eqBin_pt = EqB(60 // binScaling, jet_ptcut, 650.)
         else:
             raise RuntimeError('ERROR: {0} Unknown suffix '.format(suffix))
@@ -190,7 +190,7 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process):
     plots = []
     
     if suffix== "resolved":
-        jet_ptcut = (30. if era != '2016' else (20.))
+        jet_ptcut = (30. if "2016" in era else (20.))
         eqBin_pt = EqB(60 // binScaling, jet_ptcut, 650.)
     elif suffix=="boosted":
         eqBin_pt = EqB(60 // binScaling, 200, 850.)
@@ -230,7 +230,6 @@ def makeExtraFatJetBOostedPlots(selections, bjets, wp, uname, suffix, process):
     for key, sel in selections.items():
         tagger=key.replace(wp, "")
         bjets_ = safeget(bjets, tagger, wp)
-        print( "helooooooooooooooooooooooooo", bjets_)
         plots.append(Plot.make1D(f"{uname}_{key}_{suffix}_{process}_boosted_fatjet_mass",
                             bjets_[0].mass, sel,
                             EqB(60 // binScaling, 0., 850.),

@@ -256,7 +256,7 @@ def makeJetPlots(sel, jets, uname, suffix, era, cuts):
         if suffix=="boosted":
             EqBin= EqB(60 // binScaling, 200, 850.)
         elif suffix=="resolved":
-            jet_ptcut =(30. if era!='2016' else (20.))
+            jet_ptcut =(30. if "2016" in era else (20.))
             EqBin= EqB(60 // binScaling, jet_ptcut, 650.)
         else:
             raise RuntimeError('ERROR: {0} Unknown suffix '.format(suffix))
@@ -455,7 +455,6 @@ def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
 #            EqB(100//binScaling, 0., 2500.), title="GEN. HT",
 #            plotopts=utils.getOpts(uname, **{"log-y": True})))
 #   
-#
 #    plots.append(Plot.make1D(f"pt_ll_%s"%uname, (leptons[0].p4 + leptons[1].p4).Pt(), sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
 #            EqB(60//binScaling, 0., 1000.), title="GEN. pT(ll)",
 #            plotopts=utils.getOpts(uname, **{"log-y": True})))
