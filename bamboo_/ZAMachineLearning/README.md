@@ -101,23 +101,20 @@ The output and logs will be in ``slurm/name_of_jobs``.
 
 ### Best Model:
 Now all the ``.zip`` and ``.csv`` files will be in the output directory but one needs to find the best one.
-
-    1.  The first step is to concatenate the csv, to do that 
+1.  The first step is to concatenate the csv, to do that 
 ```python
 python ZAMachineLearning.py --csv slurm/name_of_jobs/output/
 ```
-This will create a concatenated csv file in model with name `name_of_jobs`, ordered according to the ``eval_criterion/error`` (evaluation error is better)
+This will create a concatenated csv file in model with name ``name_of_jobs``, ordered according to the ``eval_criterion/error`` (evaluation error is better)
 - *Note* : For classification the F1 score is used and should be ordered in descending order (aka, the higher the better)
 
-    2.  The easy way is then to pick the best model in the ``.csv`` (ordered already), and get the corresponding ``.zip`` file (same line of the csv).
-
-Let's say the best model is `slurm/name_of_jobs/output/one_of_the_job_output.zip`, to change its name one can use 
+2.  The easy way is then to pick the best model in the ``.csv`` (ordered already), and get the corresponding ``.zip`` file (same line of the csv). Let's say the best model is ``slurm/name_of_jobs/output/one_of_the_job_output.zip``, to change its name one can use :
 ```python
 python Utils.py --zip slurm/name_of_jobs/output/one_of_the_job_output.zip model/my_model.zip
 ```
 - *Warning* : Just changing the zip name will not work because the content also needs to change name (hence the function in `Utils.py`)
     
-    3.  The other option with more details is to use the report option: the script automatically looks in ``model`` and adds the ``.csv`` extension, so you should not use it.
+3.  The other option with more details is to use the report option: the script automatically looks in ``model`` and adds the ``.csv`` extension, so you should not use it.
 ```python
 python ZAMachineLearning.py --report name_of_jobs
 ```
@@ -125,19 +122,17 @@ The script will then printout the 10 best models (according to the eval_criterio
 The plot definitions are in ``plot_scans.py`` are [seaborn](https://seaborn.pydata.org/) based.
 This will give clues on what parameters are doing better jobs. The ``.zip`` file can the be dealt as the same way as before.
 
-    4.  To then produce the test plots, one can use (same as csv, no need to specify the directory ``model`` nor ``.zip``)
+4.  To then produce the test plots, one can use (same as csv, no need to specify the directory ``model`` nor ``.zip``)
 ```python
 python ZAMachineLearning.py (args) --model my_model --test
 ```
-
 This will produce the ``.root`` output files (split according to ``split_name`` in ``parameters.py``) on the test set. The plotting can be done in ``Plotting/`` : If other files have to be processed, one can use 
 ```python
 python ZAMachineLearning.py (args) --model my_model --output key
-    - key: in sampleList.py
 ``` 
 - *Warning* : These samples must not have been used in the training, this will cause undetected overfitting
 
-... And that's it !!
+**And that's it basically !**
 
 ### Resubmission:
 If some jobs failed, they can be resubmitted with the command: 
@@ -190,7 +185,7 @@ On the other side, it is possible that there is less signal statistics than back
 ```
 learning weights (signal) /= sum(learning weights (signal)) and same for background.
 ```
-In case of multiclassification (eg, ST, DY, and TT classes) all classes need to have the same sum of learning weights.
+In case of multiclassification (eg, ``ZA``, ``DY``, and ``TT`` classes) all classes need to have the same sum of learning weights.
 
 ### Generator:
 In case there is too much data in the training (rare in case of HEP) to put them in the RAM, small chunks can be loaded in turns and trained on. The advantage is that many threads can be used to generate the training data from root files. This will not be used here but still can be a possibility.
