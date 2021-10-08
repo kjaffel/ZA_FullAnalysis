@@ -4,7 +4,7 @@ This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysi
 ## Getting Started:
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
 
-    ### Prerequisites:
+### Prerequisites:
 Modules you will need to load:
 ```
 module load root/6.12.04-sl7_gcc73 boost/1.66.0_sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 python/python36_sl7_gcc73 slurm/slurm_utils 
@@ -17,7 +17,8 @@ function dnn_env() {
     module load slurm/slurm_utils
 }
 ```
-    ### Installing required python packages: 
+
+### Installing required python packages: 
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
 - [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
 - [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
@@ -68,7 +69,8 @@ They will be described in details in the next subsections. Then we will detail t
 - make_dtype : this is because we use root_numpy to produce the root files and it does not like `.`, `(`, `)`, `-` neither `*`
 
 After you have chosen all the parameters:
-#### Local Test: 
+
+### Local Test: 
 ``` python
 python ZAMachineLearning.py (args) --scan name_of_scan --debug
 ```
@@ -84,18 +86,20 @@ The products a the scripts are :
     - *Tip* : You can either unzip the ``.zip`` and load the json and h5 files with the classic method ([here](https://machinelearningmastery.com/save-load-keras-deep-learning-models/)).
 
 Or you can use the ``Restore`` method of Talos on the zip archive directly (but you need to submit the preprocessing layer specifically, see code in ``NeuralNet.py``).
-#### Slurm Submission:
+
+### Slurm Submission:
 To submit on the cluster try:
 ``` python
 python ZAMachineLearning.py (args) --submit name_of_jobs --split 1
 ```
-    - ``--submit``: requires a string as name for the output dir (saved in `slurm`) 
+    - ``--submit``: requires a string as name for the output dir (saved in ``slurm``) 
     - ``--split`` : requires the number of parameters used for each job (almost always 1)
     - *Note* : If using ``--split N``, N! combinations will be used (might be reduncancies between different jobs).
-    - The split .pkl files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
+    - The split ``.pkl`` files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
 
-The output and logs will be in `slurm/name_of_jobs`.
-#### Best Model:
+The output and logs will be in ``slurm/name_of_jobs``.
+
+### Best Model:
 Now all the ``.zip`` and ``.csv`` files will be in the output directory but one needs to find the best one.
 
     1.  The first step is to concatenate the csv, to do that 
@@ -135,7 +139,7 @@ python ZAMachineLearning.py (args) --model my_model --output key
 
 ... And that's it !!
 
-#### Resubmission:
+### Resubmission:
 If some jobs failed, they can be resubmitted with the command: 
 ```python
 python ZAMachineLearning.py (args) --submit name_of_jobs --split 1 --resubmit /slurm/name_of_jobs/output/
@@ -147,6 +151,7 @@ Otherwise the parameters in the csv will have changed. But the slurm parameters 
 
 ### Preprocessing and Training/Test Split:
 What has not been dealt with in the previous sections is how the data preparation are handled.
+
 #### Data split :
 Depending on the ratios in ``parameters.py``, a boolean mask is generated for each dataset : ``False -> test set`` and ``True -> training set``.
 
