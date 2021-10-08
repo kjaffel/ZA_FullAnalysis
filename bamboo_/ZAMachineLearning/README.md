@@ -1,10 +1,10 @@
 # ZA Machine Learning: 
-This code is reabsed on the top of **Florian Bury**[code for HH-> bbWW -Analysis.](https://github.com/FlorianBury/HHbbWWAnalysis/tree/master/MachineLearning) and it was udapted to do multi classification for H/A->Z(ll)A/H(bb) analysis for full run2.
+This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysis](https://github.com/FlorianBury/HHbbWWAnalysis/tree/master/MachineLearning) and it was udapted to do multi-classification for H/A-> Z(ll) A/H(bb) analysis for full run2.
 
 ## Getting Started:
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
 
-### Prerequisites:
+    ### Prerequisites:
 Modules you will need to load:
 ```
 module load root/6.12.04-sl7_gcc73 boost/1.66.0_sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 python/python36_sl7_gcc73 slurm/slurm_utils 
@@ -17,7 +17,7 @@ function dnn_env() {
     module load slurm/slurm_utils
 }
 ```
-### Installing required python packages: 
+    ### Installing required python packages: 
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
 - [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
 - [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
@@ -32,13 +32,13 @@ Below are the required packages that can be installed with pip. If you are worki
 - [plotille]( https://pypi.org/project/plotille/) ( Plot in the terminal using braille dots)
 - [pynvml]( https://pypi.org/project/pynvml/) ( Python Bindings for the NVIDIA Management Library)
 
-## Usual workflow:
+## Workflow:
 Most of the tweaks are done in two files:
 - ``parameters.py`` : It's a configuration script includes most of the parameters that will be used during the training.
 - ``sampleList.py`` : Produces a dict of paths to be used to import data for the training.
 They will be described in details in the next subsections. Then we will detail the usual workflow of the hyperparameter scans.
 
-### Configuration script:
+### Scripts Configuration:
 - ``parameters.py``: contains the global information required by all the scripts, all the variables are accessed via ``parameters.something``.
     - [Path variables](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAMachineLearning/parameters.py#L17-L18): where the script will be running, produce the output and models
     - [Datasets proportion](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAMachineLearning/parameters.py#L27-L30): one part goes for training, one for evaluation of the model (used in hyperparameter scans) and one for producing an output for testing. A check is done to make sure the total accounts to 1, cross validation is not yet included.
@@ -67,23 +67,25 @@ They will be described in details in the next subsections. Then we will detail t
     - other_variables : other variables you want to keep in the tree but not use as inputs not targets
 - make_dtype : this is because we use root_numpy to produce the root files and it does not like `.`, `(`, `)`, `-` neither `*`
 
-### Workflow: 
-After you have chosen all the parameters, the first try can be on local.
-- Usual command : 
+After you have chosen all the parameters:
+#### Local Test: 
 ``` python
 python ZAMachineLearning.py (args) --scan name_of_scan --debug
 ```
-The args depend on what you have hardcoded in ZAMachineLearning.py
+The args depend on what you have hardcoded in ``ZAMachineLearning.py``.
+
     - *Note* : all the hyperparameter combinations will be run sequentially, this might take time ... 
-    - *Tip*: use one combination only (only lists with one item) and small number of epochs to check everything works
+    - *Tip*: use one combination only (only lists with one item) and small number of epochs to check everything works.
 
 The products a the scripts are :
+
     - csv file : contains the parameters in the scan, loss, acc and error
     - zip file : contains model architecture+weights, results in the csv, plus other details
     - *Tip* : You can either unzip the ``.zip`` and load the json and h5 files with the classic method ([here](https://machinelearningmastery.com/save-load-keras-deep-learning-models/)).
-Or you can use the `Restore` method of Talos on the zip archive directly (but you need to submit the preprocessing layer specifically, see code in NeuralNet.py)
 
-To submit on the cluster (using the slurm parameters in parameters.py), ``--scan`` must be replaced by two arguments
+Or you can use the ``Restore`` method of Talos on the zip archive directly (but you need to submit the preprocessing layer specifically, see code in ``NeuralNet.py``).
+#### Slurm Submission:
+To submit on the cluster try:
 ``` python
 python ZAMachineLearning.py (args) --submit name_of_jobs --split 1
 ```
@@ -93,26 +95,29 @@ python ZAMachineLearning.py (args) --submit name_of_jobs --split 1
     - The split .pkl files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
 
 The output and logs will be in `slurm/name_of_jobs`.
+#### Best Model:
 Now all the ``.zip`` and ``.csv`` files will be in the output directory but one needs to find the best one.
+
     1.  The first step is to concatenate the csv, to do that 
 ```python
 python ZAMachineLearning.py --csv slurm/name_of_jobs/output/
 ```
 This will create a concatenated csv file in model with name `name_of_jobs`, ordered according to the ``eval_criterion/error`` (evaluation error is better)
-*Note* : for classification the F1 score is used and should be ordered in descending order (aka, the higher the better)
+- *Note* : For classification the F1 score is used and should be ordered in descending order (aka, the higher the better)
 
     2.  The easy way is then to pick the best model in the ``.csv`` (ordered already), and get the corresponding ``.zip`` file (same line of the csv).
-    Let's say the best model is `slurm/name_of_jobs/output/one_of_the_job_output.zip`, to change its name one can use 
+
+Let's say the best model is `slurm/name_of_jobs/output/one_of_the_job_output.zip`, to change its name one can use 
 ```python
 python Utils.py --zip slurm/name_of_jobs/output/one_of_the_job_output.zip model/my_model.zip
 ```
-*Warning* : Just changing the zip name will not work because the content also needs to change name (hence the function in `Utils.py`)
-
+- *Warning* : Just changing the zip name will not work because the content also needs to change name (hence the function in `Utils.py`)
+    
     3.  The other option with more details is to use the report option: the script automatically looks in ``model`` and adds the ``.csv`` extension, so you should not use it.
 ```python
 python ZAMachineLearning.py --report name_of_jobs
 ```
-    The script will then printout the 10 best models (according to the eval_criterion), plots on the console several histograms and produces ``.png`` files. 
+The script will then printout the 10 best models (according to the eval_criterion), plots on the console several histograms and produces ``.png`` files. 
 The plot definitions are in ``plot_scans.py`` are [seaborn](https://seaborn.pydata.org/) based.
 This will give clues on what parameters are doing better jobs. The ``.zip`` file can the be dealt as the same way as before.
 
@@ -120,14 +125,13 @@ This will give clues on what parameters are doing better jobs. The ``.zip`` file
 ```python
 python ZAMachineLearning.py (args) --model my_model --test
 ```
-    This will produce the ``.root`` output files (split according to ``split_name`` in ``parameters.py``) on the test set.
 
-The plotting can be done in ``Plotting/`` : If other files have to be processed, one can use 
+This will produce the ``.root`` output files (split according to ``split_name`` in ``parameters.py``) on the test set. The plotting can be done in ``Plotting/`` : If other files have to be processed, one can use 
 ```python
 python ZAMachineLearning.py (args) --model my_model --output key
+    - key: in sampleList.py
 ``` 
-    - ``key`` is one of the key in ``sampleList.py``
-*Warning* : These samples must not have been used in the training, this will cause undetected overfitting
+- *Warning* : These samples must not have been used in the training, this will cause undetected overfitting
 
 ... And that's it !!
 
@@ -138,39 +142,30 @@ python ZAMachineLearning.py (args) --submit name_of_jobs --split 1 --resubmit /s
 ```
 The script will check what hyperparameters have been processed and which ones are missing, the corresponding jobs will be in a new directory and need to be moved back to the initial one before the csv concatenation step.
 
-*Warning* : The hyperparameter dict in ``parameters.py`` must not change in the meantime !(especially number of epochs)
+- *Warning* : The hyperparameter dict in ``parameters.py`` must not change in the meantime !(especially number of epochs)
 Otherwise the parameters in the csv will have changed. But the slurm parameters and keras callbacks can change at resubmission.
 
-### Preprocessing and training/test split:
+### Preprocessing and Training/Test Split:
 What has not been dealt with in the previous sections is how the data preparation are handled.
 #### Data split :
-Depending on the ratios in parameters.py, a boolean mask is generated for each dataset.
-    - False -> test set
-    - True -> training set
-The mask is generated as a npy object based on the suffix in parameters.py.
+Depending on the ratios in ``parameters.py``, a boolean mask is generated for each dataset : ``False -> test set`` and ``True -> training set``.
 
-*Note* : If they do not exist, they will be generated and saved. If they exist they will just be loaded.
-*Warning* : If the data changes, the code will exit with an error because the masks do not fit anymore (either delete them or change suffix).
+The mask is generated as a ``.npy`` object based on the suffix in ``parameters.py``.
 
-*Tip* : the point of the mask is that for each hyperparameter the training and test data will be the same and not randomized at each trial.
+- *Note* : If they do not exist, they will be generated and saved. If they exist they will just be loaded.
+- *Warning* : If the data changes, the code will exit with an error because the masks do not fit anymore (either delete them or change suffix).
+- *Tip* : The point of the mask is that for each hyperparameter the training and test data will be the same and not randomized at each trial.
 
 #### Preprocessing
-Preprocessing is very important in machine learning to give all the features of the training the same importance.
-We are using here the [Standard Scaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html), the point is to apply :
-```
-z -> z-mean/std
-```
-Where mean and std are the mean and standard deviation of the *training* data.
+Preprocessing is very important in machine learning to give all the features of the training the same importance. We are using here the [Standard Scaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html), the point is to apply ``z -> z-mean/std``. Where mean and std are the mean and standard deviation of the *training* data.
 
-This scaler is saved in a pickle file with suffix in parameters.py as well (same tips and warnings as masks)
-
-The easy way to use it is to transform the training and testing inputs, and do the inverse when saving into root files.
-But keeping track of both model and scaler is annoying...
+This scaler is saved in a pickle file with suffix in ``parameters.py`` as well. The easy way to use it is to transform the training and testing inputs, and do the inverse when saving into root files.
+But keeping track of both model and scaler is annoying... 
 
 So a custom layer in preprocessing.py incoorporates the mean and std as weights that are then saved in the model. No need to keep track of the scaler anymore when sharing the model.
 On the ther side when loading the model, the script must be given so that Keras knows how to handle it (but already included in the machinery here).
 
-### Learning weights
+### Learning Weights
 In order to represent in the training the physical significance of the training events, the event weight needs to be used ([doc](https://keras.io/guides/customizing_what_happens_in_fit/#supporting-sampleweight-amp-classweight)).
 
 This is what is given as weight in ``parameters.py``, the issue arises from the negative weights. They can be dealt with in several scenarios
@@ -183,7 +178,8 @@ We use the last option. This was the events in one sample are correctly weighted
 learning_weight = event_weight * Xsec / event_weight_sum
 ```
 Where these values come from the ``.json`` files in ``parameters.py``.
-*Warning* : this is only valid for backgrounds, for signal the Xsec is not given so better keep only the event weight.
+
+- *Warning* : this is only valid for backgrounds, for signal the Xsec is not given so better keep only the event weight.
 
 On the other side, it is possible that there is less signal statistics than background. To alleviates that, the sum of learning weights is equalized between signal and background.
 ```
@@ -191,13 +187,9 @@ learning weights (signal) /= sum(learning weights (signal)) and same for backgro
 ```
 In case of multiclassification (eg, ST, DY, and TT classes) all classes need to have the same sum of learning weights.
 
-### Generator
+### Generator:
 In case there is too much data in the training (rare in case of HEP) to put them in the RAM, small chunks can be loaded in turns and trained on. The advantage is that many threads can be used to generate the training data from root files. This will not be used here but still can be a possibility.
 
 ### Cache
 The importation from root files can be slow and if the training data is not too big it can be cached.
 *Warning* : Whenever you change something in ``sampleList.py``, the preprocessing or mask, the cache must be cleared. Otherwise you will still run on the older cache values and not the changes you chose.
-
-## Authors:
-* **Florian Bury** -- [Github](https://github.com/FlorianBury)
-* **Khawla Jaffel**
