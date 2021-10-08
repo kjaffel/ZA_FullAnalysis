@@ -53,7 +53,7 @@ if zabPath not in sys.path:
 
 import utils
 from utils import safeget
-from systematics import Get_HLTsys, Get_tthDYreweighting
+from systematics import get_HLTsys, get_tthDYreweighting
 from ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots, MakePuppiMETPlots, MHMAforCombinedLimits
 from EXtraPLots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots, zoomplots, ptcuteffectOnJetsmultiplicty, choosebest_jetid_puid, varsCutsPlotsforLeptons, LeptonsInsideJets, makePUIDSF, makerhoPlots
 from ControlPLots import *
@@ -266,16 +266,16 @@ class NanoHtoZABase(NanoAODModule):
                             "sort-by-yields"   : False,
                             "legend-columns"   : 2 }
 
-        self.doSysts        = self.args.systematic
-        self.doEvaluate     = self.args.DNN_Evaluation
-        self.doSplit        = self.args.split
-        self.doHLT          = self.args.hlt
-        self.doBlinded      = self.args.blinded
-        self.nanoaodversion = self.args.nanoaodversion
-        self.doMETT1Smear   = self.args.doMETT1Smear
-        self.dobJetER       = self.args.dobJetEnergyRegression
-        self.doYields       = self.args.yields
-
+        self.doSysts          = self.args.systematic
+        self.doEvaluate       = self.args.DNN_Evaluation
+        self.doSplit          = self.args.split
+        self.doHLT            = self.args.hlt
+        self.doBlinded        = self.args.blinded
+        self.doNanoAODversion = self.args.nanoaodversion
+        self.doMETT1Smear     = self.args.doMETT1Smear
+        self.dobJetER         = self.args.dobJetEnergyRegression
+        self.doYields         = self.args.yields
+        self.doSkim           = self.args.skim
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -287,6 +287,7 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--doMETT1Smear", action="store_true", default = False, help="do T1 MET smearing")
         parser.add_argument("--dobJetEnergyRegression", action="store_true", default = False, help="apply b jets energy regreqqion to improve the bjets mass resolution")
         parser.add_argument("--yields", action="store_true", default = False, help=" add Yields Histograms: not recomended if you turn off the systematics, jobs may run out of memory")
+        parser.add_argument("--skim", action="store_true", default = False, help="make skim instead of plots")
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy' or 'compile' for debug mode")
 
     def customizeAnalysisCfg(self, config=None):
@@ -301,7 +302,7 @@ class NanoHtoZABase(NanoAODModule):
         preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
         postVFPruns = ["2016G", "2016H"]
 
-        if self.nanoaodversion in ["v8", "v9"]:
+        if self.doNanoAODversion in ["v8", "v9"]:
             metName   = "MET"
             isULegacy = True
         else:
@@ -567,14 +568,14 @@ class NanoHtoZABase(NanoAODModule):
    
     def defineObjects(self, t, noSel, sample=None, sampleCfg=None):
         from bamboo.analysisutils import forceDefine
-        #from bamboo.plots import Plot
+        from bamboo.plots import Skim
         from bambooToOls import Plot
         from bamboo.plots import EquidistantBinning as EqB
         from bamboo import treefunctions as op
         from bamboo.analysisutils import makePileupWeight
         from METFilter_xyCorr import METFilter, METcorrection, ULMETXYCorrection
         from reweightDY import Plots_gen
-        from systematics import Get_HLTZvtxSF 
+        from systematics import get_HLTZvtxSF 
 
         def getIDX(wp = None):
             return (0 if wp=="L" else ( 1 if wp=="M" else 2))
@@ -586,7 +587,7 @@ class NanoHtoZABase(NanoAODModule):
         era_ = era if "VFP" not in era else "2016"
         preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
         
-        globalTag  = "106X" if self.nanoaodversion in ["v8", "v9"] else( "94X" if era != "2018" else ( "102X"))
+        globalTag  = "106X" if self.doNanoAODversion in ["v8", "v9"] else( "94X" if era != "2018" else ( "102X"))
         isULegacy  = True if globalTag =="106X" else False
         
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
@@ -1081,12 +1082,12 @@ class NanoHtoZABase(NanoAODModule):
         ########################################################
         ########################################################
         #HighPt_Muons_f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/ScaleFactors_FullRun2ULegacy", f"HighpTMuon_above120_Run{era_}UL_RECO_cp3format.json")
-        #TkMuHighMom_reco_mu0  = Get_POG_highPT_MU_RECO_EFF( osLLRng.get('MuMu')[0].p, osLLRng.get('MuMu')[0].eta, HighPt_Muons_f, era_)
-        #TkMuHighMom_reco_mu1  = Get_POG_highPT_MU_RECO_EFF( osLLRng.get('MuMu')[1].p, osLLRng.get('MuMu')[1].eta, HighPt_Muons_f, era_)
+        #TkMuHighMom_reco_mu0  = get_POG_highPT_MU_RECO_EFF( osLLRng.get('MuMu')[0].p, osLLRng.get('MuMu')[0].eta, HighPt_Muons_f, era_)
+        #TkMuHighMom_reco_mu1  = get_POG_highPT_MU_RECO_EFF( osLLRng.get('MuMu')[1].p, osLLRng.get('MuMu')[1].eta, HighPt_Muons_f, era_)
         ########################################################
         ########################################################
         ZvtxSF = 1.
-        ZvtxSF = Get_HLTZvtxSF(era, sample, f"HLTZvtx_{era}eff", split_eras=True)
+        ZvtxSF = get_HLTZvtxSF(era, sample, f"HLTZvtx_{era}eff", split_eras=True)
        
         ########################################################
         # HLT 
@@ -1106,50 +1107,49 @@ class NanoHtoZABase(NanoAODModule):
             elemuTrigSF     = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17-elmutrig")
             mueleTrigSF     = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17-mueltrig")
         else:
-            doubleMuTrigSF  = Get_HLTsys(era, osLLRng.get('MuMu')[0], 'MuMu', version_TriggerSFs)
-            doubleEleTrigSF = Get_HLTsys(era, osLLRng.get('ElEl')[0], 'ElEl', version_TriggerSFs)
-            elemuTrigSF     = Get_HLTsys(era, osLLRng.get('ElMu')[0], 'ElMu', version_TriggerSFs)
-            mueleTrigSF     = Get_HLTsys(era, osLLRng.get('MuEl')[0], 'MuEl', version_TriggerSFs)
+            doubleMuTrigSF  = get_HLTsys(era, osLLRng.get('MuMu')[0], 'MuMu', version_TriggerSFs)
+            doubleEleTrigSF = get_HLTsys(era, osLLRng.get('ElEl')[0], 'ElEl', version_TriggerSFs)
+            elemuTrigSF     = get_HLTsys(era, osLLRng.get('ElMu')[0], 'ElMu', version_TriggerSFs)
+            mueleTrigSF     = get_HLTsys(era, osLLRng.get('MuEl')[0], 'MuEl', version_TriggerSFs)
 
         ########################################################
         ########################################################
-            llSFs = {
-                    "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), 
-                                            muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), 
-                                            doubleMuTrigSF(ll), 
-                                            L1Prefiring                                             ]), 
-                                            # single_mutrig(ll[0]), single_mutrig(ll[1]), 
-                                            # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
+        llSFs = { "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), 
+                                          muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), 
+                                          doubleMuTrigSF(ll), 
+                                          L1Prefiring                                             ]), 
+                                          # single_mutrig(ll[0]), single_mutrig(ll[1]), 
+                                          # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
                    
-                   #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), 
-                   #                        muMediumISOSF(ll[1]), 
-                   #                        elRecoSF_lowpt(ll[0]), elRecoSF_highpt(ll[0]), 
-                   #                        elemuTrigSF(ll), 
-                   #                        L1Prefiring, 
-                   #                        ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])     ]),
+                #"ElMu" : (lambda ll : [ elMediumIDSF(ll[0]), muMediumIDSF(ll[1]), 
+                #                        muMediumISOSF(ll[1]), 
+                #                        elRecoSF_lowpt(ll[0]), elRecoSF_highpt(ll[0]), 
+                #                        elemuTrigSF(ll), 
+                #                        L1Prefiring, 
+                #                        ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])     ]),
                     
-                    "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), 
-                                            elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[1]), 
-                                            mueleTrigSF(ll), 
-                                            L1Prefiring, 
-                                            ZvtxSF]), 
-                                            # single_eletrig(ll[1]), 
-                                            # endcap_ele(ll[1]), barrel_ele(ll[1]), 
-                                            # mutrackingSF(ll[0]), 
-                                            # elChargeSF(ll[1])                                     ]),
-                    
-                    "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), 
-                                            elRecoSF_lowpt(ll[0]), elRecoSF_lowpt(ll[1]), 
-                                            elRecoSF_highpt(ll[0]), elRecoSF_highpt(ll[1]), 
-                                            doubleEleTrigSF(ll), 
-                                            L1Prefiring, 
-                                            ZvtxSF]), 
-                                            # single_eletrig(ll[0]), 
-                                            # endcap_ele(ll[0]), barrel_ele(ll[0]), 
-                                            # endcap_ele(ll[1]), barrel_ele(ll[1]), 
-                                            # single_eletrig(ll[1]),
-                                            # elChargeSF(ll[0]), elChargeSF(ll[1])                  ]),
-                    }
+                "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), 
+                                        elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[1]), 
+                                        mueleTrigSF(ll), 
+                                        L1Prefiring, 
+                                        ZvtxSF]), 
+                                        # single_eletrig(ll[1]), 
+                                        # endcap_ele(ll[1]), barrel_ele(ll[1]), 
+                                        # mutrackingSF(ll[0]), 
+                                        # elChargeSF(ll[1])                                     ]),
+                
+                "ElEl" : (lambda ll : [ elMediumIDSF(ll[0]), elMediumIDSF(ll[1]), 
+                                        elRecoSF_lowpt(ll[0]), elRecoSF_lowpt(ll[1]), 
+                                        elRecoSF_highpt(ll[0]), elRecoSF_highpt(ll[1]), 
+                                        doubleEleTrigSF(ll), 
+                                        L1Prefiring, 
+                                        ZvtxSF]), 
+                                        # single_eletrig(ll[0]), 
+                                        # endcap_ele(ll[0]), barrel_ele(ll[0]), 
+                                        # endcap_ele(ll[1]), barrel_ele(ll[1]), 
+                                        # single_eletrig(ll[1]),
+                                        # elChargeSF(ll[0]), elChargeSF(ll[1])                  ]),
+            }
 
         categories = dict((channel, (catLLRng[0], hasOSLL.refine("hasOs{0}".format(channel), cut=hasOSLL_cmbRng(catLLRng), weight=(llSFs[channel](catLLRng[0]) if isMC else None)) )) for channel, catLLRng in osLLRng.items())
 
@@ -1161,7 +1161,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
     #@profile
     # https://stackoverflow.com/questions/276052/how-to-get-current-cpu-and-ram-usage-in-python
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):
-        #from bamboo.plots import Plot
+        from bamboo.plots import Skim
         from bambooToOls import Plot
         from bamboo.plots import CutFlowReport
         from reweightDY import plotsWithDYReweightings, Plots_gen, PLots_withtthDYweight
@@ -1565,6 +1565,46 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     llbbSelections_noMETCut = llbbSelections_NoMETCut_bTagEventWeight
                 else:
                     llbbSelections_noMETCut = llbbSelections_NoMETCut_NobTagEventWeight
+                
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                # make Skimmer
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                if self.doSkim:
+                    for process , Selections_noMETCut_per_process in llbbSelections_noMETCut.items():
+                        process_ = 'ggH' if process =='gg_fusion' else 'bbH'
+                        for reg, Selections_noMETCut_per_taggerWP in Selections_noMETCut_per_process.items():
+                            for FinalSel, taggerWP in Selections_noMETCut_per_taggerWP.items():
+
+                                if reg =="resolved":
+                                    bJets  = bjets_resolved[taggerWP.replace(wp, "")][wp]
+                                    llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0]+bJets[1]).M()
+                                    bb_M   = op.invariant_mass(bJets[0]+bJets[1])
+                                    
+                                elif reg =="boosted":
+                                    bJets  = bjets_boosted[taggerWP.replace(wp, "")][wp]
+                                    llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4).M()
+                                    bb_M   = bJets[0].mass
+                                    bb_softDropM = bJets[0].msoftdrop
+
+                                plots.append(Skim(  f"LepPlusJetsSel_{process_}_{reg}_{channel.lower()}_{taggerWP.lower()}", {
+                                        "run"            : None,  # copy from input file
+                                        "luminosityBlock": None,
+                                        "event"          : None,
+                                        "l1_charge"      : dilepton[0].charge,
+                                        "l2_charge"      : dilepton[1].charge,
+                                        "l1_pdgId"       : dilepton[0].pdgId,
+                                        "l2_pdgId"       : dilepton[1].pdgId,
+                                        'bb_M'           : bb_M,
+                                        'llbb_M'         : llbb_M,
+                                        'bb_M_squared'   : op.exp(bb_M, 2),
+                                        'llbb_M_squared' : op.exp(llbb_M, 2),
+                                        'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
+                                        'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
+                                        'total_weight'   : FinalSel.weight,
+                                        'PU_weight'      : PUWeight, 
+                                        f'nB_{lljj_jetType[reg]}Jets': op.static_cast("UInt_t", op.rng_len(bJets))
+                                    }, FinalSel))
+                
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  to optimize the MET cut 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -66,7 +66,7 @@ They will be described in details in the next subsections. Then we will detail t
     - inputs : list of branches to be used as training variables
     - outputs : list of branches to be used as training targets. **Note :** for branches that are not in tree but will be added later (eg tag) : use $string ($ will be removed after)
     - other_variables : other variables you want to keep in the tree but not use as inputs not targets
-- make_dtype : this is because we use root_numpy to produce the root files and it does not like `.`, `(`, `)`, `-` neither `*`
+- make_dtype : this is because we use root_numpy to produce the root files and it does not like ``.``, ``(``, ``)``, ``-`` neither ``*``
 
 After you have chosen all the parameters:
 
@@ -75,12 +75,10 @@ After you have chosen all the parameters:
 python ZAMachineLearning.py (args) --scan name_of_scan --debug
 ```
 The args depend on what you have hardcoded in ``ZAMachineLearning.py``.
-
     - *Note* : all the hyperparameter combinations will be run sequentially, this might take time ... 
     - *Tip*: use one combination only (only lists with one item) and small number of epochs to check everything works.
 
 The products a the scripts are :
-
     - csv file : contains the parameters in the scan, loss, acc and error
     - zip file : contains model architecture+weights, results in the csv, plus other details
     - *Tip* : You can either unzip the ``.zip`` and load the json and h5 files with the classic method ([here](https://machinelearningmastery.com/save-load-keras-deep-learning-models/)).

@@ -1,21 +1,28 @@
 import os, os.path
 import json
 import logging
-logger = logging.getLogger("ZA systematics")
+logger = logging.getLogger("ZA-sys")
 from bamboo import treefunctions as op
 
-def  getHLTZvtxSF (era, sample, splitbyeras):
-        #2017B :  0.934±0.005 
-        #2017C :  0.992±0.001 
-        #2017DEF :  1.000 
-        #2017BCDEF : 0.991±0.001 
-    if era == '2017':
-        if splitbyeras:
-            if 'B' in sample:
-                HLTZvtxSF = op.systematic(op.c_float(0.934), name='HLT_Zvtx_eff', up=op.c_float(0,939), down=op.c_float(0,929))
-            if  'C' in sample:
-                HLTZvtxSF = op.systematic(op.c_float(0.992), name='HLT_Zvtx_eff', up=op.c_float(0.991), down=op.c_float(0.993))
-        HLTZvtxSF = op.systematic(op.c_float(0.991), name='HLT_Zvtx_eff', up=op.c_float(0.992), down=op.c_float(0.990))
+def  get_HLTZvtxSF(era=None, sample=None, uname=None, split_eras=False):
+    #2016 :       1.0±0.0     
+    #2017B :      0.934±0.005 
+    #2017C :      0.992±0.001 
+    #2017DEF :    1.000 
+    #2017BCDEF :  0.991±0.001 
+    #2018 :       1.0±0.0 
+    if '2017' in era:
+        if split_eras:
+            if '2017B' in sample:
+                HLTZvtxSF = op.systematic(op.c_float(0.934), name=uname, up=op.c_float(0,939), down=op.c_float(0,929))
+            if  '2017C' in sample:
+                HLTZvtxSF = op.systematic(op.c_float(0.992), name=uname, up=op.c_float(0.991), down=op.c_float(0.993))
+            if '2017D' in sample or '2017E' in sample or '2017F' in sample:
+                HLTZvtxSF = op.systematic(op.c_float(1.0), name=uname, up=op.c_float(1.0), down=op.c_float(1.0))
+        else:
+            HLTZvtxSF = op.systematic(op.c_float(0.991), name=uname, up=op.c_float(0.992), down=op.c_float(0.990))
+    else:
+        HLTZvtxSF = op.systematic(op.c_float(1.0), name=uname, up=op.c_float(1.0), down=op.c_float(1.0))
     return HLTZvtxSF
 
 def get_tthDYreweighting(era, jets):
@@ -51,7 +58,7 @@ def get_tthDYreweighting(era, jets):
 
     return op.systematic(op.c_float(nominal), name="NLO_DYReweighting", up=op.c_float(nominal+ uncer), down=op.c_float(nominal- uncer))
 
-def getTriggerSystematcis(era, leptons, suffix, version):
+def get_HLTsys(era, leptons, suffix, version):
     # taken from ttH studies:
     # https://gitlab.cern.ch/ttH_leptons/doc/blob/master/Legacy/data_to_mc_corrections.md#trigger-efficiency-scale-factors
     if version == "tth":
@@ -129,12 +136,9 @@ def getTriggerSystematcis(era, leptons, suffix, version):
             else:
                 # SF = 0.992 ± 0.005
                 wgt = op.systematic(op.c_float(0.992), name="{0}trig".format(suffix.lower()), up=op.c_float(0.997), down=op.c_float(0.987))
-        
     return wgt
 
-def Get_POG_highPT_MU_RECO_EFF(mu_mom, mu_eta, corr_file, era):
-    
-
+def get_POG_highPT_MU_RECO_EFF(mu_mom, mu_eta, corr_file, era):
     with open(corr_file) as f:
         corrections = json.load(f)
 
