@@ -51,7 +51,7 @@ def submit_on_slurm(name,args,debug=False):
     config.payload += args
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    out_dir = parameters.main_path
+    out_dir = parameters.path_out
 
     slurm_config = copy.deepcopy(config)
     slurm_working_dir = os.path.join(out_dir,'slurm',name)#+'_'+timestamp)
@@ -70,7 +70,6 @@ def submit_on_slurm(name,args,debug=False):
             slurm_config.inputParams.append([name,task])
 
     # Submit job!
-
     logging.info("Submitting job...")
     if not debug:
         submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=False, quiet=False)
@@ -81,4 +80,3 @@ def submit_on_slurm(name,args,debug=False):
         logging.debug(slurm_config.inputParamsNames)
         logging.debug(slurm_config.inputParams)
         logging.info('... don\'t worry, jobs not sent')
-

@@ -297,8 +297,10 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None,treeNa
 ##################################################################################################
 def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
     xsec_dict = {}
-    ews_dict = {}
+    wgt_dict = {}
     # Load YAML file #
+    if yaml_path.split('/')[-1] != 'plots.yml':
+        print("I am not sure this is the yaml file you want to pass, it has to be the one you get after running bamboo so you can get the number of generated-events !")
     with open(yaml_path, 'r') as stream:
         try:
             data = yaml.safe_load(stream)
@@ -306,16 +308,17 @@ def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
             print(exc)
     # Save Xsec and event weight sum in dict #
     files  = data["files"]
+    #print( data.keys(), files)
     for sample, dico in files.items():
         if dico["type"] != 'data':
             xsec_dict[sample] = dico["cross-section"]
-            ews_dict[sample] = dico["generated-events"]
+            wgt_dict[sample] = dico["generated-events"]
 
     with open("%s_xsec.json"%suffix, "w") as handle:
         json.dump(xsec_dict,handle,indent=4)
 
     with open("%s_event_weight_sum.json"%suffix, "w") as handle:
-        json.dump(ews_dict,handle,indent=4)
+        json.dump(wgt_dict,handle,indent=4)
 
     print ("Generated file %s_xsec.json"%suffix)
     print ("Generated file %s_event_weight_sum.json"%suffix)
@@ -496,5 +499,3 @@ if __name__=='__main__':
 
     if args.json is not None and args.h5 is not None:
         RemovePreprocessingLayer(args.json,args.h5,args.suffix)
-
-

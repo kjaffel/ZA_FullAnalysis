@@ -15,12 +15,12 @@ from keras.regularizers import l1,l2
 ##################################  Path variables ####################################
 
 main_path = os.path.abspath(os.path.dirname(__file__))
-path_out = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ZAMachineLearning_output/')
+path_out = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__1')
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
 print ( ' sbatch dir ', main_path)
 print ( ' path_ out ' , path_out)
-path_model = os.path.join(main_path,'model')
+path_model = os.path.join(path_out,'model')
 
 ##############################  Datasets proportion   #################################
 # Total must be 1 #
@@ -47,10 +47,10 @@ tasks = '1' # Number of threads(as a string) (not parallel training for classic 
 
 ######################################  Names  ########################################
 # Model name (only for scans)
-model = 'NeuralNetModel'       # Classic mode
+model  = 'NeuralNetModel'       # Classic mode
 #model = 'NeuralNetGeneratorModel'  # Generator mode
 # scaler and mask names #
-suffix = 'resolved_and_boosted' 
+suffix = 'resolved_and_boosted_ggH_bbH' 
     # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
     # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
@@ -59,8 +59,8 @@ train_cache = os.path.join(path_out,'train_cache.pkl' )
 test_cache = os.path.join(path_out,'test_cache.pkl' )
 
 # Meta config info #
-xsec_json = os.path.join(main_path,'backgrounds_{era}_xsec.json')
-event_weight_sum_json = os.path.join(main_path,'backgrounds_{era}_event_weight_sum.json')
+xsec_json = os.path.join(main_path,'data/backgrounds_Summer20UL{era}_xsec.json')
+event_weight_sum_json = os.path.join(main_path,'data/backgrounds_Summer20UL{era}_event_weight_sum.json')
 
 # Training resume #
 resume_model = ''
@@ -125,10 +125,18 @@ repetition = 1 # How many times each hyperparameter has to be used
 ###################################  Variables   ######################################
 cut = None
 
-weights = 'total_weight'
+lumidict = {'2016':36645.514633552,'2017':41529.152060112,'2018':59740.565201546}
 
+weights  = 'total_weight'
+
+channels = ['ElEl','MuMu']
+nodes    = ['TT', 'DY', 'ZA']
 # Input branches (combinations possible just as in ROOT #
 inputs = [
+#            'l1_charge@op_charge',
+#            'l1_pdgId@op_pdgid',
+#            'l2_charge@op_charge',
+#            'l2_pdgId@op_pdgid',
             'bb_M',
             'llbb_M',
             '$mA',
@@ -140,11 +148,18 @@ outputs = [
             '$TT',
             '$ZA',
           ] 
-
 # Other variables you might want to save in the tree #
 other_variables = [
                  ]
 
+operations = [inp.split('@')[1] if '@' in inp else None  for inp  in  inputs]
+check_op   = [(o is not None)*1 for o in operations]
+
+if check_op != sorted(check_op,reverse=True):
+    raise RuntimeError('Onehot inputs need to be at the beginning of the inputs list')
+
+mask_op = [len(inp.split('@'))==2 for inp  in  inputs]
+inputs  = [inp.split('@')[0] for inp  in  inputs]
 ################################  dtype operation ##############################
 # root_numpy does not like some operators very much #
 def make_dtype(list_names): 

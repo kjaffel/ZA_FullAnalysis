@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import re
 import math
 import glob
@@ -8,6 +7,7 @@ import os
 import sys
 import pprint
 import logging
+
 import copy
 import pickle
 #import psutil
@@ -24,11 +24,9 @@ import pandas as pd
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # Personal files #
-    
 def get_options():
     """
     Parse and return the arguments provided by the user.
@@ -36,6 +34,7 @@ def get_options():
     parser = argparse.ArgumentParser(description='MoMEMtaNeuralNet : A tool to regress the Matrix Element Method with a Neural Network')
 
     # Scan, deploy and restore arguments #
+    ##########################################################################
     a = parser.add_argument_group('Scan, deploy and restore arguments')
     a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
@@ -47,6 +46,7 @@ def get_options():
         help='Wether to resume the training of a given model (path in parameters.py)')
 
     # Splitting and submitting jobs arguments #
+    ##########################################################################
     b = parser.add_argument_group('Splitting and submitting jobs arguments')
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
         help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
@@ -56,8 +56,11 @@ def get_options():
         help='Wether to resubmit failed jobs given a specific path containing the jobs that succeded')
     b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
         help='Debug mode of the slurm submission, does everything except submit the jobs')
+    b.add_argument('-proc','--process', action='store', required=True, default='ggH', choices=['ggH', 'bbH'],
+        help='Which process you want to submit for training ')
 
     # Analyzing or producing outputs for given model (csv or zip file) #
+    ##########################################################################
     c = parser.add_argument_group('Analyzing or producing outputs for given model (csv or zip file)')
     c.add_argument('-r','--report', action='store', required=False, type=str, default='',
         help='Name of the csv file for the reporting (without .csv)')
@@ -69,12 +72,14 @@ def get_options():
         help='Applies the provided model (do not forget -o) on the list of keys from sampleList.py (separated by spaces)') 
 
     # Concatenating csv files arguments #
+    ##########################################################################
     d = parser.add_argument_group('Concatenating csv files arguments')
     d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',
         help='Wether to concatenate the csv files from different slurm jobs into a main one, \
               please provide the path to the csv files')
 
     # Concatenating csv files arguments #
+    ##########################################################################
     e = parser.add_argument_group('Physics arguments')
     e.add_argument('--resolved', action='store_true', required=False, default=False,
        help='Resolved topology')
@@ -83,6 +88,7 @@ def get_options():
 
 
     # Additional arguments #
+    ##########################################################################
     f = parser.add_argument_group('Additional arguments')
     f.add_argument('-v','--verbose', action='store_true', required=False, default=False,
         help='Show DEGUG logging')
@@ -90,27 +96,35 @@ def get_options():
         help='GPU requires to execute some commandes before')
     f.add_argument('--nocache', action='store_true', required=False, default=False,
                     help='Will not use the cache and will not save it')
+    
     opt = parser.parse_args()
 
     if opt.split!=0 or opt.submit!='':
         if opt.scan!='' or opt.report!='':
             logging.critical('These parameters cannot be used together')  
             sys.exit(1)
+    
     if opt.submit!='': # Need --output or --split arguments
         if opt.split==0 and len(opt.output)==0:
             logging.warning('In case of learning you forgot to specify --split')
             sys.exit(1)
+    
     if opt.split!=0 and (opt.report!='' or opt.output!='' or opt.csv!='' or opt.scan!=''):
         logging.warning('Since you have specified a split, all the other arguments will be skipped')
+    
     if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
+    
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
+    
     if (opt.test or len(opt.output)!=0) and opt.output == '': 
         logging.critical('You must specify the model with --output')
         sys.exit(1)
+    
     if opt.generator:
         logging.info("Will use the generator")
+    
     if opt.resume:
         logging.info("Will resume the training of the model")
 
@@ -120,13 +134,40 @@ def main():
     #############################################################################################
     # Preparation #
     #############################################################################################
+    LOG_LEVEL = logging.DEBUG
+    stream = logging.StreamHandler()
+    stream.setLevel(LOG_LEVEL)
+    logger = logging.getLogger("ZAINFO")
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler(stream)
+    try:
+        import colorlog
+        from colorlog import ColoredFormatter
+        formatter = ColoredFormatter(
+                        "%(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s",
+                        datefmt='%m/%d/%Y %H:%M:%S',
+                        reset=True,
+                        log_colors={
+                                'DEBUG':    'cyan',
+                                'INFO':     'green',
+                                'WARNING':  'blue',
+                                'ERROR':    'red',
+                                'CRITICAL': 'red',
+                            },
+                        secondary_log_colors={},
+                        style='%'
+                        )
+        stream.setFormatter(formatter)
+    except ImportError:
+        print(" You can add colours to the output of Python logging module via : https://pypi.org/project/colorlog/")
+        pass
     # Get options from user #
     logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s',datefmt='%m/%d/%Y %H:%M:%S')
+    
     opt = get_options()
     # Verbose logging #
     if not opt.verbose:
         logging.getLogger().setLevel(logging.INFO)
-
 
     # Private modules containing Pyroot #
     from NeuralNet import HyperModel
@@ -137,7 +178,7 @@ def main():
     from generate_mask import GenerateMask
     from split_training import DictSplit
     from concatenate_csv import ConcatenateCSV
-    from sampleList import samples_dict_2016, samples_dict_2017, samples_dict_2018, samples_path
+    from sampleList import samples_dict_2016, samples_dict_2017, samples_dict_2018, samples_path#, samples_dict_run2
     from threadGPU import utilizationGPU
     import parameters
 
@@ -243,8 +284,6 @@ def main():
     list_inputs  = parameters.inputs
     list_outputs = parameters.outputs
 
-    lumidict = {'2016':35921.875594646,'2017':41529.152060112,'2018':59740.565201546}
-
     if opt.nocache:
         logging.warning('No cache will be used not saved')
     if os.path.exists(parameters.train_cache) and os.path.exists(parameters.test_cache) and not opt.nocache:
@@ -254,20 +293,17 @@ def main():
         test_all = pd.read_pickle(parameters.test_cache)
     else:
         # Import arrays #
-        nodes = ['TT','DY','ZA']
-        channels = ['ElEl','MuMu']
         data_dict = {}
-        for node in nodes:
-            strSelect = []
+        for node in parameters.nodes:
             list_sample = []
+            strSelect   = []
             if opt.resolved:
-                strSelect.extend(['resolved_{}_{}'.format(channel,node) for channel in channels])
+                strSelect.extend(['resolved_{}_{}'.format(channel,node) for channel in parameters.channels])
             if opt.boosted:
-                strSelect.extend(['boosted_{}_{}'.format(channel,node) for channel in channels])
+                strSelect.extend(['boosted_{}_{}'.format(channel,node) for channel in parameters.channels])
 
             data_node = None
-            print ( 'strSelect:', strSelect )
-            for era,samples_dict in zip(['2016','2017','2018'],[samples_dict_2016,samples_dict_2017,samples_dict_2018]):
+            for era,samples_dict in {'2016':samples_dict_2016[opt.process]}.items():#, '2017':samples_dict_2017[opt.process], '2018':samples_dict_2018[opt.process]}.items():
                 if len(samples_dict.keys())==0:
                     logging.info('Sample dict for era {} is empty'.format(era))
                     continue
@@ -278,6 +314,9 @@ def main():
                     xsec_json = None
                     event_weight_sum_json = None
                 list_sample = [sample for key in strSelect for sample in samples_dict[key]]
+                
+                print( list_sample)
+                
                 data_node_era = LoopOverTrees(input_dir                 = samples_path,
                                               variables                 = variables,
                                               weight                    = parameters.weights,
@@ -285,19 +324,29 @@ def main():
                                               cut                       = parameters.cut,
                                               xsec_json                 = xsec_json,
                                               event_weight_sum_json     = event_weight_sum_json,
-                                              luminosity                = lumidict[era],
+                                              luminosity                = parameters.lumidict[era],
                                               additional_columns        = {'tag':node,'era':era})
+                
+                # The shape attribute for numpy arrays returns the dimensions of the array. 
+                # If Y has n rows and m columns, then Y.shape is (n,m). So Y.shape[0] is n.
+                smp_info = '{:5s} class - era {}  : sample size = {:10d}'.format(node, era,data_node_era.shape[0])
                 if data_node is None:
                     data_node = data_node_era
                 else:
                     data_node = pd.concat([data_node,data_node_era],axis=0)
-                #logging.info('{} Sample size for era {} : {}'.format(node,era,data_node_era.shape[0]))
-                logging.info('\t{} class in era {} : sample size = {}, weight sum = {:.3e} (with normalization = {:.3e})'.format(node,era,data_node_era.shape[0],data_node_era[parameters.weights].sum(),data_node_era['event_weight'].sum()))
+                
+                print( data_node_era)
+                if parameters.weights is not None:
+                    smp_info += ', weight sum = {:.3e} (with normalization = {:.3e})'.format(data_node_era[parameters.weights].sum(),data_node_era['event_weight'].sum())
+                logging.info(smp_info)
+                
+            smp_info2 = '{:5s} class : sample size = {:10d}'.format(node,data_node.shape[0])
+            if data_node.shape[0] == 0:
+                logging.info(smp_info2)
+                continue
             data_dict[node] = data_node
-            #logging.info('{} Sample size for all eras : {}'.format(node,data_node.shape[0]))
-            logging.info('{} class for all eras : sample size = {}, weight sum = {:.3e} (with normalization = {:.3e})'.format(node,data_node.shape[0],data_node[parameters.weights].sum(),data_node['event_weight'].sum()))
+        
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
-
         # Modify MA and MH for background #
         mass_prop_ZA = [(x, len(list(y))) for x, y in itertools.groupby(sorted(data_dict['ZA'][["mH","mA"]].values.tolist()))]
         mass_prop_DY = [(x,math.ceil(y/data_dict['ZA'].shape[0]*data_dict['DY'].shape[0])) for x,y in mass_prop_ZA]
@@ -393,7 +442,8 @@ def main():
         # Add target #
         label_encoder = LabelEncoder()
         onehot_encoder = OneHotEncoder(sparse=False)
-        label_encoder.fit(train_all['tag'])
+        print( train_all['tag'] , "FIXMEEEEEEEEEEEEEEEEEEEEEEEEE" ) 
+        label_encoder.fit(parameters.nodes)
         # From strings to labels #
         train_integers = label_encoder.transform(train_all['tag']).reshape(-1, 1)
         test_integers = label_encoder.transform(test_all['tag']).reshape(-1, 1)

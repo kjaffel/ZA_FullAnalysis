@@ -89,7 +89,7 @@ class SplitTraining:
 
     def _save_as_pickle(self):
         # Remove content of dir if already exists #
-        path_dict = os.path.join(parameters.main_path,'split',self.dir_name)
+        path_dict = os.path.join(parameters.path_out,'split',self.dir_name)
         logging.debug('Directory containing the dict : %s'%(path_dict))
         if os.path.exists(path_dict):
             logging.debug('Removing older files')
