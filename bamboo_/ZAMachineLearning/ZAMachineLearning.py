@@ -56,7 +56,7 @@ def get_options():
         help='Wether to resubmit failed jobs given a specific path containing the jobs that succeded')
     b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
         help='Debug mode of the slurm submission, does everything except submit the jobs')
-    b.add_argument('-proc','--process', action='store', required=True, default='ggH', choices=['ggH', 'bbH'],
+    b.add_argument('-proc','--process', action='store', required=False, default='ggH', choices=['ggH', 'bbH'],
         help='Which process you want to submit for training ')
 
     # Analyzing or producing outputs for given model (csv or zip file) #
@@ -194,9 +194,8 @@ def main():
     logging.info("="*94)
 
     # Make path model #
-    path_model = os.path.join(parameters.main_path,'model')
-    if not os.path.exists(path_model):
-        os.mkdir(path_model)
+    if not os.path.exists(parameters.path_model):
+        os.mkdir(parameters.path_model)
 
     #############################################################################################
     # Splitting into sub-dicts and slurm submission #

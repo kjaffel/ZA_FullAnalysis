@@ -15,7 +15,7 @@ from keras.regularizers import l1,l2
 ##################################  Path variables ####################################
 
 main_path = os.path.abspath(os.path.dirname(__file__))
-path_out = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__1')
+path_out = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__4')
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
 print ( ' sbatch dir ', main_path)
@@ -127,18 +127,21 @@ cut = None
 
 lumidict = {'2016':36645.514633552,'2017':41529.152060112,'2018':59740.565201546}
 
-weights  = 'total_weight'
-
-channels = ['ElEl','MuMu']
-nodes    = ['TT', 'DY', 'ZA']
+weights    = 'total_weight'
+categories = ["ggH","bbH"]
+channels   = ['ElEl','MuMu']
+nodes      = ['TT', 'DY', 'ZA']
 # Input branches (combinations possible just as in ROOT #
 inputs = [
-#            'l1_charge@op_charge',
-#            'l1_pdgId@op_pdgid',
+            'l1_charge@op_charge',
+            'l1_pdgId@op_pdgid',
 #            'l2_charge@op_charge',
 #            'l2_pdgId@op_pdgid',
             'bb_M',
             'llbb_M',
+#            'bb_M_squared',
+#            'llbb_M_squared',
+#            'llbb_M_x_bb_M',
             '$mA',
             '$mH',
          ]

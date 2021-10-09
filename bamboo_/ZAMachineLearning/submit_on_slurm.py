@@ -62,10 +62,10 @@ def submit_on_slurm(name,args,debug=False):
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
     slurm_config.stageoutFiles = ["*.csv","*.zip","*.png"]
 
-    slurm_config.payload = config.payload.format(script=os.path.join(out_dir,"ZAMachineLearning.py"))
+    slurm_config.payload = config.payload.format(script=os.path.join(parameters.main_path,"ZAMachineLearning.py"))
 
     if not output:
-        for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
+        for f in glob.glob(os.path.join(parameters.path_out,'split',name,'*.pkl')):
             task = os.path.basename(f)
             slurm_config.inputParams.append([name,task])
 

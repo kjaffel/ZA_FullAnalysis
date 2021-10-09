@@ -72,7 +72,7 @@ class HyperModel:
         logging.info(' Starting scan '.center(80,'-'))
 
         # Printing #
-        logging.info('Number of features : %d'%len(list_inputs))
+        logging.info('Number of inputs : %d'%len(list_inputs))
         for name in list_inputs:
             logging.info('..... %s'%name)
         logging.info('Number of outputs : %d'%len(list_outputs))
@@ -100,7 +100,7 @@ class HyperModel:
         # Talos hyperscan parameters #
         self.task = task
         if self.task != '': # if task is specified load it otherwise get it from parameters.py
-            with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
+            with open(os.path.join(parameters.path_out,'split',self.name,self.task), 'rb') as f:
                 self.p = pickle.load(f)
         else: # We need the full dict
             self.p = parameters.p
@@ -128,7 +128,7 @@ class HyperModel:
         no = 1
         if self.task == '': # If done on frontend
             self.name = self.name
-            self.path_model = os.path.join(parameters.main_path,'model',self.name)
+            self.path_model = os.path.join(parameters.path_out,'model',self.name)
             while os.path.exists(os.path.join(parameters.path_model,self.name+'_'+str(no)+'.csv')):
                 no +=1
             self.name_model = self.name+'_'+str(no)
@@ -310,7 +310,7 @@ class HyperModel:
         logging.info('='*80)
 
         # Generate dir #
-        path_plot = os.path.join(parameters.main_path,'model',self.name)
+        path_plot = os.path.join(parameters.path_out,'model',self.name)
         if not os.path.isdir(path_plot):
             os.makedirs(path_plot)
         
@@ -334,7 +334,7 @@ class HyperModel:
         loaded = False
         while not loaded:
             try:
-                a = Restore(os.path.join(parameters.main_path,'model',self.name+'.zip'),custom_objects=self.custom_objects)
+                a = Restore(os.path.join(parameters.path_out,'model',self.name+'.zip'),custom_objects=self.custom_objects)
                 loaded = True
             except Exception as e:
                 logging.warning('Could not load model due to "%s", will try again in 3s'%e)
