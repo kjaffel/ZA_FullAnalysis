@@ -1,5 +1,5 @@
 # H/A ->Z A/H ->llbb : RunII Full Analysis
-- Analysis use Bamboo RDataFrame and works with NanoAODv{5,7,8 and 9}, check .yaml configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite nanoaod version. 
+- Analysis use Bamboo RDataFrame and works with NanoAODv``{5,7,8 and 9}``, check ``.yml`` configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite NanoAOD version. 
 - You can find more about Bamboo in [the UserGuide](https://bamboo-hep.readthedocs.io/en/latest/index.html). Also feel free to report any issue you encounter in [~bamboo](https://mattermost.web.cern.ch/cms-exp/channels/bamboo) channel on the CERN mattermost, or on [Gitlab](https://gitlab.cern.ch/cp3-cms/bamboo/-/issues).
 
 ## Bamboo Installation(1st time):
@@ -61,11 +61,11 @@ cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
 make -j4 install
 ```
 ## How to run ?
-I do recommend to test locally first with `--maxFiles=1`, after you can submit to slurm with `--distributed=driver`. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
+I do recommend to test locally first with `--maxFiles=1`,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with `--distributed=driver`. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
 - ``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
-- ``-v : --verbose``     give you more print out for debugging. 
-- ``-m : --module``      your analysis script.
-- ``-dnn : --DNN_Evaluation`` Pass TensorFlow model and evaluate DNN output
+- ``-v`` /``--verbose``: give you more print out for debugging. 
+- ``-m ``/``--module``    : your analysis script.
+- ``-dnn ``/``--DNN_Evaluation`` : Pass TensorFlow model and evaluate DNN output
 - ``--split``: if True run2 reduced set of JES uncertainty splited by sources and JER systematic variation will be splitted between kinematics regions to decorrelate the nuisance parameters.
 - ``--hlt``: Produce HLT efficiencies maps
 - ``--blinded``: blinded data from 0.6 to 1 bin for the dnn output 
@@ -76,7 +76,7 @@ I do recommend to test locally first with `--maxFiles=1`, after you can submit t
 - ``--skim``:
 - ``--backend``:
 
-Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``dnn`` flag is set to ``True``:
+**Note**: Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``dnn`` flag is set to ``True``:
 ```bash
 srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash
 ```
@@ -94,14 +94,12 @@ bambooRun --onlypost -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/
 ## Make Skim:
 You can run ``bambooRun`` command for differnt ``--args`` or you can use ``runSkimmer.py`` to submit all of them at once.
 ```bash
+python runSkimmer.py --process ggH --output skim_tes --submit 
 bambooRun --distributed=driver -sel 2Lep2bJets -reg resolved  -cat MuMu -Tag DeepFlavour -wp M -proc ggH -s -m ZAtollbbSkimmer.py:Skimedtree_NanoHtoZA config/*.yml -o ~/path_to_your_Output_dir/
 ```
-- ``-sel``/``--selections``: ``noSel``, ``OsLeptons``, ``2Lep2Jets``, ``2Lep2bJets``
-- ``-reg``/``--regions``: ``resolved`` or ``boosted``
-- ``-cat``/``--categories``:  ``ElEl``, ``MuMu``, ``ElMu``, ``MuEl``
-- ``-proc``/``--processes``: ``ggH`` for gg-fusion and ``bbH`` for bb-associated production 
-- ``-Tag``/``--taggers``: ``DeepCSV`` and `` DeepFlavour`` 
-- ``-wp``/``--workingpoints``: ``L``, ``M``, ``T`` for ``DeepCSV`` tagger and only ``L``, ``M`` for DeepCSV
+- ``--submit``: ``driver``, ``worker`` , ``max1`` or ``onlypost`` . ``--driver`` option will submit the independent tasks to a batch scheduler (currently HTCondor and Slurm are supported) instead of running them sequentially, wait for the results to be ready, and combine them (the worker tasks will run the same module, but with ``--worker`` and the actual input and results file names as input and output arguments). ``max1`` same as ``--maxFiles=1``
+- ``-o``/``--output``:  skim output dir 
+- ``-p``/``--process``: ``ggH`` for gg-fusion and ``bbH`` for b-associated production 
 
 ## Produce 2D Efficiencies Maps for Btagging: 
 ```bash
