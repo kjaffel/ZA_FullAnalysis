@@ -283,7 +283,8 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--split", action="store_true", default= False, help="Run 2 reduced set of JES uncertainty splited by sources AND Split JER systematic variation between (kinematic) regions (to decorrelate the nuisance parameter)")
         parser.add_argument("--hlt", action="store_true", help="Produce HLT efficiencies maps")
         parser.add_argument("--blinded", action="store_true", help="Options to be blind on data if you want to Evaluate the training OR The Ellipses model ")
-        parser.add_argument("--nanoaodversion", type=str, default="v8", choices = ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
+        parser.add_argument("--nanoaodversion", default="v8", choices = ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
+        parser.add_argument("--process", required=False, nargs="+", choices = ["ggH", "bbH"], help="signal process that you wanna to look to ")
         parser.add_argument("--doMETT1Smear", action="store_true", default = False, help="do T1 MET smearing")
         parser.add_argument("--dobJetEnergyRegression", action="store_true", default = False, help="apply b jets energy regreqqion to improve the bjets mass resolution")
         parser.add_argument("--yields", action="store_true", default = False, help=" add Yields Histograms: not recomended if you turn off the systematics, jobs may run out of memory")
@@ -1189,7 +1190,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         cleaned_AK8JetsByDeepB    = op.sort(AK8jets, lambda j: -j.btagDeepB)
 
         if self.doEvaluate:
-            ZAmodel_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'ZAMachineLearning/tf_model','tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
+            #ZAmodel_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'ZAMachineLearning/tf_model','tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
+            ZAmodel_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
             if not os.path.exists(ZAmodel_path):
                 raise RuntimeError(f'Could not find model file {ZAmodel_path}')
             else:
@@ -1235,7 +1237,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_METcut   = True
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
-        make_FinalSelControlPlots    = True #* 
+        make_FinalSelControlPlots    = False #* 
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
         make_LookInsideJets          = False
@@ -1573,12 +1575,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     for process , Selections_noMETCut_per_process in llbbSelections_noMETCut.items():
                         process_ = 'ggH' if process =='gg_fusion' else 'bbH'
                         for reg, Selections_noMETCut_per_taggerWP in Selections_noMETCut_per_process.items():
-                            for FinalSel, taggerWP in Selections_noMETCut_per_taggerWP.items():
+                            for taggerWP, FinalSel in Selections_noMETCut_per_taggerWP.items():
 
                                 if reg =="resolved":
                                     bJets  = bjets_resolved[taggerWP.replace(wp, "")][wp]
-                                    llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0]+bJets[1]).M()
-                                    bb_M   = op.invariant_mass(bJets[0]+bJets[1])
+                                    llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
+                                    bb_M   = op.invariant_mass(bJets[0].p4+bJets[1].p4)
                                     
                                 elif reg =="boosted":
                                     bJets  = bjets_boosted[taggerWP.replace(wp, "")][wp]
@@ -1587,144 +1589,159 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     bb_softDropM = bJets[0].msoftdrop
 
                                 plots.append(Skim(  f"LepPlusJetsSel_{process_}_{reg}_{channel.lower()}_{taggerWP.lower()}", {
-                                        "run"            : None,  # copy from input file
-                                        "luminosityBlock": None,
+                                        "run"            : None,
                                         "event"          : None,
+                                        "luminosityBlock": None,  
+                                        
                                         "l1_charge"      : dilepton[0].charge,
                                         "l2_charge"      : dilepton[1].charge,
                                         "l1_pdgId"       : dilepton[0].pdgId,
                                         "l2_pdgId"       : dilepton[1].pdgId,
                                         'bb_M'           : bb_M,
                                         'llbb_M'         : llbb_M,
-                                        'bb_M_squared'   : op.exp(bb_M, 2),
-                                        'llbb_M_squared' : op.exp(llbb_M, 2),
+                                        'bb_M_squared'   : op.pow(bb_M, 2),
+                                        'llbb_M_squared' : op.pow(llbb_M, 2),
                                         'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
                                         'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
+                                        
+                                        'isResolved'     : op.c_bool(reg == 'resolved'), 
+                                        'isBoosted'      : op.c_bool(reg == 'boosted'), 
+                                        'isElEl'         : op.c_bool(channel == 'ElEl'), 
+                                        'isMuMu'         : op.c_bool(channel == 'MuMu'), 
+                                        'isggH'          : op.c_bool(process_ == 'ggH'), 
+                                        'isbbH'          : op.c_bool(process_ == 'bbH'), 
+
                                         'total_weight'   : FinalSel.weight,
                                         'PU_weight'      : PUWeight, 
-                                        f'nB_{lljj_jetType[reg]}Jets': op.static_cast("UInt_t", op.rng_len(bJets))
+                                        'MC_weight'      : t.genWeight,
+
+                                        f'nB_{lljj_jetType[reg]}bJets': op.static_cast("UInt_t", op.rng_len(bJets))
                                     }, FinalSel))
                 
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  to optimize the MET cut 
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                # you should get them for both signal && bkg  
-                if make_METPlots:
-                    for process , Selections_noMETCut_per_process in llbbSelections_noMETCut.items():
-                        for reg, sel in Selections_noMETCut_per_process.items():
-                            plots.extend(MakeMETPlots(sel, corrMET, MET, channel, reg, process))
-                            plots.extend(MakeExtraMETPlots(sel, dilepton, MET, channel, reg, process))
-                
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  refine previous selections for SR : with MET cut  < 80. 
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                llbbSelections = { process: 
-                                        { reg:
-                                            { key: selNoMET.refine(f"TwoLeptonsTwoBjets_METCut_bTagEventWeight_{key}_{channel}_{reg}_{process}", cut=[ corrMET.pt < 80. ])
-                                            for key, selNoMET in noMETSels.items() }
-                                        for reg, noMETSels in llbbSelections_noMETCut_per_process.items() }
-                                    for process, llbbSelections_noMETCut_per_process in llbbSelections_noMETCut.items() 
-                                }
-                
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                        # Evaluate the training  
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if self.doEvaluate:
-                    plotOptions = utils.getOpts(channel)
-                    signal_grid = { 'seen_byDNN': masses_seen,
-                                    'notseen_byDNN': masses_notseen }
-                    if self.doBlinded:
-                        plotOptions["blinded-range"] = [0.6, 1.0] 
-
-                    for process, Selections_per_process in llbbSelections.items():
-                        for key, selections in Selections_per_process.items(): 
-                            for TAGWP, sel in selections.items():
-                                
-                                bjets_  = safeget(lljj_bJets[key],TAGWP.replace(wp,''), wp)
-                                
-                                jj_p4   = ( (bjets_[0].p4 + bjets_[1].p4) if key=="resolved" else( bjets_[0].p4))
-                                lljj_p4 = ( dilepton[0].p4 + dilepton[1].p4 + jj_p4)
-                                
-                                bb_M   = jj_p4.M()
-                                llbb_M = lljj_p4.M()
-    
-                                for k, val in signal_grid.items():
-                                    for parameters in val: 
-                                        mA= parameters[1]
-                                        mH= parameters[0]
-                                        DNN_Inputs= [bb_M,llbb_M,op.c_float(mA),op.c_float(mH)]
-                                        DNN_Output = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
-                                        mA=str(mA).replace('.','p')
-                                        mH=str(mH).replace('.','p')
-                                        plots.append(Plot.make1D(f"DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}", 
-                                            DNN_Output[2], sel, 
-                                            EqB(50, 0., 1.), 
-                                            title='DNN_Output ZA', plotopts=plotOptions))
-                                            
-                                        plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
-                                            (bb_M, DNN_Output[2]), sel,
-                                            (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
-                                            title="mbb mass Input vs DNN Output", plotopts=plotOptions))
-                                        plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
-                                            (llbb_M, DNN_Output[2]), sel,
-                                            (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
-                                            title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
-                        
-                                        #OutmaxIDx =op.rng_max_element_index(DNN_Output)
-                                        #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{key}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
-                                        #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{key}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
-                                        #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  TTbar Esttimation  
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if make_ttbarEstimationPlots:
-                    # High met is Only included in this part for ttbar studies 
-                    for process, Selections_per_process in llbbSelections.items():
-                        for metReg, sel in {
-                                "METCut" : Selections_per_process["resolved"],
-                                "HighMET": {key: selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved_with_inverted_METcut".format(key, channel),
-                                    cut=[ corrMET.pt > 80. ])
-                                    for key, selNoMET in llbbSelections_noMETCut[process]["resolved"].items() }
-                                }.items():
-                            plots.extend(makeHistosForTTbarEstimation(sel, dilepton, bjets_resolved, wp, channel, "resolved", metReg, process))
-                
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    #  Control Plots for  Final selections
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                llbb_metCut_forPlots = {}
-                if make_bJetsPlusLeptonsPlots_METcut :
-                    llbb_metCut_forPlots["METCut"] = llbbSelections
-                if make_bJetsPlusLeptonsPlots_NoMETcut :
-                    llbb_metCut_forPlots["NoMETCut"] = llbbSelections_noMETCut
-                
-                for metCutNm, metCutSelections_llbb in llbb_metCut_forPlots.items():
-                    bJER_status = "bJetER" if self.dobJetER else "NobJetER"
-                    metCutNm_   = f"_{metCutNm}_{bJER_status}"
+                else:
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                        #  to optimize the MET cut 
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    # you should get them for both signal && bkg  
+                    if make_METPlots:
+                        for process , Selections_noMETCut_per_process in llbbSelections_noMETCut.items():
+                            for reg, sel in Selections_noMETCut_per_process.items():
+                                plots.extend(MakeMETPlots(sel, corrMET, MET, channel, reg, process))
+                                plots.extend(MakeExtraMETPlots(sel, dilepton, MET, channel, reg, process))
                     
-                    for process, metCutSelections_llbb_per_process in metCutSelections_llbb.items():
-                        for reg, selDict in metCutSelections_llbb_per_process.items():
-                            bjets = lljj_bJets[reg]
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                        #  refine previous selections for SR : with MET cut  < 80. 
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    llbbSelections = { process: 
+                                            { reg:
+                                                { key: selNoMET.refine(f"TwoLeptonsTwoBjets_METCut_bTagEventWeight_{key}_{channel}_{reg}_{process}", cut=[ corrMET.pt < 80. ])
+                                                for key, selNoMET in noMETSels.items() }
+                                            for reg, noMETSels in llbbSelections_noMETCut_per_process.items() }
+                                        for process, llbbSelections_noMETCut_per_process in llbbSelections_noMETCut.items() 
+                                    }
+                    
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                            # Evaluate the training  
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    if self.doEvaluate:
+                        plotOptions = utils.getOpts(channel)
+                        signal_grid = { 'seen_byDNN': masses_seen,
+                                        'notseen_byDNN': masses_notseen }
+                        if self.doBlinded:
+                            plotOptions["blinded-range"] = [0.6, 1.0] 
+
+                        for process, Selections_per_process in llbbSelections.items():
+                            for key, selections in Selections_per_process.items(): 
+                                for TAGWP, sel in selections.items():
+                                    
+                                    bjets_  = safeget(lljj_bJets[key],TAGWP.replace(wp,''), wp)
+                                    
+                                    jj_p4   = ( (bjets_[0].p4 + bjets_[1].p4) if key=="resolved" else( bjets_[0].p4))
+                                    lljj_p4 = ( dilepton[0].p4 + dilepton[1].p4 + jj_p4)
+                                    
+                                    bb_M   = jj_p4.M()
+                                    llbb_M = lljj_p4.M()
+                                    l1_charge =  dilepton[0].charge
+                                    l1_pdgId  =  dilepton[0].pdgId
+
+                                    for k, val in signal_grid.items():
+                                        for parameters in val: 
+                                            mA= parameters[1]
+                                            mH= parameters[0]
+                                            DNN_Inputs= [l1_pdgId, l1_charge, bb_M,llbb_M, op.c_float(mA), op.c_float(mH)]
+                                            DNN_Output = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
+                                            mA=str(mA).replace('.','p')
+                                            mH=str(mH).replace('.','p')
+                                            plots.append(Plot.make1D(f"DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}", 
+                                                DNN_Output[2], sel, 
+                                                EqB(50, 0., 1.), 
+                                                title='DNN_Output ZA', plotopts=plotOptions))
+                                                
+                                            plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                                (bb_M, DNN_Output[2]), sel,
+                                                (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
+                                                title="mbb mass Input vs DNN Output", plotopts=plotOptions))
+                                            plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                                (llbb_M, DNN_Output[2]), sel,
+                                                (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
+                                                title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
                             
-                            if make_FinalSelControlPlots:
-                                plots.extend(makeBJetPlots(selDict, bjets, wp, channel, reg, metCutNm_, era, process))
-                                plots.extend(makeControlPlotsForFinalSel(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process))
+                                            #OutmaxIDx =op.rng_max_element_index(DNN_Output)
+                                            #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{key}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
+                                            #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{key}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
+                                            #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                        #  TTbar Esttimation  
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    if make_ttbarEstimationPlots:
+                        # High met is Only included in this part for ttbar studies 
+                        for process, Selections_per_process in llbbSelections.items():
+                            for metReg, sel in {
+                                    "METCut" : Selections_per_process["resolved"],
+                                    "HighMET": {key: selNoMET.refine("TwoLeptonsTwoBjets_{0}_{1}_Resolved_with_inverted_METcut".format(key, channel),
+                                        cut=[ corrMET.pt > 80. ])
+                                        for key, selNoMET in llbbSelections_noMETCut[process]["resolved"].items() }
+                                    }.items():
+                                plots.extend(makeHistosForTTbarEstimation(sel, dilepton, bjets_resolved, wp, channel, "resolved", metReg, process))
+                    
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                        #  Control Plots for  Final selections
+                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    llbb_metCut_forPlots = {}
 
-                            if make_PlotsforCombinedLimits:
-                                plots.extend(makerhoPlots(selDict, bjets, dilepton, self.ellipses, self.ellipse_params, reg, metCutNm_, wp, channel, self.doBlinded, process))
-                                plots.extend(MHMAforCombinedLimits( selDict, bjets, dilepton, wp, channel, reg, self.doBlinded, process))
-
-                            if make_ellipsesPlots:
-                                plots.extend(MakeEllipsesPLots(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process))
-
-                            for key, sel in selDict.items():
-                                yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_{metCutNm}_{channel}_{key}_{process}",
-                                        f"{process}: 2 Lep(OS)+ {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key}+ {metCutNm}+ bTagEventWeight(channel: {optstex})")
+                    if make_bJetsPlusLeptonsPlots_METcut :
+                        llbb_metCut_forPlots["METCut"] = llbbSelections
+                    if make_bJetsPlusLeptonsPlots_NoMETcut :
+                        llbb_metCut_forPlots["NoMETCut"] = llbbSelections_noMETCut
+                    
+                    for metCutNm, metCutSelections_llbb in llbb_metCut_forPlots.items():
+                        bJER_status = "bJetER" if self.dobJetER else "NobJetER"
+                        metCutNm_   = f"_{metCutNm}_{bJER_status}"
+                        
+                        for process, metCutSelections_llbb_per_process in metCutSelections_llbb.items():
+                            for reg, selDict in metCutSelections_llbb_per_process.items():
+                                bjets = lljj_bJets[reg]
                                 
-                                selections_for_cutflowreport.append(sel)
-                
-                if make_ExtraFatJetsPlots:
-                    for process in ['gg_fusion', 'bb_associatedProduction']:
-                        plots.extend(makeExtraFatJetBOostedPlots(llbbSelections[process]['boosted'], lljj_bJets['boosted'], wp, channel, 'withmetCut', process))
+                                if make_FinalSelControlPlots:
+                                    plots.extend(makeBJetPlots(selDict, bjets, wp, channel, reg, metCutNm_, era, process))
+                                    plots.extend(makeControlPlotsForFinalSel(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process))
+
+                                if make_PlotsforCombinedLimits:
+                                    plots.extend(makerhoPlots(selDict, bjets, dilepton, self.ellipses, self.ellipse_params, reg, metCutNm_, wp, channel, self.doBlinded, process))
+                                    plots.extend(MHMAforCombinedLimits( selDict, bjets, dilepton, wp, channel, reg, process))
+
+                                if make_ellipsesPlots:
+                                    plots.extend(MakeEllipsesPLots(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process))
+
+                                for key, sel in selDict.items():
+                                    yield_object.addYields(sel, f"has2Lep2{reg.upper()}BJets_{metCutNm}_{channel}_{key}_{process}",
+                                            f"{process}: 2 Lep(OS)+ {jlenOpts[reg]} {lljj_jetType[reg]}BJets {reg} pass {key}+ {metCutNm}+ bTagEventWeight(channel: {optstex})")
+                                    
+                                    selections_for_cutflowreport.append(sel)
+                    
+                    if make_ExtraFatJetsPlots:
+                        for process in ['gg_fusion', 'bb_associatedProduction']:
+                            plots.extend(makeExtraFatJetBOostedPlots(llbbSelections[process]['boosted'], lljj_bJets['boosted'], wp, channel, 'withmetCut', process))
         
         if self.doYields:
             plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
@@ -1736,10 +1753,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         # run plotIt as defined in HistogramsModule - this will also ensure that self.plotList is present
         super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
 
-        from bamboo.plots import CutFlowReport, DerivedPlot
-        from utils import normalizeAndMergeSamplesForCombined
-        import bambooToOls
+        import pandas as pd
         import json 
+        import bambooToOls
+        from bamboo.plots import CutFlowReport, DerivedPlot, Skim
+        from utils import normalizeAndMergeSamplesForCombined
 
         # memory usage
         #start= timer()
@@ -1767,10 +1785,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
         from bamboo.analysisutils import loadPlotIt
-        #p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=self.args.eras, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
         p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
+        
         from plotit.plotit import Stack
         from bamboo.root import gbl
+        
         for plot in plots_2D:
             if ('_2j_jet_pt_eta_') in plot.name  or plot.name.startswith('pair_lept_2j_jet_pt_vs_eta_'):
                 expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
@@ -1791,3 +1810,22 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 obsStack.obj.Draw("COLZ0")
                 cv.Update()
                 cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
+        
+        skims = [ap for ap in self.plotList if isinstance(ap, Skim)]
+        if self.doSkim and skims:
+            try:
+                for skim in skims:
+                    frames = []
+                    for smp in samples:
+                        for cb in (smp.files if hasattr(smp, "files") else [smp]):  # could be a helper in plotit
+                            cols = gbl.ROOT.RDataFrame(cb.tFile.Get(skim.treeName)).AsNumpy()
+                            cols["total_weight"] *= cb.scale
+                            cols["process"] = [smp.name]*len(cols["total_weight"])
+                            frames.append(pd.DataFrame(cols))
+                    df = pd.concat(frames)
+                    df["process"] = pd.Categorical(df["process"], categories=pd.unique(df["process"]), ordered=False)
+                    pqoutname = os.path.join(resultsdir, f"{skim.name}.parquet")
+                    df.to_parquet(pqoutname)
+                    logger.info(f"Dataframe for skim {skim.name} saved to {pqoutname}")
+            except ImportError as ex:
+                logger.error("Could not import pandas, no dataframes will be saved")

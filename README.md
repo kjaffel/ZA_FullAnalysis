@@ -71,10 +71,14 @@ I do recommend to test locally first with `--maxFiles=1`, after you can submit t
 - ``--blinded``: blinded data from 0.6 to 1 bin for the dnn output 
 - ``--nanoaodversion``: EOY-latest ``v7`` or Ulegacy campaign-working version ``v8`` or the latest ``v9``
 - ``--doMETT1Smear``:  This correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
+- ``--dobJetEnergyRegression``:
+- ``--yields``:
+- ``--skim``:
+- ``--backend``:
 
 Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``dnn`` flag is set to ``True``:
 ```bash
-srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash --mem=50000
+srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash
 ```
 ```bash
 bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
