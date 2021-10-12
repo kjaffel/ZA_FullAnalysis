@@ -1818,10 +1818,17 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     frames = []
                     for smp in samples:
                         for cb in (smp.files if hasattr(smp, "files") else [smp]):  # could be a helper in plotit
-                            cols = gbl.ROOT.RDataFrame(cb.tFile.Get(skim.treeName)).AsNumpy()
-                            cols["total_weight"] *= cb.scale
-                            cols["process"] = [smp.name]*len(cols["total_weight"])
-                            frames.append(pd.DataFrame(cols))
+                            # Take specific columns
+                            tree = cb.tFile.Get(skim.treeName)
+                            if not tree:
+                                #print( f"KEY TTree {skim.treeName} does not exist, we are gonna skip this one {smp}")
+                            else:
+                                N = tree.GetEntries()
+                                #print (f"Entries in {smp} // KEY TTree {skim.treeName}: {N}")
+                                cols = gbl.ROOT.RDataFrame(cb.tFile.Get(skim.treeName)).AsNumpy()
+                                cols["total_weight"] *= cb.scale
+                                cols["process"] = [smp.name]*len(cols["total_weight"])
+                                frames.append(pd.DataFrame(cols))
                     df = pd.concat(frames)
                     df["process"] = pd.Categorical(df["process"], categories=pd.unique(df["process"]), ordered=False)
                     pqoutname = os.path.join(resultsdir, f"{skim.name}.parquet")
