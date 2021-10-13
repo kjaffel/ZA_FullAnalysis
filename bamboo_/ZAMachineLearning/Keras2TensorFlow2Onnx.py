@@ -27,7 +27,17 @@ def KerasToTensorflowModel(path_to_json= None, path_to_h5= None, prefix= None, n
         onnx_model = keras2onnx.convert_keras(keras_model, keras_model.name)
         keras2onnx.save_model(onnx_model, os.path.join("outdir", numout+".onnx"))
     except Exception as ex:
-        logger.exception("ERROR while saving to onnx:{ex}")
+        logger.exception(f"ERROR while saving to onnx:{ex}")
+    
+    onnxmodel = onnx.load(os.path.join("outdir", numout+".onnx"))
+    output =[node.name for node in onnxmodel.graph.output]
+
+    input_all = [node.name for node in onnxmodel.graph.input]
+    input_initializer =  [node.name for node in onnx_model.graph.initializer]
+    net_feed_input = list(set(input_all)  - set(input_initializer))
+
+    print('ONNX Inputs: ', net_feed_input)
+    print('ONNX Outputs:', output)
 
     # Alias the outputs in the model - this sometimes makes them easier to access in TF
     numout = numout+".pb"
