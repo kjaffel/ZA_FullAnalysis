@@ -37,7 +37,7 @@ function cms_env() {
 alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh"
 alias bambooenv="source $HOME/bamboodev/bamboovenv/bin/activate"
 ```
-- then every time you want to setup your bamboo enviroment:
+- Then every time you want to setup your bamboo enviroment:
 ```bash
 cms_env
 voms-proxy-init --voms cms
@@ -61,8 +61,8 @@ cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
 make -j4 install
 ```
 ## How to run ?
-I do recommend to test locally first with `--maxFiles=1`,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with `--distributed=driver`. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
-- ``-s : --systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+I do recommend to test locally first with ``--maxFiles=1``,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with ``--distributed=driver``. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
+- ``-s``/``--systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
 - ``-v`` /``--verbose``: give you more print out for debugging. 
 - ``-m ``/``--module``    : your analysis script.
 - ``-dnn ``/``--DNN_Evaluation`` : Pass TensorFlow model and evaluate DNN output
@@ -76,7 +76,7 @@ I do recommend to test locally first with `--maxFiles=1`,  to check that the mod
 - ``--skim``:
 - ``--backend``:
 
-**Note**: Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``dnn`` flag is set to ``True``:
+**Note**: Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``-dnn`` flag is set to ``True``:
 ```bash
 srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash
 ```
@@ -94,12 +94,15 @@ bambooRun --onlypost -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/
 ## Make Skim:
 You can run ``bambooRun`` command for differnt ``--args`` or you can use ``runSkimmer.py`` to submit all of them at once.
 ```bash
-python runSkimmer.py --process ggH --output skim_tes --submit 
+python runSkimmer.py --process ggH --output skim_dir --submit 
+
+# ZAtollbbSkimmer is deprecated( please use the command above) 
 bambooRun --distributed=driver -sel 2Lep2bJets -reg resolved  -cat MuMu -Tag DeepFlavour -wp M -proc ggH -s -m ZAtollbbSkimmer.py:Skimedtree_NanoHtoZA config/*.yml -o ~/path_to_your_Output_dir/
 ```
 - ``--submit``: ``driver``, ``worker`` , ``max1`` or ``onlypost`` . ``--driver`` option will submit the independent tasks to a batch scheduler (currently HTCondor and Slurm are supported) instead of running them sequentially, wait for the results to be ready, and combine them (the worker tasks will run the same module, but with ``--worker`` and the actual input and results file names as input and output arguments). ``max1`` same as ``--maxFiles=1``
 - ``-o``/``--output``:  skim output dir 
 - ``-p``/``--process``: ``ggH`` for gg-fusion and ``bbH`` for b-associated production 
+- ``-s``/`` --systematics``: add systematics variations 
 
 ## Produce 2D Efficiencies Maps for Btagging: 
 ```bash
