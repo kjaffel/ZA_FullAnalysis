@@ -1175,6 +1175,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         noSel, puWeightsFile, PUWeight, categories, isDY_reweight, WorkingPoints, BoostedTopologiesWP, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isULegacy = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
         
         era = sampleCfg.get("era") if sampleCfg else None
+        era_ = era if "VFP" not in era else "2016"
         yield_object = makeYieldPlots()
         isMC = self.isMC(sample)
         binScaling = 1 
@@ -1190,15 +1191,19 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         cleaned_AK8JetsByDeepB    = op.sort(AK8jets, lambda j: -j.btagDeepB)
 
         if self.doEvaluate:
-            #ZAmodel_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'ZAMachineLearning/tf_model','tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
-            ZAmodel_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
-            if not os.path.exists(ZAmodel_path):
-                raise RuntimeError(f'Could not find model file {ZAmodel_path}')
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
+            tensorflow_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
+            onnx_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/onnx_models/prob_model.onnx"
+            if not os.path.exists(onnx_path):
+                raise RuntimeError(f'Could not find model file {onnx_path}')
             else:
                 try:
-                    ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(['IN'], 'OUT/Softmax'), nameHint='tf_ZAModel')
+                    # The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), where each of the two can be a single string, or an iterable of them.
+                    #ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(['IN'], 'OUT/Softmax'), nameHint='tf_ZAModel')
+                    # The otherArgs keyword argument should the name of the output node (or a list of those)
+                    ZAmodel = op.mvaEvaluator(onnx_path, mvaType='ONNXRuntime',otherArgs=['OUT'], nameHint='ONNX_ZAModel')
                 except:
-                    raise RuntimeError(f'Could not op.mvaEvaluator Tensorflow model : {ZAmodel_path}')
+                    raise RuntimeError(f'Could not op.mvaEvaluator Tensorflow model : {onnx_path}')
         
         masses_seen = [
         #part0 : 21 signal samples 
@@ -1431,10 +1436,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 bJets_boosted_PassdeepcsvWP       = bjets_boosted["DeepCSV"][wp]
                 
                 
-                for suffix, bjet in { "resolved_DeepFlavour{}".format(wp): bJets_resolved_PassdeepflavourWP, # 
-                                      "resolved_DeepCSV{}".format(wp): bJets_resolved_PassdeepcsvWP,
-                                      "boosted_DeepCSV{}".format(wp): bJets_boosted_PassdeepcsvWP }.items():
-                    plots.extend(makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_"+ suffix))
+                if make_JetmultiplictyPlots:
+                    for suffix, bjet in { "resolved_DeepFlavour{}".format(wp): bJets_resolved_PassdeepflavourWP, 
+                                          "resolved_DeepCSV{}".format(wp)    : bJets_resolved_PassdeepcsvWP,
+                                          "boosted_DeepCSV{}".format(wp)     : bJets_boosted_PassdeepcsvWP }.items():
+                        plots.extend(makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_"+ suffix))
                 
                 if self.dobJetER:
                     bJets_resolved_PassdeepflavourWP = bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
@@ -1611,6 +1617,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         'isggH'          : op.c_bool(process_ == 'ggH'), 
                                         'isbbH'          : op.c_bool(process_ == 'bbH'), 
 
+                                        'era'            : op.c_int(int(era_)),
                                         'total_weight'   : FinalSel.weight,
                                         'PU_weight'      : PUWeight, 
                                         'MC_weight'      : t.genWeight,
@@ -1672,21 +1679,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                             DNN_Output = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
                                             mA=str(mA).replace('.','p')
                                             mH=str(mH).replace('.','p')
-                                            plots.append(Plot.make1D(f"DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}", 
+                                            plots.append(Plot.make1D(f"DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}", 
                                                 DNN_Output[2], sel, 
                                                 EqB(50, 0., 1.), 
                                                 title='DNN_Output ZA', plotopts=plotOptions))
                                                 
-                                            plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
-                                                (bb_M, DNN_Output[2]), sel,
-                                                (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
-                                                title="mbb mass Input vs DNN Output", plotopts=plotOptions))
-                                            plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}channel_{key}selection_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
-                                                (llbb_M, DNN_Output[2]), sel,
-                                                (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
-                                                title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
-                            
-                                            #OutmaxIDx =op.rng_max_element_index(DNN_Output)
+                                           # plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                           #     (bb_M, DNN_Output[2]), sel,
+                                           #     (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
+                                           #     title="mbb mass Input vs DNN Output", plotopts=plotOptions))
+                                           # plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                           #     (llbb_M, DNN_Output[2]), sel,
+                                           #     (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
+                                           #     title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
+                                            # #OutmaxIDx =op.rng_max_element_index(DNN_Output)
                                             #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{key}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
                                             #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{key}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
                                             #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
@@ -1804,10 +1810,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
                 cv = gbl.TCanvas(f"c{plot.name}")
                 cv.Divide(2)
-                cv.cd(1)
-                expStack.obj.Draw("COLZ0")
-                cv.cd(2)
-                obsStack.obj.Draw("COLZ0")
+                if not not expStack:
+                    cv.cd(1)
+                    expStack.obj.Draw("COLZ0")
+                if not not obsStack:
+                    cv.cd(2)
+                    obsStack.obj.Draw("COLZ0")
                 cv.Update()
                 cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
         
@@ -1821,9 +1829,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                             # Take specific columns
                             tree = cb.tFile.Get(skim.treeName)
                             if not tree:
-                                #print( f"KEY TTree {skim.treeName} does not exist, we are gonna skip this one {smp}")
+                                print( f"KEY TTree {skim.treeName} does not exist, we are gonna skip this {smp}\n")
                             else:
                                 N = tree.GetEntries()
+                                # https://indico.cern.ch/event/775679/contributions/3244724/attachments/1767054/2869505/RDataFrame.AsNumpy.pdf
+                                # https://stackoverflow.com/questions/33813815/how-to-read-a-parquet-file-into-pandas-dataframe
                                 #print (f"Entries in {smp} // KEY TTree {skim.treeName}: {N}")
                                 cols = gbl.ROOT.RDataFrame(cb.tFile.Get(skim.treeName)).AsNumpy()
                                 cols["total_weight"] *= cb.scale
