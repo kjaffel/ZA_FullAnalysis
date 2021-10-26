@@ -54,7 +54,7 @@ class ConcatenateCSV:
         # Define name for output file #
         name_csv = os.path.dirname(self.path).split('/')[-2]
         name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)    
-        self.path_out = os.path.join(parameters.main_path,'model',name_csv+'.csv')
+        self.path_out = os.path.join(parameters.path_out,'model',name_csv+'.csv')
         self.full_df.to_csv(self.path_out)
         logging.info('CSV file saved as %s'%(self.path_out))
 

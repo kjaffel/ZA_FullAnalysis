@@ -33,9 +33,8 @@ Below are the required packages that can be installed with pip. If you are worki
 - [pynvml]( https://pypi.org/project/pynvml/) ( Python Bindings for the NVIDIA Management Library)
 
 ## Workflow:
-Most of the tweaks are done in two files:
+All the tweaks are done in :
 - ``parameters.py`` : It's a configuration script includes most of the parameters that will be used during the training.
-- ``sampleList.py`` : Produces a dict of paths to be used to import data for the training.
 They will be described in details in the next subsections. Then we will detail the usual workflow of the hyperparameter scans.
 
 ### Scripts Configuration:
@@ -66,8 +65,6 @@ They will be described in details in the next subsections. Then we will detail t
     - outputs : List of branches to be used as training targets. **Note :** for branches that are not in tree but will be added later (eg tag) : use $string ($ will be removed after)
     - other_variables : Other variables you want to keep in the tree but not use as inputs not targets
 - make_dtype : This is because we use root_numpy to produce the root files and it does not like ``.``, ``(``, ``)``, ``-`` neither ``*``
-
-After you have chosen all the parameters:
 
 ### Local Test: 
 ``` python
@@ -149,7 +146,7 @@ The mask is generated as a ``.npy`` object based on the suffix in ``parameters.p
 - *Warning* : If the data changes, the code will exit with an error because the masks do not fit anymore (either delete them or change suffix).
 - *Tip* : The point of the mask is that for each hyperparameter the training and test data will be the same and not randomized at each trial.
 
-#### Preprocessing
+### Preprocessing :
 Preprocessing is very important in machine learning to give all the features of the training the same importance. We are using here the [Standard Scaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html), the point is to apply ``z -> z-mean/std``. Where mean and std are the mean and standard deviation of the *training* data.
 
 This scaler is saved in a pickle file with suffix in ``parameters.py`` as well. The easy way to use it is to transform the training and testing inputs, and do the inverse when saving into root files.
@@ -158,7 +155,7 @@ But keeping track of both model and scaler is annoying...
 So a custom layer in preprocessing.py incoorporates the mean and std as weights that are then saved in the model. No need to keep track of the scaler anymore when sharing the model.
 On the ther side when loading the model, the script must be given so that Keras knows how to handle it (but already included in the machinery here).
 
-## Learning Weights
+## Learning Weights :
 In order to represent in the training the physical significance of the training events, the event weight needs to be used ([doc](https://keras.io/guides/customizing_what_happens_in_fit/#supporting-sampleweight-amp-classweight)).
 
 This is what is given as weight in ``parameters.py``, the issue arises from the negative weights. They can be dealt with in several scenarios

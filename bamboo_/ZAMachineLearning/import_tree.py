@@ -19,8 +19,7 @@ from ROOT import TChain, TFile, TTree
 ###############################################################################
 # Tree2Pandas#
 ###############################################################################
-
-def Tree2Pandas(input_file, variables, weight=None, cut=None, xsec=None, event_weight_sum=None, luminosity=None, n=None, tree_name='Events',start=None):
+def Tree2Pandas(era, input_file, variables, weight=None, cut=None, xsec=None, event_weight_sum=None, luminosity=None, n=None, tree_name='Events',start=None):
     """
     Convert a ROOT TTree to a numpy array.
     """
@@ -39,6 +38,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, xsec=None, event_w
     if not os.path.exists(input_file):
         logging.warning("File %s does not exist"%input_file)
         return None
+    
     file_handle = TFile.Open(input_file)
     if not file_handle.GetListOfKeys().Contains(tree_name):
         logging.warning("Could not find tree %s in %s"%(tree_name,input_file))
@@ -47,11 +47,19 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, xsec=None, event_w
     N = tree.GetEntries()
     logging.debug('... Number of events : '+str(N))
 
-    relative_weight = 1 
+    relative_weight = 1.
     if xsec is not None and event_weight_sum is not None:
         if luminosity is None:
-            luminosity = 1
+            luminosity = 1.
+        if era =="2016":
+            if "preVFP" in input_file:
+                luminosity = 19667.812849099
+            elif "postVFP" in input_file:
+                luminosity = 16977.701784453
+            else:
+                luminosity = 36645.514633552 
         relative_weight = xsec * luminosity / event_weight_sum
+        
         logging.debug('\t\tReweighting requested')
         logging.debug('\t\t\tCross section : %0.5f'%xsec)
         logging.debug('\t\t\tEvent weight sum : %0.2f'%event_weight_sum)
@@ -61,13 +69,13 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, xsec=None, event_w
     # Read the tree and convert it to a numpy structured array
     if weight is not None:
         variables += [weight]
-    data = tree2array(tree, branches=variables, selection=cut, start=start, stop=n)
     
+    data = tree2array(tree, branches=variables, selection=cut, start=start, stop=n)
     # Convert to pandas dataframe #
     df = pd.DataFrame(data)
+    
     if weight is not None:
         df['event_weight'] = df[weight]*relative_weight
-
 
     # Only part of tree #
     if n:
@@ -80,14 +88,12 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, xsec=None, event_w
         else:
             logging.info("Reading only {} from input tree".format(n))
         
-
     return df
 
 ###############################################################################
 # LoopOverTrees #
 ###############################################################################
-
-def LoopOverTrees(input_dir, variables, weight=None, additional_columns={}, cut=None, xsec_json=None, event_weight_sum_json=None, luminosity=None, list_sample=None, start=None, n=None):
+def LoopOverTrees(input_dir=None, variables=None, weight=None, list_sample=None, TTree= None, cut=None, xsec_json=None, event_weight_sum_json=None, luminosity=None, additional_columns={}, start=None, n=None):
     """
     Loop over ROOT trees inside input_dir and process them using Tree2Pandas.
     """
@@ -103,6 +109,7 @@ def LoopOverTrees(input_dir, variables, weight=None, additional_columns={}, cut=
     if xsec_json is not None:
         with open(xsec_json,'r') as handle:
             dict_xsec = json.load(handle)
+    
     # Event weight sum #
     event_weight_sum = None
     if event_weight_sum_json is not None:
@@ -119,58 +126,59 @@ def LoopOverTrees(input_dir, variables, weight=None, additional_columns={}, cut=
     first_file = True
     all_df = pd.DataFrame() 
     for sample in list_sample:
-        sample_name = os.path.basename(sample)
-        logging.debug("\tAccessing file : %s"%sample_name)
+        for key in TTree:
+            sample_name = os.path.basename(sample)
+            logging.debug("\tAccessing file : %s"%sample_name)
+            
+            if xsec_json is not None:
+                for name,xs in dict_xsec.items():
+                    if name in sample_name:
+                        xsec = xs
+            if event_weight_sum_json is not None:
+                for name,ews in dict_event_weight_sum.items():
+                    if name in sample_name:
+                        event_weight_sum = ews
+           
+            # Get the data as pandas df #
+            df = Tree2Pandas(era                        = additional_columns['era'],
+                             input_file                 = sample,
+                             variables                  = variables,
+                             weight                     = weight,
+                             cut                        = cut,
+                             xsec                       = xsec,
+                             event_weight_sum           = event_weight_sum,
+                             luminosity                 = luminosity,
+                             n                          = n,
+                             #tree_name                 = 'Events',
+                             tree_name                  = key,      
+                             start                      = start) 
+            if df is None:
+                continue
+            # Find mH, mA #
+            if sample_name.find('HToZA')!=-1: # Signal -> Search for mH and mA
+                mH = [int(re.findall(r'\d+', sample_name)[2])]*df.shape[0]    
+                mA = [int(re.findall(r'\d+', sample_name)[3])]*df.shape[0]    
+            else: # Background, set them at 0
+                mH = [0]*df.shape[0]
+                mA = [0]*df.shape[0]
 
-        if xsec_json is not None:
-            for name,xs in dict_xsec.items():
-                if name in sample_name:
-                    xsec = xs
-        if event_weight_sum_json is not None:
-            for name,ews in dict_event_weight_sum.items():
-                if name in sample_name:
-                    event_weight_sum = ews
-       
-        # Get the data as pandas df #
-        df = Tree2Pandas(input_file                 = sample,
-                         variables                  = variables,
-                         weight                     = weight,
-                         cut                        = cut,
-                         xsec                       = xsec,
-                         event_weight_sum           = event_weight_sum,
-                         luminosity                 = luminosity,
-                         n                          = n,
-                         tree_name                  = 'Events',
-                         start                      = start) 
+            # Register in DF #
+            df['mH'] = pd.Series(mH)
+            df['mA'] = pd.Series(mA)
 
-        if df is None:
-            continue
+            # Register sample name #
+            df['sample'] = pd.Series([sample_name.replace('.root','')]*df.shape[0])
+            
+            # Register additional columns #
+            if len(additional_columns.keys()) != 0:
+                for key,val in additional_columns.items():
+                    df[key] = pd.Series([val]*df.shape[0])
 
-        # Find mH, mA #
-        if sample_name.find('HToZA')!=-1: # Signal -> Search for mH and mA
-            mH = [int(re.findall(r'\d+', sample_name)[2])]*df.shape[0]    
-            mA = [int(re.findall(r'\d+', sample_name)[3])]*df.shape[0]    
-        else: # Background, set them at 0
-            mH = [0]*df.shape[0]
-            mA = [0]*df.shape[0]
-
-        # Register in DF #
-        df['mH'] = pd.Series(mH)
-        df['mA'] = pd.Series(mA)
-
-        # Register sample name #
-        df['sample'] = pd.Series([sample_name.replace('.root','')]*df.shape[0])
-        
-        # Register additional columns #
-        if len(additional_columns.keys()) != 0:
-            for key,val in additional_columns.items():
-                df[key] = pd.Series([val]*df.shape[0])
-
-        # Concatenate into full df #
-        if first_file:
-            all_df = df
-            first_file = False
-        else:
-            all_df = pd.concat([all_df,df])
-        all_df = all_df.reset_index(drop=True) # Otherwise there will be an index repetition for each file
+            # Concatenate into full df #
+            if first_file:
+                all_df = df
+                first_file = False
+            else:
+                all_df = pd.concat([all_df,df])
+            all_df = all_df.reset_index(drop=True) # Otherwise there will be an index repetition for each file
     return all_df

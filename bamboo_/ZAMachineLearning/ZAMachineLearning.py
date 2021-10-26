@@ -7,21 +7,20 @@ import os
 import sys
 import pprint
 import logging
-
 import copy
 import pickle
+import argparse
 #import psutil
-from functools import reduce
 import operator
 import itertools
+
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 if plt.rcParams['backend'] == 'TkAgg':
     raise ImportError("Change matplotlib backend to 'Agg' in ~/.config/matplotlib/matplotlibrc")
 
-import argparse
-import numpy as np
-import pandas as pd
-
+from functools import reduce
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
@@ -85,7 +84,6 @@ def get_options():
        help='Resolved topology')
     e.add_argument('--boosted', action='store_true', required=False, default=False,
        help='Boosted topology')
-
 
     # Additional arguments #
     ##########################################################################
@@ -178,7 +176,6 @@ def main():
     from generate_mask import GenerateMask
     from split_training import DictSplit
     from concatenate_csv import ConcatenateCSV
-    from sampleList import samples_dict_2016, samples_dict_2017, samples_dict_2018, samples_path#, samples_dict_run2
     from threadGPU import utilizationGPU
     import parameters
 
@@ -212,7 +209,7 @@ def main():
         if opt.generator:           args += ' --generator '
         if opt.GPU:                 args += ' --GPU '
         if opt.resume:              args += ' --resume '
-        if opt.model!='':           args += ' --model '+opt.model+' '
+        if opt.model!='':           args += ' --model ' + opt.model+' '
         if len(opt.output)!=0:      args += ' --output '+ ' '.join(opt.output)+' '
 
         if opt.submit!='':
@@ -259,12 +256,11 @@ def main():
         # Loop over output keys #
         for key in opt.output:
             # Create subdir #
-            print( '****', key ) 
             path_output_sub = os.path.join(path_output,key+'_output')
             if not os.path.exists(path_output_sub):
                 os.mkdir(path_output_sub)
             try:
-                inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict[key],path_output=path_output_sub)
+                inst_out.OutputNewData(input_dir=parameters.samples_path,list_sample=samples_dict[key],path_output=path_output_sub)
             except Exception as e:
                 logging.critical('Could not process key "%s" due to "%s"'%(key,e))
         sys.exit()
@@ -280,8 +276,10 @@ def main():
 
     # Import variables from parameters.py
     variables = parameters.inputs+parameters.outputs+parameters.other_variables
-    list_inputs  = parameters.inputs
-    list_outputs = parameters.outputs
+    variables = [v for i,v in enumerate(variables) if v not in variables[:i]] # avoid repetitons while keeping order
+
+    list_inputs  = [var.replace('$','') for var in parameters.inputs]
+    list_outputs = [var.replace('$','') for var in parameters.outputs]
 
     if opt.nocache:
         logging.warning('No cache will be used not saved')
@@ -295,31 +293,36 @@ def main():
         data_dict = {}
         for node in parameters.nodes:
             list_sample = []
-            strSelect   = []
+            TTree   = []
+
             if opt.resolved:
-                strSelect.extend(['resolved_{}_{}'.format(channel,node) for channel in parameters.channels])
+                TTree.extend([f"LepPlusJetsSel_{opt.process}_resolved_{channel.lower()}_deepcsvm" for channel in parameters.channels])
             if opt.boosted:
-                strSelect.extend(['boosted_{}_{}'.format(channel,node) for channel in parameters.channels])
+                TTree.extend([f"LepPlusJetsSel_{opt.process}_boosted_{channel.lower()}_deepcsvm" for channel in parameters.channels])
 
             data_node = None
-            for era,samples_dict in {'2016':samples_dict_2016[opt.process]}.items():#, '2017':samples_dict_2017[opt.process], '2018':samples_dict_2018[opt.process]}.items():
-                if len(samples_dict.keys())==0:
-                    logging.info('Sample dict for era {} is empty'.format(era))
+            for era,samples_dict in {'2016':parameters.samples_dict_run2UL["2016"][f"combined_{node}_nodes"], 
+                                     '2017':parameters.samples_dict_run2UL["2017"][f"combined_{node}_nodes"], 
+                                     '2018':parameters.samples_dict_run2UL["2018"][f"combined_{node}_nodes"]}.items():
+                if len(samples_dict)==0:
+                    logging.info(f'Sample dict for era {era} is empty')
                     continue
                 if node != 'ZA':
                     xsec_json = parameters.xsec_json.format(era=era)
                     event_weight_sum_json = parameters.event_weight_sum_json.format(era=era)
-                else:
+                else: # FIXME 
                     xsec_json = None
                     event_weight_sum_json = None
-                list_sample = [sample for key in strSelect for sample in samples_dict[key]]
-                
-                print( list_sample)
-                
-                data_node_era = LoopOverTrees(input_dir                 = samples_path,
+                #list_sample = [sample for key in TTree for sample in samples_dict[key]]
+                # cat :  reso, boosted , ee , mumu , ggH , bbH  for tagger+WP 
+                print( samples_dict )
+                list_sample = samples_dict
+               
+                data_node_era = LoopOverTrees(input_dir                 = parameters.samples_path[era],
                                               variables                 = variables,
                                               weight                    = parameters.weights,
                                               list_sample               = list_sample,
+                                              TTree                     = TTree, 
                                               cut                       = parameters.cut,
                                               xsec_json                 = xsec_json,
                                               event_weight_sum_json     = event_weight_sum_json,
@@ -417,19 +420,20 @@ def main():
             train_DY = data_dict['DY'][mask_DY==True]
             train_TT = data_dict['TT'][mask_TT==True]
             train_ZA = data_dict['ZA'][mask_ZA==True]
-            test_DY = data_dict['DY'][mask_DY==False]
-            test_TT = data_dict['TT'][mask_TT==False]
-            test_ZA = data_dict['ZA'][mask_ZA==False]
+            
+            test_DY  = data_dict['DY'][mask_DY==False]
+            test_TT  = data_dict['TT'][mask_TT==False]
+            test_ZA  = data_dict['ZA'][mask_ZA==False]
         except ValueError:
             logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
             raise ValueError
             
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
         del data_dict
-
         
         train_all = pd.concat([train_DY,train_TT,train_ZA],copy=True).reset_index(drop=True)
-        test_all = pd.concat([test_DY,test_TT,test_ZA],copy=True).reset_index(drop=True)
+        test_all  = pd.concat([test_DY,test_TT,test_ZA],copy=True).reset_index(drop=True)
+        
         del train_TT, train_DY, train_ZA, test_TT, test_DY, test_ZA
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
@@ -439,39 +443,41 @@ def main():
         train_all = train_all.iloc[random_train]
           
         # Add target #
-        label_encoder = LabelEncoder()
+        label_encoder  = LabelEncoder()
         onehot_encoder = OneHotEncoder(sparse=False)
-        print( train_all['tag'] , "FIXMEEEEEEEEEEEEEEEEEEEEEEEEE" ) 
         label_encoder.fit(parameters.nodes)
+        
         # From strings to labels #
         train_integers = label_encoder.transform(train_all['tag']).reshape(-1, 1)
-        test_integers = label_encoder.transform(test_all['tag']).reshape(-1, 1)
+        test_integers  = label_encoder.transform(test_all['tag']).reshape(-1, 1)
+        
         # From labels to strings #
         train_onehot = onehot_encoder.fit_transform(train_integers)
-        test_onehot = onehot_encoder.fit_transform(test_integers)
+        test_onehot  = onehot_encoder.fit_transform(test_integers)
+        
         # From arrays to pd DF #
         train_cat = pd.DataFrame(train_onehot,columns=label_encoder.classes_,index=train_all.index)
-        test_cat = pd.DataFrame(test_onehot,columns=label_encoder.classes_,index=test_all.index)
+        test_cat  = pd.DataFrame(test_onehot,columns=label_encoder.classes_,index=test_all.index)
+        
         # Add to full #
         train_all = pd.concat([train_all,train_cat],axis=1)
-        test_all = pd.concat([test_all,test_cat],axis=1)
-
-        list_inputs  = [var.replace('$','') for var in parameters.inputs]
-        list_outputs = [var.replace('$','') for var in parameters.outputs]
+        test_all  = pd.concat([test_all,test_cat],axis=1)
+        train_all[list_inputs+list_outputs] = train_all[list_inputs+list_outputs].astype('float32')
+        test_all[list_inputs+list_outputs]  = test_all[list_inputs+list_outputs].astype('float32')
+        
         # Preprocessing #
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer
         if opt.scan!='': # If we don't scan we don't need to scale the data
-            MakeScaler(train_all,list_inputs) 
+            MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
 
         if not opt.nocache:
             train_all.to_pickle(parameters.train_cache)
             test_all.to_pickle(parameters.test_cache)
             logging.info('Data saved to cache')
-       
-    list_inputs  = [var.replace('$','') for var in parameters.inputs]
-    list_outputs = [var.replace('$','') for var in parameters.outputs]
-     
+            logging.info('... Training set : %s'%parameters.train_cache)
+
+
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
     logging.info("Sample size for the output  : %d"%test_all.shape[0])
     #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
@@ -481,19 +487,16 @@ def main():
     #############################################################################################
     if opt.GPU:
         # Start the GPU monitoring thread #
-        thread = utilizationGPU(print_time = 900,
-                                print_current = False,
-                                time_step=0.01)
+        thread = utilizationGPU(print_time = 900, print_current = False, time_step=0.01)
         thread.start()
 
     if opt.scan != '':
-        instance = HyperModel(opt.scan)
-        instance.HyperScan(data=train_all,
-                           list_inputs=list_inputs,
-                           list_outputs=list_outputs,
-                           task=opt.task,
-                           generator=opt.generator,
-                           resume=opt.resume)
+        instance = HyperModel(opt.scan,list_inputs,list_outputs)
+        instance.HyperScan(data      = train_all,
+                           task      = opt.task,
+                           model_idx = None,
+                           generator = opt.generator,
+                           resume    = opt.resume)
         instance.HyperDeploy(best='eval_error')
 
     if opt.GPU:
@@ -504,15 +507,14 @@ def main():
     if opt.model!='': 
         # Make path #
         output_name = "test" 
-        path_output = os.path.join(parameters.path_out,opt.model,output_name)
+        path_output = os.path.join(opt.model,output_name)
         if not os.path.exists(path_output):
             os.makedirs(path_output)
 
         # Instance of output class #
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),
-                                 generator=opt.generator,
-                                 list_inputs=list_inputs)
-
+        inst_out = ProduceOutput(model      = os.path.join(opt.model),
+                                 generator  = opt.generator,
+                                 list_inputs= list_inputs)
         # Use it on test samples #
         if opt.test:
             logging.info('  Processing test output sample  '.center(80,'*'))

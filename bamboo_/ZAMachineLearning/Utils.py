@@ -412,16 +412,19 @@ if __name__=='__main__':
     countArgs.add_argument('--tree', action='store', default='tree', type=str, required=False, 
         help='Name of the tree (default="tree")')
 
+    ##################################################################################################
     zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of files inside the archive')
     zipArgs.add_argument('--zip', action='append', nargs=2, required=False, 
         help='path to input .zip + path to output .zip')
 
+    ##################################################################################################
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('--variable', action='store', required=False, type=str, 
         help='Partial name of the branches to include in the count (--path must have been provided)')
     CountVar.add_argument('--list', action='store', required=False, type=str, 
         help='Lists all the branches of a given file')
 
+    ##################################################################################################
     appendArgs = parser.add_argument_group('Concatenate branches of one root file to the other')
     appendArgs.add_argument('--append', action='append', nargs='+', required=False, 
         help='Name of first root file + Name of second root file + list of branches to be taken from second and appended to first')
@@ -430,12 +433,13 @@ if __name__=='__main__':
     appendArgs.add_argument('--append_rename', action='append', nargs='+', required=False, 
         help='List of names that should replace the appended column names (must have the same number of entries)')
 
+    ##################################################################################################
     yamlExtract = parser.add_argument_group('Parse a YAML file produced by bamboo to extract Xsec and event weight sum')
-    yamlExtract.add_argument("--yaml", action='store', type=str, required=False,                                                                                                                            
-        help='Name of the YAML file used by plotIt containign Xsec and event weight sum')
+    yamlExtract.add_argument("--yaml", action='store', type=str, required=False,                                                                                      help='Name of the YAML file used by plotIt containign Xsec and event weight sum')
     yamlExtract.add_argument("--suffix", action='store', type=str, required=False, default='',
         help='Will produce {suffix}_xsec.json and {suffix}_event_weight_sum.json (default = "")')
 
+    ##################################################################################################
     removePreProcess = parser.add_argument_group('Remove Preprocess layer from a model in json (architecture) and h5 files (weights)')
     removePreProcess.add_argument("--json", action='store', type=str, required=False,
         help='Name of the json file containing the network architecture')
@@ -444,6 +448,7 @@ if __name__=='__main__':
     removePreProcess.add_argument("--suffix", action='store', type=str, required=False, default='',
         help='Suffix to be added in from of the new files ({suffix}file.json, {suffix}file.h5 and {suffix}scaler.pkl which contains the extracted preprocessing parameters)')
 
+    ##################################################################################################
     #----- Execution -----#
     args = parser.parse_args()
     if args.path is not None:
