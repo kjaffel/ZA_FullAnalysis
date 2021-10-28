@@ -1,5 +1,5 @@
 # ZA Machine Learning: 
-This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysis](https://github.com/FlorianBury/HHbbWWAnalysis/tree/master/MachineLearning) and it was udapted to do multi-classification for H/A-> Z(ll) A/H(bb) analysis for full run2.
+This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysis](https://github.com/FlorianBury/HHbbWWAnalysis/tree/master/MachineLearning) and it was udapted to do multi-classification for **H/A-> Z(ll) A/H(bb)** analysis for full run2 data.
 
 ## Getting Started:
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
@@ -68,8 +68,12 @@ They will be described in details in the next subsections. Then we will detail t
 
 ### Local Test: 
 ``` python
-python ZAMachineLearning.py (args) --scan name_of_scan --debug
+python ZAMachineLearning.py (args) --scan name_of_scan --debug --verbose
 ```
+- (args): ``--boosted --resolved --process``
+    - ``-p/--process``: It can be a list or str ggH for gg-fusion and bbH for b-associated production. f the latest is True, this mean that 1NN is set per process.
+    - ``--resolved``  :
+    - ``--boosted``   : 
 The args depend on what you have hardcoded in ``ZAMachineLearning.py``.
 - *Note* : All the hyperparameter combinations will be run sequentially, this might take time ... 
 - *Tip*: Use one combination only (only lists with one item) and small number of epochs to check everything works.
