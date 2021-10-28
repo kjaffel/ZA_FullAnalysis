@@ -93,7 +93,7 @@ def get_options():
     f.add_argument('--GPU', action='store_true', required=False, default=False,
         help='GPU requires to execute some commandes before')
     f.add_argument('--nocache', action='store_true', required=False, default=False,
-                    help='Will not use the cache and will not save it')
+        help='Will not use the cache and will not save it')
     
     opt = parser.parse_args()
 
@@ -135,7 +135,7 @@ def main():
     LOG_LEVEL = logging.DEBUG
     stream = logging.StreamHandler()
     stream.setLevel(LOG_LEVEL)
-    logger = logging.getLogger("ZAINFO")
+    logger = logging.getLogger("ZA-ML")
     logger.setLevel(LOG_LEVEL)
     logger.addHandler(stream)
     try:
@@ -307,28 +307,26 @@ def main():
                 if len(samples_dict)==0:
                     logging.info(f'Sample dict for era {era} is empty')
                     continue
-                if node != 'ZA':
-                    xsec_json = parameters.xsec_json.format(era=era)
-                    event_weight_sum_json = parameters.event_weight_sum_json.format(era=era)
-                else: # FIXME 
-                    xsec_json = None
-                    event_weight_sum_json = None
                 #list_sample = [sample for key in TTree for sample in samples_dict[key]]
                 # cat :  reso, boosted , ee , mumu , ggH , bbH  for tagger+WP 
                 print( samples_dict )
                 list_sample = samples_dict
-               
+                
                 data_node_era = LoopOverTrees(input_dir                 = parameters.samples_path[era],
+                                              list_sample               = list_sample,
                                               variables                 = variables,
                                               weight                    = parameters.weights,
-                                              list_sample               = list_sample,
-                                              TTree                     = TTree, 
                                               cut                       = parameters.cut,
-                                              xsec_json                 = xsec_json,
-                                              event_weight_sum_json     = event_weight_sum_json,
+                                              era                       = era,
                                               luminosity                = parameters.lumidict[era],
-                                              additional_columns        = {'tag':node,'era':era})
-                
+                                              xsec_dict                 = parameters.xsec_dict,
+                                              event_weight_sum_dict     = parameters.event_weight_sum_dict,
+                                              additional_columns        = {'tag':node,'era':era},
+                                              tree_name                 = parameters.tree_name,
+                                              TTree                     = TTree, 
+                                              paramFun                  = None,
+                                              start                     = None,
+                                              stop                      = None)
                 # The shape attribute for numpy arrays returns the dimensions of the array. 
                 # If Y has n rows and m columns, then Y.shape is (n,m). So Y.shape[0] is n.
                 smp_info = '{:5s} class - era {}  : sample size = {:10d}'.format(node, era,data_node_era.shape[0])
