@@ -35,16 +35,11 @@ from preprocessing import PreprocessLayer
 from data_generator import DataGenerator
 from generate_mask import GenerateSliceIndices, GenerateSliceMask
 
-#################################################################################################
-# HyperModel #
-#################################################################################################
 class HyperModel:
-    #############################################################################################
-    # __init ___#
-    #############################################################################################
-    def __init__(self,name,list_inputs=None,list_outputs=None):
+    def __init__(self, name, list_inputs=None, list_outputs=None):
         self.name = name
-        self.custom_objects = {'PreprocessLayer': PreprocessLayer} # Needs to be specified when saving and restoring
+        #self.custom_objects = {'PreprocessLayer': PreprocessLayer} # Needs to be specified when saving and restoring
+        self.custom_objects = {name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')}
         self.list_inputs    = list_inputs
         self.list_outputs   = list_outputs
         # Printing #
@@ -77,7 +72,7 @@ class HyperModel:
         # Records #
         if not generator:
             x = data[[param.replace('$','') for param in parameters.inputs]].values
-            y = data[self.list_outputs+['learning_weights']].values
+            y = data[self.list_outputs+['learning_weight']].values
             # Data splitting #
             if model_idx is None:
                 size = parameters.training_ratio/(parameters.training_ratio+parameters.evaluation_ratio)
@@ -86,7 +81,7 @@ class HyperModel:
             else: # Cross validation : take the training and evaluation set based on the mask
                 # model_idx == index of mask on which model will be applied (aka, not trained nor evaluated)
                 _, eval_idx, train_idx = GenerateSliceIndices(model_idx) #, GenerateSliceMask
-                eval_mask = GenerateSliceMask(eval_idx,data['mask'])
+                eval_mask  = GenerateSliceMask(eval_idx,data['mask'])
                 train_mask = GenerateSliceMask(train_idx,data['mask'])
                 self.x_val   = x[eval_mask]
                 self.y_val   = y[eval_mask]
@@ -149,14 +144,20 @@ class HyperModel:
             if model_idx is not None:
                 name += '_crossval%d'%model_idx
             self.name_model = name+'_'+self.task.replace('.pkl','')
+        
+        print (self.x_train)
+        print (self.x_train.shape)
+        print (self.y_train)
+        print (self.y_train.shape)
 
+        print( 'helooooooooooooooooooooooooooooooooooooo111111111111111111111111111111111111111111111111111')
         # Define scan object #
         self.h = Scan(x=self.x_train,                       # Training inputs 
                       y=self.y_train,                       # Training targets
                       params=self.p,                        # Parameters dict
                       dataset_name=self.name,               # Name of experiment
                       experiment_no=str(no),                # Number of experiment
-                      model= getattr(Model,'NeuralNetGeneratorModel') if generator else getattr(Model,'NeuralNetModel'),
+                      model= getattr(Model,'NeuralNetGeneratorModel') if generator else getattr(Model,parameters.model),
                       val_split=0.1,                        # How much data is to be used for val_loss
                       reduction_metric='val_loss',          # How to select best model
                       #grid_downsample=0.1,                 # When used in serial mode
@@ -170,17 +171,19 @@ class HyperModel:
                       path_model = parameters.path_model,   # Where to save the model
                       custom_objects=self.custom_objects,   # Custom object : custom layer
                 )
+        print( self.h)
+        print( 'helooooooooooooooooooooooooooooooooo22222222222222222222222222222222222222222222222222222' )
         if not generator:
             # Use the save information in DF #
             self.h_with_eval = Autom8(scan_object = self.h,     # the scan object
                                       x_val = self.x_val,       # Evaluation inputs
                                       y_val = self.y_val[:,:-1],# Evaluatio targets (last column is weight)
                                       n = -1,                   # How many model to evaluate (n=-1 means all)
-                                      folds = 5,                # Cross-validation splits for nominal and errors
                                       metric = 'val_loss',      # On what metric to sort
-                                      asc = True,               # Ascending because loss function
+                                      folds = 5,                # Cross-validation splits for nominal and errors
                                       shuffle = True,           # Shuffle bfore evaluation
-                                      average = 'micro')        # Not useful here
+                                      average = None,           # Not useful here
+                                      asc = True)               # Ascending because loss function
             self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
         else:
@@ -192,6 +195,7 @@ class HyperModel:
                 model_eval = model_from_json(self.h.saved_models[i],custom_objects=self.custom_objects)   
                 model_eval.set_weights(self.h.saved_weights[i])
                 model_eval.compile(optimizer=Adam(),loss={'OUT':parameters.p['loss_function'][0]},metrics=['accuracy'])
+                
                 # Evaluate model #
                 evaluation_generator = DataGenerator(path       = parameters.sampleList_full,
                                                      TTree      = parameters.TTree, 
@@ -202,7 +206,6 @@ class HyperModel:
                                                      batch_size = parameters.p['batch_size'][0],
                                                      state_set  = 'evaluation',
                                                      model_idx  = model_idx if parameters.crossvalidation else None)
-
                 eval_metric = model_eval.evaluate_generator(generator             = evaluation_generator,
                                                             workers               = parameters.workers,
                                                             use_multiprocessing   = True)

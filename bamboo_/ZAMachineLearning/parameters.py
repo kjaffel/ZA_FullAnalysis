@@ -4,6 +4,7 @@
     
 #######################################################################################
 import glob
+import json
 import os, sys, os.path
 import multiprocessing
 import collections
@@ -28,7 +29,7 @@ samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_
                 '2018' :'', }
 
 main_path = os.path.abspath(os.path.dirname(__file__))
-path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__5')
+path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__12')
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
 print ( ' sbatch_dir :', main_path)
@@ -60,7 +61,7 @@ assert training_ratio + evaluation_ratio + output_ratio == 1 # Will only be take
 partition = 'cp3'  # Def, cp3 or cp3-gpu
 QOS = 'cp3' # cp3 or normal
 time = '0-08:00:00' # days-hh:mm:ss
-mem = '5000' # ram in MB
+mem = '6900' # ram in MB
 tasks = '1' # Number of threads(as a string) (not parallel training for classic mode)
 
 ######################################  Names  ########################################
@@ -75,12 +76,12 @@ scaler_path = os.path.join(path_out, opt.submit, f'scaler_{suffix}.pkl')
 path_mask   = os.path.join(path_out, opt.submit) # mask_name -> 'mask_{suffix}_{sample}.npy'
 
 # Data cache #                                                                                       
-train_cache = os.path.join(path_out,'train_cache.pkl' )
-test_cache = os.path.join(path_out,'test_cache.pkl' )
+train_cache = os.path.join(path_out,'train_cache.pkl')
+test_cache  = os.path.join(path_out,'test_cache.pkl' )
 
 # Meta config info #
-xsec_json = os.path.join(main_path,'data/backgrounds_Summer20UL{era}_xsec.json')
-event_weight_sum_json = os.path.join(main_path,'data/backgrounds_Summer20UL{era}_event_weight_sum.json')
+xsec_json = os.path.join(main_path,'data/Summer20UL{era}_xsec.json')
+event_weight_sum_json = os.path.join(main_path,'data/Summer20UL{era}_event_weight_sum.json')
 
 # Training resume #
 resume_model = ''
@@ -97,16 +98,18 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 ##############################  Model callbacks ################################
 #######################################################################################
 # Early stopping to stop learning after some criterion 
-early_stopping_params = {'monitor'   : 'val_loss',  # Value to monitor
-                         'min_delta' : 0.,          # Minimum delta to declare an improvement
-                         'patience'  : 50,          # How much time to wait for an improvement
-                         'verbose'   : 1,           # Verbosity level
-                         'mode'      : 'min'}       # Mode : 'auto', 'min', 'max'
+early_stopping_params = {'monitor'   : 'val_loss',             # Value to monitor
+                         'min_delta' : 0.,                     # Minimum delta to declare an improvement
+                         'patience'  : 50,                     # How much time to wait for an improvement
+                         'verbose'   : 1,                      # Verbosity level
+                         'restore_best_weights': False,
+                         'mode'      : 'min'           }       # Mode : 'auto', 'min', 'max'
 
 # Reduce LR on plateau : if no improvement for some time, will reduce lr by a certain factor
 reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
                    'factor'     : 0.5,          # Multiplicative factor by which to multiply LR
                    'min_lr'     : 1e-5,         # Minnimum value for LR
+                   'min_delta'  : 0.0001,       # Minimum delta to declare an improvement
                    'patience'   : 10,           # How much time to wait for an improvement
                    'cooldown'   : 5,            # How many epochs before starting again to monitor
                    'verbose'    : 1,            # Verbosity level
@@ -117,7 +120,7 @@ reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
 #######################################################################################
 # Classification #
 p = { 
-    'epochs' : [200],   
+    'epochs' : [2],   
     'batch_size' : [1000], 
     'lr' : [0.01], 
     'hidden_layers' : [2,3,4,5,6], 
@@ -222,6 +225,22 @@ for era in eras:
 sampleList_full = [f"{samples_path[era]}/{smp}" for era in eras for node in nodes for smp in samples_dict_run2UL[era][f"combined_{node}_nodes"]]
 print( " List of samples : ", samples_dict_run2UL )
 print( " TTree :         : ", TTree )  
+
+
+xsec_dict             = dict()
+event_weight_sum_dict = dict()
+for era in eras:
+    if os.path.isfile(xsec_json.format(era=era)): 
+        with open(xsec_json.format(era=era),'r') as handle:
+            xsec_dict[era] = json.load(handle)
+    else:
+        xsec_dict[era] = {}
+    if os.path.isfile( event_weight_sum_json.format(era=era)):
+        with open(event_weight_sum_json.format(era=era),'r') as handle:
+            event_weight_sum_dict[era] = json.load(handle)
+    else:
+        event_weight_sum_dict[era] = {}
+
 ################################  dtype operation ##############################
 # root_numpy does not like some operators very much #
 #######################################################################################

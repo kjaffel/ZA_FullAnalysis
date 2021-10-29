@@ -47,7 +47,7 @@ def GenerateSampleMasks(list_samples,name):
                 # 0 -> training, 1-> evaluation, 2-> output
                 np.random.shuffle(mask)                                     
                 mask_dict[sample] = mask
-                logging.debug('[%3.2f%%] : Produced mask for %s'%(i*100/len(list_samples),sample))
+                logging.debug('[%3.2f%%] : Produced mask for %s for selection %s'%(i*100/len(list_samples),sample, key))
         np.savez(path_mask,**mask_dict)
         logging.info('Mask not found at %s -> Has been generated'%path_mask)
     else:
@@ -63,9 +63,9 @@ def GenerateSliceIndices(model_idx):
     Na = parameters.N_apply
     Ns = parameters.N_slices
     model_idx *= Ns/Nm
-    apply_idx = [int(model_idx+i) for i in range(0,Na)]
-    eval_idx = [int ((apply_idx[-1]+1+i)%Ns) for i in range(0,Ne)]
-    train_idx = [i for i in range(0,Ns) if i not in apply_idx and not i in eval_idx]
+    apply_idx  = [int(model_idx+i) for i in range(0,Na)]
+    eval_idx   = [int ((apply_idx[-1]+1+i)%Ns) for i in range(0,Ne)]
+    train_idx  = [i for i in range(0,Ns) if i not in apply_idx and not i in eval_idx]
     return apply_idx,eval_idx,train_idx
 
 def GenerateSliceMask(slices,mask):

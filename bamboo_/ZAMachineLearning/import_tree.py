@@ -47,7 +47,7 @@ def Tree2Pandas(input_file, variables, era=None, weight=None, cut=None, xsec=Non
     else:
         tree = ttree.GetBranch(tree_name)
         N    = ttree.GetEntries()
-        logging.debug('\tNumber of events : %d'%N)
+        logging.debug('\tNumber of events from %s cat: %d'%(t, N))
 
     # Read the tree and convert it to a numpy structured array
     if weight is not None:
@@ -138,7 +138,7 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
         raise NotImplementedError('Cannot handle event weight sum not being a dict')
     if era is None and (xsec_dict is None or event_weight_sum_dict is None):
         raise RuntimeError('If you plan to use xsec and even weight sum you need to provide the era (either one value or a list with one element per sample)')
-        
+    
 
     # Wether to use a given sample list or loop over files inside a dir #
     if list_sample is None:
@@ -160,6 +160,10 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
         logging.debug("\tAccessing file : %s"%sample)
         sample_name = os.path.basename(sample)
 
+        # Eras
+        if isinstance(era,list):
+            era = eras
+        
         # Cross section #
         xsec = None
         if xsec_dict is not None and sample_name in xsec_dict[era].keys():

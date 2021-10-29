@@ -1,5 +1,4 @@
 #! /bin/env python
-
 import copy
 import os
 import datetime
@@ -7,12 +6,10 @@ import sys
 import glob
 import logging
 
-# Slurm configuration
 from CP3SlurmUtils.Configuration import Configuration
 from CP3SlurmUtils.SubmitWorker import SubmitWorker
 from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 
-# Personal files #
 import parameters
 
 def submit_on_slurm(name,args,debug=False):
@@ -54,18 +51,18 @@ def submit_on_slurm(name,args,debug=False):
     out_dir = parameters.path_out
 
     slurm_config = copy.deepcopy(config)
-    slurm_working_dir = os.path.join(out_dir,'slurm',name)#+'_'+timestamp)
+    slurm_working_dir = os.path.join(out_dir,'slurm')
 
     slurm_config.batchScriptsDir = os.path.join(slurm_working_dir, 'scripts')
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
-    slurm_config.stageoutDir = os.path.join(slurm_working_dir, 'output')
+    slurm_config.stageoutDir     = os.path.join(slurm_working_dir, 'output')
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
     slurm_config.stageoutFiles = ["*.csv","*.zip","*.png"]
 
     slurm_config.payload = config.payload.format(script=os.path.join(parameters.main_path,"ZAMachineLearning.py"))
 
     if not output:
-        for f in glob.glob(os.path.join(parameters.path_out,'split',name,'*.pkl')):
+        for f in glob.glob(os.path.join(parameters.path_out, 'split', name, '*.pkl')):
             task = os.path.basename(f)
             slurm_config.inputParams.append([name,task])
 
@@ -79,4 +76,4 @@ def submit_on_slurm(name,args,debug=False):
         logging.debug(slurm_config.payload)
         logging.debug(slurm_config.inputParamsNames)
         logging.debug(slurm_config.inputParams)
-        logging.info('... don\'t worry, jobs not sent')
+        logging.info('... don\'t worry, you are in debug mode, jobs not sent, remove --debug to submit to slurm!')

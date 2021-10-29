@@ -71,6 +71,3 @@ def PlotScans(data,path,tag):
     g = sns.lmplot(x='val_loss', y='val_loss',
                    truncate=True, height=5, data=data)
     plt.savefig(os.path.join(path,'val_loss_vs_val_loss_'+tag+'.png'))
-    
-
-

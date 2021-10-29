@@ -25,18 +25,18 @@ import parameters
 from import_tree import LoopOverTrees
 from generate_mask import GenerateSampleMasks, GenerateSliceIndices
 
-
 class DataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, path=None, inputs=None, outputs=None, other=None, weight=None, cut='', batch_size=32, state_set='', model_idx=None):
+    def __init__(self, path=None, TTree=None, inputs=None, outputs=None, other=None, weight=None, cut='', batch_size=32, state_set='', model_idx=None):
         self.path       = path                          # Path to root file : can be single file, list or dir (in which case will take all files inside)
-        self.inputs     = inputs                        # List of strings of the variables as inputs
         self.TTree      = TTree                         # List of keys to fetch when looking to the inputs root files
+        self.inputs     = inputs                        # List of strings of the variables as inputs
         self.outputs    = outputs                       # List of strings of the variables as outputs
         self.cut        = cut                           # Branch expression to use the cut
         self.weight     = weight                        # string for the branch containing the weight
         self.batch_size = batch_size                    # Batch size
         self.model_idx  = model_idx                     # model Idx for cross validation
         self.variables  = self.inputs + self.outputs    # List of all variables to be taken from root trees
+        
         if other is not None and isinstance(other,list):
             self.variables += other
 
@@ -44,8 +44,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             if self.path.endswith('.yml'):
                 with open (parameters.config,'r') as f:
                     sampleConfig = yaml.load(f)
-                self.input_dir = sampleConfig["sampleDir"]
+                self.input_dir   = sampleConfig["sampleDir"]
                 self.sample_dict = sampleConfig["sampleDict"]
+                
                 strSelect = [f'{cat}_{channel}_{node}' for channel in parameters.channels for cat in parameters.categories for node in parameters.nodes]
                 self.list_files = [os.path.join(self.input_dir,sample) for key in strSelect  for era in parameters.eras for sample in self.sample_dict[int(era)][key]]
             elif os.path.isdir(path):
@@ -72,13 +73,6 @@ class DataGenerator(tf.keras.utils.Sequence):
         else:
             self.maskSamples = GenerateSampleMasks(self.list_files, parameters.suffix)
 
-        self.xsec_dict = dict()
-        self.event_weight_sum_dict = dict()
-        for era in parameters.eras:
-            with open(parameters.xsec_json.format(era=era),'r') as handle:
-                self.xsec_dict[era] = json.load(handle)
-            with open(parameters.event_weight_sum_json.format(era=era),'r') as handle:
-                self.event_weight_sum_dict[era] = json.load(handle)
 
         if (len(self.list_files)>self.batch_size):
             logging.warning("More files than requested batch size, might be errors")
@@ -91,27 +85,31 @@ class DataGenerator(tf.keras.utils.Sequence):
 
     def get_indices(self):
         self.batch_sample = dict() 
-        self.indices = dict()
-        self.masks = dict()
-        self.n_tot = 0
+        self.indices      = dict()
+        self.masks        = dict()
+        self.n_tot        = 0
         logging.info('Starting indices importation')
         pbar = enlighten.Counter(total=len(self.list_files), desc='Indices', unit='File')
         for i,f in enumerate(self.list_files):
             pbar.update()
             rootFile = ROOT.TFile(f)
             for key in self.TTree:
-                ttree = rootFile.Get(key) 
-                tree_exists = ttree.GetListOfKeys().Contains(parameters.tree_name)
-                if not tree_exists:
-                    continue 
+                if not rootFile.GetListOfKeys().Contains(key):
+                    logging.debug(f"TTree {key} not found for sample: {f}")
+                    continue
+                ttree  = rootFile.Get(key) 
+                if not ttree:
+                    logging.warning(f"Branch {tree_name} not found in TTree {key} for sample {f}")
+                    continue
                 n = ttree.Get(parameters.tree_name).GetEntries()
                 rootFile.Close()
+                
                 if self.cut != '':
                     indices_slice = np.zeros((n,1))
                     incn = 500000
                     p = 0
                     while p < n:
-                        indices_slice[p:p+incn] = rec2array(root2array(f,parameters.tree_name,branches=[self.cut],start=p,stop=p+incn))
+                        indices_slice[p:p+incn] = rec2array(root2array(ttree, parameters.tree_name,branches=[self.cut],start=p,stop=p+incn))
                         p += incn
                     self.indices[f],_ = np.where(indices_slice==1)
                 else:
@@ -134,7 +132,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                     self.masks[f] = np.logical_and(self.masks[f],self.indices[f]%10==0)
                 
                 self.indices[f] = list(self.indices[f])
-                self.masks[f] = list(self.masks[f])
+                self.masks[f]   = list(self.masks[f])
                 assert len(self.masks[f]) == len(self.indices[f])
                 self.n_tot += sum(self.masks[f])
                 #if i > 500: #TODO : remove
@@ -150,24 +148,27 @@ class DataGenerator(tf.keras.utils.Sequence):
         for f in self.indices.keys():
             if self.state_set == 'training' or self.state_set == 'validation': 
                 #size_in_batch = max(math.ceil((sum(self.masks[f])/self.n_tot)*self.batch_size),1)
-                size_in_batch = max(math.floor((sum(self.masks[f])/self.n_tot)*self.batch_size),1)
+                size_in_batch  = max(math.floor((sum(self.masks[f])/self.n_tot)*self.batch_size),1)
             else:
                 size_in_batch = self.batch_size
             self.batch_sample[f] = size_in_batch 
 
     def get_fractions(self):
         self.indices_per_batch = []
-        self.masks_per_batch = []
+        self.masks_per_batch   = []
+        
         pointers = {k:0 for k in self.indices.keys()}
         keys = list(self.indices.keys())
+        
         tag_count = [{}]*self.n_batches
         era_count = [{}]*self.n_batches
+        
         logging.info('Starting batches preparation')
         pbar = enlighten.Counter(total=self.n_batches, desc='Batches', unit='Batch')
         for i in range(self.n_batches):
             filled = False
             indices_sample = collections.defaultdict(list)
-            masks_sample = collections.defaultdict(list)
+            masks_sample   = collections.defaultdict(list)
             counter = 0
             while not filled:
                 if self.state_set == 'training':
@@ -185,15 +186,17 @@ class DataGenerator(tf.keras.utils.Sequence):
                     if counter == self.batch_size:
                         filled = True
                         break
+            
             tag_count[i] = {node:0 for node in parameters.nodes}
             era_count[i] = {era:0 for era in parameters.eras}
             for samplepath in indices_sample.keys():
                 sample = samplepath.replace(self.input_dir,'') 
                 if sample.startswith("/"):
                     sample = sample[1:]
-                keySelect = None
-                eraSelect = None
-                for era,keyDict in self.sample_dict.items():
+                keySelect   = None
+                eraSelect   = None
+                sample_dict = parameters.samples_dict_run2UL
+                for era,keyDict in sample_dict.items():
                     for key,list_samples in keyDict.items():
                         if sample in list_samples:
                             keySelect = key
@@ -238,19 +241,19 @@ class DataGenerator(tf.keras.utils.Sequence):
         logging.debug("New batch importation = index %d"%index)
 
         samples = []
-        masks = []
-        start = []
-        stop = []
-        eras = []
-        tags = []
-
+        masks   = []
+        start   = []
+        stop    = []
+        eras    = []
+        tags    = []
         for samplepath,ind in self.indices_per_batch[index].items():
             sample = samplepath.replace(self.input_dir,'') 
             if sample.startswith("/"):
                 sample = sample[1:]
             keySelect = None
             eraSelect = None
-            for era,keyDict in self.sample_dict.items():
+            sample_dict = parameters.samples_dict_run2UL
+            for era,keyDict in sample_dict.items():
                 for key,list_samples in keyDict.items():
                     if sample in list_samples:
                         keySelect = key
@@ -271,19 +274,22 @@ class DataGenerator(tf.keras.utils.Sequence):
             stop.append(ind[1]+1) # Python stop and start 
 
         # Import data #
-        data = LoopOverTrees(input_dir             = self.input_dir,
-                             variables             = self.variables,
-                             weight                = self.weight,
-                             list_sample           = samples,
-                             start                 = start,
-                             stop                  = stop,
-                             xsec_dict             = self.xsec_dict,
-                             event_weight_sum_dict = self.event_weight_sum_dict,
-                             lumi_dict             = parameters.lumidict,
-                             eras                  = eras,
-                             tree_name             = parameters.tree_name,
-                             additional_columns    = {'tag':tags,'era':eras},
-                             cut                   = self.cut)
+        data_ = LoopOverTrees(input_dir                 = self.input_dir,
+                              list_sample               = samples,
+                              variables                 = self.variables,
+                              weight                    = self.weight,
+                              cut                       = self.cut,
+                              era                       = eras,
+                              luminosity                = parameters.lumidict[era],
+                              xsec_dict                 = parameters.xsec_dict,
+                              event_weight_sum_dict     = parameters.event_weight_sum_dict,
+                              additional_columns        = {'tag':node,'era':eras},
+                              tree_name                 = parameters.tree_name,
+                              TTree                     = self.TTree, 
+                              paramFun                  = None,
+                              start                     = None,
+                              stop                      = None)
+        
         mask = [m for m in chain.from_iterable(masks)]
         data = data[mask]
         data = data.sample(frac=1).reset_index(drop=True) # Randomize
@@ -298,27 +304,26 @@ class DataGenerator(tf.keras.utils.Sequence):
         outputs = [var.replace('$','') for var in self.outputs]
 
         # Add target #
-        label_encoder = LabelEncoder()
+        label_encoder  = LabelEncoder()
         onehot_encoder = OneHotEncoder(sparse=False)
         label_encoder.fit(outputs)
         # From strings to labels #
         integers = label_encoder.transform(data['tag']).reshape(-1, 1)
         # From labels to strings #
         onehotobj = onehot_encoder.fit(np.arange(len(outputs)).reshape(-1, 1))
-        onehot = onehotobj.transform(integers)
+        onehot    = onehotobj.transform(integers)
         # From arrays to pd DF #
         cat = pd.DataFrame(onehot,columns=label_encoder.classes_,index=data.index)
         # Add to full #
         data = pd.concat([data,cat],axis=1)
 
         if not additional_columns:
-            data_input = np.hsplit(data[inputs].astype(np.float32).values,len(inputs))
+            data_input  = np.hsplit(data[inputs].astype(np.float32).values,len(inputs))
             data_output = data[outputs].astype(np.float32).values
             data_weight = data["learning_weight"].astype(np.float32).values
             return data_input,data_output,data_weight
         else:
             return data
-             
 
     def __len__(self): # gets the number of batches
         # return the number of batches in this epoch (do not change in the middle of an epoch)
@@ -327,8 +332,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         # Do what we need to do between epochs
         pass
         #self.get_fractions() # Change the batches after each epoch 
-            # TODO : not sure we need it
-
+        # TODO : not sure we need it
     def __next__(self):
         if self.n >= self.max:
            self.n = 0

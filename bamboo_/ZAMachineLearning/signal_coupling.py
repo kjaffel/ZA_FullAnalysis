@@ -140,6 +140,3 @@ def Transposer(arr,n):
         idx_row += 1
 
     return new_arr
-    
-
-

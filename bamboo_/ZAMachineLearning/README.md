@@ -17,6 +17,19 @@ function dnn_env() {
     module load slurm/slurm_utils
 }
 ```
+Another option is to use LCG is it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): 
+```
+function cms_env() {
+    module --force purge
+    module load cp3
+    module load grid/grid_environment_sl7
+    /cvmfs/cms.cern.ch/cmsset_default.sh
+    module load crab/crab3
+    module load slurm/slurm_utils
+    module load cms/cmssw
+}
+source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh
+```
 ### Installing required python packages: 
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
 - [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
@@ -74,7 +87,6 @@ python ZAMachineLearning.py (args) --scan name_of_scan --debug --verbose
     - ``-p/--process``: It can be a list or str ggH for gg-fusion and bbH for b-associated production. f the latest is True, this mean that 1NN is set per process.
     - ``--resolved``  :
     - ``--boosted``   : 
-The args depend on what you have hardcoded in ``ZAMachineLearning.py``.
 - *Note* : All the hyperparameter combinations will be run sequentially, this might take time ... 
 - *Tip*: Use one combination only (only lists with one item) and small number of epochs to check everything works.
 

@@ -11,14 +11,8 @@ import random
 import csv
 import itertools
 
-import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # removes annoying warning
-
 from collections import defaultdict 
-import keras
-from keras import utils
+from tensorflow.keras import utils
 from tensorflow.keras.layers import Layer, Input, Dense, Concatenate, BatchNormalization, LeakyReLU, Lambda, Dropout
 from tensorflow.keras.losses import binary_crossentropy, mean_squared_error
 from tensorflow.keras.optimizers import RMSprop, Adam, Nadam, SGD
@@ -29,7 +23,11 @@ from tensorflow.keras.regularizers import l1,l2
 from tensorflow.keras.layers.experimental import preprocessing
 from talos.model.layers import hidden_layers
 
-# Personal files #
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # removes annoying warning
+
 import Operations
 import parameters
 from data_generator import DataGenerator
@@ -137,13 +135,12 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
         scaler = pickle.load(handle)
 
     # Design network #
-
     # Left branch : classic inputs -> Preprocess -> onehot
     inputs_numeric = []
-    means = []
-    variances = []
-    inputs_all = []
-    encoded_all = []
+    means          = []
+    variances      = []
+    inputs_all     = []
+    encoded_all    = []
     for idx in range(x_train.shape[1]):
         inpName = parameters.inputs[idx].replace('$','')
         input_layer = tf.keras.Input(shape=(1,), name=inpName)
@@ -182,13 +179,13 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     
     out = Dense(y_train.shape[1],activation=params['output_activation'],name='out')(hidden)
     #=================================================================================
-
     # Check preprocessing #
+    #=================================================================================
     preprocess = Model(inputs=inputs_numeric,outputs=encoded_all[-1])
     x_numeric = x_train[:,[not m for m in parameters.mask_op]]
     out_preprocess = preprocess.predict(np.hsplit(x_numeric,x_numeric.shape[1]),batch_size=params['batch_size'])
     mean_scale = np.mean(out_preprocess)
-    std_scale = np.std(out_preprocess)
+    std_scale  = np.std(out_preprocess)
     if abs(mean_scale)>0.01 or abs((std_scale-1)/std_scale)>0.1: # Check that scaling is correct to 1%
         logging.warning("Something is wrong with the preprocessing layer (mean = %0.6f, std = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,std_scale))
 
@@ -274,10 +271,10 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
 
     # Left branch : classic inputs -> Preprocess -> onehot
     inputs_numeric = []
-    means = []
-    variances = []
-    inputs_all = []
-    encoded_all = []
+    means          = []
+    variances      = []
+    inputs_all     = []
+    encoded_all    = []
     for idx in range(x_train.shape[1]):
         inpName = parameters.inputs[idx].replace('$','').replace(' ','').replace('_','')
         input_layer = tf.keras.Input(shape=(1,), name=inpName)
@@ -364,24 +361,23 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     model.summary()
 
     # Generator #
-    training_generator   = DataGenerator( path = parameters.config,
-                                          inputs = parameters.inputs,
-                                          outputs = parameters.outputs,
-                                          inputsLBN = parameters.LBN_inputs if params['n_particles'] > 0 else None,
-                                          cut = parameters.cut,
-                                          weight  = parameters.weight,
+    training_generator   = DataGenerator( path       = parameters.config,
+                                          inputs     = parameters.inputs,
+                                          outputs    = parameters.outputs,
+                                          cut        = parameters.cut,
+                                          weight     = parameters.weight,
                                           batch_size = params['batch_size'],
-                                          state_set = 'training',
-                                          model_idx = params['model_idx'] if parameters.crossvalidation else None)
-    validation_generator = DataGenerator( path = parameters.config,
-                                          inputs = parameters.inputs,
-                                          outputs = parameters.outputs,
-                                          inputsLBN = parameters.LBN_inputs if params['n_particles'] > 0 else None,
-                                          cut = parameters.cut,
-                                          weight  = parameters.weight,
+                                          state_set  = 'training',
+                                          model_idx  = params['model_idx'] if parameters.crossvalidation else None)
+    
+    validation_generator = DataGenerator( path       = parameters.config,
+                                          inputs     = parameters.inputs,
+                                          outputs    = parameters.outputs,
+                                          cut        = parameters.cut,
+                                          weight     = parameters.weight,
                                           batch_size = params['batch_size'],
-                                          state_set = 'validation',
-                                          model_idx = params['model_idx'] if parameters.crossvalidation else None)
+                                          state_set  = 'validation',
+                                          model_idx  = params['model_idx'] if parameters.crossvalidation else None)
 
     # Some verbose logging #
     logging.info("Will use %d workers"%parameters.workers)

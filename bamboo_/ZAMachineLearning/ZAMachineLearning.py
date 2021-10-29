@@ -287,7 +287,7 @@ def main():
         logging.info('Will load data from cache')
         print( parameters.train_cache, os.path.exists(parameters.train_cache), os.path.exists(parameters.test_cache), opt.nocache)
         train_all = pd.read_pickle(parameters.train_cache)
-        test_all = pd.read_pickle(parameters.test_cache)
+        test_all  = pd.read_pickle(parameters.test_cache)
     else:
         # Import arrays #
         data_dict = {}
@@ -335,7 +335,6 @@ def main():
                 else:
                     data_node = pd.concat([data_node,data_node_era],axis=0)
                 
-                print( data_node_era)
                 if parameters.weights is not None:
                     smp_info += ', weight sum = {:.3e} (with normalization = {:.3e})'.format(data_node_era[parameters.weights].sum(),data_node_era['event_weight'].sum())
                 logging.info(smp_info)
@@ -404,9 +403,9 @@ def main():
             logging.warning('\tTT : '+str(np.sum(weight_TT)))
             logging.warning('\tZA : '+str(np.sum(weight_ZA)))
 
-        data_dict['DY']['learning_weights'] = pd.Series(weight_DY)
-        data_dict['TT']['learning_weights'] = pd.Series(weight_TT)
-        data_dict['ZA']['learning_weights'] = pd.Series(weight_ZA)
+        data_dict['DY']['learning_weight'] = pd.Series(weight_DY)
+        data_dict['TT']['learning_weight'] = pd.Series(weight_TT)
+        data_dict['ZA']['learning_weight'] = pd.Series(weight_ZA)
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
         # Data splitting #
@@ -437,7 +436,7 @@ def main():
 
         # Randomize order, we don't want only one type per batch #
         random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
-        np.random.shuffle(random_train) # Not need for testing
+        np.random.shuffle(random_train)                # Not needed for testing
         train_all = train_all.iloc[random_train]
           
         # Add target #
@@ -496,7 +495,7 @@ def main():
                            generator = opt.generator,
                            resume    = opt.resume)
         instance.HyperDeploy(best='eval_error')
-
+        
     if opt.GPU:
         # Closing monitor thread #
         thread.stopLoop()

@@ -5,10 +5,9 @@ import logging
 import glob
 import csv
 import pprint
-from pandas import read_csv, DataFrame
 import pandas as pd
+from pandas import read_csv, DataFrame
 
-# Personal files #
 import parameters 
 
 class ConcatenateCSV:

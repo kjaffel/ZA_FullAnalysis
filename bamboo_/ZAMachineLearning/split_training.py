@@ -16,24 +16,16 @@ import itertools
 from talos.parameters.ParamGrid import ParamGrid
 from talos import Scan
 
-# Personal files #
 import parameters 
 
 # TODO : add possiblity to use more than one folder for resubmit
-
-#################################################################################################
-# SplitTraining #
-#################################################################################################
-
 class SplitTraining:
-
     def __init__(self,p,params_per_job,dir_name):
-        self.params = p
-        self.grid_downsample = None
-        self.params_per_job = params_per_job
-        self.dir_name = dir_name
-        self.repetition = parameters.repetition
-    
+        self.params           = p
+        self.grid_downsample  = None
+        self.params_per_job   = params_per_job
+        self.dir_name         = dir_name
+        self.repetition       = parameters.repetition
         self.paramgrid_object = ParamGrid(self)
 
         # Generate grid #
@@ -48,8 +40,6 @@ class SplitTraining:
         if self.params_per_job>1:
             logging.warning("Be careful with the combinations of parameters, they scale as N_prams! ... might be redundencies")
 
-
-
         # Split the list into dict #
         self.list_dict = self._split_dict()
 
@@ -57,13 +47,10 @@ class SplitTraining:
         self._save_as_pickle()
 
     def _generate_grid(self):
-
         _param_log = self.paramgrid_object.param_log
         _param_grid = self.paramgrid_object.param_grid  
-        
         return _param_log,_param_grid 
         
-
     def _split_dict(self):
         _list_dict = []
         i = 0
@@ -106,9 +93,6 @@ class SplitTraining:
                 pickle.dump(d, f)  
         logging.info('Generated %d dict of parameters at \t%s'%(len(self.list_dict),path_dict))
 
-#################################################################################################
-# CheckResubmit #
-#################################################################################################
 class ResubmitSplitting(SplitTraining):
     def __init__(self,p,params_per_job,path_success,dir_name):
         SplitTraining.__init__(self,p=p,params_per_job=params_per_job,dir_name=dir_name)
@@ -186,20 +170,11 @@ class ResubmitSplitting(SplitTraining):
         if not match: # At the end, if not match return it
             return False
                 
-        
-        
-#################################################################################################
-# DictSplit #
-#################################################################################################
-    
 def DictSplit(params_per_job,name,resubmit=''):
-        
     # Retrieve Hyperparameter dict #    
     p = parameters.p
-
-       # Split into sub dict #
+    # Split into sub dict #
     if resubmit == '':
         SplitTraining(p,params_per_job=params_per_job,dir_name=name)
     else:
         ResubmitSplitting(p,params_per_job=params_per_job,path_success=resubmit,dir_name=name)
-
