@@ -1,4 +1,4 @@
-# HiggsAnalysis- CombinedLimit: CC7 release CMSSW_10_2_X - recommended version
+# ZA-Analysis- CombinedLimit: CC7 release CMSSW_10_2_X - recommended version
 - Setting up the environment (once):
 ```
 export SCRAM_ARCH=slc7_amd64_gcc700
@@ -20,7 +20,7 @@ scramv1 b clean; scramv1 b # always make a clean build
 - Now the repository contains a certain amount of analysis-specific code, the following scripts can be used to clone it with a sparse checkout for just the core [CombineHarvester/CombineTools](https://github.com/cms-analysis/CombineHarvester/tree/master/CombineTools) subpackage, speeding up the checkout and compile times:
 Read more about [CombineHarvester](http://cms-analysis.github.io/CombineHarvester/)framework for the production and analysis of datacards for use with the CMS combine tool. 
 
-# Combine Tools
+# Combine Tools:
 This repository is a "top-level" CMSSW package, so it should be located at [$CMSSW_BASE/src/CombineHarvester](). 
 - git clone via ssh:
 ```
@@ -38,8 +38,7 @@ git checkout master
 git checkout -b master_with_240
 git merge origin/102x-debug
 ```
-
-#ZAStatAnalysis
+# ZAStatAnalysis:
 ```
 git clone -o upstream -b Moriond2018 git@github.com:cp3-llbb/ZAStatAnalysis.git
 cd ZAStatAnalysis
@@ -51,12 +50,29 @@ cd ${CMSSW_BASE}/src
 
 scram b -j7
 ```
-
-#How to run:
-- first start by setting up your CMSSW enviroment 
+# Running the limits:
+- First start by setting up your CMSSW enviroment 
 ```
+cms_env
+function cms_env() {
+    module --force purge
+    module load cp3
+    module load grid/grid_environment_sl7
+    /cvmfs/cms.cern.ch/cmsset_default.sh
+    module load crab/crab3
+    module load slurm/slurm_utils
+    module load cms/cmssw
+    }
 cd ${CMSSW_BASE}/src
 cmsenv
 ```
-
+- Prepare the cards and the histograms:
+```
+./prepareShapesAndCards.py --era --input
+```
+- More arguments : 
+    - ``--era`` : 
+    - ``--input`` :
+    - ``-p``/``--parameters``:
+    - ``-o``/``--output``:
 

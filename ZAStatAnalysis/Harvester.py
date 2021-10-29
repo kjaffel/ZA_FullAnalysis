@@ -1,20 +1,75 @@
-import os
-import sys
 import ROOT
 import json
-
-#import ZAStatAnalysis.Tools.
+import os, os.path, sys
+import re, hashlib
 import Constants as Constants
 
-splitJECBySources = False
-scaleZAToSMCrossSection = False
+sys.dont_write_bytecode  = True
+splitPDF                 = False
+splitJECBySources        = False
+scaleZAToSMCrossSection  = False
 splitTTbarUncertBinByBin = False
-splitPDF = False
+
+def toHIGConvention(origName, era=None, smp=None):
+    ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
+    jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
+    other = {
+        "pu"       : "CMS_pileup",
+        "unclustEn": "CMS_UnclusteredEn_%s"%sera,
+        "elID"     : "CMS_eff_elID",
+        "muID"     : "CMS_eff_muID",
+        "trigSF_ElEl": "CMS_eff_trigElEl_%s"%era,
+        "trigSF_ElMu": "CMS_eff_trigElMu_%s"%era,
+        "trigSF_MuEl": "CMS_eff_trigMuEl_%s"%era,
+        "trigSF_MuMu": "CMS_eff_trigMuMu_%s"%era,
+        "btagSFHeavy": "CMS_btag_HF",
+        "btagSFHeavy2016": "CMS_btag_HF2016",
+        "btagSFHeavy2017": "CMS_btag_HF2017",
+        "btagSFHeavy2018": "CMS_btag_HF2018",
+        "btagSFLight": "CMS_btag_LF",
+        "btagSFLight2016": "CMS_btag_LF2016",
+        "btagSFLight2017": "CMS_btag_LF2017",
+        "btagSFLight2018": "CMS_btag_LF2018",
+        "chMisID": "CMS_chargeMisID_%s"%era,
+        "jesHEMIssue": "CMS_HEM",
+        "L1Prefiring": "CMS_L1PreFiring"
+        }
+    theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR"}
+    if origName in other:
+        return other[origName]
+    elif origName in theo_perProc:
+        procName = smp.name.replace("T", "t")
+        return "{}_{}".format(theo_perProc[origName], procName)
+    elif origName.startswith("jes"):
+        return "CMS_scale_j_{}".format(origName[3:])
+    elif origName.startswith("jer"):
+        if len(origName) == 3:
+            return "CMS_res_j_{}".format(era)
+        else:
+            jerReg = jerRegions[int(origName[3:])]
+            return "CMS_res_j_{}_{}".format(jerReg, era)
+    elif origName.startswith("nonprompt"):
+        flav = origName[9:11]
+        vari = origName[11:]
+        return "CMS_FR{}_{}".format(flav[0].lower(), vari[:3].lower())
+    else:
+        return origName
+
+def get_hist_from_key(keys, key):
+    h = keys.get(key, None)
+    if h:
+        return h.ReadObj()
+    return None
+
+def zeroNegativeBins(h):
+    for i in range(1, h.GetNbinsX() + 1):
+        if h.GetBinContent(i) < 0.:
+            h.SetBinContent(i, 0.)
+            h.SetBinError(i, 0.)
 
 def CMSNamingConvention(syst):
     # Taken from https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsCombinationConventions
-      # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
-      # ???? will see how TODO
+    # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     if syst == 'jesTotal':
         return 'CMS_scale_j'
     elif syst == 'jer': 
@@ -45,11 +100,11 @@ def CMSNamingConvention(syst):
         return syst
     elif syst == 'qcdScale':
         return 'QCDscale'
-    elif syst =="CMS_psFSR":
+    elif syst =="psFSR":
         return syst
-    elif syst =="CMS_psISR":
+    elif syst =="psISR":
         return syst
-    elif syst =="CMS_L1PreFiring":
+    elif syst =="L1PreFiring":
         return syst
     else:
         return syst
@@ -68,40 +123,6 @@ def get_combine_method(method):
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
-def ignoreSystematic(flavor, process, s):
-    if s == 'scale':
-        return True
-    if s == 'dyStat' and not '_nobtag_to_btagM' in process:
-        return True
-    if s == 'dyScaleUncorr' and not '_nobtag_to_btagM' in process:
-        return True
-    if s == 'CMS_eff_mu' and flavor == 'ElEl':
-        return True
-    if s == 'CMS_iso_mu' and flavor == 'ElEl':
-        return True
-    if s == 'CMS_eff_e' and flavor == 'MuMu':
-        return True
-    
-    if splitTTbarUncertBinByBin: 
-        for i in range(1,7):
-            if s == 'ttbarNormBin{}'.format(i) and not 'ttbar' in process:
-                return True
-    for i in range(65):
-        if s == 'DYweight{0}'.format(i) and not 'DY' in process:
-            return True
-    return False
-
-def renameSystematic(flavor, process, s):
-    process = process.replace('_nobtag_to_btagM', '')
-
-    if 'QCDscale' in s and s != 'QCDscale_dy_rwgt':
-        return 'QCDscale_{}'.format(process)
-    if 'CMS_eff_trigger' in s:
-        return 'CMS_eff_trigger_{}'.format(flavor)
-    if 'pdf' in s:
-        return 'pdf_{}'.format(process)
-    return s
-
 def getScaleFactor(flavor, process):
     if flavor == 'ElEl' and 'nobtag_to_btagM' in process:
         return 0.828
@@ -115,7 +136,6 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     """
     Merge two histograms together. If the destination histogram does not exist, it
     is created by cloning the input histogram
-
     Parameters:
     flavor          Flavor
     process         Name of the current process
@@ -124,6 +144,7 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     Return:
     The merged histogram
     """
+
     if not histogram:
         raise Exception()
 
@@ -139,12 +160,9 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
 
     if not 'data' in process:
         scale *= luminosity
-        with open('2HDMType2_BranchingRatio_NNPDF30_lo_as_0130_nf_4_cba0p01_tb1p5.json','r') as handle:
-            dict_branching_ratio = json.load(handle)
-        if "HToZATo2L2B" in process:
-            scale *= dict_branching_ratio[process]
-            print( process, scale, "additional scaling ", dict_branching_ratio[process])
+
     histogram.Scale(scale)
+
     d = destination
     if not d:
         d = histogram.Clone()
@@ -157,22 +175,15 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     return d
 
 def getKnownSystematics():
-    global splitJECBySources
-    global splitTTbarUncertBinByBin
-    global splitPDF
-
     known_systematics = [
             'puweights2016_Moriond17',
             'jesTotal',
             'jer',
-            #'jjbtaglight',
-            #'jjbtagheavy',
             'elid',
             #'ele_reco',
             'muid',
             'muiso',
-            #'mutracking',
-            'qcdScale',
+            #'qcdScale',
             #'psISR',
             #'psFSR',
             #'pdf',
@@ -182,7 +193,6 @@ def getKnownSystematics():
             'mueltrig',
             'L1PreFiring',
             'DeepCSVM',
-           # 'DYweight'
             ]
 
     if splitTTbarUncertBinByBin:
@@ -190,11 +200,7 @@ def getKnownSystematics():
             known_systematics.append('ttbarNormBin{0}'.format(i))
 
     if splitPDF:
-        pdf_processes = ['pdf{}'.format(x).lower() for x in [
-                "gg",
-                "qg",
-                "qq"]]
-
+        pdf_processes = ['pdf{}'.format(x).lower() for x in ["gg","qg","qq"]]
         known_systematics.remove('pdf')
         known_systematics += pdf_processes
 
@@ -227,12 +233,11 @@ def getKnownSystematics():
                 "SinglePionECAL",
                 "SinglePionHCAL",
                 "TimePtEta"]]
-
-        known_systematics.remove('jesTotal')
+        known_systematics.remove('jec')
         known_systematics += jec_sources
     return known_systematics
 
-def prepareFile(processes_map, categories_map, root_path, output_filename, signal_process, method, luminosity, flavors=['All'], fake_data=False):
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, flavors=['All'], unblind=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -241,22 +246,20 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
     """
 
     known_systematics = getKnownSystematics()
-    import re, hashlib
-
     print("Preparing ROOT file for combine...")
+    print("="*20)
     systematics = {f: known_systematics[:] for f in flavors}
 
     if not os.path.exists(os.path.dirname(output_filename)):
         os.makedirs(os.path.dirname(output_filename))
 
     hash = hashlib.sha512()
-    hash.update(root_path)
+    hash.update(input)
     hash.update(output_filename)
     hash.update(str(luminosity))
 
-    files = [os.path.join(root_path, f) for f in os.listdir(root_path) if f.endswith('.root')]
-    
-    print ( files)
+    files = [os.path.join(input, f) for f in os.listdir(input) if f.endswith('.root')]
+
     # Gather a list of inputs files for each process.
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
@@ -287,7 +290,6 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
     if len(keys) == 0:
         raise Exception('There are no histograms in file %s, aborting now' % ref_file)
     f.Close()
-
     print("Done.")
 
     # Create the list of histograms (nominal + systematics) for each category
@@ -312,7 +314,6 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
         histogram_names_per_flavor[flavor] = histogram_names
 
     # Extract list of expand histogram name
-
     systematics_regex = re.compile('__(.*)(up|down)$', re.IGNORECASE)
     histograms_per_flavor = {}
     for flavor in flavors:
@@ -348,27 +349,16 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
         stored_hash = f.Get('hash')
         if stored_hash and stored_hash.GetTitle() == hash:
             print("File %r already exists and contains all the needed shapes. Skipping file generation." % output_filename)
+
             systematics = f.Get('systematics')
             return output_filename, json.loads(systematics.GetTitle())
         else:
             print("File %r already exists but is no longer up-to-date. It'll be regenerated." % output_filename)
 
-    def dict_get(dict, name):
-        if name in dict:
-            return dict[name]
-        else:
-            return None
-
     # [flavor][category][process] -> set()
     final_systematics = {}
     # [category][process_with_flavor] = {}
     shapes = {}
-
-    def get_hist_from_key(keys, key):
-        h = keys.get(key, None)
-        if h:
-            return h.ReadObj()
-        return None
 
     # Try to open each file once
     for process, process_files in processes_files.items():
@@ -378,7 +368,6 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
             process = process[0]
 
         print("Loading histograms for process {}".format(process))
-
         # Process name used in datacard for the signal is different from
         # the one used here (no mass or parameters in the name)
         systematic_process = process
@@ -391,6 +380,8 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
         for process_file in process_files:
             f = ROOT.TFile.Open(process_file)
 
+            if process_file.split('/')[-1].startswith('__skeleton__'):
+                continue
             # Build a dict key name -> key for faster access
             keys = {}
             for key in f.GetListOfKeys():
@@ -415,7 +406,7 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
                     if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
                         # Keep the category only if the signal hypothesis is the same
                         if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
-                            print("  ignoring category {}".format(category))
+                            print("  ignoring category {} for {}".format(category, process))
                             continue
 
                     final_systematics_category = final_systematics[flavor].setdefault(category, {})
@@ -434,7 +425,6 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
                     # Load systematics shapes
                     for systematic in systematics[flavor]:
                         cms_systematic = CMSNamingConvention(systematic)
-                        cms_systematic = renameSystematic(flavor, signal_process if signal_process in process else process, cms_systematic)
 
                         has_both = True
                         for variation in ['up', 'down']:
@@ -448,11 +438,11 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
                                     raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name + '__' + systematic + variation, process_file, process_with_flavor))
                             else:
                                 has_both = False
+
                         if has_both:
                             final_systematics_category_process.add(cms_systematic)
 
             f.Close()
-
         print("Done.")
 
     for flavor in flavors:
@@ -479,11 +469,9 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
     systematics_object = ROOT.TNamed('systematics', json.dumps(final_systematics))
     systematics_object.Write()
 
-    if fake_data:
+    if unblind:
         for flavor in flavors:
             for category, processes in shapes.items():
-                print ("----------")
-                print ("Category: ", category)
                 category = category
                 fake_data = None
                 for process, systematics_dict in processes.items():
@@ -533,11 +521,4 @@ def prepareFile(processes_map, categories_map, root_path, output_filename, signa
 
     output_file.Close()
     print("Done. File saved as %r" % output_filename)
-
     return output_filename, final_systematics
-
-def zeroNegativeBins(h):
-    for i in range(1, h.GetNbinsX() + 1):
-        if h.GetBinContent(i) < 0.:
-            h.SetBinContent(i, 0.)
-            h.SetBinError(i, 0.)
