@@ -176,13 +176,13 @@ class HyperModel:
         if not generator:
             # Use the save information in DF #
             self.h_with_eval = Autom8(scan_object = self.h,     # the scan object
-                                      x_val = self.x_val,       # Evaluation inputs
+                                      x_val = np.hsplit(self.x_val,self.x_val.shape[1]),       # Evaluation inputs
                                       y_val = self.y_val[:,:-1],# Evaluatio targets (last column is weight)
                                       n = -1,                   # How many model to evaluate (n=-1 means all)
                                       metric = 'val_loss',      # On what metric to sort
                                       folds = 5,                # Cross-validation splits for nominal and errors
                                       shuffle = True,           # Shuffle bfore evaluation
-                                      average = None,           # Not useful here
+                                      average = 'micro',        # Only needed for multi class !!!
                                       asc = True)               # Ascending because loss function
             self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
