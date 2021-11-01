@@ -19,7 +19,7 @@ import CombineHarvester.CombineTools.ch as ch
 def format_parameters(p):
     mH = "%.2f" % p[0]
     mA = "%.2f" % p[1]
-    return (str(mH) + "_" + str(mA)).replace(".", "p")
+    return ("MH_"+str(mH) + "_" + "MA_"+str(mA)).replace(".", "p")
 
 def format_ellipse(p, ellipses):
     mH = "%.2f" % p[0]
@@ -50,14 +50,15 @@ def get_hist_regex(r):
 signal_grid = [
         #part0 : 21 signal samples 
         ( 200, 50), ( 200, 100),
-        ( 250, 50), ( 250, 100),
-        ( 300, 50), ( 300, 100), ( 300, 200),
-        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-        ( 650, 50),
-        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        (1000, 50), (1000, 200), (1000, 500), 
-        (2000, 1000),
-        (3000, 2000) ]
+       # ( 250, 50), ( 250, 100),
+       # ( 300, 50), ( 300, 100), ( 300, 200),
+       # ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
+       # ( 650, 50),
+       # ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+       # (1000, 50), (1000, 200), (1000, 500), 
+       # (2000, 1000),
+       # (3000, 2000) 
+        ]
 extra_signals = [
         #(173.52,  72.01), (209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
         #(296.10, 145.93), (296.10,  36.79), (379.00, 205.76), (442.63, 113.53), (442.63,  54.67),
@@ -244,7 +245,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         formatted_e = format_ellipse(p, ellipses)
 
         # Signal process
-        suffix= 'MH_%s_MA_%s'%(str(p[0])+'p0', str(p[1])+'p0')
+        suffix = 'MH_%s_MA_%s'%(p[0].replace('.', p), p[1].replace('.', p))
         histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1]), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(p[0],p[1])]
         
         # FIXME ZA postfit category, one per mass hypothesis
@@ -262,8 +263,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         elif mode == "ellipse":
             histfactory_to_combine_categories[('ellipse_{}_{}'.format('MH-%s_MA-%s'%(p[0],p[1]), formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__MH_%sp0_MA_%sp0'%(p[0],p[1]))
         elif mode == "dnn":
-            #histfactory_to_combine_categories[('train_{}_{}_{}'.format('MH-%s_MA-%s'%(p[0],p[1]), node, formatted_e), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_%sscan_MA_%s_MH_%s'%(node, p[1], p[0]))
-            histfactory_to_combine_categories[('_', p)] = get_hist_regex('DNNOutput_{flavor}_resolved_{node}scan_MA_%s_MH_%s'%(node, p[1], p[0]))
+            histfactory_to_combine_categories[('dnn_ggH_resolved_{}_{}_{}_{}'.format(flavor, p[0], p[1], node ), p)] = get_hist_regex('DNNOutput_{flavor}_resolved_{node}scan_MA_%s_MH_%s'%(node, p[1], p[0]))
 
     if not unblind:
         histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^EGamma*']
@@ -289,7 +289,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
 
-        analysis_name = 'HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1])
+        analysis_name = 'HToZATo2L2B_%s'%(formatted_p)
         categories_with_parameters = categories[:]
         for i, k in enumerate(categories_with_parameters):
             if mode=='dnn':
