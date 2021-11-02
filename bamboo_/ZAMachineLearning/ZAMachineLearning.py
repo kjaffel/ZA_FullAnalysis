@@ -24,13 +24,14 @@ from functools import reduce
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
+import gc
+gc.collect()
 # Personal files #
 def get_options():
     """
     Parse and return the arguments provided by the user.
     """
-    parser = argparse.ArgumentParser(description='MoMEMtaNeuralNet : A tool to regress the Matrix Element Method with a Neural Network')
+    parser = argparse.ArgumentParser(description='ZA Machine learning for full run2 Ulegacy data')
 
     # Scan, deploy and restore arguments #
     ##########################################################################
@@ -67,7 +68,7 @@ def get_options():
         help='Loads the provided model name (without .zip and type, it will find them)') 
     c.add_argument('--test', action='store_true', required=False, default=False,
         help='Applies the provided model (do not forget -o) on the test set and output the tree') 
-    c.add_argument('-o','--output', action='store', required=False, nargs='+', type=str, default=[], 
+    c.add_argument('-oo','--output', action='store', required=False, nargs='+', type=str, default=[], 
         help='Applies the provided model (do not forget -o) on the list of keys from sampleList.py (separated by spaces)') 
 
     # Concatenating csv files arguments #
@@ -75,7 +76,7 @@ def get_options():
     d = parser.add_argument_group('Concatenating csv files arguments')
     d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',
         help='Wether to concatenate the csv files from different slurm jobs into a main one, \
-              please provide the path to the csv files')
+              Please provide the path to the csv files')
 
     # Concatenating csv files arguments #
     ##########################################################################
@@ -94,6 +95,10 @@ def get_options():
         help='GPU requires to execute some commandes before')
     f.add_argument('--nocache', action='store_true', required=False, default=False,
         help='Will not use the cache and will not save it')
+    f.add_argument('--interactive', action='store_true', required=False, default=False,
+        help='Interactive mode to check the dataframe')
+    #f.add_argument('-o', '--outputs', action='store', required=False, type=str, default="test",
+    #    help='ZA machine learning outputs dir ')
     
     opt = parser.parse_args()
 
@@ -211,6 +216,7 @@ def main():
         if opt.resume:              args += ' --resume '
         if opt.model!='':           args += ' --model ' + opt.model+' '
         if len(opt.output)!=0:      args += ' --output '+ ' '.join(opt.output)+' '
+        #if opt.outputs!='':         args += ' --outputs '
 
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
@@ -282,12 +288,15 @@ def main():
     list_outputs = [var.replace('$','') for var in parameters.outputs]
 
     if opt.nocache:
-        logging.warning('No cache will be used not saved')
-    if os.path.exists(parameters.train_cache) and os.path.exists(parameters.test_cache) and not opt.nocache:
-        logging.info('Will load data from cache')
-        print( parameters.train_cache, os.path.exists(parameters.train_cache), os.path.exists(parameters.test_cache), opt.nocache)
+        logging.warning('SKIPPED: No cache will be used !')
+    #if os.path.exists(parameters.train_cache) and not opt.nocache:
+        logging.info(f'Will load train data from cache: {parameters.train_cache}')
         train_all = pd.read_pickle(parameters.train_cache)
-        test_all  = pd.read_pickle(parameters.test_cache)
+        if parameters.crossvalidation:
+            if os.path.exists(parameters.test_cache) and not opt.nocache:
+                logging.info(f'Will load testing data from cache: {parameters.test_cache}')
+                logging.info('... Testing  set : {parameters.test_cache}')
+                test_all = pd.read_pickle(parameters.test_cache)
     else:
         # Import arrays #
         data_dict = {}
@@ -350,18 +359,21 @@ def main():
         mass_prop_ZA = [(x, len(list(y))) for x, y in itertools.groupby(sorted(data_dict['ZA'][["mH","mA"]].values.tolist()))]
         mass_prop_DY = [(x,math.ceil(y/data_dict['ZA'].shape[0]*data_dict['DY'].shape[0])) for x,y in mass_prop_ZA]
         mass_prop_TT = [(x,math.ceil(y/data_dict['ZA'].shape[0]*data_dict['TT'].shape[0])) for x,y in mass_prop_ZA]
-            # array of [(mH,mA), proportions]
+        
+        # array of [(mH,mA), proportions]
         mass_DY = np.array(reduce(operator.concat, [[m]*n for (m,n) in mass_prop_DY]))
         mass_TT = np.array(reduce(operator.concat, [[m]*n for (m,n) in mass_prop_TT]))
+        
         np.random.shuffle(mass_DY) # Shuffle so that each background event has random masses
         np.random.shuffle(mass_TT) # Shuffle so that each background event has random masses
+        
         df_masses_DY = pd.DataFrame(mass_DY,columns=["mH","mA"]) 
         df_masses_TT = pd.DataFrame(mass_TT,columns=["mH","mA"]) 
         df_masses_DY = df_masses_DY[:data_dict['DY'].shape[0] ]# Might have slightly more entries due to numerical instabilities in props
         df_masses_TT = df_masses_TT[:data_dict['TT'].shape[0] ]# Might have slightly more entries due to numerical instabilities in props
+        
         data_dict['DY'][["mH","mA"]] = df_masses_DY
         data_dict['TT'][["mH","mA"]] = df_masses_TT
-
 
         # Check the proportions #
         logging.debug("Check on the masses proportions")
@@ -442,7 +454,7 @@ def main():
         # Add target #
         label_encoder  = LabelEncoder()
         onehot_encoder = OneHotEncoder(sparse=False)
-        label_encoder.fit(parameters.nodes)
+        label_encoder.fit(train_all['tag'])
         
         # From strings to labels #
         train_integers = label_encoder.transform(train_all['tag']).reshape(-1, 1)
@@ -467,18 +479,21 @@ def main():
         # The preprocessing will be implemented in the network with a custom layer
         if opt.scan!='': # If we don't scan we don't need to scale the data
             MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
-
         if not opt.nocache:
             train_all.to_pickle(parameters.train_cache)
-            test_all.to_pickle(parameters.test_cache)
+            if parameters.crossvalidation:
+                test_all.to_pickle(parameters.test_cache)
             logging.info('Data saved to cache')
             logging.info('... Training set : %s'%parameters.train_cache)
 
 
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
-    logging.info("Sample size for the output  : %d"%test_all.shape[0])
+    if parameters.crossvalidation:
+        logging.info("Sample size for the output  : %d"%test_all.shape[0])
     #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
-
+    if opt.interactive:
+        import IPython
+        IPython.embed()
     #############################################################################################
     # DNN #
     #############################################################################################
@@ -518,6 +533,5 @@ def main():
             inst_out.OutputFromTraining(data=test_all,path_output=path_output)
             logging.info('')
              
-   
 if __name__ == "__main__":
     main()

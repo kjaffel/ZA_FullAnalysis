@@ -17,10 +17,9 @@ def MakeScaler(data=None, list_inputs=[], TTree=[], generator=False, batch=5000,
     
     # Generate scaler #
     logging.info('Starting computation for the scaler')
-    scaler_path = os.path.join(parameters.path_out, f'scaler_{parameters.suffix}.pkl')
     scaler      = preprocessing.StandardScaler()
     
-    if not os.path.exists(scaler_path):
+    if not os.path.exists(parameters.scaler_path):
         # Not generator #
         if data is not None:
             scaler.fit(data[list_inputs])
@@ -74,14 +73,14 @@ def MakeScaler(data=None, list_inputs=[], TTree=[], generator=False, batch=5000,
         scaler.var_ =  scaler.scale_**2
 
         # Save #
-        with open(scaler_path, 'wb') as handle:
+        with open(parameters.scaler_path, 'wb') as handle:
             pickle.dump(scaler, handle)
-        logging.info(f'scaler_{parameters.suffix}.pkl has been created')
+        logging.info(f'{parameters.scaler_path} has been created')
     # If exists, will be imported #
     else:
-        with open(scaler_path, 'rb') as handle:
+        with open(parameters.scaler_path, 'rb') as handle:
             scaler = pickle.load(handle)
-        logging.info(f'scaler_{parameters.suffix}.pkl has been imported')
+        logging.info(f'{parameters.scaler_path} has been imported')
     # Test the scaler #
     if data is not None:
         try:
@@ -90,6 +89,6 @@ def MakeScaler(data=None, list_inputs=[], TTree=[], generator=False, batch=5000,
             mean_scale = np.mean(y[:,[not m for m in parameters.mask_op]])
             var_scale  = np.var(y[:,[not m for m in parameters.mask_op]])
             if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.1: # Check that scaling is correct to 1%
-                logging.warning(f"Something is wrong with : scaler_{parameters.suffix}.pkl (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
+                logging.warning(f"Something is wrong with : {parameters.scaler_path} (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
         except ValueError:
-            logging.warning(f"Problem with : scaler_{parameters.suffix}.pkl you imported, has the data changed since it was generated !")
+            logging.warning(f"Problem with : {parameters.scaler_path} you imported, has the data changed since it was generated !")

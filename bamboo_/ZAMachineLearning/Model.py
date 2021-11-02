@@ -36,9 +36,6 @@ import IPython
 tf_version = tf.__version__.split('.')
 assert tf_version[0] == '2'
 
-#################################################################################################
-# LossHistory #
-#################################################################################################
 class LossHistory(tf.keras.callbacks.Callback):
     """ Records the history of the training per epoch and per batch """
     def on_train_begin(self, logs={}):
@@ -59,9 +56,6 @@ class LossHistory(tf.keras.callbacks.Callback):
         self.epochs['lr'].append(tf.keras.backend.eval(self.model.optimizer.lr))
         self.pre_batch = self.batches['batch'][-1] 
 
-#################################################################################################
-# PlotHistory #
-#################################################################################################
 def PlotHistory(history,params):
     """ Takes history from Keras training and makes loss plots (batch and epoch) and learning rate plots """
     #----- Figure -----#
@@ -174,9 +168,7 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(all_features)
-
     hidden = hidden_layers(params,1,batch_normalization=True).API(L1)
-    
     out = Dense(y_train.shape[1],activation=params['output_activation'],name='out')(hidden)
     #=================================================================================
     # Check preprocessing #
@@ -306,10 +298,9 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
         all_features = encoded_all[0]
 
     # Concatenation of left and right #
-    concatenate = tf.keras.layers.Concatenate(axis=-1)([all_features, batchnorm])
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
-               kernel_regularizer=l2(params['l2']))(concatenate if params['n_particles'] > 0 else all_features)
+               kernel_regularizer=l2(params['l2']))(all_features)
     hidden = hidden_layers(params,1,batch_normalization=True).API(L1)
     out = Dense(y_train.shape[1],activation=params['output_activation'],name='out')(hidden)
 

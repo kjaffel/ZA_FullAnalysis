@@ -22,7 +22,7 @@ def submit_on_slurm(name,args,debug=False):
     config.sbatch_qos = parameters.QOS
     config.sbatch_chdir = parameters.main_path
     config.sbatch_time = parameters.time
-    #config.sbatch_memPerCPU = parameters.mem
+    config.sbatch_memPerCPU = parameters.mem
     config.sbatch_additionalOptions = ['-n '+str(parameters.tasks)]
     if GPU:
         config.sbatch_additionalOptions += ['--gres gpu:1','--export=NONE']

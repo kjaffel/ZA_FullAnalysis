@@ -29,7 +29,8 @@ samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_
                 '2018' :'', }
 
 main_path = os.path.abspath(os.path.dirname(__file__))
-path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__12')
+#path_out = os.path.abspath(f'/home/ucl/cp3/kjaffel/scratch/ul__results/{opt.outputs}')
+path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__34')
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
 print ( ' sbatch_dir :', main_path)
@@ -67,17 +68,19 @@ tasks = '1' # Number of threads(as a string) (not parallel training for classic 
 ######################################  Names  ########################################
 # Model name important only for scans 
 #######################################################################################
+
 model  = 'NeuralNetModel'           # Classic mode
 #model = 'NeuralNetGeneratorModel'  # Generator mode
 
 # scaler and mask names #
 suffix = 'ZA_catagories' 
-scaler_path = os.path.join(path_out, opt.submit, f'scaler_{suffix}.pkl')
-path_mask   = os.path.join(path_out, opt.submit) # mask_name -> 'mask_{suffix}_{sample}.npy'
+
+scaler_path = os.path.join(path_out, f'scaler_{suffix}_run2Ulegacy.pkl')
+path_mask   = path_out  #mask_name -> 'mask_{suffix}_{node}.npy'
 
 # Data cache #                                                                                       
-train_cache = os.path.join(path_out,'train_cache.pkl')
-test_cache  = os.path.join(path_out,'test_cache.pkl' )
+train_cache = os.path.join(path_out,f'train_cache_{suffix}_run2Ulegacy.pkl')
+test_cache  = os.path.join(path_out,f'test_cache_{suffix}_run2Ulegacy.pkl')
 
 # Meta config info #
 xsec_json = os.path.join(main_path,'data/Summer20UL{era}_xsec.json')
@@ -130,7 +133,8 @@ p = {
     'activation' : [selu,relu],
     'output_activation' : [softmax],
     'optimizer' : [Adam],  
-    'loss_function' : [categorical_crossentropy] 
+    'loss_function' : [categorical_crossentropy],
+#    'n_particles' : [10],
 }
 p2 = { 
     'epochs' : [100],   
@@ -156,10 +160,10 @@ tree_name  = 'Events'
 weights    = 'total_weight'
 lumidict   = {'2016':36645.514633552,'2017':41529.152060112,'2018':59740.565201546}
 
+eras       = ['2016', '2017', '2018']
 categories = ["resolved","boosted"]
 channels   = ['ElEl','MuMu']
 nodes      = ['DY', 'TT', 'ZA'] #'ggH', 'bbH']
-eras       = ['2016', '2017', '2018']
 # Input branches (combinations possible just as in ROOT #
 inputs = [
             'l1_pdgId@op_pdgid',

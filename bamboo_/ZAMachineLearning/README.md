@@ -28,7 +28,7 @@ function cms_env() {
     module load slurm/slurm_utils
     module load cms/cmssw
 }
-source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh
+alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh"
 ```
 ### Installing required python packages: 
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
@@ -39,11 +39,13 @@ Below are the required packages that can be installed with pip. If you are worki
 - [Seaborn](https://pypi.org/project/seaborn/) (Data Visualization)
 - [Numpy](https://pypi.org/project/numpy/) (Data manipulation)
 - [Pandas](https://pypi.org/project/pandas/) (Useful to manipulate numpy arrays altogether)
-- [Astetik](https://pypi.org/project/astetik/) (Simplified templates of seaborn required by Talos)
-- [Enlighten](https://pypi.org/project/enlighten/) (Practical process bar)
+- [Astetik](https://pypi.org/project/astetik/) (Simplified templates of seaborn required by Talos): ``pip install astetik``
+- [Enlighten](https://pypi.org/project/enlighten/) (Practical process bar): ``pip install enlighten``
 - [Scipy](https://pypi.org/project/scipy/) (Data processing)
-- [plotille]( https://pypi.org/project/plotille/) ( Plot in the terminal using braille dots)
-- [pynvml]( https://pypi.org/project/pynvml/) ( Python Bindings for the NVIDIA Management Library)
+- [plotille]( https://pypi.org/project/plotille/) (Plot in the terminal using braille dots): ``pip install plotille``
+- [pynvml]( https://pypi.org/project/pynvml/) (Python Bindings for the NVIDIA Management Library): ``pip install pynvml``
+- [wrangle](https://pypi.org/project/wrangle/) (Wrangle - Data Preparation for Deep Learning): ``pip install wrangle``
+- [chances](https://pypi.org/project/chances/) (Chances provides a simple utility to access random methods in a unified manner) : ``pip install chances``
 
 ## Workflow:
 All the tweaks are done in :
@@ -198,3 +200,8 @@ In case there is too much data in the training (rare in case of HEP) to put them
 
 ## Cache
 The importation from root files can be slow and if the training data is not too big it can be cached.
+## Trouble Shotting:
+- Debugging: stepping through Python script using gdb.
+``bash
+gdb -ex r -ex bt --args python < ZA-machine learnig command >
+``

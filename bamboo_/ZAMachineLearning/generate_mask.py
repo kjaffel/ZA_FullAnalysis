@@ -19,7 +19,7 @@ def GenerateMask(N,name):
         np.save(path_mask,mask)                                 
         logging.info('Mask not found at %s -> Has been generated'%path_mask)
     else:                                                        
-        mask = np.load(path_mask)     
+        mask = np.load(path_mask, allow_pickle=True)     
         logging.info('Mask found at %s'%path_mask)
     return mask
 
