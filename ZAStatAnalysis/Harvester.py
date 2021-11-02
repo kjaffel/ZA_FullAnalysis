@@ -10,18 +10,20 @@ splitJECBySources        = False
 scaleZAToSMCrossSection  = False
 splitTTbarUncertBinByBin = False
 
-def toHIGConvention(origName, era=None, smp=None):
+def CMSNamingConvention(origName, era=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     other = {
-        "pu"       : "CMS_pileup",
-        "unclustEn": "CMS_UnclusteredEn_%s"%sera,
-        "elID"     : "CMS_eff_elID",
-        "muID"     : "CMS_eff_muID",
-        "trigSF_ElEl": "CMS_eff_trigElEl_%s"%era,
-        "trigSF_ElMu": "CMS_eff_trigElMu_%s"%era,
-        "trigSF_MuEl": "CMS_eff_trigMuEl_%s"%era,
-        "trigSF_MuMu": "CMS_eff_trigMuMu_%s"%era,
+        'puweights2016_Moriond17': "CMS_pileup",
+        "unclustEn": "CMS_UnclusteredEn_%s"%era,
+        'elid':"CMS_eff_elID",
+        'muid':"CMS_eff_muID",
+        'muiso':"CMS_eff_muISO",
+        'eleltrig':"CMS_eff_trigElEl_%s"%era,
+        'mumutrig':"CMS_eff_trigMuMu_%s"%era,
+        'elmutrig':"CMS_eff_trigElMu_%s"%era,
+        'mueltrig':"CMS_eff_trigMuEl_%s"%era,
+        "DeepCSVM": "CMS_btag_HF",
         "btagSFHeavy": "CMS_btag_HF",
         "btagSFHeavy2016": "CMS_btag_HF2016",
         "btagSFHeavy2017": "CMS_btag_HF2017",
@@ -38,8 +40,7 @@ def toHIGConvention(origName, era=None, smp=None):
     if origName in other:
         return other[origName]
     elif origName in theo_perProc:
-        procName = smp.name.replace("T", "t")
-        return "{}_{}".format(theo_perProc[origName], procName)
+        return "{}".format(theo_perProc[origName])
     elif origName.startswith("jes"):
         return "CMS_scale_j_{}".format(origName[3:])
     elif origName.startswith("jer"):
@@ -48,9 +49,6 @@ def toHIGConvention(origName, era=None, smp=None):
         else:
             jerReg = jerRegions[int(origName[3:])]
             return "CMS_res_j_{}_{}".format(jerReg, era)
-    elif origName.startswith("nonprompt"):
-        flav = origName[9:11]
-        vari = origName[11:]
         return "CMS_FR{}_{}".format(flav[0].lower(), vari[:3].lower())
     else:
         return origName
@@ -67,7 +65,7 @@ def zeroNegativeBins(h):
             h.SetBinContent(i, 0.)
             h.SetBinError(i, 0.)
 
-def CMSNamingConvention(syst):
+def CMSNamingConvention_old(syst):
     # Taken from https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsCombinationConventions
     # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     if syst == 'jesTotal':
@@ -130,21 +128,20 @@ def getScaleFactor(flavor, process):
         return 0.879
     if scaleZAToSMCrossSection and 'ggZA' in process:
         return Constants.getZACrossSection() * Constants.getZATollbbBR()
-    return 1
+    return 1.
 
 def merge_histograms(flavor, process, histogram, destination, luminosity):
     """
     Merge two histograms together. If the destination histogram does not exist, it
     is created by cloning the input histogram
     Parameters:
-    flavor          Flavor
-    process         Name of the current process
-    histogram       Pointer to TH1 to merge
-    destination     Destination histogram
+        flavor          Flavor
+        process         Name of the current process
+        histogram       Pointer to TH1 to merge
+        destination     Destination histogram
     Return:
     The merged histogram
     """
-
     if not histogram:
         raise Exception()
 
@@ -155,12 +152,11 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
             d = histogram.Clone()
             d.SetDirectory(ROOT.nullptr)
             return d
+    
     # Rescale histogram to luminosity, if it's not data
     scale = getScaleFactor(flavor, process)
-
     if not 'data' in process:
         scale *= luminosity
-
     histogram.Scale(scale)
 
     d = destination
@@ -237,7 +233,7 @@ def getKnownSystematics():
         known_systematics += jec_sources
     return known_systematics
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, flavors=['All'], unblind=False):
+def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=['All'], era=None, unblind=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -247,7 +243,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
     known_systematics = getKnownSystematics()
     print("Preparing ROOT file for combine...")
-    print("="*20)
+    print("="*60)
     systematics = {f: known_systematics[:] for f in flavors}
 
     if not os.path.exists(os.path.dirname(output_filename)):
@@ -334,7 +330,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
         histograms_per_flavor[flavor] = histograms
 
-    cms_systematics = {f: [CMSNamingConvention(s) for s in v] for f, v in systematics.items()}
+    cms_systematics = {f: [CMSNamingConvention(s, era) for s in v] for f, v in systematics.items()}
     for f in flavors:
         hash.update(f)
         for systematic in cms_systematics[f]:
@@ -424,7 +420,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
                     # Load systematics shapes
                     for systematic in systematics[flavor]:
-                        cms_systematic = CMSNamingConvention(systematic)
+                        cms_systematic = CMSNamingConvention(systematic, era)
 
                         has_both = True
                         for variation in ['up', 'down']:

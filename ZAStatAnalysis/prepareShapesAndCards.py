@@ -106,9 +106,9 @@ extra_signals = [
         ]
     
 
-def prepare_DataCards(grid_data = None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories=False):
+def prepare_DataCards(grid_data= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
     
-    luminosity= Constants.getLuminosity(era)
+    luminosity = Constants.getLuminosity(era)
     
     signal_grid = list(set(grid_data))
     parameters  = signal_grid 
@@ -129,19 +129,20 @@ def prepare_DataCards(grid_data = None, era= None, parameters= None, mode= None,
     print("\tGenerating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in parameters])))
     print("\tChosen analysis mode                      : %s" % mode)
 
-    ellipses = {}
-    ellipses['MuMu'] = []
-    ellipses['ElEl'] = []
-    ellipses['MuEl'] = []
-    with open(ellipses_mumu_file.replace('ElEl', 'MuMu')) as inf: 
-        content = json.load(inf)
-        ellipses['MuMu'] = content
-        ellipses['MuEl'] = content
-    with open(ellipses_mumu_file.replace('MuMu', 'ElEl')) as inf:
-        content = json.load(inf)
-        ellipses['ElEl'] = content
+    if mode == 'ellipse':
+        ellipses = {}
+        ellipses['MuMu'] = []
+        ellipses['ElEl'] = []
+        ellipses['MuEl'] = []
+        with open(ellipses_mumu_file.replace('ElEl', 'MuMu')) as inf: 
+            content = json.load(inf)
+            ellipses['MuMu'] = content
+            ellipses['MuEl'] = content
+        with open(ellipses_mumu_file.replace('MuMu', 'ElEl')) as inf:
+            content = json.load(inf)
+            ellipses['ElEl'] = content
     
-    prepareShapes(input, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl', 'MuEl'], ellipses, mode, output, luminosity, split_by_categories, unblind, signal_strength, stat_only, verbose)
+    prepareShapes(input, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl'], ellipses, mode, output, luminosity, split_by_categories, scale, unblind, signal_strength, stat_only, verbose)
 
     # Create helper script to run limits
     output = os.path.join(output, mode)
@@ -151,14 +152,14 @@ scripts=`find {output} -name "*_run_{method}.sh"`
 for script in $scripts; do
     dir=$(dirname $script)
     script=$(basename $script)
-    echo "Computing with ${{script}}"
+    echo "\tComputing with ${{script}}"
     pushd $dir &> /dev/null
     . $script
     popd &> /dev/null
 done
 """.format(output=output, method=method)
     
-    script_name = "%s_%s_run_all_%s.sh" % (os.path.basename(output), mode, method)
+    script_name = "run_combined_%s_%s.sh" % (mode, method)
     with open(script_name, 'w') as f:
         f.write(script)
 
@@ -171,7 +172,7 @@ done
         print("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, unblind=False, signal_strength=False, stat_only=False, verbose=False):
+def prepareShapes(input=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, unblind=False, signal_strength=False, stat_only=False, verbose=False):
     if mode == "mjj_and_mlljj":
         categories = [
                 (1, 'mlljj'),
@@ -202,29 +203,17 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
                 (2, 'mlljj'),
                 (3, 'mjj'),
                 (4, 'mjj_vs_mlljj')
-                # % (process, cat, flavour, MH, MA, node )
-                (5, 'dnn_ggH_resolved_{}_{}_{}_{}')
+                # % ( MH, MA)
+                (5, 'dnn_ggH_resolved_MH_{}_MA_{}')
                 ]
     elif mode == "dnn":
         categories = [
-                # % (process, cat, flavour, MH, MA, node )
-                (1, 'dnn_ggH_resolved_{}_{}_{}_{}')
+                # % ( MH, MA)
+                (1, 'dnn_ggH_resolved_MH_{}_MA_{}')
                 ]
 
     histfactory_to_combine_categories = {}
-    if mode == "postfit":
-        for p in parameters:
-            formatted_p = format_parameters(p)
-            formatted_e = format_ellipse(p, ellipses)
-            histfactory_to_combine_categories = {
-                    'ellipse_{}_{}'.format(formatted_p, formatted_e):    get_hist_regex('rho_steps_histo_{flavor}_hZA_lljj_deepCSV_btagM_mll_and_met_cut_%s' % format_ellipse(p, ellipses)),
-                    'mlljj':   get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    'mjj':     get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    'mjj_vs_mlljj': get_hist_regex('jj_M_vs_lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    # FIXME add the dnn histos
-                    }
-
-    histfactory_to_combine_processes = {
+    histfactory_to_combine_processes  = {
             # main Background
             'ttbar'    : ['^TT*'],  
             'SingleTop': ['^ST_*'],
@@ -243,14 +232,18 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
 
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
-
+        suffix = formatted_p.replace('MH_', 'MH-').replace('MA_','MA-')
         # Signal process
-        suffix = 'MH_%s_MA_%s'%(p[0].replace('.', p), p[1].replace('.', p))
-        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1]), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(p[0],p[1])]
+        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1]), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(p[0], p[1])]
         
-        # FIXME ZA postfit category, one per mass hypothesis
         if mode == "postfit":
-            histfactory_to_combine_categories[('_', p)]     = get_hist_regex('DNNOutput_{flavor}channel_resolved_{node}scan_%s'%suffix)
+            histfactory_to_combine_categories = {
+                    'ellipse_{}_{}'.format(formatted_p, formatted_e):    get_hist_regex('rho_steps_histo_{flavor}_hZA_lljj_deepCSV_btagM_mll_and_met_cut_%s' % format_ellipse(p, ellipses)),
+                    'mlljj':   get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
+                    'mjj':     get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
+                    'mjj_vs_mlljj': get_hist_regex('jj_M_vs_lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
+                    # FIXME add the dnn histos
+                    }
         elif mode == "mjj_and_mlljj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
             histfactory_to_combine_categories[('mlljj', p)] = get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
@@ -261,9 +254,11 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         elif mode == "mjj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
         elif mode == "ellipse":
-            histfactory_to_combine_categories[('ellipse_{}_{}'.format('MH-%s_MA-%s'%(p[0],p[1]), formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__MH_%sp0_MA_%sp0'%(p[0],p[1]))
-        elif mode == "dnn":
-            histfactory_to_combine_categories[('dnn_ggH_resolved_{}_{}_{}_{}'.format(flavor, p[0], p[1], node ), p)] = get_hist_regex('DNNOutput_{flavor}_resolved_{node}scan_MA_%s_MH_%s'%(node, p[1], p[0]))
+            histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__%s'%formatted_p)
+        elif mode == "dnn": # FIXME ugly histos name 
+            histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(p[0], p[1]), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(p[1], p[0]))
+
+    print( 'histfactory_to_combine_categories    : %s '%histfactory_to_combine_categories )
 
     if not unblind:
         histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^EGamma*']
@@ -274,7 +269,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
     H.splitTTbarUncertBinByBin = False
 
     output_filename = os.path.join(output, 'shapes_HToZATo2L2B.root')
-    file, systematics = H.prepareFile(histfactory_to_combine_processes, histfactory_to_combine_categories, input, output_filename, 'HToZATo2L2B', method, luminosity, unblind=unblind, flavors=flavors)
+    file, systematics = H.prepareFile(processes_map=histfactory_to_combine_processes, categories_map=histfactory_to_combine_categories, input=input, output_filename=output_filename, signal_process='HToZATo2L2B', method=method, luminosity=luminosity, flavors=flavors, era=era, unblind=unblind)
 
     print ( "\tsystematics : %s       :" %systematics )
     for p in parameters:
@@ -289,14 +284,15 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
 
-        analysis_name = 'HToZATo2L2B_%s'%(formatted_p)
+        analysis_name = 'HToZATo2L2B'#_MH-%s_MA-%s'%(p[0],p[1)
         categories_with_parameters = categories[:]
         for i, k in enumerate(categories_with_parameters):
-            if mode=='dnn':
-                categories_with_parameters[i] = ('_')
+            if mode == 'dnn':
+                categories_with_parameters[i] = (k[0], k[1].format(p[0], p[1]))
             else:
                 categories_with_parameters[i] = (k[0], k[1].format('MH-%s_MA-%s'%(p[0],p[1]), formatted_e))
-
+        print( '\tcategories_with_parameters    :  %s '%categories_with_parameters) 
+        # AddObservations( mass, analysis, era, channel, bin)
         cb.AddObservations(['*'], [analysis_name], ['13TeV_%s'%era], flavors, categories_with_parameters)
         bkg_processes = [
                 'ttbar',
@@ -310,8 +306,9 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
                 'SMHiggs'
                 ]
 
-        processes = []
+        # FIXME I am not sure if this intended or a mistake 
         for flavor in flavors:
+            processes = []
             cb.AddProcesses(['*'], [analysis_name], ['13TeV_%s'%era], [flavor], bkg_processes, categories_with_parameters, False)
             processes += bkg_processes
 
@@ -325,42 +322,18 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
             processes_without_weighted_data.FilterProcs(lambda p: 'data' in p.process())
             processes_without_weighted_data.AddSyst(cb, 'lumi_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], Constants.getLuminosityUncertainty(era)))
 
-            # Cross-section uncertainties with PDF uncertainties, without scale uncertainties:
-            #  - Single top: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/SingleTopRefXsec
-            #      - t channel: 0.029588519
-            #      - tW channel: 0.056872038
-            #      - s channel: 0.033615785
-            #      - Combined uncertainty: 0.072387362
-            #  - TT: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
-            #      - 0.053
-            #  - DY: https://twiki.cern.ch/twiki/bin/view/CMS/SummaryTable1G25ns#DY_Z
-            #      - M(ll) > 50: 0.037343159
-            #      - M(ll) > 20: 0.051940354
-
             if not H.splitTTbarUncertBinByBin:
-                #- ttxsc: {type: const, value: 1.0007626608267177 , on: 'TT'}   # uncer=0.5572
-                #- TTTo2L2Nuxsc: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= 0.0585
                 cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')
                         (['ttbar'], 1.001525372691124) )
-                
-                #- ST_s-channel_4fxsc: {type: const, value: 1.0013622585438335, on: 'ST_schannel_4f'} # uncer= 0.004584
-                #- ST_tW_top_5fxsc: {type: const, value: 1.0008007351010764, on: 'ST_tW_top_5f'}  # uncer= 0.0305
-                #- ST_tW_antitop_5fxsc: {type: const, value: 1.00080204778157, on: 'ST_tW_antitop_5f'} # uncer= 0.03055
                 cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')
-                    (['SingleTop'], 1.0029650414264797) )
-            
-            #- DYJetsToLLxsc: {type: const, value: 1.0032721956406168, on: 'DYJetsToLL'}    # uncer= 61.55
-            #- DYToLL_0Jxsc: {type: const, value: 1.0013216312802187, on: 'DYToLL_0J'} # uncer= 6.287
-            #- DYToLL_2Jxsc: {type: const, value: 1.0032481644640234, on: 'DYToLL_2J'}   # uncer= 1.106
-            cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process') # shouldn't this be on dy process only 
-                    (['DY'], 1.007841991384859) )
+                        (['SingleTop'], 1.0029650414264797) )
+            # FIXME cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process') 
+            cb.cp().AddSyst(cb, '$DY_xsec', 'lnN', ch.SystMap('process') 
+                        (['DY'], 1.007841991384859) )
 
             if signal_strength:
-                # FIXME ZA: this is completely random at this point
-                #  - SM HH production: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHXSWGHH#Current_recommendations_for_di_H
-                #      - m_h = 125.0 GeV
                 cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process')
-                        ([sig_process], 1.0729) )
+                    ([sig_process], 1.0729) )
 
             for _, category_with_parameters in categories_with_parameters:
                 for flavor in flavors:
@@ -372,11 +345,10 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
                                 print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, flavor, process))
                         for s in systematics[flavor][category_with_parameters][process]:
                             s = str(s)
-                            if H.ignoreSystematic(flavor, process, s):
-                                print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, flavor, process, s))
-                                continue
-
-                            s = H.renameSystematic(flavor, process, s)
+                            #FIXME if H.ignoreSystematic(flavor, process, s):
+                            #    print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, flavor, process, s))
+                            #    continue
+                            #FIXME s = H.renameSystematic(flavor, process, s)
                             cb.cp().channel([flavor]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
 
         # Import shapes from ROOT file
@@ -384,10 +356,9 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
             cb.cp().channel([flavor]).backgrounds().ExtractShapes(file, '$BIN/$PROCESS_%s' % flavor, '$BIN/$PROCESS_%s__$SYSTEMATIC' % flavor)
             cb.cp().channel([flavor]).signals().ExtractShapes(file, '$BIN/$PROCESS_MH-%s_MA-%s_%s' % (p[0],p[1], flavor), '$BIN/$PROCESS_%s_%s__$SYSTEMATIC' % ('MH-%s_MA-%s'%(p[0],p[1]), flavor))
 
-        # if you want to scale the signal rate by 1000
-        #if scale:
-        #    cb.cp().process(['HToZATo2L2B']).ForEachProc(lambda x : x.set_rate(x.rate()*1000))
-        #    cb.cp().process(['HToZATo2L2B']).PrintProcs()
+        if scale:
+            cb.cp().process(['HToZATo2L2B']).ForEachProc(lambda x : x.set_rate(x.rate()*1000))
+            cb.cp().process(['HToZATo2L2B']).PrintProcs()
 
         # Bin by bin uncertainties
         if not stat_only:
@@ -398,7 +369,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
             bbb.MergeBinErrors(bkgs)
             bbb.AddBinByBin(bkgs, cb)
 
-        output_prefix = 'HToZATo2L2B_MH-%s_MA-%s' % (p[0],p[1])
+        output_prefix = 'HToZATo2L2B'#_MH-%s_MA-%s' % (p[0],p[1])
         output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
 
         output_dir = os.path.join(output, mode, H.get_method_group(method), 'MH-%s_MA-%s'%(p[0],p[1]))
@@ -411,33 +382,32 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
 
             if method == 'hybridnew':
                 script = """#! /bin/bash
-                    pushd {dir}
-                    # If workspace does not exist, create it once
-                    if [ ! -f {workspace_root} ]; then
-                    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-                    fi
-        
-                    # Run limit
-                    combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}.log
-                    combine {method} --expectedFromGrid=0.5 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_exp.log
-                    combine {method} --expectedFromGrid=0.84 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P1sigma.log
-                    combine {method} --expectedFromGrid=0.16 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M1sigma.log
-                    combine {method} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P2sigma.log
-                    combine {method} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M2sigma.log
-                    popd
-                """.format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard))) 
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+# Run limit
+combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}.log
+combine {method} --expectedFromGrid=0.5 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_exp.log
+combine {method} --expectedFromGrid=0.84 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P1sigma.log
+combine {method} --expectedFromGrid=0.16 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M1sigma.log
+combine {method} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P2sigma.log
+combine {method} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M2sigma.log
+popd
+""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard))) 
             else:
                 script = """#! /bin/bash
-                    pushd {dir}
-                    # If workspace does not exist, create it once
-                    if [ ! -f {workspace_root} ]; then
-                    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-                    fi
-    
-                    # Run limit
-                    combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}.log
-                    popd
-                """.format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)))
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+# Run limits
+# combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S 1 {systematics} &> {name}.log
+combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} --expectSignal 1 {blind} &> {name}.log
+popd
+""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), blind=('--run blind' if unblind else ''))
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -460,17 +430,17 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
         if split_by_categories:
             for flavor in flavors:
                 for i, cat in enumerate(categories_with_parameters):
-                    cat_output_prefix = output_prefix + '_%s_cat_%s' % (flavor, cat[1])
+                    cat_output_prefix = output_prefix + '_%s_%s' % (flavor, cat[1])
                     writeCard(cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, i + 1 == len(categories_with_parameters))
 
             for i, cat in enumerate(categories_with_parameters):
                 if all(x in flavors for x in mergeable_flavors):
                     print("Merging flavors datacards into a single one for {}".format(cat[1]))
                     # Merge all flavors into a single datacards
-                    datacards = ["{flavor}={prefix}_{flavor}_cat_{category}.dat".format(prefix=output_prefix, flavor=x, category=cat[1]) for x in mergeable_flavors]
+                    datacards = ["{flavor}={prefix}_{flavor}_{category}.dat".format(prefix=output_prefix, flavor=x, category=cat[1]) for x in mergeable_flavors]
                     args = ['combineCards.py'] + datacards
 
-                    merged_datacard_name = output_prefix + '_' + '_'.join(mergeable_flavors) + '_cat_' + cat[1]
+                    merged_datacard_name = output_prefix + '_' + '_'.join(mergeable_flavors) + '_' + cat[1]
                     merged_datacard = os.path.join(output_dir, merged_datacard_name + '.dat')
                     with open(merged_datacard, 'w') as f:
                         subprocess.check_call(args, cwd=output_dir, stdout=f)
@@ -480,21 +450,18 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
             for flavor in flavors:
                 if mode == "postfit":
                     script = """#! /bin/bash
-                        pushd {dir}
-    
-                        # Fit the rho distribution
-                        ./{prefix}_cat_{categories}_run_fit.sh
-        
-                        # Create post-fit shapes for all the categories
-                        for CAT in {categories}; do
-                        text2workspace.py {prefix}_cat_${{CAT}}.dat -m {mass} -o {prefix}_cat_${{CAT}}_combine_workspace.root
-                        PostFitShapesFromWorkspace -w {prefix}_cat_${{CAT}}_combine_workspace.root -d {prefix}_cat_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_cat_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --print
-        
-                        $CMSSW_BASE/src/ZAStatAnalysis/utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n rho_steps
+pushd {dir}
+# Fit the rho distribution
+./{prefix}_cat_{categories}_run_fit.sh
 
-                        done
-                        popd
-                    """.format(prefix=output_prefix + '_' + flavor, flavor=flavor, mass=125, parameter='MH-%s_MA-%s'%(p[0],p[1]), categories=' '.join([x[1] for x in categories_with_parameters]), dir=os.path.abspath(output_dir))
+# Create post-fit shapes for all the categories
+for CAT in {categories}; do
+    text2workspace.py {prefix}_cat_${{CAT}}.dat -m {mass} -o {prefix}_cat_${{CAT}}_combine_workspace.root
+    PostFitShapesFromWorkspace -w {prefix}_cat_${{CAT}}_combine_workspace.root -d {prefix}_cat_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_cat_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --print
+    $CMSSW_BASE/src/ZAStatAnalysis/utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n rho_steps
+done
+popd
+""".format(prefix=output_prefix + '_' + flavor, flavor=flavor, mass=125, parameter='MH-%s_MA-%s'%(p[0],p[1]), categories=' '.join([x[1] for x in categories_with_parameters]), dir=os.path.abspath(output_dir))
                     script_file = os.path.join(output_dir, output_prefix + '_' + flavor + ('_do_postfit.sh'))
                     with open(script_file, 'w') as f:
                         f.write(script)
@@ -545,11 +512,12 @@ if __name__ == '__main__':
                                                 help='Put limit on the signal strength instead of the cross-section')
     parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', default='/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZATools/scripts_ZA/ellipsesScripts/vers20.06.03Inputs/fullEllipseParamWindow_MuMu.json',
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
+    parser.add_argument('--scale',              action='store_true', dest='scale', default=False,                                                  
+                                                help='scale signal rate')
     parser.add_argument('-v', '--verbose',      action='store_true', required=False,
                                                 help='For debugging purposes , you may consider this argument !')
 
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True)
-
+    prepare_DataCards(grid_data= signal_grid + extra_signals, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)

@@ -1,4 +1,6 @@
 import math
+import sys
+sys.dont_write_bytecode = True
 
 def getZATollbbBR():
     # FIXME
@@ -33,5 +35,5 @@ def getLuminosityUncertainty(era):
     elif era == '2017':
         uncer = 1.023
     elif era == '2018':
-        uncer=  1.025
+        uncer= 1.025
     return uncer
