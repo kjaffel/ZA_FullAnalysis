@@ -9,13 +9,13 @@ import pprint
 import traceback
 
 import ROOT
-from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT
+ROOT.gROOT.SetBatch(True)
+ROOT.gErrorIgnoreLevel = 2000 #[ROOT.kPrint, ROOT.kInfo , kWarning, kError, kBreak, kSysError, kFatal]
 
 import Classes
-from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_Multi_TH1, Plot_ROC, LoopPlotOnCanvas, MakeROCPlot, ProcessYAML, Plot_Multi_ROC, MakeMultiROCPlot
+from Classes import ProcessYAML, Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_Multi_TH1, Plot_ROC, Plot_Multi_ROC
+from Classes import LoopPlotOnCanvas, MakeROCPlot, MakeMultiROCPlot  # functions
 
-gROOT.SetBatch(True)
-ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
 
 def main():
     #############################################################################################
@@ -23,9 +23,9 @@ def main():
     #############################################################################################
     parser = argparse.ArgumentParser(description='From given set of root files, make different histograms in a root file')
     parser.add_argument('-m','--model', action='store', required=True, type=str, default='',
-                  help='* BEST*  NN model to be used')
+                    help='NN model to be used')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False,
-            help='Show DEGUG logging')
+                    help='Show DEGUG logging')
     opt = parser.parse_args() 
 
     # Logging #
@@ -38,14 +38,13 @@ def main():
     #############################################################################################
     # Select samples #
     #############################################################################################
-    INPUT_DIR = os.path.join('/home/ucl/cp3/kjaffel/scratch/ZAMachineLearning_output/',opt.model)
-    logging.info('Taking inputs from %s'%INPUT_DIR)
+    logging.info('Taking inputs from %s'%opt.model)
     
-    # For each directory, puth the path in dict the value is the list of histograms #
+    # For each directory, put the path in dict the value is the list of histograms #
     class Plots():
         def __init__(self,name,override_params):
             self.name = name                            # Name of the subdir
-            self.path = os.path.join(INPUT_DIR,name)    # Full path to files
+            self.path = os.path.join(opt.model,name)    # Full path to files
             self.override_params = override_params      # Parameters to override in the configs
             self.list_histo = []                        # List of histograms to be filled
 
@@ -65,137 +64,53 @@ def main():
             self.list_instance = []
         def AddInstance(self,instance):
             self.list_instance.append(instance) # Contains the ROC configs listed in the tpl file
+        def clearInstance(self):
+            self.list_instance = []
 
     #///////////////      TO BE MODIFIED BY USER       ////////////////
-
     list_plots = [
-                    Plots(name = 'test',override_params = {}),
-                    #Plots(name = 'ROC',override_params = {}),
-                    #Plots(name = 'SignalBoosted',override_params = {}),
-                    #Plots(name = 'SignalResolved',override_params = {}),
-                    #Plots(name = 'BackgroundBoosted',override_params = {}),
-                    #Plots(name = 'BackgroundResolved',override_params = {}),
+                    Plots(name = 'all_combined_dict_343_isbest_model',override_params = {}),
                  ]
 
     templates = [
-                    Template(tpl = 'TH1_ZA.yml.tpl',class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1Multi_ZA.yml.tpl',class_name = 'Plot_Multi_TH1'),
-                    #Template(tpl = 'TH1Ratio_template.yml.tpl',class_name = 'Plot_Ratio_TH1'),
-                    #Template(tpl = 'TH1Multi_template.yml.tpl',class_name = 'Plot_Multi_TH1'),
-                    #Template(tpl = 'TH2_ZA.yml.tpl',class_name = 'Plot_TH2'),
+                    Template(tpl = 'tpl-tempalte/TH1_ZA_template.yml.tpl',class_name = 'Plot_TH1'),
+                    Template(tpl = 'tpl-tempalte/TH2_ZA_template.yml.tpl',class_name = 'Plot_TH2'),
+                    Template(tpl = 'tpl-tempalte/TH1Multi_ZA_template.yml.tpl',class_name = 'Plot_Multi_TH1'),
+                    Template(tpl = 'tpl-tempalte/TH1Ratio_ZA_template.yml.tpl',class_name = 'Plot_Ratio_TH1'),
                 ] 
 
-
-    rocs = [
-#                ROC(tpl = 'ROC_ZA.yml.tpl',class_name = 'Plot_ROC',
-#                    def_name = 'MakeROCPlot',
-#                    plot_name = 'ROC_ZA',
-#                    title = 'Classification ROC curve'),
-                ROC(tpl = 'ROCMulti_all_masses.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_all_masses'),
-                ROC(tpl = 'ROCMulti_mH_200_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_200_mA_50'),
-                ROC(tpl = 'ROCMulti_mH_200_mA_100.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_200_mA_100'),
-                ROC(tpl = 'ROCMulti_mH_250_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_250_mA_50'),
-                ROC(tpl = 'ROCMulti_mH_250_mA_100.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_250_mA_100'),
-                ROC(tpl = 'ROCMulti_mH_300_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_300_mA_50'),
-                ROC(tpl = 'ROCMulti_mH_300_mA_100.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_300_mA_100'),
-                ROC(tpl = 'ROCMulti_mH_300_mA_200.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_300_mA_200'),
-                ROC(tpl = 'ROCMulti_mH_500_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_500_mA_50'),
-                #ROC(tpl = 'ROCMulti_mH_500_mA_100.yml.tpl',
-                #    class_name = 'Plot_Multi_ROC',
-                #    def_name = 'MakeMultiROCPlot',
-                #    plot_name = 'ROC_ZA_mH_500_mA_100'),
-                ROC(tpl = 'ROCMulti_mH_500_mA_200.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_500_mA_200'),
-                ROC(tpl = 'ROCMulti_mH_500_mA_300.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_500_mA_300'),
-                ROC(tpl = 'ROCMulti_mH_500_mA_400.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_500_mA_400'),
-                ROC(tpl = 'ROCMulti_mH_650_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_650_mA_50'),
-                ROC(tpl = 'ROCMulti_mH_800_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_800_mA_50'),
-                #ROC(tpl = 'ROCMulti_mH_800_mA_100.yml.tpl',
-                #    class_name = 'Plot_Multi_ROC',
-                #    def_name = 'MakeMultiROCPlot',
-                #    plot_name = 'ROC_ZA_mH_800_mA_100'),
-                ROC(tpl = 'ROCMulti_mH_800_mA_200.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_800_mA_200'),
-                ROC(tpl = 'ROCMulti_mH_800_mA_400.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_800_mA_400'),
-                ROC(tpl = 'ROCMulti_mH_800_mA_700.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_800_mA_700'),
-                ROC(tpl = 'ROCMulti_mH_1000_mA_50.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_1000_mA_50'),
-                ROC(tpl = 'ROCMulti_mH_1000_mA_200.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_1000_mA_200'),
-                ROC(tpl = 'ROCMulti_mH_1000_mA_500.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_1000_mA_500'),
-                ROC(tpl = 'ROCMulti_mH_2000_mA_1000.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_2000_mA_1000'),
-                ROC(tpl = 'ROCMulti_mH_3000_mA_2000.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'ROC_ZA_mH_3000_mA_2000'),
-            ]
-
-    #//////////////////////////////////////////////////////////////////
+    rocs     = [
+                    #ROC(tpl        = 'tpl-tempalte/ROC_ZA_template.yml.tpl',
+                    #    class_name = 'Plot_ROC',
+                    #    def_name   = 'MakeROCPlot',
+                    #    plot_name  = 'ROC_ZA'),
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_class_learning_weight.yml.tpl',
+                        class_name = 'Plot_Multi_ROC',
+                        def_name   = 'MakeMultiROCPlot',
+                        plot_name  = 'Multiclass_learning'),
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_all_masses.yml.tpl',
+                        class_name = 'Plot_Multi_ROC',
+                        def_name   = 'MakeMultiROCPlot',
+                        plot_name  = 'ROC_ZA_all_masses'),
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_mH_200_mA_50.yml.tpl',
+                        class_name = 'Plot_Multi_ROC',
+                        def_name   = 'MakeMultiROCPlot',
+                        plot_name  = 'ROC_ZA_mH_200_mA_50'),
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_mH_200_mA_100.yml.tpl',
+                        class_name = 'Plot_Multi_ROC',
+                        def_name   = 'MakeMultiROCPlot',
+                        plot_name  = 'ROC_ZA_mH_200_mA_100'),
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_mH_250_mA_50.yml.tpl',
+                        class_name = 'Plot_Multi_ROC',
+                        def_name   = 'MakeMultiROCPlot',
+                        plot_name  = 'ROC_ZA_mH_250_mA_50'),
+                ]
 
     # Make the output dir #
-    OUTPUT_PDF = os.path.join(os.getcwd(),'PDF',opt.model)
-    if not os.path.exists(OUTPUT_PDF):
-        os.makedirs(OUTPUT_PDF)
-
+    OUTPUT_PATH = os.path.join(opt.model,'plots')
+    if not os.path.exists(OUTPUT_PATH):
+        os.makedirs(OUTPUT_PATH)
+    yaml_path = opt.model.replace('/model', '')
     #############################################################################################
     # Loop over the different paths #
     #############################################################################################
@@ -210,8 +125,9 @@ def main():
        # Instantiate all the ROCs #
         for roc in rocs:
             logging.debug('ROC template "%s" -> Class "%s" and process function %s '%(roc.tpl, roc.class_name, roc.def_name))
-            YAML = ProcessYAML(roc.tpl) # Contain the ProcessYAML objects
-            YAML.Particularize()
+            roc.clearInstance()
+            YAML = ProcessYAML(yaml_path, roc.tpl) # Contain the ProcessYAML objects
+            YAML.Particularize(obj.name)
             for name,config in YAML.config.items():
                 class_ = getattr(Classes, roc.class_name)
                 logging.info('\tInitializing ROC %s'%(name))
@@ -248,7 +164,7 @@ def main():
             for template in templates: 
                 logging.debug('Hist template "%s" -> Class "%s"'%(template.tpl, template.class_name))
                 list_config = [] # Will contain the dictionaries of parameters
-                YAML = ProcessYAML(template.tpl) # Contain the ProcessYAML objects
+                YAML = ProcessYAML(yaml_path, template.tpl) # Contain the ProcessYAML objects
                 params = {**{'filepath':f,'filename':filename},**obj.override_params}
                 # Get the list of configs #
                 YAML.Particularize(fullname)
@@ -265,13 +181,12 @@ def main():
                         logging.warning('Could not plot %s due to "%s"'%(name,e))
                         traceback.print_exc()
 
-        
         # Process ROCs #
         for roc in rocs:
             for inst_roc in roc.list_instance:
                 try:
-                    inst_roc.ProcessROC() 
                     logging.info('\tProcessed ROC %s'%(inst_roc.title))
+                    inst_roc.ProcessROC() 
                 except Exception as e:
                     logging.warning('Could not process ROC due to "%s"'%(e))
                     traceback.print_exc()
@@ -280,7 +195,7 @@ def main():
         for roc in rocs:
             try:
                 def_ = getattr(Classes, roc.def_name)
-                def_(roc.list_instance,name=os.path.join(OUTPUT_PDF,roc.plot_name))
+                def_(roc.list_instance,name=os.path.join(OUTPUT_PATH,roc.plot_name+'_'+obj.name))
             except Exception as e:
                 logging.warning('Could not plot ROC due to "%s"'%(e))
                 traceback.print_exc()
@@ -289,9 +204,10 @@ def main():
     # Save histograms #
     #############################################################################################
     for obj in list_plots:
-        PDF_name = os.path.join(OUTPUT_PDF,obj.name) 
-        LoopPlotOnCanvas(PDF_name,obj.list_histo)
+        PDF_name = os.path.join(OUTPUT_PATH,obj.name) 
+        if len(obj.list_histo) != 0:
+            LoopPlotOnCanvas(PDF_name,obj.list_histo)
     logging.info("All Canvas have been printed")
 
 if __name__ == "__main__":
-    main()   
+    main()

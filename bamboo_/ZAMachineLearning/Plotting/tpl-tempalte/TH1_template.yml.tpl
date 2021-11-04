@@ -10,4 +10,3 @@ TH1_template:
   title: a_title
   xlabel: a_xlabel
   ylabel: a_ylabel
-

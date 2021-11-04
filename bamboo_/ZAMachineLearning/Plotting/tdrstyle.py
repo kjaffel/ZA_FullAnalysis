@@ -10,7 +10,7 @@ def fixOverlay(): gPad.RedrawAxis()
 def setTDRStyle():
   tdrStyle =  rt.TStyle("tdrStyle","Style for P-TDR")
 
-   #for the canvas:
+#for the canvas:
   tdrStyle.SetCanvasBorderMode(0)
   tdrStyle.SetCanvasColor(rt.kWhite)
   tdrStyle.SetCanvasDefH(600) #Height of canvas
@@ -92,7 +92,6 @@ def setTDRStyle():
   tdrStyle.SetPadRightMargin(0.15)
 
 # For the Global title:
-
   tdrStyle.SetOptTitle(1)
   tdrStyle.SetTitleFont(42)
   tdrStyle.SetTitleColor(1)
@@ -107,7 +106,6 @@ def setTDRStyle():
   tdrStyle.SetTitleBorderSize(0)
 
 # For the axis titles:
-
   tdrStyle.SetTitleColor(1, "XYZ")
   tdrStyle.SetTitleFont(42, "XYZ")
   #tdrStyle.SetTitleSize(0.2, "XYZ")
@@ -120,14 +118,12 @@ def setTDRStyle():
   # tdrStyle.SetTitleOffset(1.1, "Y") # Another way to set the Offset
 
 # For the axis labels:
-
   tdrStyle.SetLabelColor(1, "XYZ")
   tdrStyle.SetLabelFont(42, "XYZ")
   tdrStyle.SetLabelOffset(0.3, "XYZ")
   tdrStyle.SetLabelSize(0.3, "XYZ")
 
 # For the axis:
-
   tdrStyle.SetAxisColor(1, "XYZ")
   tdrStyle.SetStripDecimals(True)
   tdrStyle.SetTickLength(0.03, "XYZ")

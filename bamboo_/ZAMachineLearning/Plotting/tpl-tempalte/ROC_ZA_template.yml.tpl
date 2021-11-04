@@ -4,8 +4,6 @@ ROC_name:
   weight: event_weight 
   title: ROC curve 
   cut: '1'
-  xlabel: Signal efficiency
-  ylabel: Background efficiency
   selector:
     'Background' : 0
     'Signal' : 1

@@ -5,7 +5,7 @@ TH1Multi_template:
   bins: 100
   xmin: 0
   xmax: 1
-  title: a_title
+  title:  a_title
   xlabel: a_xlabel
   ylabel: a_ylabel
   list_variable:

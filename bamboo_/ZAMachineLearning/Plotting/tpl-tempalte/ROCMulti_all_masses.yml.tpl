@@ -23,5 +23,3 @@ ROC_multiclass:
     'TT' : 'TT'
     'DY' : 'DY'
     'ZA' : 'ZA'
-
-

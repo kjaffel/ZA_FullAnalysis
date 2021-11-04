@@ -19,23 +19,23 @@ function dnn_env() {
 ```
 Another option is to use LCG is it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): 
 ```
-function cms_env() {
+function dnn_env() {
     module --force purge
     module load cp3
     module load grid/grid_environment_sl7
-    /cvmfs/cms.cern.ch/cmsset_default.sh
-    module load crab/crab3
     module load slurm/slurm_utils
-    module load cms/cmssw
+    source /cvmfs/cms.cern.ch/cmsset_default.sh
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc10-opt/setup.sh
+    python -m venv $HOME/bamboodev/bamboovenv101 # only 1st time 
+    source $HOME/bamboodev/bamboovenv101/bin/activate
 }
-alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh"
 ```
 ### Installing required python packages: 
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
 - [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
 - [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
 - [Talos](https://pypi.org/project/talos/) (hyperparameter scans)
-- [Root_numpy](https://pypi.org/project/root-numpy/) (From ROOT trees to numpy arrays)
+- [Root_numpy](https://pypi.org/project/root-numpy/) (From ROOT trees to numpy arrays): ``pip install root-numpy``
 - [Seaborn](https://pypi.org/project/seaborn/) (Data Visualization)
 - [Numpy](https://pypi.org/project/numpy/) (Data manipulation)
 - [Pandas](https://pypi.org/project/pandas/) (Useful to manipulate numpy arrays altogether)
@@ -83,14 +83,14 @@ They will be described in details in the next subsections. Then we will detail t
 
 ### Local Test: 
 ``` python
-python ZAMachineLearning.py (args) --scan name_of_scan --debug --verbose
+python ZAMachineLearning.py -v (args) --scan name_of_scan -o output_dir --debug
 ```
 - (args): ``--boosted --resolved --process``
-    - ``-p/--process``: It can be a list or str ggH for gg-fusion and bbH for b-associated production. f the latest is True, this mean that 1NN is set per process.
-    - ``--resolved``  :
-    - ``--boosted``   : 
+    - ``-p/--process``: It can be a list or str ``ggH`` for gg-fusion and ``bbH`` for b-associated production. f the latest is True, this mean that 1NN is set per process.
+    - ``--resolved``  : include catagories with at least 1 AK4 b-tagged jet in the final state when parsing root files.
+    - ``--boosted``   : include catagories with at least 1 AK8 b-tagged fatjet in the final state when parsing root files.
 - *Note* : All the hyperparameter combinations will be run sequentially, this might take time ... 
-- *Tip*: Use one combination only (only lists with one item) and small number of epochs to check everything works.
+- *Tip*  : Use one combination only (only lists with one item) and small number of epochs to check everything works.
 
 The products a the scripts are :
 - csv file : Contains the parameters in the scan, loss, acc and error
@@ -100,48 +100,35 @@ The products a the scripts are :
 ### Slurm Submission:
 To submit on the cluster try:
 ``` python
-python ZAMachineLearning.py (args) --submit name_of_jobs --split 1
+python ZAMachineLearning.py -v (args) --submit name_of_jobs --split 1 -o output_dir
 ```
 - ``--submit``: Requires a string as name for the output dir (saved in ``slurm``) 
 - ``--split`` : Requires the number of parameters used for each job (almost always 1)
 - *Note* : If using ``--split N``, N! combinations will be used (might be reduncancies between different jobs).
 - The split ``.pkl`` files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
 
-The output and logs will be in ``slurm/name_of_jobs``.
-
-### Best Model:
-Now all the ``.zip`` and ``.csv`` files will be in the output directory but one needs to find the best one.
-1.  The first step is to concatenate the csv:
+### The Best Model:
+Now that all the ``.zip`` and ``.csv`` files produced in the ``output_dir`` the challenge will be to find the best model among them.
 ```python
-python ZAMachineLearning.py --csv slurm/name_of_jobs/output/
+python ZAMachineLearning.py -v --report -o output_dir --cache
 ```
-This will create a concatenated ``.csv`` file in model with name ``name_of_jobs``, ordered according to the ``eval_criterion/error`` (evaluation error is better).
-- *Note* : For classification the F1 score is used and should be ordered in descending order ( aka the higher the better)
+- This will create a concatenated ``output_dir/model/name_of_job.csv`` ordered according to the ``eval_criterion/error`` (evaluation error is better).
+- *Note* : For classification the F1 score is used and should be ordered in descending order ( aka the higher the better).
+- A copy of the best model will be saved in ``output_dir/model/*.zip`` format taken from ``output_dir/slurm/output``.
+- Then printout the 10 best models (according to the eval_criterion) and plot on the console several histograms and ``.png`` files. 
+The plot definitions are in ``plot_scans.py`` and they are [seaborn](https://seaborn.pydata.org/) based. This will give clues on what parameters are doing better jobs. 
+- Then produce the ``.root`` output files (splited according to ``split_name`` in ``parameters.py``) on the test set. 
 
-Another way is to use ``--report`` option, the script then will automatically looks in ``model/name_of_jobs.csv``.
+If other files have to be processed, one can use ``--key`` but still these samples must not have been used in the training, otherwise will cause undetected overfitting.
+
+### Plotting:
+To produce the test plots:
 ```python
-python ZAMachineLearning.py --report name_of_jobs
+python MakeHist.py --model path_to_best_model_dir -v 
 ```
-The script will then printout the 10 best models (according to the eval_criterion) and plot on the console several histograms and ``.png`` files. 
-The plot definitions are in ``plot_scans.py`` and they are [seaborn](https://seaborn.pydata.org/) based.
-This will give clues on what parameters are doing better jobs. 
-The ``.zip`` file can the be dealt as the same way as step 2 .
-
-2.  The 2nd step is to pick the best model in the ``.csv`` (ordered already), and get the corresponding ``.zip`` file (same line of the ``.csv``). Let's say the best model is ``slurm/name_of_jobs/output/one_of_the_job_output.zip``, to change its name one can use :
 ```python
-python Utils.py --zip slurm/name_of_jobs/output/one_of_the_job_output.zip  model/my_best_model.zip
-``` 
-
-3.  To then produce the test plots, one can use (same as csv, no need to specify the directory ``model`` nor ``.zip``)
-```python
-python ZAMachineLearning.py (args) --model my_model --test
+python PlotMassPlane.py  --profile --model ./path_to_best_model_dir/*.zip
 ```
-This will produce the ``.root`` output files (split according to ``split_name`` in ``parameters.py``) on the test set. The plotting can be done in ``Plotting/`` : If other files have to be processed, one can use 
-```python
-python ZAMachineLearning.py (args) --model my_model --output key
-``` 
-- *Warning* : These samples must not have been used in the training, this will cause undetected overfitting
-
 ### Resubmission:
 If some jobs failed, they can be resubmitted with the command: 
 ```python
@@ -200,7 +187,7 @@ In case there is too much data in the training (rare in case of HEP) to put them
 
 ## Cache
 The importation from root files can be slow and if the training data is not too big it can be cached.
-## Trouble Shotting:
+## Troubleshooting:
 - Debugging: stepping through Python script using gdb.
 ``bash
 gdb -ex r -ex bt --args python < ZA-machine learnig command >

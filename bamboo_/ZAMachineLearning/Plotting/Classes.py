@@ -6,17 +6,18 @@ import logging
 import yaml
 import string
 import itertools
-from array import array
-import numpy as np
-from sklearn.preprocessing import LabelBinarizer
-from root_numpy import root2array, rec2array
-from scipy import interp
-
-from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
 import ROOT
 
-from sklearn import metrics
+import numpy as np
 import matplotlib.pyplot as plt
+
+from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
+from array import array
+from sklearn.preprocessing import LabelBinarizer
+from sklearn.metrics import confusion_matrix
+from root_numpy import root2array, rec2array
+from scipy import interp
+from sklearn import metrics
 from matplotlib.pyplot import cm
 
 # ROOT STYLE #
@@ -25,8 +26,8 @@ import tdrstyle
 # FORMULAS #
 gROOT.LoadMacro("formulas.C")
 
- # PYPLOT STYLE #
-SMALL_SIZE = 16
+# PYPLOT STYLE #
+SMALL_SIZE  = 14
 MEDIUM_SIZE = 20
 BIGGER_SIZE = 22
 
@@ -38,10 +39,8 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
 
-#################################################################################################
-##################################     Class definitions     ####################################
-#################################################################################################
 
+#################################################################################################
 #####################################     Plot_TH1      #########################################
 class Plot_TH1:
     def __init__(self,filepath,filename,tree,variable,cut,name,bins,xmin,xmax,title,xlabel,ylabel,weight=None,logx=False,logy=False,option='hist'):
@@ -67,12 +66,22 @@ class Plot_TH1:
         tree = file_handle.Get(self.tree)
         if not tree:
             logging.error("Could not open tree '%s' from file '%s'"%(self.tree,self.filename))
-        if self.weight and self.weight != '':
-            tree.Draw(self.variable+'>>'+self.name+'('+str(self.bins)+','+str(self.xmin)+','+str(self.xmax)+')',self.weight+'*('+self.cut+')',"goff")    
+        first_arg = self.variable+'>>'+self.name+'('+str(self.bins)+','+str(self.xmin)+','+str(self.xmax)+')'
+        if self.weight and self.weight != '' and self.cut != '':
+            second_arg = self.weight + "* (" + self.cut + ")"
+        elif self.weight and self.weight != '':
+            second_arg = self.weight
+        elif self.cut != '':
+            second_arg = self.cut
         else:
-            tree.Draw(self.variable+'>>'+self.name+'('+str(self.bins)+','+str(self.xmin)+','+str(self.xmax)+')',self.cut,"goff")    
+            second_arg = ''
+        tree.Draw(first_arg,second_arg,"goff")    
         histo = gROOT.FindObject(self.name)
-        histo.SetTitle(self.title+' (%s sample)'%self.filename+';'+self.xlabel+';'+self.ylabel+' / %0.2f'%(histo.GetBinWidth(1)))
+        try: 
+            histo.ClassName()
+        except ReferenceError:
+            raise RuntimeError('Could not produce histogram %s'%self.name)
+        histo.SetTitle(self.title+';'+self.xlabel+';'+self.filename+' '+self.ylabel+' / %0.2f'%(histo.GetBinWidth(1)))
         self.histo = copy.deepcopy(histo)
         file_handle.Close()
         # Overflow #
@@ -82,8 +91,26 @@ class Plot_TH1:
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 600, 600)
-        self.histo.SetTitleOffset(1.6,'xyz')
+        canvas = TCanvas("c", "c", 600, 600)
+        canvas.SetTopMargin(0.15)
+        canvas.SetBottomMargin(0.15)
+        canvas.SetRightMargin(0.05)
+        canvas.SetLeftMargin(0.15)
+        if self.title == '':
+            canvas.SetTopMargin(0.05)
+
+        self.histo.GetXaxis().SetTitleOffset(1.4)
+        self.histo.GetXaxis().SetLabelSize(0.03)
+        self.histo.GetXaxis().SetTitleSize(0.05)
+        if len(self.xlabel) > 30:
+            self.histo.GetXaxis().SetTitleSize(0.035)
+            
+        self.histo.GetYaxis().SetTitleOffset(1.5)
+        self.histo.GetYaxis().SetLabelSize(0.03)
+        self.histo.GetYaxis().SetTitleSize(0.05)
+        if len(self.ylabel) > 30:
+            self.histo.GetYaxis().SetTitleSize(0.035)
+
         self.histo.SetMinimum(0)
         self.histo.SetLineWidth(2)
         self.histo.SetTitle(self.title)
@@ -95,11 +122,9 @@ class Plot_TH1:
 
         self.histo.Draw(self.option)
 
-        canvas.Print(pdf_name,'Title:' + self.title + " (sample : %s)"%self.filename)
-        canvas.Close()
+        return canvas,self.filename
 
-
-
+#################################################################################################
 ####################################      Plot_TH2       ########################################
 class Plot_TH2:
     def __init__(self,filepath,filename,tree,variablex,variabley,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,weight=None,zlabel='',option='colz',normalizeX=False,normalizeY=False,logx=False,logy=False,logz=False):
@@ -129,14 +154,20 @@ class Plot_TH2:
         self.logz = logz
 
     def MakeHisto(self):
-        file_handle = TFile.Open(self.filename)
+        file_handle = TFile.Open(self.filepath)
         tree = file_handle.Get(self.tree)
         if not tree:
             logging.error("Could not open tree '%s' from file '%s'"%(self.tree,self.filename))
-        if self.weight and self.weight != '':
-            tree.Draw(self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsy)+','+str(self.ymin)+','+str(self.ymax)+')',self.weight+'*('+self.cut+')',"goff "+self.option)    
+        first_arg = self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsy)+','+str(self.ymin)+','+str(self.ymax)+')'
+        if self.weight and self.weight != '' and self.cut != '':
+            second_arg = self.weight + "* (" + self.cut + ")"
+        elif self.weight and self.weight != '':
+            second_arg = self.weight
+        elif self.cut != '':
+            second_arg = self.cut
         else:
-            tree.Draw(self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsy)+','+str(self.ymin)+','+str(self.ymax)+')',self.cut,"goff "+self.option)    
+            second_arg = ''
+        tree.Draw(first_arg,second_arg,"goff "+self.option)    
         self.histo = copy.deepcopy(gROOT.FindObject(self.name))
         if self.normalizeX:
             for x in range(0,self.histo.GetNbinsX()+1):
@@ -159,17 +190,47 @@ class Plot_TH2:
                 for x in range(0,self.histo.GetNbinsX()+1):
                     self.histo.SetBinContent(x,y,self.histo.GetBinContent(x,y)/sum_x)
             self.title += ' [Normalized]'
-        self.histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel+';'+self.zlabel)
+        self.histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel+';'+self.zlabel+' / %0.2f / %0.2f'%(self.histo.GetXaxis().GetBinWidth(1),self.histo.GetYaxis().GetBinWidth(1)))
         self.histo.SetMinimum(0)
         file_handle.Close()
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 600, 600)
-        self.histo.SetTitleOffset(1.6,'xyz')
+        canvas = TCanvas("c", "c", 600, 600)
+        canvas.SetTopMargin(0.15)
+        canvas.SetBottomMargin(0.13)
+        canvas.SetRightMargin(0.12)
+        canvas.SetLeftMargin(0.12)
+        if self.title == '':
+            canvas.SetTopMargin(0.08)
         if self.option == "colz":
             canvas.SetRightMargin(0.2)
             self.histo.SetContour(100)
+            if self.logz:
+                canvas.SetRightMargin(0.18)
+
+        self.histo.GetXaxis().SetTitleOffset(1.1)
+        self.histo.GetXaxis().SetLabelSize(0.03)
+        self.histo.GetXaxis().SetTitleSize(0.05)
+        if len(self.xlabel) > 30:
+            self.histo.GetXaxis().SetTitleSize(0.025)
+            self.histo.GetXaxis().SetTitleOffset(1.8)
+
+        self.histo.GetYaxis().SetTitleOffset(1.2)
+        self.histo.GetYaxis().SetLabelSize(0.03)
+        self.histo.GetYaxis().SetTitleSize(0.05)
+        if len(self.ylabel) > 30:
+            self.histo.GetYaxis().SetTitleSize(0.025)
+            self.histo.GetYaxis().SetTitleOffset(1.8)
+
+        if "prof" in self.option:
+            self.histo.GetXaxis().SetRangeUser(self.xmin,self.xmax)
+            self.histo.GetYaxis().SetRangeUser(self.ymin,self.ymax)
+
+        self.histo.GetZaxis().SetTitleOffset(1.2)
+        self.histo.GetZaxis().SetLabelSize(0.03)
+        self.histo.GetZaxis().SetTitleSize(0.05)
+
         self.histo.Draw(self.option)
 
         if self.logx:
@@ -179,10 +240,10 @@ class Plot_TH2:
         if self.logz:
             canvas.SetLogz()
 
-        canvas.Print(pdf_name,'Title:'+self.title)
-        canvas.Close()
+        return canvas,self.filename
 
-####################################    Plot_Ratio_TH1    ########################################
+#################################################################################################
+##############################      Plot_Ratio_TH1      #########################################
 class Plot_Ratio_TH1:
     def __init__(self,filepath,filename,tree,variable1,variable2,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2,weight=None,logx=False,logy=False,option='hist'):
         self.filepath = filepath
@@ -206,26 +267,32 @@ class Plot_Ratio_TH1:
         self.option = option
 
     def MakeHisto(self):
-        instance1 = Plot_TH1(self.filepath,self.filename,self.tree,self.variable1,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel)
-        instance2 = Plot_TH1(self.filepath,self.filename,self.tree,self.variable2,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel)
+        instance1 = Plot_TH1(self.filepath,self.filename,self.tree,self.variable1,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel,self.weight,self.logx,self.logy,self.option)
+        instance2 = Plot_TH1(self.filepath,self.filename,self.tree,self.variable2,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel,self.weight,self.logx,self.logy,self.option)
         instance1.MakeHisto()
         instance2.MakeHisto()
 
         self.histo1 = copy.deepcopy(instance1.histo)
         self.histo2 = copy.deepcopy(instance2.histo)
+        self.histo1.Sumw2()
+        self.histo2.Sumw2()
 
         ratio = self.histo1.Clone(self.name)
-        ratio.Sumw2()
         ratio.Divide(self.histo2)
 
         self.ratio = copy.deepcopy(ratio)
 
     def PlotOnCanvas(self,pdf_name):
-        #gROOT.SetBatch(False)
         tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 600, 600)
+        canvas = TCanvas("c", "c", 600, 600)
+
         pad1 = TPad("pad1", "pad1", 0, 0.0, 1, 1.0)
+        pad1.SetTopMargin(0.15)
         pad1.SetBottomMargin(0.32)
+        pad1.SetRightMargin(0.05)
+        pad1.SetLeftMargin(0.15)
+        if self.title == '':
+            pad1.SetTopMargin(0.05)
         pad1.SetGridx()
         pad1.Draw()
         pad1.cd()
@@ -238,12 +305,6 @@ class Plot_Ratio_TH1:
         if self.logy:
             pad1.SetLogy()
 
-        legend = TLegend(0.65,0.7,0.85,0.83)
-        legend.SetHeader("Legend","C")
-        legend.AddEntry(self.histo1,self.legend1,"l")
-        legend.AddEntry(self.histo2,self.legend2,"l")
-        legend.Draw()
-
         # Redraw axis to avoid clipping 0
         self.histo1.GetXaxis().SetLabelSize(0.)
         self.histo1.GetXaxis().SetTitle('')
@@ -255,6 +316,8 @@ class Plot_Ratio_TH1:
         pad2 = TPad("pad2", "pad2", 0, 0.0, 1, 0.3)
         pad2.SetTopMargin(0)
         pad2.SetBottomMargin(0.4)
+        pad2.SetRightMargin(0.05)
+        pad2.SetLeftMargin(0.15)
         pad2.SetGridx()
         pad2.Draw()
         pad2.cd() 
@@ -273,41 +336,63 @@ class Plot_Ratio_TH1:
         self.histo1.SetLineWidth(2)
         max_y = max(self.histo1.GetMaximum(),self.histo2.GetMaximum())
         self.histo1.SetMaximum(max_y*1.1)
+
+        self.histo1.GetXaxis().SetTitleOffset(1.5)
+        self.histo1.GetXaxis().SetLabelSize(0.)
+        self.histo1.GetXaxis().SetTitleSize(0.)
+
+        self.histo1.GetYaxis().SetTitleOffset(1.5)
+        self.histo1.GetYaxis().SetLabelSize(0.03)
+        self.histo1.GetYaxis().SetTitleSize(0.05)
         self.histo1.GetYaxis().SetNdivisions(505)
-        self.histo1.GetYaxis().SetTitleSize(20)
-        self.histo1.GetYaxis().SetTitleFont(43)
-        self.histo1.GetYaxis().SetTitleOffset(1.8)
 
         self.histo2.SetLineColor(ROOT.kRed)
         self.histo2.SetLineWidth(2)
 
         self.ratio.SetTitle("")
 
+        self.ratio.GetXaxis().SetNdivisions(510)
+        self.ratio.GetXaxis().SetTitleOffset(1.1)
+        self.ratio.GetXaxis().SetLabelSize(0.10)
+        self.ratio.GetXaxis().SetTitleSize(0.15)
+        if len(self.xlabel) > 30:
+            self.ratio.GetXaxis().SetTitleSize(0.13)
+        if len(self.xlabel) > 60:
+            self.ratio.GetXaxis().SetTitleSize(0.11)
+
         self.ratio.GetYaxis().SetTitle("Ratio")
         self.ratio.GetYaxis().SetNdivisions(505)
-        self.ratio.GetYaxis().SetTitleSize(20)
-        self.ratio.GetYaxis().SetTitleFont(43)
-        self.ratio.GetYaxis().SetTitleOffset(1.8)
-        self.ratio.GetYaxis().SetLabelFont(43)
-        self.ratio.GetYaxis().SetLabelSize(15)
+        self.ratio.GetYaxis().SetTitleOffset(0.5)
+        self.ratio.GetYaxis().SetLabelSize(0.10)
+        self.ratio.GetYaxis().SetTitleSize(0.15)
+        if len(self.ylabel) > 30:
+            self.ratio.GetYaxis().SetTitleSize(0.13)
+        if len(self.ylabel) > 60:
+            self.ratio.GetYaxis().SetTitleSize(0.11)
 
-        self.ratio.GetXaxis().SetNdivisions(510)
-        self.ratio.GetXaxis().SetTitleSize(20)
-        self.ratio.GetXaxis().SetTitleFont(43)
-        self.ratio.GetXaxis().SetTitleOffset(4.)
-        self.ratio.GetXaxis().SetLabelFont(43)
-        self.ratio.GetXaxis().SetLabelSize(15)
+        # Legend #
+        canvas.cd()
+        if self.title == '':
+            self.legend = TLegend(0.60,0.80,0.93,0.93)
+        else:
+            self.legend = TLegend(0.60,0.70,0.93,0.83)
+        self.legend.SetTextSize(0.05)
+        self.legend.SetBorderSize(0)
+        self.legend.SetFillColor(0)
+        self.legend.AddEntry(self.histo1,self.legend1,"l")
+        self.legend.AddEntry(self.histo2,self.legend2,"l")
+        self.legend.Draw()
 
         ROOT.SetOwnership(canvas, False)
         ROOT.SetOwnership(pad1, False)
         ROOT.SetOwnership(pad2, False)
 
-        canvas.Print(pdf_name,'Title:'+self.title)
-        canvas.Close()
+        return canvas,self.filename
 
+#################################################################################################
 ####################################    Plot_Multi_TH1    #######################################
 class Plot_Multi_TH1:
-    def __init__(self,filepath,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,option='hist',logx=False,logy=False,legend_pos=[0.5,0.5,0.9,0.85]):
+    def __init__(self,filepath,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,option='hist',logx=False,logy=False,legend_pos=[0.5,0.5,0.9,0.85],stack=False,norm=False):
         self.filepath = filepath
         self.filename = filename
         self.tree = tree
@@ -323,6 +408,16 @@ class Plot_Multi_TH1:
         self.logx = logx
         self.logy = logy
         self.option = option
+        self.stack = stack
+        self.norm = norm
+
+        if not isinstance(list_cut,list):
+            list_cut = [list_cut]
+        if not isinstance(list_variable,list):
+            list_variable = [list_variable]
+        if not isinstance(list_legend,list):
+            list_legend = [list_legend]
+
 
         if len(list_variable) == 1 and len(list_cut) > 1:
             logging.debug('\tOnly one variable but several cuts')
@@ -335,22 +430,24 @@ class Plot_Multi_TH1:
         elif len(list_variable) == 1 and len(list_cut) == 1:
             logging.warning('\tWhy do you even need to stack ?')
         elif len(list_variable) != len(list_cut):
-            logging.critical('Inconsistent number of variables and cuts')
-            sys.exit(1)
+            raise RuntimeError('Inconsistent number of variables and cuts')
+            print (len(list_variable))
+            print (len(list_cut))
         else:
             self.list_variable = list_variable
             self.list_cut = list_cut
         if len(list_legend) != max(len(list_variable),len(list_cut)):
-            logging.critical('Inconsistent number of legends compared to variables and cuts')
-            sys.exit(1)
+            raise RuntimeError('Inconsistent number of legends compared to variables and cuts')
         else:
             self.list_legend = list_legend
         if len(list_color) != len(list_legend):
-            logging.critical('Inconsistent number of colors compared to legends')
-            sys.exit(1)
+            raise RuntimeError('Inconsistent number of colors compared to legends')
         else:
             self.list_color = list_color
 
+        for i in range(len(self.list_color)):
+            if isinstance(self.list_color[i],str):
+                self.list_color[i] = ROOT.TColor.GetColor(self.list_color[i])
         
     def MakeHisto(self):
         self.list_obj = []
@@ -376,82 +473,111 @@ class Plot_Multi_TH1:
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
 
-        # Plot the histograms on over the other #
-        c1 = TCanvas("c1", "c1", 600, 600)
-        c1.SetLeftMargin(0.16)
+        # Canvas #
+        canvas = TCanvas("c", "c", 600, 600)
+        canvas.SetTopMargin(0.15)
+        canvas.SetBottomMargin(0.15)
+        canvas.SetRightMargin(0.05)
+        canvas.SetLeftMargin(0.15)
+        if self.title == '':
+            canvas.SetTopMargin(0.05)
 
-        legend = TLegend(self.legend_pos[0],self.legend_pos[1],self.legend_pos[2],self.legend_pos[3])
-        legend.SetHeader("Legend","C")
-        maxY = 0
-        for leg,obj in zip(self.list_legend,self.list_obj):
-            legend.AddEntry(obj,leg,"l")
-            obj_max = obj.GetMaximum()
-            if obj_max>maxY:
-                maxY = obj_max
-        maxY *= 1.1
- 
-        for col,obj in zip(self.list_color,self.list_obj):
-            obj.SetLineColor(col)
-            obj.SetLineWidth(3)
-            obj.SetMaximum(maxY)
-            obj.SetTitleOffset(1.8,'x')
-            obj.SetTitleOffset(2,'y')
-            obj.Draw(self.option+" same")
-            
         if self.logx:
-            c1.SetLogx()
+            canvas.SetLogx()
         if self.logy:
-            c1.SetLogy()
+            canvas.SetLogy()
             self.list_obj[0].SetMinimum(10)
 
-        legend.Draw()
-        c1.Print(pdf_name,'Title:'+self.list_obj[0].GetTitle()+' Same')
-        c1.Close()
-            
-        # Plot the stacked histograms #
-        self.stack_hist = THStack("hs","")
+        # Norm #
+        if self.norm:
+            for obj in self.list_obj:
+                if obj.Integral() != 0:
+                    obj.Scale(1./obj.Integral())
 
-        for col,obj in zip(self.list_color,self.list_obj):
-            obj.SetFillColor(col)
-            self.stack_hist.Add(obj)
-
-        c2 = TCanvas("c2", "c2", 600, 600)
-        c2.SetLeftMargin(0.16)
-
-        legend.Clear()
-        legend.SetHeader("Legend","C")
-        for leg,obj in zip(self.list_legend,self.list_obj):
-            legend.AddEntry(obj,leg,"f")
-            obj.SetMaximum(self.stack_hist.GetMaximum()*1.1)
-            obj.SetTitleOffset(1.8,'x')
-            obj.SetTitleOffset(2,'y')
-            obj.Draw()
-
-        self.stack_hist.Draw(self.option+" same")
-
-        if self.logx:
-            c2.SetLogx()
+        # Axes #
+        maxY = max([h.GetMaximum() for h in self.list_obj])
         if self.logy:
-            c2.SetLogy()
+            maxY *= 2
+        else:
+            maxY *= 1.1
+            
+        self.list_obj[0].SetMaximum(maxY)
 
+        self.list_obj[0].GetXaxis().SetLabelSize(0.03)
+        self.list_obj[0].GetXaxis().SetTitleSize(0.05)
+        if len(self.xlabel) > 30:
+            self.list_obj[0].GetXaxis().SetTitleSize(0.035)
+        if len(self.xlabel) > 60:
+            self.list_obj[0].GetXaxis().SetTitleSize(0.03)
+        if "frac" in self.xlabel:
+            self.list_obj[0].GetXaxis().SetTitleSize(0.03)
+            self.list_obj[0].GetXaxis().SetTitleOffset(1.9)
+        else:
+            self.list_obj[0].GetXaxis().SetTitleOffset(1.6)
+            
+            
+        self.list_obj[0].GetYaxis().SetTitleOffset(1.5)
+        self.list_obj[0].GetYaxis().SetLabelSize(0.03)
+        self.list_obj[0].GetYaxis().SetTitleSize(0.05)
+        self.list_obj[0].GetYaxis().SetNdivisions(10)
+        if len(self.ylabel) > 30:
+            self.list_obj[0].GetYaxis().SetTitleSize(0.035)
+        if len(self.ylabel) > 60:
+            self.list_obj[0].GetYaxis().SetTitleSize(0.03)
+
+        # Stacking #
+        if self.stack:
+            self.stack_hist = THStack("hs","") # Needs to be in self, otherwise destroyed at end of function
+            opt = self.option
+            for col,obj in zip(self.list_color,self.list_obj):
+                obj.SetFillColor(col)
+                obj.SetLineColor(col)
+                self.stack_hist.Add(obj)
+                obj.Draw(opt)
+                if not "same" in opt :  
+                    opt += " same"
+            self.stack_hist.Draw(self.option+" same")
+            maxY = self.stack_hist.GetMaximum()
+            if self.logy:
+                maxY *= 10
+            else:
+                maxY *= 1.1
+            self.list_obj[0].SetMaximum(maxY)
+        # Regular plotting
+        else:
+            opt = self.option
+            for col,obj in zip(self.list_color,self.list_obj):
+                obj.SetLineColor(col)
+                obj.SetLineWidth(2)
+                obj.Draw(opt)
+                if not "same" in opt :  
+                    opt += " same"
+        # Legend #
+        legend = TLegend(*self.legend_pos)
+        for leg,obj in zip(self.list_legend,self.list_obj):
+            legend.AddEntry(obj,leg,"f" if self.stack else "l")
+        legend.SetBorderSize(0)
+        legend.SetFillColor(0)
         legend.Draw()
+        ROOT.SetOwnership(legend,0) # Otherwise goes out of scope and not printed
 
-        c2.Print(pdf_name,'Title:'+self.list_obj[0].GetTitle()+' Stack')
-        c2.Close()
-        
+        return canvas,self.filename
+            
+#################################################################################################
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
-    def __init__(self,tree,variable,title,selector,xlabel,ylabel,weight=None,cut=''):
-        self.tree = tree                                # Name of the tree to be taken from root file
-        self.variable = variable                        # Discriminative variable (typically between 0 and 1)
-        self.weight_name = weight                       # Weight to be used in the ROC curve 
-        self.cut = cut                                  # Potential cut before applying the ROC
-        self.title = title                              # Title of the ROC (to be included in legend !)
-        self.xlabel = xlabel                            # TItle of x axis
-        self.ylabel = ylabel                            # Title of y axis
-        self.selector = selector                        # Dict to give the target (=value) as a function of string inside filename (=key)
-        self.output = np.empty((0,1))                   # Will contain the outputs (aka the variable from files)
-        self.target = np.empty((0,1))                   # Will contin the targets
+    def __init__(self,tree,variable,title,selector,weight=None,cut=''):
+        self.tree        = tree                         # Name of the tree to be taken from root file
+        self.variable    = variable                     # Discriminative variable (typically between 0 and 1)
+        self.weight_name = weight                       # Weight branch name
+        self.weight      = None                         # Weight to be used in the ROC curve
+        self.cut         = cut                          # Potential cut before applying the ROC
+        self.title       = title                        # Title of the ROC (to be included in legend !)
+        #self.xlabel      = xlabel                       # Title of x axis
+        #self.ylabel      = ylabel                       # Title of y axis
+        self.selector    = selector                     # Dict to give the target (=value) as a function of string inside filename (=key)
+        self.output      = np.empty((0,1))              # Will contain the outputs (aka the variable from files)
+        self.target      = np.empty((0,1))              # Will contin the targets
 
     def AddToROC(self,filename):
         # Check that correct target and records #
@@ -475,12 +601,13 @@ class Plot_ROC:
         if out.shape[1]>1: # contains [dicriminant,weight]
             weight = out[:,1]
             out = out[:,0]
-        
+
         # Add to container #
         tar = np.ones((out.shape[0],1))*target
         self.output = np.concatenate((self.output,out),axis=0)
         self.target = np.concatenate((self.target,tar),axis=0)
-        self.weight = weight if self.weight_name and self.weight_name!='' else None
+        if self.weight_name and self.weight_name!='':
+            self.weight = weight
         return True
 
     def ProcessROC(self):
@@ -488,47 +615,28 @@ class Plot_ROC:
         self.roc_auc = metrics.auc(self.fpr, self.tpr)
 
 
-def MakeROCPlot(list_obj,name,title):
-    # Generate figure #
-    fig, ax = plt.subplots(1,figsize=(8,6))
-
-    # Loop over plot objects #
-    for i,obj in enumerate(list_obj):
-        ax.plot(obj.tpr, obj.fpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
-        ax.grid(True)
-        #plt.title('ROC : %s'%obj.title)
-    plt.legend(loc = 'upper left')
-    #plt.yscale('symlog',linthreshy=0.0001)
-    plt.plot([0, 1], [0, 1],'k--')
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.xlabel("Signal efficiency")
-    plt.ylabel("Background efficiency")
-    plt.suptitle(title)
-
-    fig.savefig(name+'.png')
-    logging.info('ROC curved saved as %s.png'%name)
-    plt.close(fig)
-
+#################################################################################################
 #################################      Plot_Multi_ROC       #####################################
 class Plot_Multi_ROC:
     def __init__(self,tree,classes,labels,prob_branches,colors,title,selector,weight=None,cut=''):
-        self.tree = tree                                # Name of the tree
-        self.classes = classes                          # eg [0,1,2], just numbering
-        self.labels = labels                            # Labels to display on plot
-        self.colors= colors                             # Pyplot colors for each element
-        self.selector = selector                        # Depending on string name, gives target
-        self.prob_branches = prob_branches              # Branches containign the probabilities
-        self.n_classes = len(classes)                   # number of classes
-        self.weight_name = weight                       # Weight name
-        self.weight = np.empty((0,1))                   # Weight vector 
-        self.title = title                              # title of plot
+        self.tree = tree                                  # Name of the tree
+        self.classes = classes                            # eg [0,1,2], just numbering
+        self.labels = labels                              # Labels to display on plot
+        self.colors= colors                               # Pyplot colors for each element
+        self.selector = selector                          # Depending on string name, gives target
+        self.prob_branches = prob_branches                # Branches containign the probabilities
+        self.n_classes = len(classes)                     # number of classes
+        self.weight_name = weight                         # Weight name
+        self.weight = np.empty((0,1))                     # Weight vector 
+        self.title = title                                # title of plot
         self.prob_per_class = np.empty((0,self.n_classes))# output of network
-        self.scores = np.empty((0,self.n_classes))      # Correct classes
-        self.cut = cut                                  # Potential cut
-        self.lb = LabelBinarizer()                      # eg ['A','B','C']-> labels [0,1,0]...
-        self.lb.fit(self.classes)                       # Carefull ! Alphabetic order !
+        self.scores = np.empty((0,self.n_classes))        # Correct classes
+        self.cut = cut                                    # Potential cut
+        self.lb = LabelBinarizer()                        # eg ['A','B','C']-> labels [0,1,0]...
+        self.lb.fit(self.classes)                         # Carefull ! Alphabetic order !
             # classes in lb -> lb.classes_
+        if self.classes != sorted(self.classes):
+            raise RuntimeError('The classes need to be sorted alphabetically otherwise LabelBinarizer will give wrong results')
 
     def AddToROC(self,filename):
         """ 
@@ -565,6 +673,7 @@ class Plot_Multi_ROC:
         self.roc_auc = {}
         # Process class by class #
         for i,n in enumerate(self.lb.classes_):
+            # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html
             self.fpr[n], self.tpr[n], _ = metrics.roc_curve(self.scores[:, i], self.prob_per_class[:, i], sample_weight=self.weight)
             try:
                 self.roc_auc[n] = metrics.auc(self.fpr[n], self.tpr[n]) 
@@ -573,66 +682,20 @@ class Plot_Multi_ROC:
                 fpr = np.sort(self.fpr[n])
                 self.roc_auc[n] = metrics.auc(fpr, self.tpr[n]) 
             
-        ## Micro-average #
-        #self.fpr["micro"], self.tpr["micro"], _ = metrics.roc_curve(self.scores.ravel(), self.prob_per_class.ravel())
-        #self.roc_auc["micro"] = metrics.auc(self.fpr["micro"], self.tpr["micro"]) 
 
-        ## Macro-average #
-        ## First aggregate all false positive rates
-        #all_fpr = np.unique(np.concatenate([self.fpr[i] for i in self.lb.classes_]))
-        ## Then interpolate all ROC curves at this points
-        #mean_tpr = np.zeros_like(all_fpr)
-        #for i in self.classes:
-        #    mean_tpr += interp(all_fpr, self.fpr[i], self.tpr[i])
-        ## Finally average it and compute AUC
-        #mean_tpr /= self.n_classes
-
-        #self.fpr["macro"] = all_fpr
-        #self.tpr["macro"] = mean_tpr
-        #self.roc_auc["macro"] = metrics.auc(self.fpr["macro"], self.tpr["macro"])
-
-def MakeMultiROCPlot(list_obj,name):
-    # Generate figure #
-    fig, ax = plt.subplots(1,figsize=(10,8))
-    line_cycle = itertools.cycle(["-","--",":","-.",])
-    # Loop over plot objects #
-    for i,obj in enumerate(list_obj):
-        n_obj = len(list(obj.tpr.keys()))
-        linestyle = next(line_cycle)
-        for key,lab,col in zip(obj.tpr.keys(),obj.labels,obj.colors):
-            # Label #
-            #label = (obj.title+' '+lab)
-            label = lab
-            label += ('\n AUC = %0.5f'%obj.roc_auc[key])
-            # Plot #
-            ax.plot(obj.tpr[key], obj.fpr[key], color=col, label=label, linestyle=linestyle)
-            ax.grid(True)
-
-    plt.legend(loc = 'upper left')#,prop={'family': 'monospace'})
-    #plt.yscale('symlog',linthreshy=0.0001)
-    plt.plot([0, 1], [0, 1],'k--')
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.xlabel(r'Correct identification')
-    plt.ylabel(r'Misidentification')
-    plt.suptitle(list_obj[0].title)
-
-    fig.savefig(name+'.png')#,bbox_inches='tight')
-    logging.info('ROC curved saved as %s.png'%name)
-    plt.close(fig)
-
-
+#################################################################################################
 #####################################   ProcessYAML   ############################################
 class ProcessYAML():
-    def __init__(self,template):
-        self.template = template
-        self.OUTPUT_YAML = os.path.join(os.getcwd(),'YAML')
+    def __init__(self, yaml_path, template):
+        self.template    = template
+        self.OUTPUT_YAML = os.path.join(yaml_path,'yaml')
+        
         if not os.path.exists(self.OUTPUT_YAML):
             os.makedirs(self.OUTPUT_YAML)
         logging.debug('Instantiation of template %s'%template)
 
     def Particularize(self,filename=''):
-        self.part_template = os.path.join(self.OUTPUT_YAML,self.template.replace('.yml.tpl','_')+filename+'.yml')
+        self.part_template = os.path.join(self.OUTPUT_YAML, self.template.replace('tpl-tempalte/','').replace('.yml.tpl','_') + filename + '.yml')
         with open(self.template) as tpl_handle:
             tpl = tpl_handle.read()
         with open(self.part_template, 'w') as out_yml:
@@ -671,25 +734,149 @@ class ProcessYAML():
 
 #################################################################################################
 ###############################      Function definitions      ################################## 
-#################################################################################################
 def LoopPlotOnCanvas(pdf_name,list_histo):
+    #c = TCanvas('c','c')
+    canvas = TCanvas('c','c',600,600)
+    canvas.Print(pdf_name+'.pdf[')
+    canvas.Close()
+
     for idx,inst in enumerate(list_histo,1):
-        # inst is a class object -> inst.histo = TH1/TH2
-        # Open file #
-        if idx==1:
-            c2 = TCanvas()
-            c2.Print(pdf_name+'.pdf[')
-            c2.Close()
-        # Print each plot #
-        inst.PlotOnCanvas(pdf_name=pdf_name+'.pdf')
-        # Close file #
-        if idx==len(list_histo):
-            c2 = TCanvas()
-            c2.Print(pdf_name+'.pdf') # Otherwise last plot does not have title
-            c2.Print(pdf_name+'.pdf]')
-            c2.Close()
+        canvas,title = inst.PlotOnCanvas(pdf_name=pdf_name+'.pdf')
+#        if isinstance(canvas,list):
+#            for c in canvas:
+#                c.Print(pdf_name+'.pdf')
+#            if idx == len(list_histo):
+#                canvas[-1].Print(pdf_name+'.pdf]')
+#            for c in canvas:
+#                c.Close()
+        canvas.Print(pdf_name+'.pdf','Title:'+title)
+        if idx == len(list_histo):
+            canvas.Print(pdf_name+'.pdf]')
+        canvas.Close()
     logging.info('Plots saved at %s'%(pdf_name+'.pdf'))
 
     # Save to root file #
     #f_root = TFile(pdf_name+".root", "recreate")
-            #inst.histo.Write()
+    #inst.histo.Write()
+
+def MakeROCPlot(list_obj,name,title=None):
+    # Generate figure #
+    fig, ax = plt.subplots(1,figsize=(8,6))
+    fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.95 if title is None else 0.90)
+
+    # Loop over plot objects #
+    for i,obj in enumerate(list_obj):
+        ax.plot(obj.tpr, obj.fpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
+        ax.grid(True)
+    plt.legend(loc = 'upper left')
+    plt.yscale('symlog',linthreshy=0.001)
+    #plt.plot([0, 1], [0, 1],'k--')
+    plt.xlim([0, 1])
+    plt.ylim([0.001, 1])
+    plt.xlabel("Correct identification rate")
+    plt.ylabel("Misidentification rate")
+    if title is not None:
+        plt.suptitle(title)
+
+    fig.savefig(name+'.png')
+    logging.info('ROC curved saved as %s.png'%name)
+    plt.close(fig)
+
+
+def MakeMultiROCPlot(list_obj,name,title=None):
+    #----- ROC -----#
+    # Generate figure #
+    fig, ax = plt.subplots(1,figsize=(8,6))
+    fig.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.95 if title is None else 0.90)
+    line_cycle = itertools.cycle(["-","--",":","-.",])
+    # Loop over plot objects #
+    for i,obj in enumerate(list_obj):
+        n_obj = len(list(obj.tpr.keys()))
+        linestyle = next(line_cycle)
+        for key,lab,col in zip(obj.tpr.keys(),obj.labels,obj.colors):
+            # Label #
+            label = (obj.title+' '+lab)
+            #label = lab
+            label += ('\n AUC = %0.5f'%obj.roc_auc[key])
+            # Plot #
+            ax.plot(obj.tpr[key], obj.fpr[key], color=col, label=label, linestyle=linestyle)
+            ax.grid(True)
+
+    plt.legend(loc = 'upper left')#,prop={'family': 'monospace'})
+    #plt.yscale('symlog',linthreshy=0.0001)
+    plt.plot([0, 1], [0, 1],'k--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.xlabel(r'Correct identification rate')
+    plt.ylabel(r'Misidentification rate')
+
+    fig.savefig(name+'_ROC.png')#,bbox_inches='tight')
+    logging.info('ROC curved saved as %s_ROC.png'%name)
+    plt.close(fig)
+
+    #----- Confusion matrix -----#
+    y_true = None
+    y_pred = None
+    sample_weight = None
+    for i,obj in enumerate(list_obj):
+        if y_pred is None and y_true is None:
+            y_true = obj.scores
+            y_pred = obj.prob_per_class
+            sample_weight = obj.weight
+        else:   
+            y_true.append(obj.scores,axis=0)
+            y_pred.append(obj.prob_per_class,axis=0)
+            if sample_weight is not None:
+                sample_weight.append(obj.weight,axis=0)
+        
+    # From multi class to one hot #
+    y_true = y_true.argmax(axis=1)
+    y_pred = y_pred.argmax(axis=1)
+    if sample_weight is not None:
+        sample_weight = sample_weight.reshape(-1)
+    cm = confusion_matrix(y_true,y_pred,sample_weight=sample_weight).T
+    accuracy = np.trace(cm) / float(np.sum(cm))                                                      
+    misclass = 1 - accuracy
+
+    # Normalize #
+    cmx = cm/np.tile(cm.sum(axis=0),cm[0].shape[0]).reshape(*cm.shape)
+    cmy = cm/np.repeat(cm.sum(axis=1),cm[0].shape[0]).reshape(*cm.shape)
+
+    # Cmap #
+    cmapx = plt.get_cmap('Blues')
+    cmapy = plt.get_cmap('Reds')
+    cmap = plt.get_cmap('Greens')
+
+    for cmi,cmap,label in zip([cm,cmx,cmy],[cmap,cmapx,cmapy],['plain','normedx','normedy']):
+        # Plot CM #
+        fig = plt.figure(figsize=(10, 9))
+        plt.subplots_adjust(left=0.10, right=0.99, top=0.90, bottom=0.10)
+        plt.imshow(cmi, interpolation='nearest', cmap=cmap)
+        fig.suptitle('Confusion matrix')
+        plt.colorbar()
+
+        target_names = list_obj[0].lb.classes_
+
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+        # Labels and numbers #
+        thresh = cmi.max() / 1.5
+        for i, j in itertools.product(range(cmi.shape[0]), range(cmi.shape[1])):
+            plt.text(j, i, "{:0.2f}".format(cmi[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cmi[i, j] > thresh else "black")
+
+        xlabel = 'Predicted label'
+        ylabel = 'True label'
+        if label == 'normedx':
+            xlabel += ' (normed)'
+        if label == 'normedy':
+            ylabel += ' (normed)'
+        plt.ylabel(xlabel)
+        plt.xlabel(ylabel)
+        namefig = '%s_%s.png'%(name,label)
+        fig.savefig(namefig)#,bbox_inches='tight')
+        logging.info('Confusion matrix curved saved as %s'%namefig)
+        plt.close(fig)

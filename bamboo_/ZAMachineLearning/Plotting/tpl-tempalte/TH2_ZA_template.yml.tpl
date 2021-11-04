@@ -1,5 +1,5 @@
 massplane:
-  tree: Events 
+  tree: tree 
   variablex: bb_M
   variabley: llbb_M 
   weight: total_weight 
