@@ -39,8 +39,8 @@ class MassPlane:
         bool_upper = np.greater_equal(self.Y,self.X)
         self.X = self.X[bool_upper]
         self.Y = self.Y[bool_upper]
-        self.x = self.X.reshape(-1,1)
-        self.y = self.Y.reshape(-1,1)
+        self.x = self.X.reshape(-1,1)  # mjj
+        self.y = self.Y.reshape(-1,1)  # mlljj
         # X, Y are 2D arrays, x,y are vectors of points
 
     def load_model(self,path_model):
@@ -70,10 +70,10 @@ class MassPlane:
         #print( bb_M_x_llbb_M, type(self.x * self.y), bb_M_x_llbb_M.shape)
 
         v = np.c_[pdgid, era]
-        variables = [bb_M_squared, llbb_M_squared, bb_M_x_llbb_M, self.x,self.y, mA, mH]
         inputsLL  = np.c_[v, bb_M_squared, llbb_M_squared, bb_M_x_llbb_M, self.x,self.y,params]
         #print( inputsLL )
         inputs    = np.hsplit(inputsLL,inputsLL.shape[1])
+        print ( inputs )
         output    = self.model.predict(inputs)
 
         g_DY = ROOT.TGraph2D(N)
@@ -226,9 +226,9 @@ if __name__ == "__main__":
                    help='Mass of A for plot')
     parser.add_argument('--mH', action='store', required=False, type=int, 
                    help='Mass of H for plot')
-    parser.add_argument('--DY', action='store_true', required=False, default=True,
+    parser.add_argument('--DY', action='store_true', required=False, default=False,
                    help='Wether to plot the DY output')
-    parser.add_argument('--TT', action='store_true', required=False, default=True,
+    parser.add_argument('--TT', action='store_true', required=False, default=False,
                    help='Wether to plot the TT output')
     parser.add_argument('--ZA', action='store_true', required=False, default=True,
                    help='Wether to plot the ZA output')
@@ -246,10 +246,11 @@ if __name__ == "__main__":
     if args.mA and args.mH:
         inst.plotMassPoint(args.mH,args.mA)
     elif not args.gif:
+        # To pass when needed on all mass points !!
         #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
         #   d = json.load(f)
         #   masspoints = [(mH, mA,) for mA, mH in d]
-        masspoints = [( 300, 50), ( 300, 100), ( 300, 200),]
+        masspoints = [(200, 100), ( 300, 50), ]#( 300, 100), ( 300, 200),]
         for masspoint in masspoints:
             inst.plotMassPoint(*masspoint)
     

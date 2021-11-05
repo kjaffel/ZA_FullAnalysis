@@ -7,15 +7,13 @@ import shutil
 import yaml
 import json
 import pickle
-from operator import add
 import zipfile
 import pandas
 import pprint
-from sklearn import preprocessing
 
-##################################################################################################
-##########################                 GetEntries                   ##########################
-##################################################################################################
+from sklearn import preprocessing
+from operator import add
+
 def GetEntries(f,cut='',treeName="tree"):
     """ Count the entries in a file, with or without a cut """
     from ROOT import TFile
@@ -31,9 +29,7 @@ def GetEntries(f,cut='',treeName="tree"):
         print ("Could not open tree %s in file %s"%(treeName,f))
         return 0
 
-##################################################################################################
-##########################                 ListEntries                  ##########################
-##################################################################################################
+
 def ListEntries(path,part=[''],cut='',treeName="tree"):
     """ Given a path, count the entries of all the files that match part, with or without cuts """
     if cut=='':
@@ -81,12 +77,9 @@ def ListEntries(path,part=[''],cut='',treeName="tree"):
     else:
         print ('All folder : '+('  %d cut / %d total = %0.2f%%'%(N_tot[0],N_tot[1],(N_tot[0]*100/N_tot[1]))).ljust(9,' ')+' entries')    
 
-##################################################################################################
-##########################                 CopyZip                      ##########################
-##################################################################################################
 
 def CopyZip(path_in,path_out):
-    """ Copy the zip content from path_in to path_out (useful when changin the name of an archive because it changes the names internally)"""
+    """ Copy the zip content from path_in to path_out (useful when changing the name of an archive because it changes the names internally)"""
     if not path_in.endswith('.zip') or not path_out.endswith('.zip'):
         sys.exit('You forgot .zip at the end of the file')
     # Split paths #
@@ -116,9 +109,6 @@ def CopyZip(path_in,path_out):
     shutil.rmtree(tmp_dir)
 
 
-##################################################################################################
-##########################                 CountVariables               ##########################
-##################################################################################################
 def CountVariables(path_files,var, part=[''],cut='',is_time_in_ms=False):
     """
         Loops over all the files in path_files,
@@ -183,18 +173,15 @@ def CountVariables(path_files,var, part=[''],cut='',is_time_in_ms=False):
     
         
 def convert_time(time):
-    seconds=(time/1000)%60
-    seconds = int(seconds)
-    minutes=(time/(1000*60))%60
-    minutes = int(minutes)
-    hours=(time/(1000*60*60))%24
-    days = (time/(1000*60*60*24))
-
+    seconds  = (time/1000)%60
+    seconds  = int(seconds)
+    minutes  = (time/(1000*60))%60
+    minutes  = int(minutes)
+    hours    =(time/(1000*60*60))%24
+    days     = (time/(1000*60*60*24))
     return ("%6dd:%2dh:%2dm:%2ds" % (days, hours, minutes, seconds))
 
-##################################################################################################
-##########################                 ListBranches                 ##########################
-##################################################################################################
+
 def ListBranches(rootfile,treeName ='tree',verbose=False):
     from ROOT import TFile
     name_list = []
@@ -223,9 +210,6 @@ def ListBranches(rootfile,treeName ='tree',verbose=False):
     root_file.Close()
     return name_list
 
-##################################################################################################
-##########################                 AppendTree                   ##########################
-##################################################################################################
 def find_rows(a, b):
     """
     Find the matching rows between a and b
@@ -292,15 +276,13 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None,treeNa
     root_numpy.array2root(all_data,rootfile1.replace('.root','_new.root'),mode='recreate',treename=treeName)
     print ('New file saved as %s'%rootfile1.replace('.root','_new.root'))
 
-##################################################################################################
-##################           ExtractXsecAndEventWeightSumFromYaml              ###################
-##################################################################################################
 def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
     xsec_dict = {}
     wgt_dict = {}
     # Load YAML file #
     if yaml_path.split('/')[-1] != 'plots.yml':
-        print("I am not sure this is the yaml file you want to pass, it has to be the one you get after running bamboo so you can get the number of generated-events !")
+        print("I am not sure this is the yaml file you want to pass, \t
+               it has to be the one you get after running bamboo so you can get the number of generated-events !")
     with open(yaml_path, 'r') as stream:
         try:
             data = yaml.safe_load(stream)
@@ -323,9 +305,7 @@ def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
     print ("Generated file %s_xsec.json"%suffix)
     print ("Generated file %s_event_weight_sum.json"%suffix)
 
-##################################################################################################
-#####################           RemovePreprocessingLayer             #############################
-##################################################################################################
+
 def RemovePreprocessingLayer(json_file,h5_file,suffix):
     # Remove Preprocess layer from json file #
     print ("Modifying the json file content %s"%json_file)
@@ -395,13 +375,10 @@ def RemovePreprocessingLayer(json_file,h5_file,suffix):
     new_f.close()
     print ("New h5 file saved as %s%s"%(suffix,h5_file))
 
-##################################################################################################
-##########################                 Main                         ##########################
-##################################################################################################
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser('Several useful tools in the context of MoMEMtaNeuralNet',conflict_handler='resolve')
-
+    #============================================================================================================================
     countArgs = parser.add_argument_group('Count tree events in multiple root files')
     countArgs.add_argument('--path', action='store', required=False, 
         help='Path for the count')
@@ -411,20 +388,17 @@ if __name__=='__main__':
         help='Cuts to be applied')
     countArgs.add_argument('--tree', action='store', default='tree', type=str, required=False, 
         help='Name of the tree (default="tree")')
-
-    ##################################################################################################
+    #============================================================================================================================
     zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of files inside the archive')
     zipArgs.add_argument('--zip', action='append', nargs=2, required=False, 
         help='path to input .zip + path to output .zip')
-
-    ##################################################################################################
+    #============================================================================================================================
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('--variable', action='store', required=False, type=str, 
         help='Partial name of the branches to include in the count (--path must have been provided)')
     CountVar.add_argument('--list', action='store', required=False, type=str, 
         help='Lists all the branches of a given file')
-
-    ##################################################################################################
+    #============================================================================================================================
     appendArgs = parser.add_argument_group('Concatenate branches of one root file to the other')
     appendArgs.add_argument('--append', action='append', nargs='+', required=False, 
         help='Name of first root file + Name of second root file + list of branches to be taken from second and appended to first')
@@ -432,14 +406,13 @@ if __name__=='__main__':
         help='List of branches that must be used in the filter to append files')
     appendArgs.add_argument('--append_rename', action='append', nargs='+', required=False, 
         help='List of names that should replace the appended column names (must have the same number of entries)')
-
-    ##################################################################################################
+    #============================================================================================================================
     yamlExtract = parser.add_argument_group('Parse a YAML file produced by bamboo to extract Xsec and event weight sum')
-    yamlExtract.add_argument("--yaml", action='store', type=str, required=False,                                                                                      help='Name of the YAML file used by plotIt containign Xsec and event weight sum')
+    yamlExtract.add_argument("--yaml", action='store', type=str, required=False,
+        help='Name of the YAML file used by plotIt containign Xsec and event weight sum')
     yamlExtract.add_argument("--suffix", action='store', type=str, required=False, default='',
         help='Will produce {suffix}_xsec.json and {suffix}_event_weight_sum.json (default = "")')
-
-    ##################################################################################################
+    #============================================================================================================================
     removePreProcess = parser.add_argument_group('Remove Preprocess layer from a model in json (architecture) and h5 files (weights)')
     removePreProcess.add_argument("--json", action='store', type=str, required=False,
         help='Name of the json file containing the network architecture')
@@ -447,10 +420,10 @@ if __name__=='__main__':
         help='Name of the h5 file containing the network weights')
     removePreProcess.add_argument("--suffix", action='store', type=str, required=False, default='',
         help='Suffix to be added in from of the new files ({suffix}file.json, {suffix}file.h5 and {suffix}scaler.pkl which contains the extracted preprocessing parameters)')
-
-    ##################################################################################################
-    #----- Execution -----#
+    
     args = parser.parse_args()
+    #============================================================================================================================
+    
     if args.path is not None:
         if args.input is not None:
             if args.variable is not None:
@@ -461,9 +434,11 @@ if __name__=='__main__':
                 CountVariables(args.path,args.variable,is_time_in_ms=True)
             ListEntries(path=args.path,cut=args.cut,treeName=args.tree)
 
+    #============================================================================================================================
     if args.zip is not None:
         CopyZip(args.zip[0][0],args.zip[0][1])
 
+    #============================================================================================================================
     if args.list is not None:
         _ = ListBranches(args.list,verbose=True)
 
