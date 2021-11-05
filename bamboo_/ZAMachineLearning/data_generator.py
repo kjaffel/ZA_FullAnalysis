@@ -297,7 +297,7 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         # weight Equalization #
         weight_per_tag = {tag:data[data['tag']==tag]['event_weight'].sum() for tag in pd.unique(data['tag'])}
-        weight_scale = data['tag'].apply(lambda row: weight_per_tag[row])
+        weight_scale   = data['tag'].apply(lambda row: weight_per_tag[row])
         data['learning_weight'] = data['event_weight']*data.shape[0]/weight_scale
 
         inputs  = [var.replace('$','') for var in self.inputs]

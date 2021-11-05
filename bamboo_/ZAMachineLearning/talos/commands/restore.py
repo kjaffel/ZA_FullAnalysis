@@ -14,17 +14,17 @@ class Restore:
     def __init__(self, path_to_zip,method='json',custom_objects=None):
 
         # create paths
-        self.path_to_zip = path_to_zip
-        self.extract_to = path_to_zip.replace('.zip', '')
-        self.package_name = self.extract_to.split('/')[-1]
-        self.file_prefix = self.extract_to + '/' + self.package_name
+        self.path_to_zip    = path_to_zip
+        self.extract_to     = path_to_zip.replace('.zip', '')
+        self.package_name   = self.extract_to.split('/')[-1]
+        self.file_prefix    = self.extract_to + '/' + self.package_name.replace('_isbest_model', '')
         self.custom_objects = custom_objects
 
         # extract the zip
         # unpack_archive(self.path_to_zip, self.extract_to)
         z = ZipFile(self.path_to_zip, mode='r')
         z.extractall(self.extract_to)
-
+        
         # add params dictionary
         self.params = load(self.file_prefix + '_params.npy',allow_pickle=True).item()
 

@@ -24,17 +24,22 @@ from functools import reduce
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
 import gc
 gc.collect()
-# Personal files #
+
 def get_options():
     """
     Parse and return the arguments provided by the user.
     """
     parser = argparse.ArgumentParser(description='ZA Machine learning for full run2 Ulegacy data')
+    
+    parser.add_argument('-o', '--outputs', action='store', required=True, type=str,
+        help='ZA machine learning outputs dir ')
 
-    # Scan, deploy and restore arguments #
-    ##########################################################################
+    #=========================================================================
+    # Local For Test : Scan, deploy and restore arguments #
+    #=========================================================================
     a = parser.add_argument_group('Scan, deploy and restore arguments')
     a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
@@ -44,9 +49,9 @@ def get_options():
         help='Wether to use a generator for the neural network')
     a.add_argument('--resume', action='store_true', required=False, default=False,
         help='Wether to resume the training of a given model (path in parameters.py)')
-
-    # Splitting and submitting jobs arguments #
-    ##########################################################################
+    #=========================================================================
+    # Slurm Submissions : Splitting and submitting jobs arguments #
+    #=========================================================================
     b = parser.add_argument_group('Splitting and submitting jobs arguments')
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
         help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
@@ -56,73 +61,63 @@ def get_options():
         help='Wether to resubmit failed jobs given a specific path containing the jobs that succeded')
     b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
         help='Debug mode of the slurm submission, does everything except submit the jobs')
-    b.add_argument('-proc','--process', action='store', required=False, default='ggH', choices=['ggH', 'bbH'],
-        help='Which process you want to submit for training ')
-
-    # Analyzing or producing outputs for given model (csv or zip file) #
-    ##########################################################################
+    #=========================================================================
+    # Repot and Produce Outputs: This do csv concatenation and get the best model : workdir/model/*.csv
+    #                            Further used for : Analyzing or producing outputs of the given model 
+    #=========================================================================
     c = parser.add_argument_group('Analyzing or producing outputs for given model (csv or zip file)')
-    c.add_argument('-r','--report', action='store', required=False, type=str, default='',
-        help='Name of the csv file for the reporting (without .csv)')
-    c.add_argument('-m','--model', action='store', required=False, type=str, default='',                                                                                                          
+    c.add_argument('-r','--report', action='store_true', required=False, default=False,
+        help='report 10 best models (according to the eval_criterion) and plot on the console several histograms and *.png files')
+    c.add_argument('-m','--model', action='store', required=False, type=str, default='',
         help='Loads the provided model name (without .zip and type, it will find them)') 
-    c.add_argument('--test', action='store_true', required=False, default=False,
-        help='Applies the provided model (do not forget -o) on the test set and output the tree') 
-    c.add_argument('-oo','--output', action='store', required=False, nargs='+', type=str, default=[], 
-        help='Applies the provided model (do not forget -o) on the list of keys from sampleList.py (separated by spaces)') 
-
-    # Concatenating csv files arguments #
-    ##########################################################################
-    d = parser.add_argument_group('Concatenating csv files arguments')
-    d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',
-        help='Wether to concatenate the csv files from different slurm jobs into a main one, \
-              Please provide the path to the csv files')
-
-    # Concatenating csv files arguments #
-    ##########################################################################
+    c.add_argument('-k','--key', action='store', required=False, nargs='+', type=str, default=[], 
+        help='Applies the provided model (do not forget -k) on the list of keys from parameters.TTree') 
+    #=========================================================================
+    # Physics arguments #
+    #=========================================================================
     e = parser.add_argument_group('Physics arguments')
+    e.add_argument('-proc','--process', action='store', required=False, default='ggH', choices=['ggH', 'bbH'],
+        help='Which process you want to submit for training ')
     e.add_argument('--resolved', action='store_true', required=False, default=False,
        help='Resolved topology')
     e.add_argument('--boosted', action='store_true', required=False, default=False,
        help='Boosted topology')
-
+    #=========================================================================
     # Additional arguments #
-    ##########################################################################
+    #=========================================================================
     f = parser.add_argument_group('Additional arguments')
     f.add_argument('-v','--verbose', action='store_true', required=False, default=False,
         help='Show DEGUG logging')
     f.add_argument('--GPU', action='store_true', required=False, default=False,
         help='GPU requires to execute some commandes before')
-    f.add_argument('--nocache', action='store_true', required=False, default=False,
-        help='Will not use the cache and will not save it')
+    f.add_argument('--cache', action='store_true', required=False, default=False,
+        help='Will use the cache')
     f.add_argument('--interactive', action='store_true', required=False, default=False,
         help='Interactive mode to check the dataframe')
-    #f.add_argument('-o', '--outputs', action='store', required=False, type=str, default="test",
-    #    help='ZA machine learning outputs dir ')
     
     opt = parser.parse_args()
 
     if opt.split!=0 or opt.submit!='':
-        if opt.scan!='' or opt.report!='':
+        if opt.scan!='' or opt.report:
             logging.critical('These parameters cannot be used together')  
+            logging.critical('--scan to debug and check that all okay locally')  
+            logging.critical('--submit --split 1  : to submit jobs to slurm if the previous okay')  
+            logging.critical('--report            : should be the last step in order to get the best model')
             sys.exit(1)
     
     if opt.submit!='': # Need --output or --split arguments
-        if opt.split==0 and len(opt.output)==0:
+        if opt.split==0 and len(opt.key)==0:
             logging.warning('In case of learning you forgot to specify --split')
             sys.exit(1)
     
-    if opt.split!=0 and (opt.report!='' or opt.output!='' or opt.csv!='' or opt.scan!=''):
+    if opt.split!=0 and (opt.report or opt.key!='' or opt.scan!=''):
         logging.warning('Since you have specified a split, all the other arguments will be skipped')
     
-    if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
-        logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
-    
-    if opt.report!='' and (opt.output!='' or opt.scan!=''):
+    if opt.report and (opt.key!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
     
-    if (opt.test or len(opt.output)!=0) and opt.output == '': 
-        logging.critical('You must specify the model with --output')
+    if len(opt.key)!=0 and opt.key == '': 
+        logging.critical(f'--key is missing choices: {parameters.TTree}')
         sys.exit(1)
     
     if opt.generator:
@@ -184,8 +179,6 @@ def main():
     from threadGPU import utilizationGPU
     import parameters
 
-    # Needed because PyROOT messes with argparse
-
     logging.info("="*94)
     logging.info("  _____   _    __  __            _     _            _                          _             ")
     logging.info(" |__  /  / \  |  \/  | __ _  ___| |__ (_)_ __   ___| |    ___  __ _ _ __ _ __ (_)_ __   __ _ ")
@@ -199,12 +192,19 @@ def main():
     if not os.path.exists(parameters.path_model):
         os.mkdir(parameters.path_model)
 
+    # Import variables from parameters.py
+    variables = parameters.inputs+parameters.outputs+parameters.other_variables
+    variables = [v for i,v in enumerate(variables) if v not in variables[:i]] # avoid repetitons while keeping order
+
+    list_inputs  = [var.replace('$','') for var in parameters.inputs]
+    list_outputs = [var.replace('$','') for var in parameters.outputs]
+    
     #############################################################################################
     # Splitting into sub-dicts and slurm submission #
     #############################################################################################
     if opt.submit != '':
         if opt.split != 0:
-            DictSplit(opt.split,opt.submit,opt.resubmit)
+            DictSplit(opt.split, opt.submit, opt.resubmit)
             logging.info('Splitting jobs done')
         
         # Arguments to send #
@@ -215,7 +215,7 @@ def main():
         if opt.GPU:                 args += ' --GPU '
         if opt.resume:              args += ' --resume '
         if opt.model!='':           args += ' --model ' + opt.model+' '
-        if len(opt.output)!=0:      args += ' --output '+ ' '.join(opt.output)+' '
+        if len(opt.key)!=0:         args += ' --key '+ ' '.join(opt.key)+' '
         #if opt.outputs!='':         args += ' --outputs '
 
         if opt.submit!='':
@@ -224,43 +224,41 @@ def main():
                 submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
             else:
                 submit_on_slurm(name=opt.submit,debug=opt.debug,args=args)
+        
         sys.exit()
 
     #############################################################################################
-    # CSV concatenation #
+    # Reporting given model #
     #############################################################################################
-    if opt.csv!='':
-        logging.info('Concatenating csv files from : %s'%(opt.csv))
-        dict_csv = ConcatenateCSV(opt.csv)
+    if opt.report:
+        logging.info('Concatenating csv files from : %s'%(opt.outputs))
+        dict_csv = ConcatenateCSV(opt.outputs)
         dict_csv.Concatenate()
         dict_csv.WriteToFile()
-
-        sys.exit()
-
-    #############################################################################################
-    # Reporting given scan in csv file #
-    #############################################################################################
-    if opt.report != '':
-        # will solve UnicodeEncodeError: 'ascii' codec can't encode characters in position 39-188: ordinal not in range(128) in NeuralNet.py", line 298
+        dict_csv.save_bestmodel()
+        
+        reportNm   = dict_csv.modelNm()
+        modelzipNm = dict_csv.modelzipNm()
+        
+        # will solve UnicodeEncodeError: 'ascii' codec 
+        # can't encode characters in position 39-188: ordinal not in range(128) in NeuralNet.py", line 298
         os.system('export PYTHONIOENCODING=utf8')
-        instance = HyperModel(opt.report)
-        instance.HyperReport(parameters.eval_criterion)
-
-        sys.exit()
+        instance = HyperModel(reportNm)
+        instance.HyperReport(workdir=opt.outputs, eval_criterion=parameters.eval_criterion, plotscan=False)
 
     #############################################################################################
     # Output of given files from given model #
     #############################################################################################
-    if opt.model != '' and len(opt.output) != 0:
-        # Create directory #
-        path_output = os.path.join(parameters.path_out,opt.model)
+    if opt.model != '' and len(opt.key) != 0:
+        
+        path_output = os.path.join(opt.outputs,opt.model)
         if not os.path.exists(path_output):
             os.mkdir(path_output)
 
-        # Instantiate #
-        inst_out = ProduceOutput(model=os.path.join(parameters.path_model,opt.model),generator=opt.generator)
+        inst_out = ProduceOutput(model=path_output, generator=opt.generator)
+        
         # Loop over output keys #
-        for key in opt.output:
+        for key in opt.key:
             # Create subdir #
             path_output_sub = os.path.join(path_output,key+'_output')
             if not os.path.exists(path_output_sub):
@@ -269,7 +267,9 @@ def main():
                 inst_out.OutputNewData(input_dir=parameters.samples_path,list_sample=samples_dict[key],path_output=path_output_sub)
             except Exception as e:
                 logging.critical('Could not process key "%s" due to "%s"'%(key,e))
+        
         sys.exit()
+    
     #############################################################################################
     # Data Input and preprocessing #
     #############################################################################################
@@ -279,25 +279,21 @@ def main():
 
     # Input path #
     logging.info('Starting tree importation')
-
-    # Import variables from parameters.py
-    variables = parameters.inputs+parameters.outputs+parameters.other_variables
-    variables = [v for i,v in enumerate(variables) if v not in variables[:i]] # avoid repetitons while keeping order
-
-    list_inputs  = [var.replace('$','') for var in parameters.inputs]
-    list_outputs = [var.replace('$','') for var in parameters.outputs]
-
-    if opt.nocache:
-        logging.warning('SKIPPED: No cache will be used !')
-    #if os.path.exists(parameters.train_cache) and not opt.nocache:
-        logging.info(f'Will load train data from cache: {parameters.train_cache}')
-        train_all = pd.read_pickle(parameters.train_cache)
+    if opt.cache:
+        if os.path.exists(parameters.train_cache):
+            logging.info(f'Will load train data from cache: {parameters.train_cache}')
+            train_all = pd.read_pickle(parameters.train_cache)
+        else:
+            logging.critical(f'File not found: {parameters.train_cache}')
         if parameters.crossvalidation:
-            if os.path.exists(parameters.test_cache) and not opt.nocache:
+            if os.path.exists(parameters.test_cache):
                 logging.info(f'Will load testing data from cache: {parameters.test_cache}')
                 logging.info('... Testing  set : {parameters.test_cache}')
                 test_all = pd.read_pickle(parameters.test_cache)
+            else:
+                logging.critical(f'File not found: {parameters.test_cache}')
     else:
+        logging.warning('SKIPPED: No cache will be used !')
         # Import arrays #
         data_dict = {}
         for node in parameters.nodes:
@@ -479,18 +475,19 @@ def main():
         # The preprocessing will be implemented in the network with a custom layer
         if opt.scan!='': # If we don't scan we don't need to scale the data
             MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
-        if not opt.nocache:
-            train_all.to_pickle(parameters.train_cache)
-            if parameters.crossvalidation:
-                test_all.to_pickle(parameters.test_cache)
-            logging.info('Data saved to cache')
-            logging.info('... Training set : %s'%parameters.train_cache)
+            
+        train_all.to_pickle(parameters.train_cache)
+        if parameters.crossvalidation:
+            test_all.to_pickle(parameters.test_cache)
+        logging.info('Data saved to cache')
+        logging.info('... Training set : %s'%parameters.train_cache)
 
 
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
     if parameters.crossvalidation:
         logging.info("Sample size for the output  : %d"%test_all.shape[0])
     #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+    
     if opt.interactive:
         import IPython
         IPython.embed()
@@ -515,23 +512,24 @@ def main():
         # Closing monitor thread #
         thread.stopLoop()
         thread.join()
-        
-    if opt.model!='': 
+    
+    if opt.report:
         # Make path #
-        output_name = "test" 
-        path_output = os.path.join(opt.model,output_name)
+        path_output = os.path.join(opt.outputs, 'model', modelzipNm)
         if not os.path.exists(path_output):
             os.makedirs(path_output)
 
         # Instance of output class #
-        inst_out = ProduceOutput(model      = os.path.join(opt.model),
-                                 generator  = opt.generator,
-                                 list_inputs= list_inputs)
+        inst_out = ProduceOutput(model       = [modelzipNm],
+                                 generator   = opt.generator,
+                                 list_inputs = list_inputs)
+        
         # Use it on test samples #
-        if opt.test:
-            logging.info('  Processing test output sample  '.center(80,'*'))
-            inst_out.OutputFromTraining(data=test_all,path_output=path_output)
-            logging.info('')
+        logging.info('  Processing test output sample  '.center(80,'*'))
+        if parameters.crossvalidation: # in cross validation the testing set in inside the training DF
+            inst_out.OutputFromTraining(data=test_all,path_output=path_output, crossval_use_training=True)
+        else:
+            inst_out.OutputFromTraining(data=train_all,path_output=path_output, crossval_use_training=False)
              
 if __name__ == "__main__":
     main()

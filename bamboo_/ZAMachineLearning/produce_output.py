@@ -15,9 +15,9 @@ import parameters
 
 class ProduceOutput:
     def __init__(self,model,generator=False,list_inputs=None):
-        self.model = model 
+        self.model       = model            # name of the best model you get 
         self.list_inputs = list_inputs
-        self.generator = generator
+        self.generator   = generator
         if self.list_inputs is None:
             self.list_inputs = copy.deepcopy(parameters.inputs) 
 
@@ -31,8 +31,8 @@ class ProduceOutput:
         if not self.generator:
             inputs = data[self.list_inputs]
             if len(self.model) == 1: # classic training
-                instance = HyperModel(self.model[0])
-                output = instance.HyperRestore(inputs,verbose=1)
+                instance  = HyperModel(self.model[0])
+                output    = instance.HyperRestore(inputs,verbose=1)
                 output_df = pd.DataFrame(output,columns=[('output_%s'%o).replace('$','') for o in parameters.outputs],index=data.index)
             else:   # cross validation
                 output_df = pd.DataFrame(np.zeros((data.shape[0],len(parameters.outputs))),columns=[('output_%s'%o).replace('$','') for o in parameters.outputs],index=data.index)
@@ -68,10 +68,10 @@ class ProduceOutput:
                                                  state_set  = 'output')
                 instance = HyperModel(self.model[0])
                 for i in range(len(output_generator)):
-                    data = output_generator.__getitem__(i,True)
-                    output = instance.HyperRestore(data[self.list_inputs])
+                    data      = output_generator.__getitem__(i,True)
+                    output    = instance.HyperRestore(data[self.list_inputs])
                     output_df = pd.DataFrame(output,columns=[('output_%s'%o).replace('$','') for o in parameters.outputs],index=data.index)
-                    full_df = pd.concat([data,output_df],axis=1)
+                    full_df   = pd.concat([data,output_df],axis=1)
                     self.SaveToRoot(full_df,path_output,output_name,out_idx='_slice%d'%i)
             else:   # cross validation
                 output=None
@@ -89,10 +89,10 @@ class ProduceOutput:
                                                      state_set  = 'output',
                                                      model_idx  = model_idx)
                     for i in range(len(output_generator)):
-                        data = output_generator.__getitem__(i,True)
-                        output = instance.HyperRestore(data[self.list_inputs])
+                        data      = output_generator.__getitem__(i,True)
+                        output    = instance.HyperRestore(data[self.list_inputs])
                         output_df = pd.DataFrame(output,columns=[('output_%s'%o).replace('$','') for o in parameters.outputs],index=data.index)
-                        full_df = pd.concat([data,output_df],axis=1)
+                        full_df   = pd.concat([data,output_df],axis=1)
                         self.SaveToRoot(full_df,path_output,output_name,out_idx='_model%d_slice%d'%(model_idx,i))
 
  
@@ -134,7 +134,7 @@ class ProduceOutput:
         # Loop over datasets #
         logging.info('Input directory : %s'%input_dir)
         for f in list_sample: 
-            name = os.path.basename(f)
+            name      = os.path.basename(f)
             full_path = os.path.join(input_dir,f)
             logging.info('Looking at %s'%f)
 
@@ -147,10 +147,10 @@ class ProduceOutput:
             if self.generator:
                 data = None
             else:
-                data = Tree2Pandas(input_file=full_path,
-                                   variables=var,
-                                   weight=parameters.weights,
-                                   cut = parameters.cut,
+                data = Tree2Pandas(input_file               =full_path,
+                                   variables                =var,
+                                   weight                   =parameters.weights,
+                                   cut                      = parameters.cut,
                                    reweight_to_cross_section=False)
                     
                 if data.shape[0]==0:

@@ -56,9 +56,6 @@ class HyperModel:
             for name in self.list_outputs:
                 logging.info('..... %s'%name)
 
-    #############################################################################################
-    # HyperScan #
-    #############################################################################################
     def HyperScan(self,data,task,model_idx=None,generator=False,resume=False):
         """
         Performs the scan for hyperparameters
@@ -102,7 +99,7 @@ class HyperModel:
         # Talos hyperscan parameters #
         self.task = task
         if self.task !='': # if task is specified load it otherwise get it from parameters.py
-            with open(os.path.join(parameters.path_out,'split',self.name,self.task), 'rb') as f:
+            with open(os.path.join(parameters.path_out,'split',self.task), 'rb') as f:
                 self.p = pickle.load(f)
         else: # We need the full dict
             self.p = parameters.p
@@ -132,7 +129,7 @@ class HyperModel:
         # Check if no already exists then change it -> avoids rewriting  #
         # This is only valid in worker mode, not driver #
         no = 1
-        if self.task == '': # If done on frontend
+        if self.task =='': # If done on frontend
             name = self.name
             if model_idx is not None:
                 name += '_crossval%d'%model_idx
@@ -150,7 +147,6 @@ class HyperModel:
         print (self.y_train)
         print (self.y_train.shape)
 
-        print( 'helooooooooooooooooooooooooooooooooooooo111111111111111111111111111111111111111111111111111')
         # Define scan object #
         self.h = Scan(x=self.x_train,                       # Training inputs 
                       y=self.y_train,                       # Training targets
@@ -169,10 +165,8 @@ class HyperModel:
                       print_params=True,                    # To print param at each job
                       repetition=parameters.repetition,     # Wether a set of parameters is to be trained several times
                       path_model = parameters.path_model,   # Where to save the model
-                      custom_objects=self.custom_objects,   # Custom object : custom layer
-                )
+                      custom_objects=self.custom_objects)   # Custom object : custom layer
         print( self.h)
-        print( 'helooooooooooooooooooooooooooooooooo22222222222222222222222222222222222222222222222222222' )
         if not generator:
             # Use the save information in DF #
             self.h_with_eval = Autom8(scan_object = self.h,     # the scan object
@@ -223,9 +217,7 @@ class HyperModel:
         logging.debug('Details')
         logging.debug(self.h.details)
 
-    #############################################################################################
-    # HyperDeploy #
-    #############################################################################################
+    
     def HyperDeploy(self,best='eval_error'):
         """
         Deploy the model according to the evaluation error (default) or val_loss if not found
@@ -255,10 +247,8 @@ class HyperModel:
             logging.error('Argument of HyperDeploy not understood')
             sys.exit(1)
 
-    #############################################################################################
-    # HyperReport #
-    #############################################################################################
-    def HyperReport(self,eval_criterion='val_loss'):
+    
+    def HyperReport(self, workdir=None, eval_criterion='val_loss', plotscan=False):
         """
         Reports the model from csv file of previous scan
         Plot several quantities and comparisons in dir /$name/
@@ -268,7 +258,7 @@ class HyperModel:
         logging.info(' Starting reporting '.center(80,'-'))
 
         # Get reporting #
-        report_file = os.path.join('model',self.name+'.csv')
+        report_file = os.path.join(workdir,'model',self.name+'.csv')
         if os.path.exists(report_file):
             r = Reporting(report_file)
         else:
@@ -310,7 +300,7 @@ class HyperModel:
         eval_mean_arr = r.data['eval_mean'].values
         val_loss_arr  = r.data['val_loss'].values
         fig1 = plotille.Figure()
-        fig1.width = 150
+        fig1.width  = 150
         fig1.height = 50
         fig1.set_x_limits(min_=np.amin(eval_mean_arr),max_=np.amax(eval_mean_arr))
         fig1.color_mode = 'byte'
@@ -320,7 +310,7 @@ class HyperModel:
         print(fig1.show(legend=True))
 
         fig2 = plotille.Figure()
-        fig2.width = 150
+        fig2.width  = 150
         fig2.height = 50
         fig2.set_x_limits(min_=np.amin(val_loss_arr),max_=np.amax(val_loss_arr))
         fig2.color_mode = 'byte'
@@ -332,17 +322,15 @@ class HyperModel:
         logging.info('='*80)
 
         # Generate dir #
-        path_plot = os.path.join(parameters.path_out,'model',self.name)
+        path_plot = os.path.join(parameters.path_out,'model')
         if not os.path.isdir(path_plot):
             os.makedirs(path_plot)
         
-        logging.info('Starting plots')
         # Make plots #
-        PlotScans(data=r.data,path=path_plot,tag='')
+        if plotscan:
+            logging.info('Starting plots')
+            PlotScans(data=r.data,path=path_plot,tag='')
 
-    #############################################################################################
-    # HyperRestore #
-    #############################################################################################
     def HyperRestore(self,inputs,verbose=0,generator=False):
         """
         Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
@@ -355,17 +343,15 @@ class HyperModel:
         loaded = False
         while not loaded:
             try:
+                print( os.path.join(parameters.path_model, self.name+'.zip') )
                 a = Restore(os.path.join(parameters.path_model, self.name+'.zip'),custom_objects=self.custom_objects)
                 loaded = True
             except Exception as e:
                 logging.warning('Could not load model due to "%s", will try again in 3s'%e)
                 time.sleep(3)
        
-        if not generator:
-            outputs = a.model.predict(inputs,batch_size=parameters.output_batch_size,verbose=verbose)
-        else:
-            inputsLL = inputs[[param.replace('$','') for param in parameters.inputs]].astype(np.float32).values
-            outputs  = a.model.predict(np.hsplit(inputsLL,inputsLL.shape[1]),batch_size=parameters.output_batch_size,verbose=verbose)
+        inputsLL = inputs[[param.replace('$','') for param in parameters.inputs]].astype(np.float32).values
+        outputs  = a.model.predict(np.hsplit(inputsLL,inputsLL.shape[1]),batch_size=parameters.output_batch_size,verbose=verbose)
 #       outputs  = a.model.predict_generator(output_generator,
 #                                            workers=parameters.workers,
 #                                            max_queue_size=2*parameters.workers,

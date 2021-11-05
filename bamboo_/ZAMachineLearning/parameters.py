@@ -28,24 +28,43 @@ samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_
                 '2017' :'',
                 '2018' :'', }
 
-main_path = os.path.abspath(os.path.dirname(__file__))
-#path_out = os.path.abspath(f'/home/ucl/cp3/kjaffel/scratch/ul__results/{opt.outputs}')
-path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/test__34')
+main_path  = os.path.abspath(os.path.dirname(__file__))
+path_out   = os.path.abspath(f'/home/ucl/cp3/kjaffel/scratch/{opt.outputs}')
+#path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/work__1')
+
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
+
 print ( ' sbatch_dir :', main_path)
 print ( ' path_out   :', path_out)
+
 path_model = os.path.join(path_out,'model')
 
 ##############################  Datasets proportion   #################################
-# Total must be 1 #
 #######################################################################################
+# total must be 1 
 training_ratio = 0.7    # Training set sent to keras (contains training + evaluation)
 evaluation_ratio = 0.1  # evaluation set set sent to autom8
 output_ratio = 0.2      # Output set for plotting later
 assert training_ratio + evaluation_ratio + output_ratio == 1 # Will only be taken into account for the masks generation, ignored after
 
+
+# Cross-validation #
+# ->For crossvalidation == True
+N_models = 5                        # Number of models to train
+N_train  = 3                        # Number of slices on which to train
+N_eval   = 1                        # Number of slices on which to evaluate the model
+N_apply  = 1                        # Number of slices on which the model will be applied for uses in analysis
+N_slices = N_train+N_eval+N_apply
+splitbranch = 'event'               # Will split the training based on "event % N_slices" 
+
+if N_slices % N_models != 0: # will not work otherwise
+    raise RuntimeError("N_slices [{}] % N_models [{}] should be == 0".format(N_slices,N_models))
+if N_apply != N_slices/N_models: # Otherwise the same slice can be applied on several networks
+    raise RuntimeError("You have asked {} models that should be applied {} times, the number of slices should be {} but is {}+{}+{}".format(N_models,N_apply,N_models*N_apply,N_train,N_eval,N_apply))
+
 ############################### Slurm parameters ######################################
+#######################################################################################
 
 #==============================================
 # For GPU #
@@ -123,7 +142,7 @@ reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
 #######################################################################################
 # Classification #
 p = { 
-    'epochs' : [2],   
+    'epochs' : [200],   
     'batch_size' : [1000], 
     'lr' : [0.01], 
     'hidden_layers' : [2,3,4,5,6], 

@@ -18,7 +18,6 @@ from talos import Scan
 
 import parameters 
 
-# TODO : add possiblity to use more than one folder for resubmit
 class SplitTraining:
     def __init__(self,p,params_per_job,dir_name):
         self.params           = p
@@ -76,7 +75,7 @@ class SplitTraining:
 
     def _save_as_pickle(self):
         # Remove content of dir if already exists #
-        path_dict = os.path.join(parameters.path_out,'split',self.dir_name)
+        path_dict = os.path.join(parameters.path_out,'split')
         logging.debug('Directory containing the dict : %s'%(path_dict))
         if os.path.exists(path_dict):
             logging.debug('Removing older files')
@@ -97,7 +96,7 @@ class ResubmitSplitting(SplitTraining):
     def __init__(self,p,params_per_job,path_success,dir_name):
         SplitTraining.__init__(self,p=p,params_per_job=params_per_job,dir_name=dir_name)
         self.path_success = path_success
-        self.repetition = parameters.repetition
+        self.repetition   = parameters.repetition
         self.GetSuccessingJobs()
         
     def GetSuccessingJobs(self):
