@@ -4,33 +4,39 @@ import argparse
 import copy
 import json
 import ROOT
+import enlighten
 
 import numpy as np
+import multiprocessing as mp
 from root_numpy import hist2array
 sys.path.append(os.path.abspath('..'))
 
 import Operations
 from talos import Restore
-from preprocessing import PreprocessLayer
 from tdrstyle import setTDRStyle
+
+from IPython import embed
 
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
+
 class MassPlane:
-    def __init__(self,x_bins,x_min,x_max,y_bins,y_min,y_max,plot_DY=False,plot_TT=False,plot_ZA=False,profile=False):
-        self.x_bins     = x_bins
-        self.x_min      = x_min
-        self.x_max      = x_max
-        self.y_bins     = y_bins
-        self.y_min      = y_min
-        self.y_max      = y_max
-        self.model      = None
-        self.plot_DY    = plot_DY
-        self.plot_TT    = plot_TT
-        self.plot_ZA    = plot_ZA
-        self.profile    = profile
-        self.graph_list = []
+    def __init__(self,pdf_path,x_bins,x_min,x_max,y_bins,y_min,y_max,inputs_order,additional_inputs={},plot_DY=False,plot_TT=False,plot_ZA=False,projection=False):
+        self.pdf_path           = pdf_path
+        self.x_bins             = x_bins
+        self.x_min              = x_min
+        self.x_max              = x_max
+        self.y_bins             = y_bins
+        self.y_min              = y_min
+        self.y_max              = y_max
+        self.model              = None
+        self.inputs_order       = inputs_order
+        self.additional_inputs  = additional_inputs
+        self.plot_DY            = plot_DY
+        self.plot_TT            = plot_TT
+        self.plot_ZA            = plot_ZA
+        self.projection         = projection
         # Produce grid #
         self.produce_grid()
 
@@ -39,67 +45,66 @@ class MassPlane:
         bool_upper = np.greater_equal(self.Y,self.X)
         self.X = self.X[bool_upper]
         self.Y = self.Y[bool_upper]
-        self.x = self.X.reshape(-1,1)  # mjj
-        self.y = self.Y.reshape(-1,1)  # mlljj
+        self.x = self.X.reshape(-1,)  # mjj
+        self.y = self.Y.reshape(-1,)  # mlljj
         # X, Y are 2D arrays, x,y are vectors of points
 
-    def load_model(self,path_model):
-        self.model  = Restore(path_model, custom_objects={name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')}).model
-        #self.model = Restore(path_model, custom_objects={'PreprocessLayer': PreprocessLayer}).model
-        self.model_name = os.path.basename(path_model).replace(".zip","")
-        print(f'Path to model : {path_model}, {self.model_name} will be used as name for plotting')
+    @staticmethod
+    def load_model(path_model):
+        success = False
+        while not success:
+            try:
+                model  = Restore(path_model, custom_objects={name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')}).model
+                success = True
+            except:
+                pass
+        # When multiple threads loading the model, try again if fails 
 
-    def plotMassPoint(self,mH,mA):
-        print ("Producing plot for MH = %.2f GeV, MA = %.2f"%(mH,mA))
+        return model
+
+    def prepareInputs(self,mH,mA):
         N = self.x.shape[0]
-        params = np.c_[np.ones(N)*mA,np.ones(N)*mH]
-        #'l1_pdgId@op_pdgid', '$era@op_era', 'bb_M','llbb_M','bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M','$mA', '$mH'
-        pdgid = 11.
-        era   = 2016. 
-        bb_M_squared   = pow(self.x,2)                                                    
-        llbb_M_squared = pow(self.y,2)
-        bb_M_x_llbb_M  = self.x * self.y
-        pdgid = pdgid*np.ones(N)
-        era   = era*np.ones(N)
-        #print( pdgid, type(pdgid), pdgid.shape)
-        #print( era, type(era) , era.shape)
-        #print( self.x , type(self.x), self.x.shape)
-        #print( self.y , type(self.y), self.y.shape)
-        #print( bb_M_squared , type(bb_M_squared), bb_M_squared.shape)
-        #print( llbb_M_squared, type(llbb_M_squared), llbb_M_squared.shape)
-        #print( bb_M_x_llbb_M, type(self.x * self.y), bb_M_x_llbb_M.shape)
+        inputs = {'mH'              : np.ones(N)*mH,
+                  'mA'              : np.ones(N)*mA,
+                  'bb_M'            : self.x,
+                  'llbb_M'          : self.y,
+                  'bb_M_squared'    : np.power(self.x,2),
+                  'llbb_M_squared'  : np.power(self.y,2),
+                  'bb_M_x_llbb_M'   : np.multiply(self.x,self.y)}
+        inputs.update({inpName:np.ones(N)*inpVal for inpName,inpVal in self.additional_inputs.items()})
 
-        v = np.c_[pdgid, era]
-        inputsLL  = np.c_[v, bb_M_squared, llbb_M_squared, bb_M_x_llbb_M, self.x,self.y,params]
-        #print( inputsLL )
-        inputs    = np.hsplit(inputsLL,inputsLL.shape[1])
-        print ( inputs )
-        output    = self.model.predict(inputs)
+        if set(self.inputs_order) != set(inputs.keys()):
+            raise RuntimeError(f'The inputs in order are {inputs_order}, while you provide {inputs.keys()}, there is a mismatch so will stop here')
+        inputsArrays = []
+        for inpName in self.inputs_order:
+            inputsArrays.append(inputs[inpName])
 
-        g_DY = ROOT.TGraph2D(N)
-        g_DY.SetNpx(500)
-        g_DY.SetNpy(500)
-        g_TT = ROOT.TGraph2D(N)
-        g_TT.SetNpx(500)
-        g_TT.SetNpy(500)
-        g_ZA = ROOT.TGraph2D(N)
-        g_ZA.SetNpx(500)
-        g_ZA.SetNpy(500)
+        return inputsArrays
 
-        g_DY.SetName(("MassPlane_DY_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
-        g_TT.SetName(("MassPlane_TT_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
-        g_ZA.SetName(("MassPlane_ZA_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
 
-        for i in range(N):
-            if self.plot_DY:
-                g_DY.SetPoint(i,self.x[i],self.y[i],output[i,0])
-            if self.plot_TT:
-                g_TT.SetPoint(i,self.x[i],self.y[i],output[i,1])
-            if self.plot_ZA:
-                g_ZA.SetPoint(i,self.x[i],self.y[i],output[i,2])
+    def plotMassPoint(self,args):
+        path_model = args[0]
+        mH = round(args[1],3)
+        mA = round(args[2],3)
+        #print ("Producing plot for MH = %.2f GeV, MA = %.2f"%(mH,mA))
+        
+        model = self.load_model(path_model)
+
+        output = model.predict(self.prepareInputs(mH,mA),batch_size=8192)
+        if output.max() > 1.0:
+            raise RuntimeError(f'Output max is {output.max()}, this should not happen')
+        if output.min() < 0.0:
+            raise RuntimeError(f'Output min is {output.min()}, this should not happen')
+
+        N = self.x.shape[0]
+
+        graph_list = []
 
         if self.plot_DY:
-            self.graph_list.append(g_DY)
+            g_DY = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,0],dtype='double'))
+            g_DY.SetNpx(self.x_bins)
+            g_DY.SetNpy(self.y_bins)
+            g_DY.SetName(("MassPlane_DY_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
             g_DY.GetHistogram().SetTitle("P(DY) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
             g_DY.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
             g_DY.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
@@ -112,9 +117,14 @@ class MassPlane:
             g_DY.GetXaxis().SetTitleSize(0.045)
             g_DY.GetYaxis().SetTitleSize(0.045)
             g_DY.GetZaxis().SetTitleSize(0.045)
+            graph_list.append(g_DY)
 
         if self.plot_TT:
+            g_TT = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,1],dtype='double'))
+            g_TT.SetNpx(self.x_bins)
+            g_TT.SetNpy(self.y_bins)
             g_TT.GetHistogram().SetTitle("P(t#bar{t}) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
+            g_TT.SetName(("MassPlane_TT_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
             g_TT.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
             g_TT.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
             g_TT.GetHistogram().GetZaxis().SetTitle("DNN output")
@@ -126,10 +136,14 @@ class MassPlane:
             g_TT.GetXaxis().SetTitleSize(0.045)
             g_TT.GetYaxis().SetTitleSize(0.045)
             g_TT.GetZaxis().SetTitleSize(0.045)
-            self.graph_list.append(g_TT)
+            graph_list.append(g_TT)
 
         if self.plot_ZA:
+            g_ZA = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,2],dtype='double'))
+            g_ZA.SetNpx(self.x_bins)
+            g_ZA.SetNpy(self.y_bins)
             g_ZA.GetHistogram().SetTitle("P(H#rightarrowZA) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
+            g_ZA.SetName(("MassPlane_ZA_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
             g_ZA.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
             g_ZA.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
             g_ZA.GetHistogram().GetZaxis().SetTitle("DNN output")
@@ -141,38 +155,97 @@ class MassPlane:
             g_ZA.GetXaxis().SetTitleSize(0.045)
             g_ZA.GetYaxis().SetTitleSize(0.045)
             g_ZA.GetZaxis().SetTitleSize(0.045)
-            self.graph_list.append(g_ZA)
+            graph_list.append(g_ZA)
+
+        return graph_list
 
     @staticmethod
-    def getProfiles(g):
+    def getProjectionX(g):
         h = g.GetHistogram()
-        xproj = h.ProjectionX()
-        yproj = h.ProjectionY()
-        array = hist2array(h)
-        # Need to compensate the triangular binning
-        nonzeroXbins = h.GetNbinsY()/np.count_nonzero(array,axis=1)
-        nonzeroYbins = h.GetNbinsX()/np.count_nonzero(array,axis=0)
-        for x in range(1,h.GetNbinsX()):
-            xproj.SetBinContent(x,xproj.GetBinContent(x)*nonzeroXbins[x-1])
-        for y in range(1,h.GetNbinsY()):
-            yproj.SetBinContent(y,yproj.GetBinContent(y)*nonzeroYbins[y-1])
-        xproj.GetYaxis().SetTitle("DNN output")
-        yproj.GetYaxis().SetTitle("DNN output")
+        xAxis = h.GetXaxis()
+        yAxis = h.GetYaxis()
+        Nx = h.GetNbinsX()
+        Ny = h.GetNbinsY()
+        hx = ROOT.TH1F(h.GetName()+'_px',h.GetName()+'_px',Nx,xAxis.GetBinLowEdge(1),xAxis.GetBinUpEdge(Nx))
+        for ix in range(1,Nx+1):
+            x = xAxis.GetBinCenter(ix)
+            n_bins = 0
+            for iy in range(1,Ny+1):
+                y = yAxis.GetBinCenter(iy)
+                if y >= x:
+                    hx.SetBinContent(ix,hx.GetBinContent(ix)+h.GetBinContent(ix,iy))
+                    n_bins += 1
+            if n_bins == 0:
+                n_bins = 1
+            hx.SetBinContent(ix,hx.GetBinContent(ix)/n_bins)
+        hx.SetTitle('Projection X')
+        hx.GetYaxis().SetTitle("DNN output")
+        hx.GetXaxis().SetTitle("m_{jj}")
+        return hx 
 
-        return xproj, yproj
+    @staticmethod
+    def getProjectionsX(g):
+        h = g.GetHistogram()
+        hxs = []
+        colors = [int(50+i*50/h.GetNbinsY()) for i in range(0,h.GetNbinsY())]
+        for iy in range(1,h.GetNbinsY()+1):
+            hx = h.ProjectionX(h.GetName()+f'_{iy}px',iy,iy)
+            hx.SetLineColor(colors[iy-1])
+            hx.SetTitle('Projection X')
+            hx.GetYaxis().SetTitle("DNN output")
+            hx.GetXaxis().SetTitle("m_{jj}")
+            hxs.append(hx)
+        return hxs 
 
-    def plotOnCanvas(self, path_model):
-        setTDRStyle()
-        path_out  = path_model.split('model')[0] + "plots/MassPlane/"
+    @staticmethod
+    def getProjectionY(g):
+        h = g.GetHistogram()
+        xAxis = h.GetXaxis()
+        yAxis = h.GetYaxis()
+        Nx = h.GetNbinsX()
+        Ny = h.GetNbinsY()
+        hy = ROOT.TH1F(h.GetName()+'_py',h.GetName()+'_py',Ny,yAxis.GetBinLowEdge(1),yAxis.GetBinUpEdge(Ny))
+        for iy in range(1,Ny+1):
+            y = yAxis.GetBinCenter(iy)
+            n_bins = 0
+            for ix in range(1,Nx+1):
+                x = xAxis.GetBinCenter(ix)
+                if y >= x:
+                    hy.SetBinContent(iy,hy.GetBinContent(iy)+h.GetBinContent(ix,iy))
+                    n_bins += 1
+            if n_bins == 0:
+                n_bins = 1
+            hy.SetBinContent(iy,hy.GetBinContent(iy)/n_bins)
+        hy.SetTitle('Projection Y')
+        hy.GetYaxis().SetTitle("DNN output")
+        hy.GetXaxis().SetTitle("m_{lljj}")
+        return hy
+
+    @staticmethod
+    def getProjectionsY(g):
+        h = g.GetHistogram()
+        hys = []
+        colors = [int(50+i*50/h.GetNbinsY()) for i in range(0,h.GetNbinsY())]
+        for ix in range(1,h.GetNbinsX()+1):
+            hy = h.ProjectionY(h.GetName()+f'_{ix}py',ix,ix)
+            hy.SetLineColor(colors[ix-1])
+            hy.SetTitle('Projection Y')
+            hy.GetYaxis().SetTitle("DNN output")
+            hy.GetXaxis().SetTitle("m_{lljj}")
+            hys.append(hy)
+        return hys 
+
+
+    def plotOnCanvas(self, graph_list):
+        path_out = os.path.dirname(self.pdf_path)
         if not os.path.isdir(path_out):
             os.makedirs(path_out)
-        pdf_path  = path_out + self.model_name + ".pdf"
-        root_path = pdf_path.replace('.pdf','.root')
+        root_path = self.pdf_path.replace('.pdf','.root')
         outFile   = ROOT.TFile(root_path,"RECREATE")
         C = ROOT.TCanvas("C","C",800,600)
         #C.SetLogz()
-        C.Print(pdf_path+"[")
-        for g in self.graph_list:
+        C.Print(self.pdf_path+"[")
+        for g in graph_list:
             print ("Plotting %s"%g.GetName())
             g.Draw("colz")
             g_copy = g.Clone()
@@ -180,17 +253,32 @@ class MassPlane:
             g_copy.GetHistogram().SetContour(contours.shape[0],contours)
             g_copy.Draw("cont2 same")
             g.Write()
-            C.Print(pdf_path,"Title:"+g.GetName())
-            if self.profile:
-                xproj,yproj = self.getProfiles(g)
-                xproj.Draw("hist")
-                xproj.Write()
-                C.Print(pdf_path,"Title:"+g.GetName()+" X profile")
-                yproj.Draw("hist")
-                C.Print(pdf_path,"Title:"+g.GetName()+" Y profile")
-                yproj.Write()
+            C.Print(self.pdf_path,"Title:"+g.GetName())
+            if self.projection:
+                # Full projection #
+                hx = self.getProjectionX(g)
+                hy = self.getProjectionY(g)
+                hx.Draw("hist")
+                hx.Write()
+                C.Print(self.pdf_path,"Title:"+g.GetName()+" X projection")
+                hy.Draw("hist")
+                C.Print(self.pdf_path,"Title:"+g.GetName()+" Y projection")
+                hy.Write()
+                # Per line projection #
+                C.Clear()
+                hxs = self.getProjectionsX(g)
+                hxs[0].Draw("hist")
+                for hx in hxs[1:]:
+                    hx.Draw("hist same")
+                C.Print(self.pdf_path,"Title:"+g.GetName()+" X projections")
+                C.Clear()
+                hys = self.getProjectionsY(g)
+                hys[0].Draw("hist")
+                for hy in hys[1:]:
+                    hy.Draw("hist same")
+                C.Print(self.pdf_path,"Title:"+g.GetName()+" Y projections")
 
-        C.Print(pdf_path+"]")
+        C.Print(self.pdf_path+"]")
         outFile.Close()
         print ("Root file saved as %s"%root_path)
 
@@ -226,34 +314,75 @@ if __name__ == "__main__":
                    help='Mass of A for plot')
     parser.add_argument('--mH', action='store', required=False, type=int, 
                    help='Mass of H for plot')
+    parser.add_argument('-j','--jobs', action='store', required=False, default=None, type=int,
+                        help='Number of jobs for multiprocessing')
+    parser.add_argument('--inputs', action='store', required=False, nargs='*', default=None,
+                   help='Additional inputs to provide to the DNN as parameters (synthax : `--inputs pdgid=... era=...`)')
     parser.add_argument('--DY', action='store_true', required=False, default=False,
                    help='Wether to plot the DY output')
     parser.add_argument('--TT', action='store_true', required=False, default=False,
                    help='Wether to plot the TT output')
     parser.add_argument('--ZA', action='store_true', required=False, default=True,
                    help='Wether to plot the ZA output')
-    parser.add_argument('--profile', action='store_true', required=False, default=False,
-                   help='Wether also plot the profiles in MH and MA')
+    parser.add_argument('--projection', action='store_true', required=False, default=False,
+                   help='Wether also plot the projections in MH and MA')
     parser.add_argument('--pavement', action='store', nargs='+', required=False, default=None, type=float,
                    help='Produces pavement for all points considered, need to provide a cut value (can provide several)')
     parser.add_argument('--gif', action='store_true', required=False, default=False, 
                    help='Wether to produce the gif on all mass plane (overriden by --mA and --mH)')
     args = parser.parse_args()
 
-    inst = MassPlane(500,0,1500,500,0,1500,args.DY,args.TT,args.ZA,args.profile)
-    inst.load_model(args.model)
+    inputs_order = ['pdgid','era','bb_M','llbb_M','bb_M_squared','llbb_M_squared','bb_M_x_llbb_M','mA','mH']
 
+    inputs = {}
+    if args.inputs is not None:
+        for inp in args.inputs:
+            if not '=' in inp:
+                print (f'No `=` in {inp}, will be ignored')
+            else:
+                inputs[inp.split('=')[0]] = float(inp.split('=')[1])
+
+    pdf_path  = os.path.join('plots','MassPlane',f'{os.path.basename(args.model).split(".")[0]}_{"_".join(f"{inpName}_{inpVal}" for inpName,inpVal in inputs.items())}.pdf')
+
+    inst = MassPlane(pdf_path           = pdf_path,
+                     x_bins             = 500,
+                     x_min              = 0.,
+                     x_max              = 1500.,
+                     y_bins             = 500,
+                     y_min              = 0.,
+                     y_max              = 1500.,
+                     plot_DY            = args.DY,
+                     plot_TT            = args.TT,
+                     plot_ZA            = args.ZA,
+                     projection         = args.projection,
+                     inputs_order       = inputs_order,
+                     additional_inputs  = inputs)
+
+    graph_list = []
     if args.mA and args.mH:
-        inst.plotMassPoint(args.mH,args.mA)
+        graph_list.extend(inst.plotMassPoint([args.model,args.mH,args.mA]))
     elif not args.gif:
         # To pass when needed on all mass points !!
-        #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
-        #   d = json.load(f)
-        #   masspoints = [(mH, mA,) for mA, mH in d]
-        masspoints = [(200, 100), ( 300, 50), ]#( 300, 100), ( 300, 200),]
-        for masspoint in masspoints:
-            inst.plotMassPoint(*masspoint)
-    
-    inst.plotOnCanvas(args.model)
+        with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
+            d = json.load(f)
+            masspoints = [(mH, mA,) for mA, mH in d]
+        #masspoints = [(200, 100)]#, ( 300, 50)]#, ( 300, 100), ( 300, 200),]
+        masspoints = [(500, 300)]
+
+        pbar = enlighten.Counter(total=len(masspoints), desc='Progress', unit='mass points')
+        if not args.jobs:
+            inst.load_model(args.model)
+            for masspoint in masspoints:
+                graph_list.extend(inst.plotMassPoint([args.model,*masspoint]))
+                pbar.update()
+        else:
+            pool = mp.Pool(args.jobs)
+            for content in pool.imap(inst.plotMassPoint,[[args.model,*masspoint] for masspoint in masspoints]):
+                graph_list.extend(content)
+                pbar.update()
+            pool.close()
+            pool.join()
+
+    inst.plotOnCanvas(graph_list)
     if args.pavement is not None:
         inst.makePavement(args.pavement, args.model)
