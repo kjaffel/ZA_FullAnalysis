@@ -52,7 +52,6 @@ if zabPath not in sys.path:
     sys.path.append(zabPath)
 
 import utils
-from utils import safeget
 from systematics import get_HLTsys, get_tthDYreweighting
 from ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots, MakePuppiMETPlots, MHMAforCombinedLimits
 from EXtraPLots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots, zoomplots, ptcuteffectOnJetsmultiplicty, choosebest_jetid_puid, varsCutsPlotsforLeptons, LeptonsInsideJets, makePUIDSF, makerhoPlots
@@ -241,11 +240,11 @@ scalesfactorsLIB = {
 scalesfactorsULegacyLIB = {
             "DeepFlavour": {
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                    {"2016-preVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2016-postVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
+                    {"2016-preVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2016-postVFP": "2016UL/Btag/DeepJet_106XUL16SF_postVFP.csv", "2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
             "DeepCSV" :{
                 "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016-preVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
+                            {"2016-preVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016UL/Btag/DeepCSV_106XUL16SF_postVFP.csv", "2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
                 "softdrop_subjets": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
                             {"2016-preVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
@@ -276,6 +275,7 @@ class NanoHtoZABase(NanoAODModule):
         self.dobJetER         = self.args.dobJetEnergyRegression
         self.doYields         = self.args.yields
         self.doSkim           = self.args.skim
+    
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -293,9 +293,9 @@ class NanoHtoZABase(NanoAODModule):
 
     def customizeAnalysisCfg(self, config=None):
         if self.args.distributed == "driver" or not self.args.distributed:
-            os.system('(git log -n 1;git diff) &> %s/git.log' % self.args.output)
-       #    with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
-       #        yaml.dump(config, backupCfg)
+            os.system('(git log -n 1;git diff .) &> %s/git.log' % self.args.output)
+            #with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
+            #    yaml.dump(config, backupCfg)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era = sampleCfg.get("era") if sampleCfg else None
@@ -517,7 +517,8 @@ class NanoHtoZABase(NanoAODModule):
             logger.exception("Problem while configuring jet energy corrections and variations")
         
         if self.doSplit:
-            try: 
+            try:
+                # https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution#Run2_JER_uncertainty_correlation-
                 splitVariation(tree._Jet, "jer", op.multiSwitch(( lambda j: op.abs(j.eta) < 1.93, {"backward" : lambda j : j.pt >0.}) ,
                                                                 ( lambda j: op.in_range(1.93, j.eta, 2.5), {"eta_1p93TO2p5" : lambda j : j.pt >0.}),                                        
                                                                 ( lambda j: op.in_range(2.5, j.eta, 3), {"eta_2p5TO3_bin1" : lambda j : j.pt <50., "eta_2p5TO3_bin2" : lambda j : j.pt >50.}),
@@ -560,7 +561,8 @@ class NanoHtoZABase(NanoAODModule):
                                                 cut=(op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values()))), 
                                                 autoSyst=self.doSysts)
             if self.doSysts:
-                logger.info("Adding QCD scale variations, ISR and FSR ")
+                logger.info("Adding QCD scale variations, ISR , FSR and PDFs")
+                # FIXME : PDF still work in progress , keep it off for now 
                 noSel = utils.addTheorySystematics(self, tree, noSel, qcdScale=True, PSISR=True, PSFSR=True, PDFs=False)
         else:
             noSel = noSel.refine("withTrig", cut=(makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset)))
@@ -594,12 +596,12 @@ class NanoHtoZABase(NanoAODModule):
         elRecoSF_version = 'POG' # Be careful the version from tth is `LOOSE` version 
         noSel = noSel.refine("passMETFlags", cut=METFilter(t.Flag, era, isMC) )
         
-        puWeightsFile      = None
-        mcprofile          = None
-        PUWeight           = None
-        version_TriggerSFs = None
-        gen_ptll_nlo       = None
-        gen_ptll_lo        = None
+        puWeightsFile        = None
+        mcprofile            = None
+        PUWeight             = None
+        version_TriggerSFs   = None
+        gen_ptll_nlo         = None
+        gen_ptll_lo          = None
         deepBFlavScaleFactor = None
         deepB_AK4ScaleFactor = None
         deepB_AK8ScaleFactor = None
@@ -657,7 +659,7 @@ class NanoHtoZABase(NanoAODModule):
         # Top reweighting :
         # https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf
         ###########################################
-        #if self.isMC(sample) or sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
+        #if self.isMC(sample) and sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
         #    genTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==6))
         #    gen_antiTop_pt = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==-6))
         #    gen_pt = op.map(genTop_pt, lambda top: top.pt)
@@ -783,19 +785,19 @@ class NanoHtoZABase(NanoAODModule):
             AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 20., op.abs(j.eta) < 2.4, (j.jetId &2)))        
         else:
 
-            ###############################################
-            # Apply Jet Plieup ID 
-            #https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD
-            # Jet ID flags bit1 is loose (always false in 2017 and 2018 since it does not exist), bit2 is tight, bit3 is tightLepVeto
-            #jet.Id==6 means: pass tight and tightLepVeto ID. 
+        ###############################################
+        # Apply Jet Plieup ID 
+        #https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD
+        # Jet ID flags bit1 is loose (always false in 2017 and 2018 since it does not exist), bit2 is tight, bit3 is tightLepVeto
+        #jet.Id==6 means: pass tight and tightLepVeto ID. 
+    
+        #https://twiki.cern.ch/twiki/bin/viewauth/CMS/PileupJetID
             
-            #https://twiki.cern.ch/twiki/bin/viewauth/CMS/PileupJetID
-            
-            #puId==0 means 000: fail all PU ID;
-            #puId==4 means 100: pass loose ID, fail medium, fail tight;  
-            #puId==6 means 110: pass loose and medium ID, fail tight; 
-            #puId==7 means 111: pass loose, medium, tight ID.
-            ###############################################
+        #puId==0 means 000: fail all PU ID;
+        #puId==4 means 100: pass loose ID, fail medium, fail tight;  
+        #puId==6 means 110: pass loose and medium ID, fail tight; 
+        #puId==7 means 111: pass loose, medium, tight ID.
+        ###############################################
             if CleanJets_fromPileup :
                 AK4jetsSel = op.select(sorted_AK4jets, lambda j : op.AND(j.pt > 30, op.abs(j.eta) < 2.5, j.jetId & 4, op.switch(j.pt < 50, jet_puID_wp.get(puIdWP), op.c_bool(True)))) 
             else :
@@ -896,15 +898,15 @@ class NanoHtoZABase(NanoAODModule):
         legacy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
                             "2016-preVFP" :(0.2217, 0.6321, 0.8953),  # FIXME it's the same as EOY working points the btv doesn't not provide 2016UL btagging scale factors yet : to be fixed later on ! 
-                            "2016-postVFP":(0.2217, 0.6321, 0.8953),  # FIXME
-                            "2016":(0.2217, 0.6321, 0.8953),  # FIXME
+                            "2016-postVFP":(0.1918, 0.5847, 0.8767),
+                            "2016":(0.2217, 0.6321, 0.8953),
                             "2017":(0.1355, 0.4506, 0.7738), 
                             "2018":(0.1208, 0.4168,  0.7665) 
                           },
                 "DeepFlavour":{
                             "2016-preVFP" :(0.0614, 0.3093, 0.7221), # FIXME The same there are old cuts !
-                            "2016-postVFP":(0.0614, 0.3093, 0.7221), # FIXME 
-                            "2016":(0.0614, 0.3093, 0.7221), # FIXME 
+                            "2016-postVFP":( 0.0480, 0.2489, 0.6377),
+                            "2016":(0.0614, 0.3093, 0.7221),
                             "2017":(0.0532, 0.3040, 0.7476), 
                             "2018":(0.0490, 0.2783, 0.7100) 
                           }
@@ -925,9 +927,9 @@ class NanoHtoZABase(NanoAODModule):
         lightJets_resolved = {}
         
         # WorkingPoints = ["L", "M", "T"] 
-        # For Boosted : DeepCSV available as b-tagger with WPs `cut on dicriminator` same as in resolved region for AK4Jets
+        # For Boosted AK8Jets : DeepCSV available as b-tagger with WPs `cut on dicriminator` same as in resolved region for AK4Jets
         # .ie. only L and M are available !
-        WorkingPoints = ["L", "M"]
+        WorkingPoints = ["M"]
         
         SFsperiod_dependency      = False
         
@@ -1118,7 +1120,7 @@ class NanoHtoZABase(NanoAODModule):
         llSFs = { "MuMu" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumIDSF(ll[1]), 
                                           muMediumISOSF(ll[0]), muMediumISOSF(ll[1]), 
                                           doubleMuTrigSF(ll), 
-                                          L1Prefiring                                             ]), 
+                                          L1Prefiring                                           ]), 
                                           # single_mutrig(ll[0]), single_mutrig(ll[1]), 
                                           # mutrackingSF(ll[0]), mutrackingSF(ll[1]) ]),
                    
@@ -1127,13 +1129,15 @@ class NanoHtoZABase(NanoAODModule):
                 #                        elRecoSF_lowpt(ll[0]), elRecoSF_highpt(ll[0]), 
                 #                        elemuTrigSF(ll), 
                 #                        L1Prefiring, 
-                #                        ZvtxSF ]), # elChargeSF(ll[0]), mutrackingSF(ll[1])     ]),
+                #                        ZvtxSF,
+                #                        elChargeSF(ll[0]), 
+                #                        mutrackingSF(ll[1])                                    ]),
                     
                 "MuEl" : (lambda ll : [ muMediumIDSF(ll[0]), muMediumISOSF(ll[0]), 
                                         elMediumIDSF(ll[1]), elRecoSF_lowpt(ll[1]), elRecoSF_highpt(ll[1]), 
                                         mueleTrigSF(ll), 
                                         L1Prefiring, 
-                                        ZvtxSF]), 
+                                        ZvtxSF                                                  ]), 
                                         # single_eletrig(ll[1]), 
                                         # endcap_ele(ll[1]), barrel_ele(ll[1]), 
                                         # mutrackingSF(ll[0]), 
@@ -1144,7 +1148,7 @@ class NanoHtoZABase(NanoAODModule):
                                         elRecoSF_highpt(ll[0]), elRecoSF_highpt(ll[1]), 
                                         doubleEleTrigSF(ll), 
                                         L1Prefiring, 
-                                        ZvtxSF]), 
+                                        ZvtxSF                                                  ]), 
                                         # single_eletrig(ll[0]), 
                                         # endcap_ele(ll[0]), barrel_ele(ll[0]), 
                                         # endcap_ele(ll[1]), barrel_ele(ll[1]), 
@@ -1171,15 +1175,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             return (0 if wp=="L" else ( 1 if wp=="M" else 2))
         def getOperatingPoint(wp = None):
             return ("Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight"))
+        def mass_to_str(m):
+            return str(m).replace('.','p')
+        def inputStaticCast(inputDict,cast='float'):
+            return [op.static_cast(cast,v) for v in inputDict.values()]
         
         noSel, puWeightsFile, PUWeight, categories, isDY_reweight, WorkingPoints, BoostedTopologiesWP, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isULegacy = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
         
-        era = sampleCfg.get("era") if sampleCfg else None
+        era  = sampleCfg.get("era") if sampleCfg else None
         era_ = era if "VFP" not in era else "2016"
         yield_object = makeYieldPlots()
         isMC = self.isMC(sample)
         binScaling = 1 
-        
+        onnx__version = False
+        tf__version   = False
         plots = []
         selections_for_cutflowreport = []
 
@@ -1191,19 +1200,34 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         cleaned_AK8JetsByDeepB    = op.sort(AK8jets, lambda j: -j.btagDeepB)
 
         if self.doEvaluate:
-            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb')
-            tensorflow_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
-            onnx_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/onnx_models/prob_model.onnx"
-            if not os.path.exists(onnx_path):
-                raise RuntimeError(f'Could not find model file {onnx_path}')
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb'
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/onnx_models/prob_model.onnx"
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work__1/keras_tf_onnx_models/all_combined_dict_343_model.pb"
+            ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work__1/keras_tf_onnx_models/prob_model.onnx"
+            if ZAmodel_path.split('/')[-1].endswith('.onnx'):
+                onnx__version = True
+            elif ZAmodel_path.split('/')[-1].endswith('.pb'):
+                tf__version   = True
+            
+            if not os.path.exists(ZAmodel_path):
+                raise RuntimeError(f'Could not find model: {ZAmodel_path}')
             else:
                 try:
-                    # The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), where each of the two can be a single string, or an iterable of them.
-                    #ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(['IN'], 'OUT/Softmax'), nameHint='tf_ZAModel')
-                    # The otherArgs keyword argument should the name of the output node (or a list of those)
-                    ZAmodel = op.mvaEvaluator(onnx_path, mvaType='ONNXRuntime',otherArgs=['OUT'], nameHint='ONNX_ZAModel')
-                except:
-                    raise RuntimeError(f'Could not op.mvaEvaluator Tensorflow model : {onnx_path}')
+                    #===============================================================================
+                    # Tensorflow : The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), 
+                    # where each of the two can be a single string, or an iterable of them.
+                    inputs = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH']
+                    if tf__version:
+                        outputs = 'Identity'
+                        ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
+                    #===============================================================================
+                    # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
+                    elif onnx__version:
+                        ZAmodel = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=(inputs, ['out']), nameHint='ONNX_ZAModel')
+                    #===============================================================================
+                except Exception as ex:
+                    raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
         
         masses_seen = [
         #part0 : 21 signal samples 
@@ -1211,19 +1235,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         ( 200, 50), ( 200, 100),
         ( 250, 50), ( 250, 100),
         ( 300, 50), ( 300, 100), ( 300, 200),
-        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-        ( 650, 50),
-        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        (1000, 50), (1000, 200), (1000, 500),    
-        (2000, 1000),        
-        (3000, 2000), 
+        #( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
+        #( 650, 50),
+        #( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+        #(1000, 50), (1000, 200), (1000, 500),    
+        #(2000, 1000),        
+        #(3000, 2000), 
         ]
         #part1
         masses_notseen = [
-        (173.52,  72.01), #(209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
-        (296.10, 145.93), #(296.10,  36.79), (379.00, 205.76), (442.63, 113.53), (442.63,  54.67),
-        (442.63,  80.03), (609.21, 298.01), (717.96,  30.00), #(717.96, 341.02), (846.11, 186.51),
-        (846.11, 475.64), (846.11,  74.80), (997.14, 160.17), (997.14, 217.19), (997.14, 254.82), (997.14, 64.24) ]
+        (173.52,  72.01),  #(209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
+        (296.10, 145.93), ]#(296.10,  36.79), (379.00, 205.76), (442.63, 113.53), (442.63,  54.67),
+        
+        #(442.63,  80.03), (609.21, 298.01), (717.96,  30.00), #(717.96, 341.02), (846.11, 186.51),
+        #(846.11, 475.64), (846.11,  74.80), (997.14, 160.17), (997.14, 217.19), (997.14, 254.82), (997.14, 64.24) ]
 
 
         make_ZpicPlots              = False #*
@@ -1303,8 +1328,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             # This's an Inclusive selection *** 
             #       boosted : at least 1 AK8jets  && resolved: at least 2 AK4jets  
             # I don't care about my CR if boosted and resolved are inclusive , what's matter for me is my SR  ** 
-            TwoLeptonsTwoJets_Resolved= catSel.refine("TwoJet_{0}Sel_resolved".format(channel), cut=[ op.rng_len(AK4jets) > 1])
-            TwoLeptonsOneJet_Boosted = catSel.refine("OneJet_{0}Sel_boosted".format(channel), cut=[ op.rng_len(AK8jets) > 0 ])
+            TwoLeptonsTwoJets_Resolved = catSel.refine("TwoJet_{0}Sel_resolved".format(channel), cut=[ op.rng_len(AK4jets) > 1])
+            TwoLeptonsOneJet_Boosted   = catSel.refine("OneJet_{0}Sel_boosted".format(channel), cut=[ op.rng_len(AK8jets) > 0 ])
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # High Pileup JetId Weight 
             # N.B : boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat 
@@ -1421,8 +1446,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 
                 idx = getIDX(wp) 
                 OP  = getOperatingPoint(wp) 
-                #if isULegacy: # hack to work with old signal on ulegacy analysis
-                #    era = era if era !="2016" else "2016-postVFP" 
+                
                 run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
                 
                 for tagger,bScore in {"DeepCSV": "btagDeepB", "DeepFlavour": "btagDeepFlavB"}.items():
@@ -1463,18 +1487,29 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
                     csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
                     csv_deepflavour    = scalesfactorsLIB['DeepFlavour'][era]
-                
-                btagSF_deepcsv     = BtagSF('deepcsv', csv_deepcsvAk4, wp=OP, sysType="central", otherSysTypes=["up", "down"],
-                                                        measurementType={"B": "comb", "C": "comb", "UDSG": "incl"}, sel= noSel,
-                                                        uName=f'sf_eff_{channel}_On{sample}_deepcsv{wp}')
-                btagSF_deepflavour = BtagSF('deepflavour', csv_deepflavour, wp=OP, sysType="central", otherSysTypes=["up", "down"],
-                                                        #systName= f'mc_eff_deepflavour{wp}', measurementType={"B": "comb", "C": "comb", "UDSG": "incl"}, sel= noSel,
-                                                        measurementType={"B": "comb", "C": "comb", "UDSG": "incl"}, sel= noSel,
-                                                        uName=f'sf_eff_{channel}_On{sample}_deepflavour{wp}')
-                if 'Tight' not in OP : 
-                    btagSF_subjets = BtagSF('deepcsv', csv_deepcsvSubjets, wp=OP, sysType="central", otherSysTypes=["up", "down"],
-                                                        measurementType={"B": "lt", "C": "lt", "UDSG": "incl"}, sel= noSel,
-                                                        uName=f'sf_eff_{channel}_On{sample}_subjets_deepcsv{wp}')
+               
+                if os.path.exists(csv_deepcsvAk4):
+                    # FIXME it's a bug  from BTV CSV FILES or it's just missing since all is WIP 
+                    if csv_deepcsvAk4.split('/')[-1].endswith('DeepCSV_106XUL16SF_postVFP.csv'):
+                        measurementType = {"B": "comb", "C": "comb"}
+                    else:
+                        measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
+                    btagSF_deepcsv     = BtagSF('deepcsv', csv_deepcsvAk4, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
+                                                        measurementType= measurementType, sel= noSel,
+                                                        uName= f'sf_eff_{channel}_On{sample}_deepcsv{wp}')
+                if os.path.exists(csv_deepflavour):
+                    if csv_deepflavour.split('/')[-1].endswith('DeepJet_106XUL16SF_postVFP.csv'):
+                        measurementType = {"B": "comb", "C": "comb"}
+                    else:
+                        measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
+                    btagSF_deepflavour = BtagSF('deepflavour', csv_deepflavour, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
+                                                        measurementType= measurementType, sel= noSel,
+                                                        uName= f'sf_eff_{channel}_On{sample}_deepflavour{wp}')
+                if os.path.exists(csv_deepcsvSubjets):
+                    if 'Tight' not in OP : 
+                        btagSF_subjets = BtagSF('deepcsv', csv_deepcsvSubjets, wp= OP, sysType="central", otherSysTypes= ("up", "down"),
+                                                        measurementType= {"B": "lt", "C": "lt", "UDSG": "incl"}, sel= noSel,
+                                                        uName= f'sf_eff_{channel}_On{sample}_subjets_deepcsv{wp}')
                 
 
                 for process in ['gg_fusion', 'bb_associatedProduction']:
@@ -1543,9 +1578,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                                         cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1, op.rng_len(bJets_resolved_PassdeepcsvWP) == 0] ) },
                         "bb_associatedProduction": {
                                     "DeepCSV{0}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_with_AtLeast1AK4_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
-                                                                        cut=[ op.OR( op.AND(op.rng_len(bJets_boosted_PassdeepcsvWP) >= 2 , op.rng_len(bJets_resolved_PassdeepcsvWP) == 0),
-                                                                                     op.AND(op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepcsvWP) >= 1)
-                                                                                     )] )},
+                                                                        cut=[ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1, op.rng_len(bJets_resolved_PassdeepcsvWP) >= 0] ) },
                             }
                 
                 
@@ -1608,7 +1641,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         'bb_M_squared'   : op.pow(bb_M, 2),
                                         'llbb_M_squared' : op.pow(llbb_M, 2),
                                         'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
-                                        'bb_M_x_llbb_M'  : op.product(bb_M, llbb_M),
                                         
                                         'isResolved'     : op.c_bool(reg == 'resolved'), 
                                         'isBoosted'      : op.c_bool(reg == 'boosted'), 
@@ -1651,51 +1683,57 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                             # Evaluate the training  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if self.doEvaluate:
-                        plotOptions = utils.getOpts(channel)
                         signal_grid = { 'seen_byDNN': masses_seen,
                                         'notseen_byDNN': masses_notseen }
+                        plotOptions = utils.getOpts(channel)
                         if self.doBlinded:
                             plotOptions["blinded-range"] = [0.6, 1.0] 
 
                         for process, Selections_per_process in llbbSelections.items():
-                            for key, selections in Selections_per_process.items(): 
-                                for TAGWP, sel in selections.items():
+                            for region, selections_per_region in Selections_per_process.items(): 
+                                for tag_plus_wp, sel in selections_per_region.items():
                                     
-                                    bjets_  = safeget(lljj_bJets[key],TAGWP.replace(wp,''), wp)
-                                    
-                                    jj_p4   = ( (bjets_[0].p4 + bjets_[1].p4) if key=="resolved" else( bjets_[0].p4))
+                                    bjets_  = lljj_bJets[region][tag_plus_wp.replace(wp,'')][wp]
+                                    jj_p4   = ( (bjets_[0].p4 + bjets_[1].p4) if region=="resolved" else( bjets_[0].p4))
                                     lljj_p4 = ( dilepton[0].p4 + dilepton[1].p4 + jj_p4)
                                     
                                     bb_M   = jj_p4.M()
                                     llbb_M = lljj_p4.M()
-                                    l1_charge =  dilepton[0].charge
-                                    l1_pdgId  =  dilepton[0].pdgId
-
                                     for k, val in signal_grid.items():
                                         for parameters in val: 
-                                            mA= parameters[1]
-                                            mH= parameters[0]
-                                            DNN_Inputs= [l1_pdgId, l1_charge, bb_M,llbb_M, op.c_float(mA), op.c_float(mH)]
-                                            DNN_Output = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
-                                            mA=str(mA).replace('.','p')
-                                            mH=str(mH).replace('.','p')
-                                            plots.append(Plot.make1D(f"DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}", 
-                                                DNN_Output[2], sel, 
-                                                EqB(50, 0., 1.), 
-                                                title='DNN_Output ZA', plotopts=plotOptions))
+                                            mH = parameters[0]
+                                            mA = parameters[1]
+                                            
+                                            inputsCommon = {'l1_pdgId'        : dilepton[0].pdgId        ,
+                                                            'myera'           : op.c_int(int(era_))      ,
+                                                            'bb_M'            : jj_p4.M()                ,
+                                                            'llbb_M'          : lljj_p4.M()              ,
+                                                            'bb_M_squared'    : op.pow(bb_M, 2)          ,
+                                                            'llbb_M_squared'  : op.pow(llbb_M, 2)        ,
+                                                            'bb_M_x_llbb_M'   : op.product(bb_M, llbb_M) ,
+                                                            'mA'              : op.c_float(mA)           ,
+                                                            'mH'              : op.c_float(mH)             }
+                                            # FIXME this isn't working yet 
+                                            DNN_Inputs   = [op.array("double",val) for val in inputStaticCast(inputsCommon,"float")]
+                                            DNN_Output   = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
+                                            
+                                            plots.append(Plot.make1D(f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}",
+                                                                    DNN_Output[2], sel,
+                                                                    EqB(50, 0., 1.), 
+                                                                    title='DNN_Output ZA', plotopts=plotOptions))
                                                 
-                                           # plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                           # plots.append(Plot.make2D(f"mbbInput_vs_DNNOutput_{channel}_{region}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
                                            #     (bb_M, DNN_Output[2]), sel,
                                            #     (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
                                            #     title="mbb mass Input vs DNN Output", plotopts=plotOptions))
-                                           # plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}_{key}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
+                                           # plots.append(Plot.make2D(f"mllbbInput_vs_DNNOutput_{channel}_{region}_{TAGWP}_withmetCut_ZAscan_{process}_MA_{mA}_MH_{mH}",
                                            #     (llbb_M, DNN_Output[2]), sel,
                                            #     (EqB(50, 0., 1000.), EqB(10, 0., 1.)),
                                            #     title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
-                                            # #OutmaxIDx =op.rng_max_element_index(DNN_Output)
-                                            #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{key}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
-                                            #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{key}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
-                                            #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
+                                           # #OutmaxIDx =op.rng_max_element_index(DNN_Output)
+                                           # trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{region}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
+                                           # plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{region}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
+                                           #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                         #  TTbar Esttimation  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
