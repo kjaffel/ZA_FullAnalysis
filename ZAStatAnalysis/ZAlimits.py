@@ -51,12 +51,12 @@ parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do
 options = parser.parse_args()
 
 parameters = ['mH', 'mA']
-mH_list    = [200, 250, 300, 500, 650, 800]
+mH_list    = [200, 300, 500, 650, 800]
 
 th_files = [
     #'sigmaBR_HZA_type-2_tb-0p5_cba-0p01.json',
     #'sigmaBR_HZA_type-2_tb-1p0_cba-0p01.json',
-    'sigmaBR_HZA_type-2_tb-1p5_cba-0p01.json',
+    'data/sigmaBR_HZA_type-2_tb-1p5_cba-0p01.json',
     ]
 
 th_colors  = ['red', 'firebrick', 'salmon']
@@ -92,7 +92,7 @@ axes_x_limits = {
     }
 axes_y_limits = {
     "mH": {},
-    "mA": {'ymin': 1, 'ymax':350},
+    "mA": {'ymin': 0, 'ymax':1}, # FIXME why my limits are normalized to 1 !
     }
 
 axes_log_y_limits = {
@@ -106,11 +106,11 @@ show_markers = {
 colors = {
     'MuMu'    : '#7040f5',
     'ElEl'    : '#ff7f0e',
+    'MuEl'    : '#a02c4d',
     'Combined': 'black',
-    #'MuEl'   : '#2ca02c',
     }
     
-flavors = ['MuMu', 'ElEl', 'Combined']
+flavors = ['MuMu', 'ElEl']#, 'Combined']
 
 for the_mH in mH_list:
     parameter_values = {
@@ -123,13 +123,14 @@ for the_mH in mH_list:
     
     for flav in flavors:
         limits = flavors_limits.setdefault(flav, {})
-        with open(os.path.join(options.jsonpath, 'all_limits_{}.json'.format(flav))) as f:
+        #with open(os.path.join(options.jsonpath, 'all_limits_{}.json'.format(flav))) as f:
+        with open(os.path.join(options.jsonpath, 'combinedlimits_{}.json'.format(flav))) as f:
             limits_ = json.load(f)
     
             for l in limits_:
                 limits[tuple(l['parameters'])] = l['limits']
     
-    available_parameters = flavors_limits['Combined'].keys()
+    available_parameters = flavors_limits['MuMu'].keys()
     available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])
     
     flavors_data = {}
@@ -191,10 +192,10 @@ for the_mH in mH_list:
     
     # Create an axes instance
     ax = fig.add_subplot(111)
-    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(ZA \rightarrow\, llb\bar{b})$ (fb)')
+    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b}) fb^{{-1}}$')
     ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
     if options.rescale_to_za:
-        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
+        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA) fb^{{-1}}$')
     
     fig.tight_layout()
     ax.grid()
