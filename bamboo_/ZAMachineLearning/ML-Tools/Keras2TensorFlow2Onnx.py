@@ -1,42 +1,73 @@
 import sys
 import os
 import json
+import glob 
 import argparse
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-from keras.models import model_from_json
-from keras import backend as K
+import keras2onnx
+#import efficientnet
+#from keras.models import model_from_json
+from tensorflow.keras.models import model_from_json
+
+import tensorflow as tf
+from tensorflow.keras import backend as K
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 
-import tensorflow as tf
+sys.path.append(os.path.abspath('..'))
+import Operations
 from preprocessing import PreprocessLayer
 
-def KerasToTensorflowModel(path_to_json= None, path_to_h5= None, prefix= None, name=None, numout=None, outdir=None):
-    # Make output dire #
-    os.makedirs(outdir,exist_ok=True)
+print("TensorFlow version is "+tf.__version__)
+print("keras2onnx version is "+keras2onnx.__version__)
 
+def KerasToTensorflowModel(path_to_all=None, path_to_json= None, path_to_h5= None, prefix= None, name=None, numout=None, outdir=None):
+
+    if path_to_all is not None:
+        outdir = os.path.join(path_to_all,'keras_tf_onnx_models/')
+        
+        path_to_json =  glob.glob(os.path.join(path_to_all, 'model/*', '*.json'))[0]
+        path_to_h5   =  glob.glob(os.path.join(path_to_all, 'model/*', '*_model.h5'))[0]
+    
+    os.makedirs(outdir,exist_ok=True)
+    print( path_to_json, path_to_h5, outdir)
+    print( {name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')})
+    
+    suffix = path_to_json.split('/')[-1].replace('.json', '')
+    
+    K.clear_session() 
     # Import model and weights #
     with open(path_to_json,"r") as f:
         keras_model_json = f.read()
-    keras_model = model_from_json(keras_model_json, custom_objects =  {'PreprocessLayer': PreprocessLayer})
+        #keras_model = model_from_json(keras_model_json, custom_objects =  {'PreprocessLayer': PreprocessLayer})
+        keras_model  = model_from_json(keras_model_json, custom_objects={name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')})
+    
     keras_model.load_weights(path_to_h5)
-   
+    #keras_model_ = tf.keras.models.load_model( path_to_h5)
     try: 
-        import keras2onnx
-        #kerasmodel = load_model("/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/model/best_model/best_model_model.h5")
-        onnx_model = keras2onnx.convert_keras(keras_model, keras_model.name)
-        keras2onnx.save_model(onnx_model, os.path.join("outdir", numout+".onnx"))
+        print( os.path.join(outdir, suffix+".onnx") )
+        onnx_model  = keras2onnx.convert_keras(keras_model, keras_model.name)
+        keras2onnx.save_model(onnx_model, os.path.join(outdir, suffix+".onnx"))
+        
+        #onnx_model  = keras2onnx.convert_keras(keras_model_, keras_model_.name)
+        #keras2onnx_ = open(s.path.join(outdir, suffix+".onnx"), "wb")
+        #keras2onnx_.write(onnx_model.SerializeToString())
+        #keras2onnx_.close()
     except Exception as ex:
         logger.exception(f"ERROR while saving to onnx:{ex}")
     
-    onnxmodel = onnx.load(os.path.join("outdir", numout+".onnx"))
-    output =[node.name for node in onnxmodel.graph.output]
+    import onnx 
+    onnxmodel = onnx.load(os.path.join(outdir, suffix+".onnx"))
+    output    = [node.name for node in onnxmodel.graph.output]
 
     input_all = [node.name for node in onnxmodel.graph.input]
     input_initializer =  [node.name for node in onnx_model.graph.initializer]
     net_feed_input = list(set(input_all)  - set(input_initializer))
 
-    print('ONNX Inputs: ', net_feed_input)
+    print('ONNX Inputs :', net_feed_input)
     print('ONNX Outputs:', output)
 
     # Alias the outputs in the model - this sometimes makes them easier to access in TF
@@ -45,7 +76,7 @@ def KerasToTensorflowModel(path_to_json= None, path_to_h5= None, prefix= None, n
     pred = [None]*numout
     pred_node_names = [None]*numout
     for i in range(numout):
-        pred_node_names[i] = prefix+'_'+str(i)
+        pred_node_names[i] = prefix+'_'+ suffix +'_'+str(i)
         pred[i] = tf.identity(keras_model.output[i], name=pred_node_names[i])
     print('Output nodes names are: ', pred_node_names)
 
@@ -63,15 +94,20 @@ def KerasToTensorflowModel(path_to_json= None, path_to_h5= None, prefix= None, n
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--json',required=True, type=str,help='REQUIRED: The json model file you wish to convert to .pb')
-    parser.add_argument('--h5',required=True, type=str,help='REQUIRED: The h5 model model weights file you wish to convert to .pb **do not use _full.h5**')
-    parser.add_argument('--numout', type=int, required=True, help='REQUIRED: The number of outputs in the model.')
+    parser.add_argument('--path', '-p', required=True, type=str, help='path where I an get the model/*_isbest_model/*.json && *.h5')
+    parser.add_argument('--json',required=False, type=str,help='The json model file you wish to convert to .pb')
+    parser.add_argument('--h5',required=False, type=str,help='The h5 model model weights file you wish to convert to .pb **do not use _full.h5**')
+    parser.add_argument('--numout', type=int, required=False, default=3, help='The number of outputs in the model. default [DY, TT, ZA ] 3 nodes output')
     parser.add_argument('--outdir','-o', dest='outdir', required=False, default='./keras_tf_onnx_models', help='The directory to place the output files - default("./keras_tf_onnx_models")')
-    parser.add_argument('--prefix','-p', dest='prefix', required=False, default='k2tf', help='The prefix for the output aliasing - default("k2tf")')
+    parser.add_argument('--prefix',dest='prefix', required=False, default='k2tf', help='The prefix for the output aliasing - default("k2tf")')
     parser.add_argument('--name', required=False, default='best_model', help='The name of the resulting output graph - default("best_model.pb and best_model.onnx") (MUST NOT forget)')
     args = parser.parse_args()
 
-    KerasToTensorflowModel(path_to_json     = args.json,
+    if args.path is None and args.json is None and args.h5 is None:
+        print(' sorry this is not gonna work , either provid --json and --h5 or --path/ to model/*_isbest_model ')
+
+    KerasToTensorflowModel(path_to_all      = args.path, 
+                           path_to_json     = args.json,
                            path_to_h5       = args.h5,
                            prefix           = args.prefix,
                            name             = args.name,
