@@ -1220,11 +1220,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     inputs = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH']
                     if tf__version:
                         outputs = 'Identity'
-                        ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
+                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
                     #===============================================================================
                     # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
                     elif onnx__version:
-                        ZAmodel = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=(inputs, ['out']), nameHint='ONNX_ZAModel')
+                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=(inputs, "out"), nameHint='ONNX_ZAModel')
                     #===============================================================================
                 except Exception as ex:
                     raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
@@ -1246,7 +1246,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         masses_notseen = [
         (173.52,  72.01),  #(209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
         (296.10, 145.93), ]#(296.10,  36.79), (379.00, 205.76), (442.63, 113.53), (442.63,  54.67),
-        
         #(442.63,  80.03), (609.21, 298.01), (717.96,  30.00), #(717.96, 341.02), (846.11, 186.51),
         #(846.11, 475.64), (846.11,  74.80), (997.14, 160.17), (997.14, 217.19), (997.14, 254.82), (997.14, 64.24) ]
 
@@ -1699,8 +1698,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     
                                     bb_M   = jj_p4.M()
                                     llbb_M = lljj_p4.M()
-                                    for k, val in signal_grid.items():
-                                        for parameters in val: 
+                                    for k, tup in signal_grid.items():
+                                        for parameters in tup: 
                                             mH = parameters[0]
                                             mA = parameters[1]
                                             
@@ -1714,8 +1713,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                             'mA'              : op.c_float(mA)           ,
                                                             'mH'              : op.c_float(mH)             }
                                             # FIXME this isn't working yet 
-                                            DNN_Inputs   = [op.array("double",val) for val in inputStaticCast(inputsCommon,"float")]
-                                            DNN_Output   = ZAmodel(*DNN_Inputs) # [DY, TT, ZA]
+                                            DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
+                                            DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA]
                                             
                                             plots.append(Plot.make1D(f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}",
                                                                     DNN_Output[2], sel,
