@@ -233,7 +233,7 @@ def getKnownSystematics():
         known_systematics += jec_sources
     return known_systematics
 
-def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=['All'], era=None, unblind=False):
+def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=['All'], era=None, blind=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -465,7 +465,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     systematics_object = ROOT.TNamed('systematics', json.dumps(final_systematics))
     systematics_object.Write()
 
-    if unblind:
+    if blind:
         for flavor in flavors:
             for category, processes in shapes.items():
                 category = category

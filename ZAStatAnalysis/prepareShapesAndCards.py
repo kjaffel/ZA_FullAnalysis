@@ -1,4 +1,5 @@
 #! /bin/env python
+# https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
 import os, os.path, sys, stat, argparse, getpass, json
 import subprocess
 import json
@@ -15,6 +16,7 @@ import numpy as np
 import Harvester as H
 import Constants as Constants
 import CombineHarvester.CombineTools.ch as ch
+
 
 def format_parameters(p):
     mH = "%.2f" % p[0]
@@ -50,14 +52,14 @@ def get_hist_regex(r):
 signal_grid = [
         #part0 : 21 signal samples 
         ( 200, 50), ( 200, 100),
-       # ( 250, 50), ( 250, 100),
-       # ( 300, 50), ( 300, 100), ( 300, 200),
-       # ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-       # ( 650, 50),
-       # ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-       # (1000, 50), (1000, 200), (1000, 500), 
-       # (2000, 1000),
-       # (3000, 2000) 
+        ( 250, 50), ( 250, 100),
+        ( 300, 50), ( 300, 100), ( 300, 200),
+        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
+        ( 650, 50),
+        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+        #(1000, 50), (1000, 200), (1000, 500), 
+        #(2000, 1000),
+        #(3000, 2000) 
         ]
 extra_signals = [
         #(173.52,  72.01), (209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
@@ -106,7 +108,7 @@ extra_signals = [
         ]
     
 
-def prepare_DataCards(grid_data= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
+def prepare_DataCards(grid_data= None, dataset=None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, blind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
     
     luminosity = Constants.getLuminosity(era)
     
@@ -129,20 +131,19 @@ def prepare_DataCards(grid_data= None, era= None, parameters= None, mode= None, 
     print("\tGenerating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in parameters])))
     print("\tChosen analysis mode                      : %s" % mode)
 
-    if mode == 'ellipse':
-        ellipses = {}
-        ellipses['MuMu'] = []
-        ellipses['ElEl'] = []
-        ellipses['MuEl'] = []
-        with open(ellipses_mumu_file.replace('ElEl', 'MuMu')) as inf: 
-            content = json.load(inf)
-            ellipses['MuMu'] = content
-            ellipses['MuEl'] = content
-        with open(ellipses_mumu_file.replace('MuMu', 'ElEl')) as inf:
-            content = json.load(inf)
-            ellipses['ElEl'] = content
+    ellipses = {}
+    ellipses['MuMu'] = []
+    ellipses['ElEl'] = []
+    ellipses['MuEl'] = []
+    with open(ellipses_mumu_file.replace('ElEl', 'MuMu')) as inf: 
+        content = json.load(inf)
+        ellipses['MuMu'] = content
+        ellipses['MuEl'] = content
+    with open(ellipses_mumu_file.replace('MuMu', 'ElEl')) as inf:
+        content = json.load(inf)
+        ellipses['ElEl'] = content
     
-    prepareShapes(input, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl'], ellipses, mode, output, luminosity, split_by_categories, scale, unblind, signal_strength, stat_only, verbose)
+    prepareShapes(input, dataset, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl'], ellipses, mode, output, luminosity, split_by_categories, scale, blind, signal_strength, stat_only, verbose)
 
     # Create helper script to run limits
     output = os.path.join(output, mode)
@@ -172,7 +173,7 @@ done
         print("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, unblind=False, signal_strength=False, stat_only=False, verbose=False):
+def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, blind=False, signal_strength=False, stat_only=False, verbose=False):
     if mode == "mjj_and_mlljj":
         categories = [
                 (1, 'mlljj'),
@@ -232,6 +233,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
 
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
+        
         suffix = formatted_p.replace('MH_', 'MH-').replace('MA_','MA-')
         # Signal process
         histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1]), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(p[0], p[1])]
@@ -260,7 +262,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
 
     print( 'histfactory_to_combine_categories    : %s '%histfactory_to_combine_categories )
 
-    if not unblind:
+    if not blind:
         histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^EGamma*']
 
     H.splitJECBySources = False
@@ -269,7 +271,7 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
     H.splitTTbarUncertBinByBin = False
 
     output_filename = os.path.join(output, 'shapes_HToZATo2L2B.root')
-    file, systematics = H.prepareFile(processes_map=histfactory_to_combine_processes, categories_map=histfactory_to_combine_categories, input=input, output_filename=output_filename, signal_process='HToZATo2L2B', method=method, luminosity=luminosity, flavors=flavors, era=era, unblind=unblind)
+    file, systematics = H.prepareFile(processes_map=histfactory_to_combine_processes, categories_map=histfactory_to_combine_categories, input=input, output_filename=output_filename, signal_process='HToZATo2L2B', method=method, luminosity=luminosity, flavors=flavors, era=era, blind=blind)
 
     print ( "\tsystematics : %s       :" %systematics )
     for p in parameters:
@@ -327,8 +329,9 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
                         (['ttbar'], 1.001525372691124) )
                 cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')
                         (['SingleTop'], 1.0029650414264797) )
-            # FIXME cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process') 
-            cb.cp().AddSyst(cb, '$DY_xsec', 'lnN', ch.SystMap('process') 
+            # FIXME this I don't really undrestand ! 
+            cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process') 
+            #cb.cp().AddSyst(cb, '$DY_xsec', 'lnN', ch.SystMap('process') 
                         (['DY'], 1.007841991384859) )
 
             if signal_strength:
@@ -369,9 +372,9 @@ def prepareShapes(input=None, era=None, method=None, parameters=None, production
             bbb.MergeBinErrors(bkgs)
             bbb.AddBinByBin(bkgs, cb)
 
-        output_prefix = 'HToZATo2L2B'#_MH-%s_MA-%s' % (p[0],p[1])
-        output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
-
+        output_prefix      = 'HToZATo2L2B'
+        #output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
+        
         output_dir = os.path.join(output, mode, H.get_method_group(method), 'MH-%s_MA-%s'%(p[0],p[1]))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -404,10 +407,9 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run limits
-# combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S 1 {systematics} &> {name}.log
-combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} --expectSignal 1 {blind} &> {name}.log
+combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} {blind} &> {name}.log
 popd
-""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), blind=('--run blind' if unblind else ''))
+""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1 --expectSignal 1' if dataset=='asimov' else '-t 8 -s -1'), blind=('--run blind' if blind else ''))
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -490,10 +492,11 @@ if __name__ == '__main__':
     Parse and return arguments provided by the user
     """
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
-    parser.add_argument('-i', '--input',        action='store', dest='input', type=str, default='ul__combinedlimits/ul2016_cards__ver1', 
-                                                help='histFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following steps: final selection(2l+bjets pass btagging discr cut ) -> make skim -> train the DNN using these skimmed trees -> pass to BAMBOO to produce your dnn output ( prefit-plot) need here for Combined .')
-    parser.add_argument('-e', '--era',          action='store', dest='era',       type=str, default= '2016',   
-                                                help='you need to pass your era')
+    parser.add_argument('-i', '--input',        action='store', dest='input', type=str, required=True, 
+                                                help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following steps: 1/- final selection(2l+bjets pass btagging discr cut ) \n'
+                                                     '-> 2/- skim -> 3/- DNN trained using these skimmed trees -> 4/- passed again to BAMBOO to produce your dnn outputs( prefit-plot) with al systematics wich willbe used here in combine.\n')
+    parser.add_argument('-e', '--era',          action='store', dest='era', type=str, default= '2016',   
+                                                help='You need to pass your era')
     parser.add_argument('-p', '--parameters',   nargs='+', metavar='MH,MA', dest='parameters', type=parameter_type, default=['all'],               
                                                 help='Parameters list. Use `all` as an alias for all parameters')
     parser.add_argument('-o', '--output',       action='store', dest='output', type=str, default='ul__combinedlimits/ul2016_cards__ver1',        
@@ -504,9 +507,11 @@ if __name__ == '__main__':
                                                 help='Analysis mode')
     parser.add_argument('-n', '--node',         action='store', dest='node', type=str, default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
+    parser.add_argument('-v', '--verbose',      action='store_true', required=False,
+                                                help='For debugging purposes , you may consider this argument !')
     parser.add_argument('--method',             action='store', dest='method', type=str, default='asymptotic', choices=['asymptotic', 'hybridnew', 'fit'],        
                                                 help='Analysis method')
-    parser.add_argument('--unblind',            action='store_true', dest='unblind',
+    parser.add_argument('--blind',              action='store_true', dest='blind',
                                                 help='Use fake data instead of real data')
     parser.add_argument('--signal-strength',    action='store_true', dest="signal_strength",                                                   
                                                 help='Put limit on the signal strength instead of the cross-section')
@@ -514,10 +519,16 @@ if __name__ == '__main__':
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
     parser.add_argument('--scale',              action='store_true', dest='scale', default=False,                                                  
                                                 help='scale signal rate')
-    parser.add_argument('-v', '--verbose',      action='store_true', required=False,
-                                                help='For debugging purposes , you may consider this argument !')
+    parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True,                              
+                                                help='if asimov:\n'
+                                                        '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
+                                                        '--expectSignal 1 \n'
+                                                     'if toys: \n'
+                                                        '-t N with N > 0. Combine will generate N toy datasets from the model and re-run the method once per toy. \n'
+                                                        'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
+                                                        'The output file will contain one entry in the tree for each of these toys.\n')
 
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)
+    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, blind=options.blind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)

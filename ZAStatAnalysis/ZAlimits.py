@@ -35,7 +35,6 @@ import CMSStyle as CMSStyle
 parser = argparse.ArgumentParser(description='Draw non-resonant 1D scan')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
 parser.add_argument('--era', action='store', type=str, choices=['2016', '2017', '2018'], help='Output directory', required=True)
-parser.add_argument('-o', '--output', action='store', type=str, dest='output', help='Output directory', required=True)
 parser.add_argument('-u', '--unblind', action='store_true', dest='unblind', help='If set, draw also observed upper limits')
 parser.add_argument('-t', '--theory', action='store_true', dest='theory', help='If set, draw theoretical cross-section')
 parser.add_argument('-l', '--log', action='store_true', dest='log', help='If set, draw limits plot in log-scale')
@@ -51,7 +50,7 @@ parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do
 options = parser.parse_args()
 
 parameters = ['mH', 'mA']
-mH_list    = [200, 300, 500, 650, 800]
+mH_list    = [250, 300, 800]
 
 th_files = [
     #'sigmaBR_HZA_type-2_tb-0p5_cba-0p01.json',
@@ -92,7 +91,7 @@ axes_x_limits = {
     }
 axes_y_limits = {
     "mH": {},
-    "mA": {'ymin': 0, 'ymax':1}, # FIXME why my limits are normalized to 1 !
+    "mA": {'ymin': 0, 'ymax':500}, # FIXME why my limits are very small for some mass points!
     }
 
 axes_log_y_limits = {
@@ -112,13 +111,14 @@ colors = {
     
 flavors = ['MuMu', 'ElEl']#, 'Combined']
 
+output_dir = options.jsonpath
 for the_mH in mH_list:
     parameter_values = {
         "mH": the_mH,
         "mA": options.mA,
         }
     parameter_values.pop(options.scan)
-    
+   
     flavors_limits = {}
     
     for flav in flavors:
@@ -130,9 +130,13 @@ for the_mH in mH_list:
             for l in limits_:
                 limits[tuple(l['parameters'])] = l['limits']
     
-    available_parameters = flavors_limits['MuMu'].keys()
-    available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])
-    
+    available_parameters = flavors_limits[flavors[0]].keys() # just needed to get the keys 
+    available_parameters = [tuple(map(lambda x: x.encode('utf-8'), tup)) for tup in available_parameters]
+    available_parameters = [ (float(i), float(j)) for i,j in available_parameters]
+    available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
+    available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
+     
+    print( available_parameters )
     flavors_data = {}
     scanning_SM = False
     for point in available_parameters:
@@ -431,7 +435,7 @@ for the_mH in mH_list:
         plot_name += '_rescaled_to_ZA'
     
     if not options.no_latex:
-        with open('%s/%s.tex' % (options.output, plot_name), 'w') as f:
+        with open('%s/%s.tex' % (output_dir, plot_name), 'w') as f:
             f.write(R'\begin{tabular}{@{}ccccc@{}} \toprule' + '\n')
             f.write('${}$'.format(parameter_legend[options.scan]) + R' & Observed (fb) & Expected (fb) & 1 Standard deviation (fb) & 2 Standard deviations (fb) \\ \midrule' + '\n')
     
@@ -441,7 +445,7 @@ for the_mH in mH_list:
     
             f.write(R'\bottomrule' + '\n')
             f.write(R'\end{tabular}' + '\n')
-        print('LaTeX table saved as %r' % ('%s/%s.tex' % (options.output, plot_name)))
+        print('LaTeX table saved as %r' % ('%s/%s.tex' % (output_dir, plot_name)))
     
     if options.no_boxes:
         plot_name = plot_name + "_nobox"
@@ -450,11 +454,11 @@ for the_mH in mH_list:
     if options.unblind:
         plot_name = plot_name + "_unblind"
     
-    fig.savefig(os.path.join(options.output, plot_name + '.pdf'), bbox_inches='tight')
-    fig.savefig(os.path.join(options.output, plot_name + '.png'), bbox_inches='tight')
+    fig.savefig(os.path.join(output_dir, plot_name + '.pdf'), bbox_inches='tight')
+    fig.savefig(os.path.join(output_dir, plot_name + '.png'), bbox_inches='tight')
     
-    print("Plot saved as %r") % os.path.join(options.output, plot_name + '.pdf')
-    print("Plot saved as %r") % os.path.join(options.output, plot_name + '.png')
+    print("Plot saved as %r") % os.path.join(output_dir, plot_name + '.pdf')
+    print("Plot saved as %r") % os.path.join(output_dir, plot_name + '.png')
     print("="*40)
     # clean the figure before next plot
     plt.gcf().clear() 
