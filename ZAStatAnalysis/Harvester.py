@@ -1,10 +1,12 @@
 import ROOT
 import json
+import glob
 import os, os.path, sys
 import re, hashlib
-import Constants as Constants
 
 sys.dont_write_bytecode  = True
+import Constants as Constants
+
 splitPDF                 = False
 splitJECBySources        = False
 scaleZAToSMCrossSection  = False
@@ -14,8 +16,8 @@ def CMSNamingConvention(origName, era=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     other = {
-        # old naming , will be removed  soon 
-        'puweights2016_Moriond17': "CMS_pileup_%s"era,
+        # old naming for old histograms, will be removed  soon 
+        'puweights2016_Moriond17': "CMS_pileup_%s"%era,
         'elid':"CMS_eff_el",
         'muid':"CMS_eff_mu",
         'muiso':"CMS_iso_mu",
@@ -30,7 +32,7 @@ def CMSNamingConvention(origName, era=None):
         "btagSF_fixWP_deepcsvM_heavy":"CMS_btag_heavy_%s"%era,
         "btagSF_fixWP_deepflavourM_light":"CMS_btag_light_%s"%era,
         "btagSF_fixWP_deepflavourM_heavy":"CMS_btag_heavy_%s"%era,
-        "L1Prefiring": "CMS_L1PreFiring":"CMS_btag_heavy_%s"%era,
+        "L1Prefiring": "CMS_L1PreFiring",
         "unclustEn": "CMS_UnclusteredEn_%s"%era,
         'elid_medium':"CMS_eff_elid",
         'lowpt_ele_reco':"CMS_reff_elreco",
@@ -70,6 +72,24 @@ def get_hist_from_key(keys, key):
         return h.ReadObj()
     return None
 
+def get_listofsystematics(directory):
+    systematics = []
+    files = glob.glob(os.path.join(directory,"*.root"))
+    for f in files:
+        F = ROOT.TFile(f)
+        for key in F.GetListOfKeys():
+            if not 'TH1' in key.GetClassName():
+                continue
+            if not '__' in key.GetName():
+                continue
+            syst = key.GetName().split('__')[1].replace('up','').replace('down','')
+            if syst not in systematics:
+                systematics.append(syst)
+        F.Close()
+
+    print ("Found systematics:", systematics)
+    return systematics
+
 def zeroNegativeBins(h):
     for i in range(1, h.GetNbinsX() + 1):
         if h.GetBinContent(i) < 0.:
@@ -90,14 +110,18 @@ def get_combine_method(method):
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
-def getScaleFactor(flavor, process):
-    if flavor == 'ElEl' and 'nobtag_to_btagM' in process:
-        return 0.828
-    if flavor == 'MuMu' and 'nobtag_to_btagM' in process:
-        return 0.879
+def getScaleFactor(process):
     if scaleZAToSMCrossSection and 'ggZA' in process:
         return Constants.getZACrossSection() * Constants.getZATollbbBR()
     return 1.
+
+# If some systematics cause problems yoy can add them here 
+def ignoreSystematic(flavor, process, s):
+    if s == 'FSR':
+        return True
+    if s == 'ISR':
+        return True
+    return False
 
 def merge_histograms(flavor, process, histogram, destination, luminosity):
     """
@@ -123,7 +147,7 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
             return d
     
     # Rescale histogram to luminosity, if it's not data
-    scale = getScaleFactor(flavor, process)
+    scale = getScaleFactor(process)
     if not 'data' in process:
         scale *= luminosity
     histogram.Scale(scale)
@@ -210,7 +234,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
       2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. The name of the histogram is the name of the background.
     """
 
-    known_systematics = getKnownSystematics()
+    known_systematics = get_listofsystematics(input) #getKnownSystematics()
     print("Preparing ROOT file for combine...")
     print("="*60)
     systematics = {f: known_systematics[:] for f in flavors}

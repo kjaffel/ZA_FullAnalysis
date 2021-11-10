@@ -57,9 +57,9 @@ signal_grid = [
         ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
         ( 650, 50),
         ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        #(1000, 50), (1000, 200), (1000, 500), 
-        #(2000, 1000),
-        #(3000, 2000) 
+        (1000, 50), (1000, 200), (1000, 500), 
+        (2000, 1000),
+        (3000, 2000) 
         ]
 extra_signals = [
         #(173.52,  72.01), (209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
@@ -259,7 +259,6 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
             histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__%s'%formatted_p)
         elif mode == "dnn": # FIXME ugly histos name 
             histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(p[0], p[1]), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(p[1], p[0]))
-
     print( 'histfactory_to_combine_categories    : %s '%histfactory_to_combine_categories )
 
     if not blind:
@@ -273,7 +272,7 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
     output_filename = os.path.join(output, 'shapes_HToZATo2L2B.root')
     file, systematics = H.prepareFile(processes_map=histfactory_to_combine_processes, categories_map=histfactory_to_combine_categories, input=input, output_filename=output_filename, signal_process='HToZATo2L2B', method=method, luminosity=luminosity, flavors=flavors, era=era, blind=blind)
 
-    print ( "\tsystematics : %s       :" %systematics )
+    #print ( "\tsystematics : %s       :" %systematics )
     for p in parameters:
         cb = ch.CombineHarvester()
         if verbose:
@@ -348,9 +347,9 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
                                 print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, flavor, process))
                         for s in systematics[flavor][category_with_parameters][process]:
                             s = str(s)
-                            #FIXME if H.ignoreSystematic(flavor, process, s):
-                            #    print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, flavor, process, s))
-                            #    continue
+                            if H.ignoreSystematic(flavor, process, s):
+                                print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, flavor, process, s))
+                                continue
                             #FIXME s = H.renameSystematic(flavor, process, s)
                             cb.cp().channel([flavor]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
 
@@ -409,7 +408,7 @@ fi
 # Run limits
 combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} {blind} &> {name}.log
 popd
-""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1 --expectSignal 1' if dataset=='asimov' else '-t 8 -s -1'), blind=('--run blind' if blind else ''))
+""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1 --expectSignal 0' if dataset=='asimov' else '-t 8 -s -1'), blind=('--run blind' if blind else ''))
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
