@@ -158,42 +158,74 @@ def splitTTjetFlavours(cfg, tree, noSel):
 
     return noSel
 
-# FIXME also merge systematic variations
 def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, outPath):
+    import shutil
+    for smp, smpCfg in in config["samples"].items():
+        if cfg.get("group") == "data":
+            #copy results file to outPath
+            shutil.copyfile( os.path.join(inDir, f"{smp}.root"), os.path.join(outPath,f"{smp}.root"))
+        else:
+            resultsFile    = HT.openFileAndGet(os.path.join(inDir, f"{smp}.root"), mode="READ")
+            normalizedFile = HT.openFileAndGet(os.path.join(outPath, f"{smp}.root"), "recreate")
+            lumi = config["eras"][smpCfg["era"]]["luminosity"]
+            smpScale = lumi * smpCfg["cross-section"] / counterReader(tf)[cfg["generated-events"])
+            if cfg.get("type") == "signal":
+                smpScale *= smpCfg["Branching-ratio"]
+            for plot in plots:
+                hNom = resultsFile.Get(plot.name)
+                hNom.Scale(smpScale)
+                hNom.Write()
+                prefix = f"{plot.name}__"
+                for hk in resultsFile.GetListOfKeys():
+                    if hk.GetName().startswith(prefix):
+                        hV = resultsFile.Get(hk.GetName())
+                        hV.Scale(smpScale)
+                        hV.Write()
+            resultsFile.Write()
+
+
+def getSumw(resultsFile, smpCfg, readCounters=None):
+    if "generated-events" in smpCfg:
+        if isinstance(smpCfg["generated-events"], str):
+            genEvts = readCounters(resultsFile)[smpCfg["generated-events"]]
+        else:
+            genEvts = smpCfg["generated-events"]
+    else:
+        genEvts = None
+    return genEvts
+
+def normalizeAndSumSamples(eras, samples, inDir, outPath, readCounters=lambda f: -1.):
     """
     Produce file containing the sum of all the histograms over the processes, 
     after normalizing the processes by their cross section, sum of weights and luminosity.
     Note: The systematics are handled but are expected to be SAME for all processes and eras.
+    A separate output file is produced for each era (`outPath_era.root`), as well as a total one (`outPath_run2.root`).
     """
-    toMerge = {}
-    for plot in plots:
-        toMerge[plot.name] = []
-
-    for proc, cfg in config["samples"].items():
-        if proc.startswith('HToZATo2L2B_'):
-            continue
-        tf = HT.openFileAndGet(os.path.join(inDir, proc + ".root"))
-        
-        if "group" not in cfg.keys():
-            sumWgt = counterReader(tf)[cfg["generated-events"]]
-            xs = cfg["cross-section"]
-
-        for plot in plots:
-            hist = tf.Get(plot.name)
-            if "group" not in cfg.keys():
-                hist.Scale(xs / sumWgt)
-                hist.SetDirectory(0)
-            toMerge[plot.name].append(hist)
-
-        tf.Close()
-    eras = list(config["eras"].keys())
     for era in eras:
-        mergedFile = HT.openFileAndGet(f"{outPath}_{era}.root", "recreate")
-        for name, mergeList in toMerge.items():
-            merged = HT.addHists(mergeList, name)
-            merged.Write()
+        lumi = eras[era]["luminosity"]
+        mergedHists = {}
+        for proc,cfg in samples.items():
+            if cfg["era"] != era: continue
+            if "syst" in cfg: continue
+            xs = cfg["cross-section"]
+            tf = HT.openFileAndGet(os.path.join(inDir, proc + ".root"))
+            sumWgt = getSumw(tf, cfg, readCounters)
+            keyList = tf.GetListOfKeys()
+            for key in keyList:
+                hist = key.ReadObj()
+                if not hist.InheritsFrom("TH1"): continue
+                hist.Scale(lumi * xs / sumWgt)
+                name = hist.GetName()
+                if name not in mergedHists:
+                    mergedHists[name] = hist.Clone()
+                    mergedHists[name].SetDirectory(0)
+                else:
+                    mergedHists[name].Add(hist)
+            tf.Close()
+        mergedFile = HT.openFileAndGet(outPath + "_" + era + ".root", "recreate")
+        for hist in mergedHists.values():
+            hist.Write()
         mergedFile.Close()
-
     os.system("hadd -f " + outPath + "_run2.root " + " ".join([ f"{outPath}_{era}.root" for era in eras ]))
 
 def produceMEScaleEnvelopes(plots, scaleVariations, path):

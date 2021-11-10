@@ -345,11 +345,11 @@ class NanoHtoZABase(NanoAODModule):
         self.dobJetER         = self.args.dobJetEnergyRegression
         self.doYields         = self.args.yields
         self.doSkim           = self.args.skim
-
-        self.qcdScaleVarMode  = "separate"  # "separate" : (muR/muF variations) 
-                                            # or combine : (7-point envelope)
-        self.pdfVarMode       = "simple"    # simple  : (event-based envelope) (only if systematics enabled)
-                                            # or full : PDF uncertainties (100 histogram variations) 
+        
+        self.self.doPass_bTagEventWeight = True
+        self.qcdScaleVarMode        = "separate"  # "separate" : (muR/muF variations)  or combine : (7-point envelope)
+        self.pdfVarMode             = "simple"    # simple  : (event-based envelope) (only if systematics enabled)
+                                                  # or full : PDF uncertainties (100 histogram variations) 
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -1347,8 +1347,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_reconstructedVerticesPlots  = False
         make_DYReweightingPlots_2017Only = False #*
         
-        # MANDATORY 
-        pass_bTagEventWeight        = True 
         split_DYWeightIn64Regions   = False
         istthDY_weight              = False
         
@@ -1619,7 +1617,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                                 for reg, NobTagEventWeight_selections_per_tagger in NobTagEventWeight_selections_per_process.items()}
                                                             for process, NobTagEventWeight_selections_per_process in llbbSelections_NoMETCut_NobTagEventWeight.items() 
                                                         }
-                if pass_bTagEventWeight:
+                if self.doPass_bTagEventWeight:
                     llbbSelections_noMETCut = llbbSelections_NoMETCut_bTagEventWeight
                 else:
                     llbbSelections_noMETCut = llbbSelections_NoMETCut_NobTagEventWeight
