@@ -481,16 +481,18 @@ plotIt:
     experiment: CMS
     extra-label: 2018ULegacy Data --Work in progress
     show-overflow: true
+    blinded-range-fill-style: 4050
+    blinded-range-fill-color: "#FDFBFB"
     #error-fill-style: 3154
     #error-fill-color: "#ee556270"
     #ratio-fit-error-fill-style: 1001
     #ratio-fit-error-fill-color: "#aa556270"
     #ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
-
   legend:
-    position: [0.7, 0.6, 0.91, 0.91]
-  
+    #position: [0.7, 0.6, 0.91, 0.91]
+    position: [0.6, 0.7, 0.9, 0.9]
+    #columns: 2
   groups:
     data:
       legend: data
@@ -526,7 +528,6 @@ plotIt:
       fill-color: "#c4ffff"
       legend: others (tt+V, W+Jets , VVV, VV)
       order: 1    
-  
   plotdefaults:
       y-axis: Events
       log-y: both
@@ -535,11 +536,33 @@ plotIt:
       show-ratio: True
       ratio-y-axis-range: [0.6,1.4]
       sort-by-yields: False
-  
   systematics:
-      # on the jets
+    # on the jets energy scale
     - jesTotal
+      # splited by source
+    - jesAbsolute
+    - jesAbsolute_2018
+    - jesBBEC1
+    - jesBBEC1_2018
+    - jesEC2
+    - jesEC2_2018
+    - jesFlavorQCD
+    - jesHF
+    - jesHF_2018
+    - jesRelativeBal
+    - jesRelativeSample_2018
+    # on the jets energy  resolution 
     - jer
+      # affect shape variations
+    - jer0
+    - jer1
+    - jer2
+    - jer3
+    - jer4
+    - jer5
+    - jmr
+    - jms
+    - unclustEn
       # splited  between (kinematic) regions
     - Jer_backward
     - Jer_eta_1p93TO2p5
@@ -548,95 +571,58 @@ plotIt:
     - Jer_eta_3TO2p5_bin1
     - Jer_eta_3TO2p5_bin2
     - Jer_forward
-      # splited by source
-    - Absolute
-    - Absolute_2018
-    - BBEC1
-    - BBEC1_2018
-    - EC2
-    - EC2_2018
-    - FlavorQCD
-    - HF
-    - HF_2018
-    - RelativeBal
-    - RelativeSample_2018
-      # sys on jet pileup Id loOse from SF, eff, and mistagrates
-      # - JetpuID_eff_mc_loOse
-      # - JetpuID_mistagrates_mc_loOse
-      # - JetpuID_eff_sf_loOse
-      # - JetpuID_mistagrates_sf_loOse
-      # - # medium
-      # - JetpuID_eff_mc_medium
-      # - JetpuID_mistagrates_mc_medium
-      # - JetpuID_eff_sf_medium
-      # - JetpuID_mistagrates_sf_medium
-      # - # tight
-      # - JetpuID_eff_mc_tight
-      # - JetpuID_mistagrates_mc_tight
-      # - JetpuID_eff_sf_tight
-      # - JetpuID_mistagrates_sf_tight
-      # - # on the lepton id /iso 
-    # leptons ID, ISO and RCO SFs 
-    - muid-medium
-    - muiso-tight
-    - elid-medium
-    - lowpt-ele_reco
-    - highpt-ele_reco
+    # on the lepton id /iso /reco  
+    - muid_medium
+    - muiso_tight
+    - elid_medium
+    - lowpt_ele_reco
+    - highpt_ele_reco
     # on the pileup
-    - pileup-UL2018
+    - pileup_UL2018
     # on the trigger
-    - HHMoriond17-eleltrig
-    - HHMoriond17-mumutrig
-    - HHMoriond17-elmutrig
-    - HHMoriond17-mueltrig
+    - HHMoriond17_eleltrig
+    - HHMoriond17_mumutrig
+    - HHMoriond17_elmutrig
+    - HHMoriond17_mueltrig
     - single_mutrig
     - single_eletrig
+    - HLTZvtx_2016-preVFP
+    - HLTZvtx_2016-postVFP
     # sys from theory  
     - qcdScale
+    - qcdMuF
+    - qcdMuR
     - psISR
     - psFSR
-    - pdfWgt
-    # on the b-tagged jets
-      # resolved
-    - DeepFlavourLsys
-    - DeepFlavourMsys
-    - DeepFlavourTsys
-    - DeepCSVLsys
-    - DeepCSVMsys
-    - DeepCSVTsys
-      # boosted
-    - DeepDoubleBvLLsys
-    - DeepDoubleBvLM1sys
-    - DeepDoubleBvLM2sys
-    - DeepDoubleBvLT1sys
-    - DeepDoubleBvLT2sys
-      # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
+    - pdf
+    # FIXME on the b-tagged jets
+    # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
+    # _________ttbar
     - TTHadronic_sys: {type: const, value: 1.0007530199388735263, on: 'TTHadronic'} # uncer= 0.5174 pb 
     - TTTo2L2Nu_sys: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu'}  # uncer= +4.8%-6.1% 
-      #- TTToSemiLeptonic_sys: {type: const, value: , on: 'TTToSemiLeptonicxsc'} # uncer= +4.8%-6.1% 
-    #--- DY
-    - DYJetsToLL_M-10to50_sys: {type: const, value: 1.00036457938013915244, on: 'DYJetsToLL_M-10to50'}    # uncer= 5.764
-    - DYToLL_0J_sys: {type: const, value: 1.0010982377202849642, on: 'DYJetsToLL_0J'} # uncer= 5.858 pb
-    - DYToLL_1J_sys: {type: const, value: 1.0024989617940199336, on: 'DYJetsToLL_1J'} # uncer= 2.407 pb
-    - DYToLL_2J_sys: {type: const, value: 1.004286896551724138, on: 'DYJetsToLL_2J'}   # uncer=  1.554 pb 
-    #----- ST
+    #- TTToSemiLeptonic_sys: {type: const, value: , on: 'TTToSemiLeptonicxsc'} # uncer= +4.8%-6.1% 
+    # __________DY
+    - DYJetsToLL_0J_sys: {type: const, value: 1.0010982377202849642, on: 'DYJetsToLL_0J'} # uncer= 5.858 pb
+    - DYJetsToLL_1J_sys: {type: const, value: 1.0024989617940199336, on: 'DYJetsToLL_1J'} # uncer= 2.407 pb
+    - DYJetsToLL_2J_sys: {type: const, value: 1.004286896551724138, on: 'DYJetsToLL_2J'}   # uncer=  1.554 pb 
+    # _________ST
     - ST_t-channel_antitop_4f_sys: {type: const, value: 1.005134737152113, on: 'ST_tchannel_antitop_4f'} # uncer= 0.3487 pb
     - ST_t-channel_top_4f_sys: {type: const, value: 1.0056522506619594, on: 'ST_tchannel_top_4f'} # uncer=  0.6404  pb
     - ST_s-channel_4f_sys: {type: const, value: 1.0009446524064171122, on: 'ST_schannel_4f'} # uncer = 0.003533
     - ST_tW_top_5f_sys: {type: const, value: 1.000806932111142939, on: 'ST_tW_top_5f'}  # uncer=0.02817
     - ST_tW_antitop_5f_sys: {type: const, value: 1.000808407206176723, on: 'ST_tW_antitop_5f'} # uncer= 0.02827
-    # ---- ZZ
+    # ________ZZ
     - ZZTo2L2Nu_sys: {type: const, value: 1.0004762579730688, on: 'ZZTo2L2Nu'} # uncer= 0.0002688
     - ZZTo2L2Q_sys: {type: const, value: 1.0015211049037864, on: 'ZZTo2L2Q'} # uncer= 0.004901
     - ZZTo4L_sys: {type: const, value: 1.00047625797306874554, on: 'ZZTo4L'} # uncer= 0.0002688
-    # ---- SM
+    # ________SM
     - HZJ_HToWW_sys: {type: const, value: 1.0048418394471026, on: 'HZJ_HToWW'} # uncer= 0.003643
     - ZH_HToBB_ZToLL_sys: {type: const, value: 1.004171208294563338, on: 'ZH_HToBB_ZToLL'} # uncer=0.0003138 
     - ggZH_HToBB_ZToLL_sys: {type: const, value: 1.0011125970664365, on: 'ggZH_HToBB_ZToLL'} # uncer= 7.737e-06
     - ggZH_HToBB_ZToNuNu_sys: {type: const, value: 1.0011136198106336, on: 'ggZH_HToBB_ZToNuNu'} # uncer= 1.529e-05
     - ttHTobb_sys: {type: const, value: 1.0072765230594040615, on: 'ttHTobb'} # uncer= 0.003834
     - ttHToNonbb_sys: {type: const, value: 1.050638524299397, on: 'ttHToNonbb'}  # uncer= 0.02855
-    #  others 
+    # __________others 
     - ZZZ_sys: {type: const, value: 1.0010701001430615, on: 'ZZZ'} # uncer= 1.496e-05
     - WWW_sys: {type: const, value: 1.0009702780441037, on: 'WWW'} # uncer= 0.0002024
     - WWZ_sys: {type: const, value: 1.0010442156268928, on: 'WWZ'} # uncer= 0.0001724

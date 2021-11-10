@@ -137,31 +137,31 @@ samples:
     group: ST
     era: '2016-postVFP'
 
-    #  ST_tW_antitop_5f_preVFP:
-    #    db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
-    #    files: dascache/nanov8/ST_tWantitop_5f_2016UL_preVFP.dat
-    #    generated-events: 'genEventSumw'
-    #    cross-section: 38.06   
-    #    group: ST
-    #    era: '2016-preVFP'
-    #
-  #ST_tchannel_antitop_4f_postVFP:
-  #  db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-  #  files: dascache/nanov8/ST_tchannelantitop_4f_2016UL_postVFP.dat
-  #  generated-events: 'genEventSumw'
-  #  cross-section: 80.95  # TODO  to check !   Opb on the xsc uncer
-  #  group: ST
-  #  era: '2016-postVFP'
-  #  split: 4
-  #
-  #ST_tchannel_top_4f_postVFP:
-  #  db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-  #  files: dascache/nanov8/ST_tchanneltop_4f_2016UL_postVFP.dat
-  #  generated-events: 'genEventSumw'
-  #  cross-section: 136.02 # TODO  to check !   Opb on the xsc uncer
-  #  group: ST
-  #  era: '2016-postVFP'
-  #  split: 4
+  ST_tW_antitop_5f_preVFP:
+    db: das:/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
+    files: dascache/nanov8/ST_tWantitop_5f_2016UL_preVFP.dat
+    generated-events: 'genEventSumw'
+    cross-section: 38.06   
+    group: ST
+    era: '2016-preVFP'
+
+  ST_tchannel_antitop_4f_postVFP:
+    db: das:/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    files: dascache/nanov8/ST_tchannelantitop_4f_2016UL_postVFP.dat
+    generated-events: 'genEventSumw'
+    cross-section: 80.95  
+    group: ST
+    era: '2016-postVFP'
+    split: 4
+  
+  ST_tchannel_top_4f_postVFP:
+    db: das:/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer19UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+    files: dascache/nanov8/ST_tchanneltop_4f_2016UL_postVFP.dat
+    generated-events: 'genEventSumw'
+    cross-section: 136.02 
+    group: ST
+    era: '2016-postVFP'
+    split: 4
 
   ST_schannel_4f_postVFP:
     db: das:/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
@@ -419,14 +419,14 @@ samples:
     group: others
     era: '2016-preVFP'
 
-  TTWJetsToLNu_postVFP:
-    db: das:/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
-    files: dascache/nanov8/TTWJetsToLNu_2016UL_postVFP.dat
-    generated-events: 'genEventSumw'
-    cross-section: 0.2001
-    group: others
-    era: '2016-postVFP'
-  
+  #  TTWJetsToLNu_postVFP:
+  #    db: das:/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM
+  #    files: dascache/nanov8/TTWJetsToLNu_2016UL_postVFP.dat
+  #    generated-events: 'genEventSumw'
+  #    cross-section: 0.2001
+  #    group: others
+  #    era: '2016-postVFP'
+  #  
   TTWJetsToLNu_preVFP:
     db: das:/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM
     files: dascache/nanov8/TTWJetsToLNu_2016UL_preVFP.dat
@@ -651,13 +651,14 @@ plotIt:
     experiment: CMS
     extra-label: 2016ULegacy pre/post-VFP --Work in progress
     show-overflow: true
+    blinded-range-fill-style: 4050
+    blinded-range-fill-color: "#FDFBFB"
     #error-fill-style: 3154
     #error-fill-color: "#ee556270"
     #ratio-fit-error-fill-style: 1001
     #ratio-fit-error-fill-color: "#aa556270"
     #ratio-fit-line-color: "#0B486B"
     y-axis-format: "%1% / %2$.2f"
-  
   legend:
     position: [0.6, 0.7, 0.9, 0.9]
     #columns: 2
@@ -692,7 +693,6 @@ plotIt:
       fill-color: "#c4ffff"
       legend: others( tt+V, W+Jets , VVV, VV)
       order: 1    
-  
   plotdefaults:
       y-axis: Events
       log-y: both
@@ -702,9 +702,18 @@ plotIt:
       ratio-y-axis-range: [0.6,1.4]
       sort-by-yields: False 
   systematics:
-      # on the jets
-    - jer
-    - jesTotal
+    # total on the jets energy resolution
+    - jer 
+      # affect shape variations
+    - jer0
+    - jer1
+    - jer2
+    - jer3
+    - jer4
+    - jer5
+    - jmr
+    - jms
+    - unclustEn
       # splited  between (kinematic) regions
     - Jer_backward
     - Jer_eta_1p93TO2p5
@@ -713,60 +722,53 @@ plotIt:
     - Jer_eta_3TO2p5_bin1
     - Jer_eta_3TO2p5_bin2
     - Jer_forward
+    # on the jets energy scale 
+    - jesTotal
       # splited by source
-    - Absolute
-    - Absolute_2016
-    - BBEC1
-    - BBEC1_2016
-    - EC2
-    - EC2_2016
-    - FlavorQCD
-    - HF
-    - HF_2016
-    - RelativeBal
-    - RelativeSample_2016
-     # leptons ID, ISO and RCO SFs 
-    - muid-medium
-    - muiso-tight
-    - elid-medium
-    - lowpt-ele_reco
-    - highpt-ele_reco
-      # on the pileup
-    - pileup-UL2016
-      # on the trigger
-    - HHMoriond17-eleltrig
-    - HHMoriond17-mumutrig
-    - HHMoriond17-elmutrig
-    - HHMoriond17-mueltrig
+    - jesAbsolute
+    - jesAbsolute_2016
+    - jesBBEC1
+    - jesBBEC1_2016
+    - jesEC2
+    - jesEC2_2016
+    - jesFlavorQC'
+    - jesHF
+    - jesHF_2016
+    - jesRelativeBal
+    - jesRelativeSample_2016
+    # leptons ID, ISO and RCO SFs 
+    - muid_medium
+    - muiso_tight
+    - elid_medium
+    - lowpt_ele_reco
+    - highpt_ele_reco
+    # on the pileup
+    - pileup_UL2016
+    # on the trigger
+    - HHMoriond17__eleltrig
+    - HHMoriond17__mumutrig
+    - HHMoriond17__elmutrig
+    - HHMoriond17__mueltrig
+    - HLTZvtx_2016-preVFP
+    - HLTZvtx_2016-postVFP
       # sys from theory  
     - qcdScale
+    - qcdMuF
+    - qcdMuR
     - psISR
     - psFSR
-    - pdfWgt
-      # on the btagged jets 
-    - DeepFlavourLsys
-    - DeepFlavourMsys
-    - DeepFlavourTsys
-    - DeepCSVLsys
-    - DeepCSVMsys
-    - DeepCSVTsys
-    - boostedDeepCSVLsys
-    - boostedDeepCSVMsys
-    - DeepDoubleBvLLsys
-    - DeepDoubleBvLM1sys
-    - DeepDoubleBvLM2sys
-    - DeepDoubleBvLT1sys
-    - DeepDoubleBvLT2sys
-      # L1 pre-firing event correction weight
+    - pdf
+    # L1 pre-firing event correction weight
     - L1PreFiring
-      # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
+    # FIXME on the btagged jets 
+    # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     # ____ DY
-    - DYToLL_0J_postVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYToLL_0J_postVFP'}
-    - DYToLL_0J_preVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYToLL_0J_preVFP'}   # uncer= 6.287
-    - DYToLL_1J_postVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYToLL_1J_postVFP'}   # uncer= 6.287
-    - DYToLL_1J_preVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYToLL_1J_preVFP'}   # uncer= 6.287
-    - DYToLL_2J_postVFP_sys: {type: const, value: 1.0032481644640234, on: 'DYToLL_2J_postVFP'}   # uncer= 1.106
-    - DYToLL_2J_preVFP_sys: {type: const, value: 1.0032481644640234, on: 'DYToLL_2J_pretVFP'}   # uncer= 1.106
+    - DYJetsToLL_0J_postVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYJetsToLL_0J_postVFP'}
+    - DYJetsToLL_0J_preVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYJetsToLL_0J_preVFP'}   # uncer= 6.287
+    - DYJetsToLL_1J_postVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYJetsToLL_1J_postVFP'}   # uncer= 6.287
+    - DYJetsToLL_1J_preVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYJetsToLL_1J_preVFP'}   # uncer= 6.287
+    - DYJetsToLL_2J_postVFP_sys: {type: const, value: 1.0032481644640234, on: 'DYJetsToLL_2J_postVFP'}   # uncer= 1.106
+    - DYJetsToLL_2J_preVFP_sys: {type: const, value: 1.0032481644640234, on: 'DYJetsToLL_2J_pretVFP'}   # uncer= 1.106
     # _____ ttbar
     - TTTo2L2Nu_postVFP_sys: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu_postVFP'}  # uncer= 0.0585
     - TTTo2L2Nu_preVFP_sys: {type: const, value: 1.0007627118644067 , on: 'TTTo2L2Nu_preVFP'}  # uncer= 0.0585

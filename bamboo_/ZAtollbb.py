@@ -275,7 +275,11 @@ class NanoHtoZABase(NanoAODModule):
         self.dobJetER         = self.args.dobJetEnergyRegression
         self.doYields         = self.args.yields
         self.doSkim           = self.args.skim
-    
+
+        self.qcdScaleVarMode  = "separate"  # "separate" : (muR/muF variations) 
+                                            # or combine : (7-point envelope)
+        self.pdfVarMode       = "simple"    # simple  : (event-based envelope) (only if systematics enabled)
+                                            # or full : PDF uncertainties (100 histogram variations) 
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         parser.add_argument("-s", "--systematic", action="store_true", help="Produce systematic variations")
@@ -298,9 +302,9 @@ class NanoHtoZABase(NanoAODModule):
             #    yaml.dump(config, backupCfg)
 
     def prepareTree(self, tree, sample=None, sampleCfg=None):
-        era = sampleCfg.get("era") if sampleCfg else None
+        era  = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
-        preVFPruns = ["2016B", "2016C", "2016D", "2016E", "2016F"]
+        preVFPruns  = ["2016B", "2016C", "2016D", "2016E", "2016F"]
         postVFPruns = ["2016G", "2016H"]
 
         if self.doNanoAODversion in ["v8", "v9"]:
@@ -562,8 +566,7 @@ class NanoHtoZABase(NanoAODModule):
                                                 autoSyst=self.doSysts)
             if self.doSysts:
                 logger.info("Adding QCD scale variations, ISR , FSR and PDFs")
-                # FIXME : PDF still work in progress , keep it off for now 
-                noSel = utils.addTheorySystematics(self, tree, noSel, qcdScale=True, PSISR=True, PSFSR=True, PDFs=False)
+                noSel = utils.addTheorySystematics(self, sample, sampleCfg, tree, noSel, qcdScale=True, PSISR=True, PSFSR=True, PDFs=True, pdf_mode=self.pdfVarMode)
         else:
             noSel = noSel.refine("withTrig", cut=(makeMultiPrimaryDatasetTriggerSelection(sample, triggersPerPrimaryDataset)))
        
@@ -651,8 +654,8 @@ class NanoHtoZABase(NanoAODModule):
             if mcprofile is not None:
                 PUWeight = makePileupWeight(mcprofile, t.Pileup_nTrueInt, variation="Nominal", nameHint="puWeight_{0}".format(sample.replace('-','_')))
             else:
-                suffix = "UL{}".format(era) if isULegacy else "EOY{}".format(puWeightsFile.split('/')[-1].split('_')[-1].split('.')[0])
-                PUWeight = makePileupWeight(puWeightsFile, t.Pileup_nTrueInt, systName="pileup-%s"%(suffix))
+                suffix = f"UL{era}".replace('-', '_') if isULegacy else "EOY{}".format(puWeightsFile.split('/')[-1].split('_')[-1].split('.')[0])
+                PUWeight = makePileupWeight(puWeightsFile, t.Pileup_nTrueInt, systName="pileup_%s"%(suffix))
             noSel = noSel.refine("puWeight", weight=PUWeight)
         
         ###########################################
@@ -705,11 +708,11 @@ class NanoHtoZABase(NanoAODModule):
         # 2016 seprate from 2017 &2018  because SFs need to be combined for BCDEF and GH eras !
         # 2016 ULegacy is split into two different reconstruction versions pre/post VFP 
         if "2016" in era:
-            muMediumIDSF  = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "id_medium"), combine="weight", systName="muid-medium")
-            muMediumISOSF = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "iso_tightrel_id_medium"), combine="weight", systName="muiso-tight")
+            muMediumIDSF  = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "id_medium"), combine="weight", systName="muid_medium")
+            muMediumISOSF = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "iso_tightrel_id_medium"), combine="weight", systName="muiso_tight")
         else:
-            muMediumIDSF  = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "id_medium"), systName="muid-medium")
-            muMediumISOSF = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "iso_tightrel_id_medium"), systName="muiso-tight") 
+            muMediumIDSF  = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "id_medium"), systName="muid_medium")
+            muMediumISOSF = get_Ulegacyscalefactor("lepton", ("muon_Summer19UL{0}_{1}".format(era_, globalTag), "iso_tightrel_id_medium"), systName="muiso_tight") 
             #mutrackingSF = get_scalefactor("lepton", ("muon_{0}_{1}".format(era, globalTag), "id_TrkHighPtID_newTuneP"), systName="mutrk")
             
         ########################################
@@ -744,13 +747,13 @@ class NanoHtoZABase(NanoAODModule):
                                                                     op.OR(op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.1), 
                                                                           op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
         if "2016" in era:
-            elMediumIDSF   = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "id_medium"), isElectron=True, combine="weight", systName="elid-medium")
-            elRecoSF_lowpt = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptBelow20"), isElectron=True, combine="weight", systName="lowpt-ele_reco")
-            elRecoSF_highpt= get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptAbove20"), isElectron=True, combine="weight", systName="highpt-ele_reco")
+            elMediumIDSF   = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "id_medium"), isElectron=True, combine="weight", systName="elid_medium")
+            elRecoSF_lowpt = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptBelow20"), isElectron=True, combine="weight", systName="lowpt_ele_reco")
+            elRecoSF_highpt= get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptAbove20"), isElectron=True, combine="weight", systName="highpt_ele_reco")
         else:
-            elMediumIDSF   = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "id_medium"), isElectron=True, systName="elid-medium")
-            elRecoSF_lowpt = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptBelow20"), isElectron=True, systName="lowpt-ele_reco")
-            elRecoSF_highpt= get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptAbove20"), isElectron=True, systName="highpt-ele_reco")
+            elMediumIDSF   = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "id_medium"), isElectron=True, systName="elid_medium")
+            elRecoSF_lowpt = get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptBelow20"), isElectron=True, systName="lowpt_ele_reco")
+            elRecoSF_highpt= get_Ulegacyscalefactor("lepton", ("electron_Summer19UL{0}_{1}".format(era_,globalTag), "reco_ptAbove20"), isElectron=True, systName="highpt_ele_reco")
 
         #elChargeSF = get_scalefactor("lepton", ("eChargeMisID", "eCharge_{0}".format(era)), isElectron=True, systName="ele_charge")
         
@@ -1090,7 +1093,7 @@ class NanoHtoZABase(NanoAODModule):
         ########################################################
         ########################################################
         ZvtxSF = 1.
-        ZvtxSF = get_HLTZvtxSF(era, sample, f"HLTZvtx_{era}eff", split_eras=True)
+        ZvtxSF = get_HLTZvtxSF(era, sample, f"HLTZvtx_{era}", split_eras=True)
        
         ########################################################
         # HLT 
@@ -1105,10 +1108,10 @@ class NanoHtoZABase(NanoAODModule):
         
         if version_TriggerSFs == None or (version_TriggerSFs =='tth' and era=='2018'): # will pass HHMoriond17 the default version 
             
-            doubleMuTrigSF  = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="HHMoriond17-mumutrig")  
-            doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="HHMoriond17-eleltrig")
-            elemuTrigSF     = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17-elmutrig")
-            mueleTrigSF     = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17-mueltrig")
+            doubleMuTrigSF  = get_scalefactor("dilepton", ("doubleMuLeg_HHMoriond17_2016"), systName="HHMoriond17__mumutrig")  
+            doubleEleTrigSF = get_scalefactor("dilepton", ("doubleEleLeg_HHMoriond17_2016"), systName="HHMoriond17__eleltrig")
+            elemuTrigSF     = get_scalefactor("dilepton", ("elemuLeg_HHMoriond17_2016"), systName="HHMoriond17__elmutrig")
+            mueleTrigSF     = get_scalefactor("dilepton", ("mueleLeg_HHMoriond17_2016"), systName="HHMoriond17__mueltrig")
         else:
             doubleMuTrigSF  = get_HLTsys(era, osLLRng.get('MuMu')[0], 'MuMu', version_TriggerSFs)
             doubleEleTrigSF = get_HLTsys(era, osLLRng.get('ElEl')[0], 'ElEl', version_TriggerSFs)
@@ -1224,7 +1227,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     #===============================================================================
                     # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
                     elif onnx__version:
-                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=(inputs, "out"), nameHint='ONNX_ZAModel')
+                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=("out"), nameHint='ONNX_ZAModel')
                     #===============================================================================
                 except Exception as ex:
                     raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
@@ -1495,7 +1498,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
                     btagSF_deepcsv     = BtagSF('deepcsv', csv_deepcsvAk4, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
                                                         measurementType= measurementType, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_On{sample}_deepcsv{wp}')
+                                                        uName= f'sf_eff_{channel}_{sample}_deepcsv{wp}')
                 if os.path.exists(csv_deepflavour):
                     if csv_deepflavour.split('/')[-1].endswith('DeepJet_106XUL16SF_postVFP.csv'):
                         measurementType = {"B": "comb", "C": "comb"}
@@ -1503,12 +1506,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
                     btagSF_deepflavour = BtagSF('deepflavour', csv_deepflavour, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
                                                         measurementType= measurementType, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_On{sample}_deepflavour{wp}')
+                                                        uName= f'sf_eff_{channel}_{sample}_deepflavour{wp}')
                 if os.path.exists(csv_deepcsvSubjets):
                     if 'Tight' not in OP : 
                         btagSF_subjets = BtagSF('deepcsv', csv_deepcsvSubjets, wp= OP, sysType="central", otherSysTypes= ("up", "down"),
                                                         measurementType= {"B": "lt", "C": "lt", "UDSG": "incl"}, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_On{sample}_subjets_deepcsv{wp}')
+                                                        uName= f'sf_eff_{channel}_{sample}_subjets_deepcsv{wp}')
                 
 
                 for process in ['gg_fusion', 'bb_associatedProduction']:
@@ -1796,9 +1799,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         # run plotIt as defined in HistogramsModule - this will also ensure that self.plotList is present
         super(NanoHtoZA, self).postProcess(taskList, config, workdir, resultsdir)
 
-        import pandas as pd
         import json 
         import bambooToOls
+        import pandas as pd
         from bamboo.plots import CutFlowReport, DerivedPlot, Skim
         from utils import normalizeAndMergeSamplesForCombined
 
@@ -1812,20 +1815,27 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         #    json.dump(maxrssmb, handle, indent=4)
         #    json.dump(end - start, handle, indent=4)
 
+        if self.doSysts:
+            for task in taskList:
+                if self.isMC(task.name) and "syst" not in task.config:
+                    if self.pdfVarMode == "full" and task.config.get("pdf_full", False):
+                        utils.producePDFEnvelopes(self.plotList, task, resultsdir)
+        
         plotstoNormalized = []
         for plots in self.plotList:
             if plots.name.startswith('rho_steps_') or plots.name.startswith('jj_M_') or plots.name.startswith('lljj_M_') or plots.name.startswith('DNNOutput_'):
                 plotstoNormalized.append(plots)
         if not os.path.isdir(os.path.join(resultsdir, "normalizedForCombined")):
             os.makedirs(os.path.join(resultsdir,"normalizedForCombined"))
-        normalizeAndMergeSamplesForCombined(plotstoNormalized, self.readCounters, config, resultsdir, os.path.join(resultsdir, "normalizedForCombined"))
+        if plotstoNormalized:
+            normalizeAndMergeSamplesForCombined(plotstoNormalized, self.readCounters, config, resultsdir, os.path.join(resultsdir, "normalizedForCombined"))
         
         # save generated-events for each samples--- > mainly needed for the DNN
         plotList_cutflowreport = [ ap for ap in self.plotList if isinstance(ap, CutFlowReport) ]
         bambooToOls.SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
 
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
-        logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
+        loggeg.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
         from bamboo.analysisutils import loadPlotIt
         p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
