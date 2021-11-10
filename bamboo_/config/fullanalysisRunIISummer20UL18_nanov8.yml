@@ -595,7 +595,13 @@ plotIt:
     - psISR
     - psFSR
     - pdf
-    # FIXME on the b-tagged jets
+    # on the b-tagged jets
+    - btagSF_fixWP_subjetdeepcsvM_light
+    - btagSF_fixWP_subjetdeepcsvM_heavy
+    - btagSF_fixWP_deepcsvM_light
+    - btagSF_fixWP_deepcsvM_heavy
+    - btagSF_fixWP_deepflavourM_light
+    - btagSF_fixWP_deepflavourM_heavy
     # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     # _________ttbar
     - TTHadronic_sys: {type: const, value: 1.0007530199388735263, on: 'TTHadronic'} # uncer= 0.5174 pb 

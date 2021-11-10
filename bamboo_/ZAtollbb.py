@@ -10,17 +10,17 @@ from itertools import chain
 from functools import partial
 
 import bamboo.scalefactors
+from bamboo import treefunctions as op
 from bamboo.analysismodules import NanoAODModule, NanoAODHistoModule, HistogramsModule
 from bamboo.analysisutils import makeMultiPrimaryDatasetTriggerSelection
-from bamboo import treefunctions as op
 from bamboo.root import addIncludePath, loadHeader
-from bamboo.scalefactors import BtagSF#, get_correction
+from bamboo.scalefactors import BtagSF #, get_correction
 
 import logging
 LOG_LEVEL = logging.DEBUG
 stream = logging.StreamHandler()
 stream.setLevel(LOG_LEVEL)
-logger = logging.getLogger("run2 Ulegacy H/A ->Z A/H ->llbb Analysis")
+logger = logging.getLogger("run2Ulegacy_ZAAnalysis")
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
@@ -52,10 +52,10 @@ if zabPath not in sys.path:
     sys.path.append(zabPath)
 
 import utils
+from EXtraPLots import * 
+from ControlPLots import *
 from systematics import get_HLTsys, get_tthDYreweighting
 from ZAEllipses import MakeEllipsesPLots, MakeMETPlots, MakeExtraMETPlots, MakePuppiMETPlots, MHMAforCombinedLimits
-from EXtraPLots import MakeTriggerDecisionPlots, MakeBestBJetsPairPlots, MakeHadronFlavourPLots, zoomplots, ptcuteffectOnJetsmultiplicty, choosebest_jetid_puid, varsCutsPlotsforLeptons, LeptonsInsideJets, makePUIDSF, makerhoPlots
-from ControlPLots import *
 from boOstedEvents import get_DeepDoubleXDeepBoostedJet, get_BoostedEventWeight
 from scalefactorslib import all_scalefactors, all_run2_Ulegacyscalefactors
 
@@ -176,48 +176,100 @@ def catchHLTforSubPrimaryDataset(year, fullEra, evt, isMC=False):
                                  hlt.Mu37_Ele27_CaloIdL_MW ]
             }
 
-def BTAGcalibration(tagger, wp , noSel, sample, era, nanoaodversion, mistagSF=False ):
-    var = [] 
-    if mistagSF:
-        csv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/mistagrates_sfs", "fromJoshua", "%s_%s.csv"%(tagger, era))
-        measurement={"UDSG": "incl"}
-        systname = 'bjets_mistagRates'
-        var.extend(["up_correlated", "up_uncorrelated", "down_correlated", "down_uncorrelated"])
-        suffix= 'MistagRate'
-    else:
-        idx = ( 1 if tagger== 'DeepCSV' else(0))
-        EOYcsv = { '2016': ("DeepJet_2016LegacySF_V1.csv", "DeepCSV_2016LegacySF_V1.csv"),
-                   '2017': ("DeepFlavour_94XSF_V4_B_F.csv", "DeepCSV_94XSF_V5_B_F.csv"), 
-                   '2018': ("DeepJet_102XSF_V1.csv", "DeepCSV_102XSF_V1.csv")
-                }
-        Ulegacycsv = { '2016': ("DeepJet_2016LegacySF_V1.csv", "DeepCSV_2016LegacySF_V1.csv"),
-                       '2017': ("DeepJet_106XUL17SF_WPonly_V2p1.csv", "DeepCSV_106XUL17SF_WPonly_V2p1.csv"), 
-                       '2018': ("DeepJet_106XUL18SF_WPonly.csv", "DeepCSV_106XUL18SF_WPonly.csv")
-                    }
-        
-        if  nanoaodversion in ["v8", "v9"]:
-            csv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/Inputs", '%sUL'%era, "Btag", Ulegacycsv[era][idx])
-        else:
-            csv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/Inputs", '%s'%era, "Btag", EOYcsv[era][idx])
 
-        measurement={"B": "comb", "C": "comb", "UDSG": "incl"}
-        systname = 'bjets_SFs'
-        suffix= 'Eff'
-
-    if os.path.exists(csv_file):
-        sf = BtagSF(tagger.lower(), csv_file, wp=wp, sysType="central", otherSysTypes=var.extend(["up", "down"]), 
-                                systName= '%s_%s%s'%(systname, tagger,wp), measurementType=measurement, sel= noSel, 
-                                uName='Evaluatebtag%s_On%s_%s%s'%(suffix, sample, tagger, wp[0]))
-    else:
-        raise RuntimeError("csv file : {0} not found !".format(csv_file))
+def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, OP=None, wp=None, idx=None, legacy_btagging_wpdiscr_cuts=None, channel=None, sample=None, era=None, noSel=None, isMC=False, isULegacy=False):
     
-    return sf
+    def transl_flav( era, wp, tagger=None, flav=None):
+        return partial(bamboo.scalefactors.BtagSF.translateFixedWPCorrelation, prefix=f"btagSF_fixWP_{tagger.lower()}{wp}_{flav}", year=era)
+    #sysToLoad = ["up_correlated", "down_correlated", "up_uncorrelated", "down_uncorrelated"]
+    sysToLoad = ["up", "down"]
+
+    path_Effmaps = { 
+            '2016-preVFP' : "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
+            '2016-postVFP': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
+            '2016': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
+            '2017': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2017__btv_effmaps__ext2/results/summedProcessesForEffmaps/summedProcesses_2017_ratios.root",
+            '2018': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2018__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2018_ratios.root"
+                }
+    
+    run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
+    btagSF_light = collections.defaultdict(dict)
+    btagSF_heavy = collections.defaultdict(dict)
+
+    if isULegacy:
+        csv_deepcsvAk4     = scalesfactorsULegacyLIB['DeepCSV']['Ak4'][era]
+        csv_deepcsvSubjets = scalesfactorsULegacyLIB['DeepCSV']['softdrop_subjets'][era]
+        csv_deepflavour    = scalesfactorsULegacyLIB['DeepFlavour'][era]
+    else:
+        csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
+        csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
+        csv_deepflavour    = scalesfactorsLIB['DeepFlavour'][era]
+    
+    if os.path.exists(csv_deepcsvAk4): # FIXME sysType centrale ? 
+        btagSF_light['DeepCSV']     = BtagSF('DeepCSV', csv_deepcsvAk4, wp= OP, sysType= "central", otherSysTypes= sysToLoad,
+                                            measurementType=  {"UDSG": "incl"}, jesTranslate=transl_flav( era, wp, tagger='DeepCSV', flav='light'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_deepcsv{wp}_lightflav')
+        btagSF_heavy['DeepCSV']     = BtagSF('DeepCSV', csv_deepcsvAk4, wp= OP, sysType= "central", otherSysTypes= sysToLoad,
+                                            measurementType= {"B": "comb", "C": "comb"}, jesTranslate=transl_flav( era, wp, tagger='DeepCSV', flav='heavy'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_deepcsv{wp}_heavyflav')
+    if os.path.exists(csv_deepflavour):
+        btagSF_light['DeepFlavour']  = BtagSF('DeepFalvour', csv_deepflavour, wp= OP, sysType= "central", otherSysTypes= sysToLoad,
+                                            measurementType= {"UDSG": "incl"}, jesTranslate=transl_flav( era, wp, tagger='DeepFlavour', flav='light'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_deepflavour{wp}_lightflav')
+        btagSF_heavy['DeepFlavour']  = BtagSF('DeepFalvour', csv_deepflavour, wp= OP, sysType= "central", otherSysTypes= sysToLoad,
+                                            measurementType= {"B": "comb", "C": "comb"}, jesTranslate=transl_flav( era, wp, tagger='DeepFlavour', flav='heavy'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_deepflavour{wp}_heavyflav')
+    
+    if os.path.exists(csv_deepcsvSubjets):
+        if 'Tight' not in OP : 
+            btagSF_light['subjets'] = BtagSF('DeepFlavour', csv_deepcsvSubjets, wp= OP, sysType="central", otherSysTypes= sysToLoad,
+                                            measurementType= {"UDSG": "incl"}, jesTranslate=transl_flav( era, wp, tagger='subjetdeepcsv', flav='light'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_subjets_deepcsv{wp}_lightflav')
+            btagSF_heavy['subjets'] = BtagSF('DeepFlavour', csv_deepcsvSubjets, wp= OP, sysType="central", otherSysTypes= sysToLoad,
+                                            measurementType= {"B": "lt", "C": "lt"}, jesTranslate=transl_flav( era, wp, tagger='subjetdeepcsv', flav='heavy'),
+                                            getters={"Pt": lambda j : j.pt}, sel= noSel, uName= f'sf_eff_{channel}_{sample}_subjets_deepcsv{wp}_heavyflav')
+    
+    def getbtagSF_flavor(j, tagger):
+        return op.multiSwitch((j.hadronFlavour == 5, btagSF_heavy[tagger](j)), 
+                              (j.hadronFlavour == 4, btagSF_heavy[tagger](j)), 
+                                btagSF_light[tagger](j))
+
+    
+    for process in ['gg_fusion', 'bb_associatedProduction']:
+        if os.path.exists(path_Effmaps[era]):
+            bTagEff_deepcsvAk4  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepcsv", {%s}, "%s");'%(path_Effmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
+            bTagEff_deepflavour = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepflavour", {%s}, "%s");'%(path_Effmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], process))
+            if 'T' not in wp:
+                bTagEff_deepcsvAk8 = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "boosted", "deepcsv", {%s}, "%s");'%(path_Effmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
+        else:
+            raise RuntimeError(f"{path_Effmaps[era]} : efficiencies maps not found !")
+
+        if isMC:
+            bTagSF_DeepCSVPerJet     = op.map(cleaned_AK4JetsByDeepB, lambda j: bTagEff_deepcsvAk4.evaluate(j.hadronFlavour, j.btagDeepB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'DeepCSV') ) )
+            bTagSF_DeepFlavourPerJet = op.map(cleaned_AK4JetsByDeepFlav, lambda j: bTagEff_deepflavour.evaluate(j.hadronFlavour, j.btagDeepFlavB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'DeepFlavour') ) )
+            bTagSF_DeepCSVPerSubJet  = op.map(cleaned_AK8JetsByDeepB, lambda j: op.product(bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor", 
+                                                                                                                        op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
+                                                                                                                                       (j.nCHadrons >0, op.c_int(4)), 
+                                                                                                                                       op.c_int(0)) ), 
+                                                                                                                        j.subJet1.btagDeepB, j.subJet1.pt, op.abs(j.subJet1.eta), getbtagSF_flavor(j, 'subjets') ), 
+                                                                                            bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor",
+                                                                                                                        op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
+                                                                                                                                       (j.nCHadrons >0, op.c_int(4)), 
+                                                                                                                                        op.c_int(0)) ), 
+                                                                                                                        j.subJet2.btagDeepB, j.subJet2.pt, op.abs(j.subJet2.eta), getbtagSF_flavor(j, 'subjets') )  
+                                                                                            )
+                                                                                        )
+
+            run2_bTagEventWeight_PerWP[process]['resolved'] = { 'DeepCSV{0}'.format(wp): op.rng_product(bTagSF_DeepCSVPerJet), 'DeepFlavour{0}'.format(wp): op.rng_product(bTagSF_DeepFlavourPerJet) }
+            run2_bTagEventWeight_PerWP[process]['boosted']  = { 'DeepCSV{0}'.format(wp): op.rng_product(bTagSF_DeepCSVPerSubJet) }
+    
+    return run2_bTagEventWeight_PerWP
 
 
 def bJetEnergyRegression(bjet):
     return op.map(bjet, lambda j : op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float>>", (j.pt*j.bRegCorr, j.eta, j.phi, j.mass*j.bRegCorr)))
 
-def JetsEnergyRegression(jet):
+def JetEnergyRegression(jet):
     corrected_jetEnergyRegression = op.map( jet, lambda j: op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >",
                                                                         (op.product( j.pt, op.multiSwitch( (j.hadronFlavour == 5 , j.bRegCorr), (j.hadronFlavour == 4, j.cRegCorr), op.c_float(1) ) ), 
                                                                         j.eta, j.phi, 
@@ -227,27 +279,45 @@ def JetsEnergyRegression(jet):
 scalesfactorsLIB = {
             "DeepFlavour": {
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                    {"2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017/Btag/DeepFlavour_94XSF_V4_B_F.csv", "2018": "2018/Btag/DeepJet_102XSF_V1.csv"}.items() },
+                    {"2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", 
+                     "2017": "2017/Btag/DeepFlavour_94XSF_V4_B_F.csv", 
+                     "2018": "2018/Btag/DeepJet_102XSF_V1.csv"}.items() },
             "DeepCSV" :{
                 "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , "2017": "2017/Btag/DeepCSV_94XSF_V5_B_F.csv" , "2018": "2018/Btag/DeepCSV_102XSF_V1.csv"}.items() },
+                            {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , 
+                             "2017": "2017/Btag/DeepCSV_94XSF_V5_B_F.csv" , 
+                             "2018": "2018/Btag/DeepCSV_102XSF_V1.csv"}.items() },
                 "softdrop_subjets": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , "2017": "2017/Btag/subjet_DeepCSV_94XSF_V4_B_F_v2.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
+                            {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , 
+                             "2017": "2017/Btag/subjet_DeepCSV_94XSF_V4_B_F_v2.csv" , 
+                             "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
             }
         
 scalesfactorsULegacyLIB = {
             "DeepFlavour": {
                 year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                    {"2016-preVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2016-postVFP": "2016UL/Btag/DeepJet_106XUL16SF_postVFP.csv", "2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
+                    {"2016-preVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", 
+                     "2016-postVFP": "2016/Btag/DeepJet_2016LegacySF_V1.csv", #"2016UL/Btag/DeepJet_106XUL16SF_postVFP.csv", 
+                     "2016": "2016/Btag/DeepJet_2016LegacySF_V1.csv", 
+                     "2017": "2017UL/Btag/DeepJet_106XUL17SF_WPonly_V2p1.csv", 
+                     "2018": "2018UL/Btag/DeepJet_106XUL18SF_WPonly.csv"}.items() },
             "DeepCSV" :{
                 "Ak4": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016-preVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016UL/Btag/DeepCSV_106XUL16SF_postVFP.csv", "2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
+                            {"2016-preVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", 
+                             "2016-postVFP":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", #"2016UL/Btag/DeepCSV_106XUL16SF_postVFP.csv", 
+                             "2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv", 
+                             "2017": "2017UL/Btag/DeepCSV_106XUL17SF_WPonly_V2p1.csv" , 
+                             "2018": "2018UL/Btag/DeepCSV_106XUL18SF_WPonly.csv"}.items() },
                 "softdrop_subjets": {
                         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-                            {"2016-preVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2016-postVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
+                            {"2016-preVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", 
+                             "2016-postVFP":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", 
+                             "2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv", 
+                             "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , 
+                             "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
             }
 
 
@@ -351,7 +421,6 @@ class NanoHtoZABase(NanoAODModule):
 
         if "2016" in era:
             if era == "2016-preVFP":
-            #if "preVFP" in sample or any(x in sample for x in preVFPruns):
                 configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016aUL.txt"), isMC=isMC, backend=be, uName=sample)
             elif era == "2016-postVFP":
                 configureRochesterCorrection(tree._Muon, os.path.join(os.path.dirname(__file__), "data/roccor.Run2.v5", "RoccoR2016bUL.txt"), isMC=isMC, backend=be, uName=sample)
@@ -1220,9 +1289,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     #===============================================================================
                     # Tensorflow : The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), 
                     # where each of the two can be a single string, or an iterable of them.
-                    inputs = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH']
                     if tf__version:
                         outputs = 'Identity'
+                        inputs  = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH']
                         ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
                     #===============================================================================
                     # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
@@ -1278,8 +1347,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_reconstructedVerticesPlots  = False
         make_DYReweightingPlots_2017Only = False #*
         
-        # don't forget to set these 
-        pass_bTagEventWeight        = False #  Do or not pass the computed mc eff 
+        # MANDATORY 
+        pass_bTagEventWeight        = True 
         split_DYWeightIn64Regions   = False
         istthDY_weight              = False
         
@@ -1472,70 +1541,16 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     bJets_resolved_PassdeepflavourWP = bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
                     bJets_resolved_PassdeepcsvWP     = bJetEnergyRegression( bJets_resolved_PassdeepcsvWP)
                     bJets_boosted_PassdeepcsvWP      = bJetEnergyRegression( bJets_boosted_PassdeepcsvWP)
+    
+                run2_bTagEventWeight_PerWP = makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, 
+                                                        OP, wp, idx, legacy_btagging_wpdiscr_cuts, 
+                                                        channel, 
+                                                        sample, 
+                                                        era, 
+                                                        noSel,
+                                                        isMC, 
+                                                        isULegacy)
                 
-                
-                pathtoRoOtmaps = { '2016-preVFP' : "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
-                                   '2016-postVFP': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
-                                   '2016': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2016__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2016_ratios.root",
-                                   '2017': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2017__btv_effmaps__ext2/results/summedProcessesForEffmaps/summedProcesses_2017_ratios.root",
-                                   '2018': "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ul2018__btv_effmaps/results/summedProcessesForEffmaps/summedProcesses_2018_ratios.root"
-                                   }
-                
-                if isULegacy:
-                    csv_deepcsvAk4     = scalesfactorsULegacyLIB['DeepCSV']['Ak4'][era]
-                    csv_deepcsvSubjets = scalesfactorsULegacyLIB['DeepCSV']['softdrop_subjets'][era]
-                    csv_deepflavour    = scalesfactorsULegacyLIB['DeepFlavour'][era]
-                else:
-                    csv_deepcsvAk4     = scalesfactorsLIB['DeepCSV']['Ak4'][era]
-                    csv_deepcsvSubjets = scalesfactorsLIB['DeepCSV']['softdrop_subjets'][era]
-                    csv_deepflavour    = scalesfactorsLIB['DeepFlavour'][era]
-               
-                if os.path.exists(csv_deepcsvAk4):
-                    # FIXME it's a bug  from BTV CSV FILES or it's just missing since all is WIP 
-                    if csv_deepcsvAk4.split('/')[-1].endswith('DeepCSV_106XUL16SF_postVFP.csv'):
-                        measurementType = {"B": "comb", "C": "comb"}
-                    else:
-                        measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
-                    btagSF_deepcsv     = BtagSF('deepcsv', csv_deepcsvAk4, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
-                                                        measurementType= measurementType, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_{sample}_deepcsv{wp}')
-                if os.path.exists(csv_deepflavour):
-                    if csv_deepflavour.split('/')[-1].endswith('DeepJet_106XUL16SF_postVFP.csv'):
-                        measurementType = {"B": "comb", "C": "comb"}
-                    else:
-                        measurementType = {"B": "comb", "C": "comb", "UDSG": "incl"}
-                    btagSF_deepflavour = BtagSF('deepflavour', csv_deepflavour, wp= OP, sysType= "central", otherSysTypes= ("up", "down"),
-                                                        measurementType= measurementType, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_{sample}_deepflavour{wp}')
-                if os.path.exists(csv_deepcsvSubjets):
-                    if 'Tight' not in OP : 
-                        btagSF_subjets = BtagSF('deepcsv', csv_deepcsvSubjets, wp= OP, sysType="central", otherSysTypes= ("up", "down"),
-                                                        measurementType= {"B": "lt", "C": "lt", "UDSG": "incl"}, sel= noSel,
-                                                        uName= f'sf_eff_{channel}_{sample}_subjets_deepcsv{wp}')
-                
-
-                for process in ['gg_fusion', 'bb_associatedProduction']:
-                    if os.path.exists(pathtoRoOtmaps[era]):
-                        bTagEff_deepcsvAk4  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepcsv", {%s}, "%s");'%(pathtoRoOtmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
-                        bTagEff_deepflavour = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepflavour", {%s}, "%s");'%(pathtoRoOtmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], process))
-                        if 'T' not in wp:
-                            bTagEff_deepcsvAk8 = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "boosted", "deepcsv", {%s}, "%s");'%(pathtoRoOtmaps[era], wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
-                    else:
-                        raise RuntimeError(f"{era} efficiencies maps not found !")
-
-                    if isMC:
-                        bTagSF_DeepCSVPerJet     = op.map(cleaned_AK4JetsByDeepB, lambda j: bTagEff_deepcsvAk4.evaluate(j.hadronFlavour, j.btagDeepB, j.pt, op.abs(j.eta), btagSF_deepcsv(j)))
-                        bTagSF_DeepFlavourPerJet = op.map(cleaned_AK4JetsByDeepFlav, lambda j: bTagEff_deepflavour.evaluate(j.hadronFlavour, j.btagDeepFlavB, j.pt, op.abs(j.eta), btagSF_deepflavour(j)))
-                        bTagSF_DeepCSVPerSubJet  = op.map(cleaned_AK8JetsByDeepB, lambda j: op.product(bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor", 
-                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), (j.nCHadrons >0, op.c_int(4)), op.c_int(0)) ), 
-                                                                                                                            j.subJet1.btagDeepB, j.subJet1.pt, op.abs(j.subJet1.eta), btagSF_subjets(j)) , 
-                                                                                                       bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor",
-                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), (j.nCHadrons >0, op.c_int(4)), op.c_int(0)) ), 
-                                                                                                                            j.subJet2.btagDeepB, j.subJet2.pt, op.abs(j.subJet2.eta), btagSF_subjets(j))  )
-                                                                                                        )
-
-                        run2_bTagEventWeight_PerWP[process]['resolved'] = { 'DeepCSV{0}'.format(wp): op.rng_product(bTagSF_DeepCSVPerJet), 'DeepFlavour{0}'.format(wp): op.rng_product(bTagSF_DeepFlavourPerJet) }
-                        run2_bTagEventWeight_PerWP[process]['boosted']  = { 'DeepCSV{0}'.format(wp): op.rng_product(bTagSF_DeepCSVPerSubJet) }
                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # No MET cut : selections 2 lep + at least 2b-tagged jets
                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

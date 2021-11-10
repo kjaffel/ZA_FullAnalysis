@@ -533,7 +533,13 @@ plotIt:
     - pdf
     # L1 pre-firing event correction weight
     - L1PreFiring
-    # FIXME on the b-tagged jets
+    # on the b-tagged jets
+    - btagSF_fixWP_subjetdeepcsvM_light
+    - btagSF_fixWP_subjetdeepcsvM_heavy
+    - btagSF_fixWP_deepcsvM_light
+    - btagSF_fixWP_deepcsvM_heavy
+    - btagSF_fixWP_deepflavourM_light
+    - btagSF_fixWP_deepflavourM_heavy
     # on the cross section
     # _____ttbar 
     - TTTo2L2Nu_sys: {type: const, value: 1.0, on: 'TTTo2L2Nu'} # uncer= +4.8%-6.1%

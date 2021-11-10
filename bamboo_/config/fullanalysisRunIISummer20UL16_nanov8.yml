@@ -760,7 +760,13 @@ plotIt:
     - pdf
     # L1 pre-firing event correction weight
     - L1PreFiring
-    # FIXME on the btagged jets 
+    # on the btagged jets 
+    - btagSF_fixWP_subjetdeepcsvM_light
+    - btagSF_fixWP_subjetdeepcsvM_heavy
+    - btagSF_fixWP_deepcsvM_light
+    - btagSF_fixWP_deepcsvM_heavy
+    - btagSF_fixWP_deepflavourM_light
+    - btagSF_fixWP_deepflavourM_heavy
     # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
     # ____ DY
     - DYJetsToLL_0J_postVFP_sys: {type: const, value: 1.0013216312802187, on: 'DYJetsToLL_0J_postVFP'}
