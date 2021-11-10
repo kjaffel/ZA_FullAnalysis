@@ -14,29 +14,38 @@ def CMSNamingConvention(origName, era=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     other = {
-        'puweights2016_Moriond17': "CMS_pileup",
-        "unclustEn": "CMS_UnclusteredEn_%s"%era,
-        'elid':"CMS_eff_elID",
-        'muid':"CMS_eff_muID",
-        'muiso':"CMS_eff_muISO",
+        # old naming , will be removed  soon 
+        'puweights2016_Moriond17': "CMS_pileup_%s"era,
+        'elid':"CMS_eff_el",
+        'muid':"CMS_eff_mu",
+        'muiso':"CMS_iso_mu",
         'eleltrig':"CMS_eff_trigElEl_%s"%era,
         'mumutrig':"CMS_eff_trigMuMu_%s"%era,
         'elmutrig':"CMS_eff_trigElMu_%s"%era,
         'mueltrig':"CMS_eff_trigMuEl_%s"%era,
-        "DeepCSVM": "CMS_btag_HF",
-        "btagSFHeavy": "CMS_btag_HF",
-        "btagSFHeavy2016": "CMS_btag_HF2016",
-        "btagSFHeavy2017": "CMS_btag_HF2017",
-        "btagSFHeavy2018": "CMS_btag_HF2018",
-        "btagSFLight": "CMS_btag_LF",
-        "btagSFLight2016": "CMS_btag_LF2016",
-        "btagSFLight2017": "CMS_btag_LF2017",
-        "btagSFLight2018": "CMS_btag_LF2018",
+        # new names in the histograms  
+        "btagSF_fixWP_subjetdeepcsvM_light":"CMS_btag_light_%s"%era,
+        "btagSF_fixWP_subjetdeepcsvM_heavy":"CMS_btag_heavy_%s"%era,
+        "btagSF_fixWP_deepcsvM_light":"CMS_btag_light_%s"%era,
+        "btagSF_fixWP_deepcsvM_heavy":"CMS_btag_heavy_%s"%era,
+        "btagSF_fixWP_deepflavourM_light":"CMS_btag_light_%s"%era,
+        "btagSF_fixWP_deepflavourM_heavy":"CMS_btag_heavy_%s"%era,
+        "L1Prefiring": "CMS_L1PreFiring":"CMS_btag_heavy_%s"%era,
+        "unclustEn": "CMS_UnclusteredEn_%s"%era,
+        'elid_medium':"CMS_eff_elid",
+        'lowpt_ele_reco':"CMS_reff_elreco",
+        'highpt_ele_reco':"CMS_eff_elreco",
+        'muid_medium':"CMS_eff_muid",
+        'muiso_tight':"CMS_eff_muiso",
+        'HHMoriond17__eleltrig':"CMS_eff_trigElEl_%s"%era,
+        'HHMoriond17__mumutrig':"CMS_eff_trigMuMu_%s"%era,
+        'HHMoriond17__elmutrig':"CMS_eff_trigElMu_%s"%era,
+        'HHMoriond17__mueltrig':"CMS_eff_trigMuEl_%s"%era,
+        # not in use  
         "chMisID": "CMS_chargeMisID_%s"%era,
         "jesHEMIssue": "CMS_HEM",
-        "L1Prefiring": "CMS_L1PreFiring"
         }
-    theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR"}
+    theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR", "pdf": "pdf"}
     if origName in other:
         return other[origName]
     elif origName in theo_perProc:
@@ -50,6 +59,8 @@ def CMSNamingConvention(origName, era=None):
             jerReg = jerRegions[int(origName[3:])]
             return "CMS_res_j_{}_{}".format(jerReg, era)
         return "CMS_FR{}_{}".format(flav[0].lower(), vari[:3].lower())
+    if origName.startswith("pileup"):
+        return "CMS_pileup_%s"%era  
     else:
         return origName
 
@@ -64,48 +75,6 @@ def zeroNegativeBins(h):
         if h.GetBinContent(i) < 0.:
             h.SetBinContent(i, 0.)
             h.SetBinError(i, 0.)
-
-def CMSNamingConvention_old(syst):
-    # Taken from https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsCombinationConventions
-    # on the cross section : 1+xsec_uncert(pb)/xsec(pb)
-    if syst == 'jesTotal':
-        return 'CMS_scale_j'
-    elif syst == 'jer': 
-        return 'CMS_res_j'
-    elif syst == 'elid': 
-        return 'CMS_eff_e'
-    elif syst == 'el_reco':
-        return 'CMS_reco_e'
-    elif syst == 'muid': 
-        return 'CMS_eff_mu'
-    elif syst == 'muiso': 
-        return 'CMS_iso_mu'
-    elif syst == 'mutracking':
-        return 'CMS_tracking_mu'
-    elif syst == 'DeepCSVM':
-        return 'CMS_eff_b_comb' # TODO seperate SFs per flavour 
-    elif syst == 'jjbtaglight': 
-        return 'CMS_eff_b_light'
-    elif syst == 'jjbtagheavy': 
-        return 'CMS_eff_b_heavy'
-    elif syst == 'puweights2016_Moriond17': 
-        return 'CMS_pu'
-    elif 'trig' in syst: 
-        return 'CMS_eff_trigger'
-    elif syst == 'pdf':
-        return 'pdf'
-    elif "DYweight" in syst:
-        return syst
-    elif syst == 'qcdScale':
-        return 'QCDscale'
-    elif syst =="psFSR":
-        return syst
-    elif syst =="psISR":
-        return syst
-    elif syst =="L1PreFiring":
-        return syst
-    else:
-        return syst
 
 def get_method_group(method):
     if method == 'fit':
