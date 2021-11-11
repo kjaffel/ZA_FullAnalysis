@@ -213,7 +213,7 @@ requested_samples_don4=(
 "/ZZTo4L_M-1toInf_TuneCP5_13TeV_powheg_pythia8/RunIISummer20UL16NanoAODv2-106X_mcRun2_asymptotic_v15-v1/NANOAODSIM"
 )
 
-requested_samples=(
+requested_samples_don5=(
 "/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
 "/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM"
 "/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM"
@@ -276,18 +276,87 @@ requested_samples=(
 "/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv2-106X_mcRun2_asymptotic_preVFP_v9-v1/NANOAODSIM"
 )
 
+requested_samples_done6=(
+"/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD"
+"/SingleMuon/Run2018B-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+"/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+"/SingleMuon/Run2018D-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD"
+)
 
+requested_samples=(
+"/HToZATo2L2B_MH-1000p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-200p00_MA-125p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-250p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-300p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-650p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
+
+"/HToZATo2L2B_MH-1000p00_MA-500p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-1000p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-200p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-300p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-400p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-700p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+
+"/HToZATo2L2B_MH-200p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-200p00_MA-125p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-100p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-300p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-300p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-510p00_MA-130p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-750p00_MA-610p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-700p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+
+"/HToZATo2L2B_MH-1000p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-1000p00_MA-500p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-500p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-650p00_MA-50p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-200p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+"/HToZATo2L2B_MH-800p00_MA-400p00_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+)
+
+#=======================================================================================
+#  Create a User Container 
+#=======================================================================================
+#rucio add-container user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER
+rucio add-container user.kjaffel:/Analyses/HToZATo2L2B_bbH_signals_nanov9/USER
+#=======================================================================================
 for smp in ${requested_samples[*]}; do 
-    #rucio add-rule cms:$smp 1 T2_BE_UCL
+    #=======================================================================================
     # ! To be used when you don't have enouh quota; ask IT for approval and then later you can increase 
+    #=======================================================================================
+    #rucio add-rule cms:$smp 1 T2_BE_UCL
     #rucio add-rule --ask-approval cms:$smp 1 T2_BE_UCL
-    # ! use container
-    rucio attach user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER cms:$smp
+    #=======================================================================================
+    # !  Add some initial datasets to the Container 
+    #=======================================================================================
+    #rucio attach user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER cms:$smp
+    rucio attach user.kjaffel:/Analyses/HToZATo2L2B_bbH_signals_nanov9/USER cms:$smp
 done
-
+#=======================================================================================
 # ! Subscribe/Transfer the container to a site
-rucio add-rule --account=kjaffel user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER 1 T2_BE_UCL
-#rucio list-rules --account=kjaffel
-rucio list-rules --account=kjaffel | grep "REPLICATING"
+#=======================================================================================
+rucio add-rule --account=kjaffel user.kjaffel:/Analyses/HToZATo2L2B_bbH_signals_nanov9/USER 1 T2_BE_UCL
+#=======================================================================================
 # ! Check the current contents of the container 
+#=======================================================================================
 #rucio list-content user.kjaffel:/Analyses/ZAsamples_ul2016_nanov8andv9/USER
+rucio list-content user.kjaffel:/Analyses/HToZATo2L2B_bbH_signals_nanov9/USER
+#=======================================================================================
+# ! Check status of transfered datasets
+#=======================================================================================
+rucio list-rules --account=kjaffel | grep "REPLICATING"
