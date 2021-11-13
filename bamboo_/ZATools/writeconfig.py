@@ -12,7 +12,19 @@ fake = Factory.create()
 # TODO 
 # 1- sum dataset 
 # 2- finish xsc uncer checks for mc 
-# 3- fix order of the group 
+
+def get_das_path(search, inf):
+    das_tomerge = []
+    with open(options.das, 'r') as inf:
+        for smp in inf:
+            path   = smp.split()[0]
+            smpNm = path.split('/')[1]
+            if smpNm == search:
+                das_tomerge.append(f"das:{path}")
+    if len(das_tomerge) !=1:
+        return das_tomerge, smpNm 
+    else:
+        return das_tomerge[0], smpNm
 
 def get_era_and_luminosity(smp=None, run=None, isdata=False):
     preVFPruns  = ["B", "C", "D", "E", "F"]
@@ -22,7 +34,7 @@ def get_era_and_luminosity(smp=None, run=None, isdata=False):
     if 'UL2016'in smp: return f'2016{prefix}', lumi, 0.012
     elif 'UL2017'in smp: return '2017', 41529.152060112, 0.023
     elif 'UL2018'in smp: return '2018', 59740.565201546, 0.025
-    elif   'RunIISummer20UL16NanoAODAPV' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-preVFP', 19667.812849099, 0.012
+    elif 'RunIISummer20UL16NanoAODAPV' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-preVFP', 19667.812849099, 0.012
     elif 'RunIISummer20UL16NanoAOD' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-postVFP', 16977.701784453, 0.012
     elif 'RunIISummer20UL17' in smp or 'RunIISummer19UL17' in smp: return '2017', 41529.152060112, 0.023
     elif 'RunIISummer20UL18' in smp or 'RunIISummer19UL18' in smp: return '2018', 59740.565201546, 0.025
@@ -148,7 +160,7 @@ def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
     return f"{process}-{comp}: M{H}-{mass_to_str(m_heavy)}_M{l}-{mass_to_str(m_light)}_tb-{mass_to_str(tb)}"
 
 def get_xsc_br_fromSushi(smpNm, arr):
-    print('looking for:', smpNm , len(smpNm))
+    print('working on:', smpNm )#, len(smpNm))
     for lis in arr:
         if not smpNm == lis[0]: continue
         if 'HToZATo2L2B' in smpNm: 
@@ -179,12 +191,16 @@ def get_label(eras):
     # I am not gonna do more then this split : 2016 pre/-postVFP, 2017, 2018 
     #                                        or all combined : run2
     if len (eras.keys()) ==2 and '2016' in eras.keys():
-        suffix = 'pre/-postVFP'
-        era = '2016'
+        suffix = 'pre/-postVFP 2016'
     else:
-        suffix =''
-    era = eras[0].split('-')[0] if len(eras.keys()) ==1 else('run2')
-    plot_label = f'{era}ULegacy {suffix}'
+        if len(eras.keys()) == 1 :
+            suffix = era
+        elif len(eras.keys()) == 4 :
+            suffix = 'run2'
+        else:
+            for k in eras.keys():
+                suffix  += ' {k},' 
+    plot_label = f'{suffix} ULegacy'
     return plot_label 
 
 def loadSushiInfos(len_, fileName):
@@ -229,13 +245,16 @@ if __name__ == "__main__":
                      '2017':'https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
                      '2018':'https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt', }
     
-    run2_ranges = {'2016':
+    run2_ranges = {
+                '2016-preVFP':
                     {'B':[272007, 275376],
                      'C':[275657, 276283],
                      'D':[276315, 276811],
                      'E':[276831, 277420],
                      'F':[277772, 278808],
-                     'G':[278820, 280385],
+                     },
+                '2016-postVFP':
+                    {'G':[278820, 280385],
                      'H':[280919, 284044] },
                 '2017':
                     {'B':[297046, 299329],
@@ -252,7 +271,7 @@ if __name__ == "__main__":
     
     eras = lumi_block(options.das)
     print( eras)
-
+    merged_daspath = []
     with open(options.das, 'r') as inf:
         with open(options.output, 'w+') as outf:
             isMC     = False
@@ -285,7 +304,10 @@ if __name__ == "__main__":
                     isdata   = False
                     issignal = False
                 
-                das__path = smp.split()[0] 
+                das__path, to_ignore = get_das_path( smpNm, options.das)
+                if smpNm in merged_daspath:
+                    continue
+                merged_daspath.append( to_ignore)
                 color  = fake.hex_color()
                 #color = '#%06x' % random.randint(0, 0xFFFFFF)
                 run = smp.split('/')[2].split('-')[0][-1]
@@ -298,41 +320,45 @@ if __name__ == "__main__":
                     
                     arrs = np.concatenate((benchmarks, fullsim, all_))
                     H, l, mHeavy, mlight, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, arrs)
-                    Nm  = smpNm.replace('-','_')
-                    br  = br_HeavytoZlight *  br_lighttobb
-                    leg = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
+                    Nm      = smpNm.replace('-','_')
+                    br      = br_HeavytoZlight *  br_lighttobb
+                    leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
+                    split   = 1 
                     details = f'{H} -> Z{l} : {br_HeavytoZlight} * {l} -> bb : {br_lighttobb}'
                 elif isdata:
-                    Nm = f'{smpNm}_UL{era}{run}'
+                    era_ = era.split('-')
+                    Nm = f'{smpNm}_UL{era_[0]}{run}_{era_[1]}'
                     run_range = run2_ranges[era][run]
-                    cert = certification[era]
+                    cert = certification[era.split('-')[0]] # FIXME make sure that this assuption is correct : means the certefication is the same for pre/post VFP
+                    split = 1
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
+                    split = 4
                     if group not in groups.keys(): 
                         groups[group] = {}
                         groups[group]['legend'] = legend
                         groups[group]['fill_color'] = fill_color
                         groups[group]['order'] = order
                 outf.write(f"  {Nm}:\n")
-                outf.write(f"    db: das:{das__path}\n")
+                outf.write(f"    db: {das__path}\n")
                 outf.write(f"    files: dascache/nanov9/{Nm}.dat\n")
-                outf.write(f"    split: 4\n")
+                outf.write(f"    split: {split}\n")
                 outf.write(f"    era: '{era}'\n")
                 if isMC :
                     outf.write(f"    group: {group}\n")
-                    outf.write(f"    generated-events: 'genEventSumw'\n")
+                    outf.write("    generated-events: 'genEventSumw'\n")
                     outf.write(f"    cross-section: {xsc} # +- {uncer} pb\n")
                 elif isdata :
-                    outf.write(f"    group: data\n")
+                    outf.write("    group: data\n")
                     outf.write(f"    run_range: {run_range}\n")
                     outf.write(f"    certified_lumi_file: {cert}\n")
                 elif issignal :
-                    outf.write(f"    type: signal\n")
-                    outf.write(f"    generated-events: 'genEventSumw'\n")
+                    outf.write("    type: signal\n")
+                    outf.write("    generated-events: 'genEventSumw'\n")
                     outf.write(f"    cross-section: {xsc}   # +- {xsc_err} pb\n")
                     outf.write(f"    Branching-ratio: {br}  # {details}\n")
                     outf.write(f"    line-color: '{color}'\n")
-                    outf.write(f"    line-type: 1\n")
+                    outf.write("    line-type: 1\n")
                     outf.write(f"    legend: {leg}\n")
                 outf.write("\n")
             outf.write("\n")
@@ -379,3 +405,4 @@ if __name__ == "__main__":
                 sys_line = line.replace('-','') if '#' in line else(line)
                 outf.write(sys_line)
             outf.write("    # on the cross section : 1+xsec_uncer(pb)/xsec(pb)\n")
+    print( ' \tfile successfully written and saved in :', options.output)
