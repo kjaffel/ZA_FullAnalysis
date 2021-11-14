@@ -148,27 +148,27 @@ def get_mcNmConvention_and_group(smpNm):
 def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=False):
     das_tomerge  = []
     to_ignore    = []
+    #https://newbedev.com/python-regular-express-cheat-sheet
     with open(options.das, 'r') as inf:
         for line in inf:
             path   = line.split()[0]
-            
             if isdata:
                 regex = re.compile(f"/{search}/Run{era.split('-')[0]}{run}-ver*", re.IGNORECASE)
             else:
-                regex = re.compile(f"/{search}/*RunIISummer*{era.split('-')[0].split('20')[1]}NanoAOD*_ext*", re.IGNORECASE)
+                # FIXME
+                regex = re.compile(f"/{search}/RunIISummer[20,19]UL{era.split('-')[0].split('20')[1]}NanoAOD*_ext*/NANOAODSIM$", re.IGNORECASE)
             m = regex.search(path)
             if m:
                 # this is an extension add to merge 
                 das_tomerge.append('das:{}'.format(path))
                 to_ignore.append( path)
-        
     if das_tomerge:
         return das_tomerge, to_ignore
     else:
         return 'das:{}'.format(smp), []
 
 def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
-    return f"{process}-{comp}: M{H}-{mass_to_str(m_heavy)}_M{l}-{mass_to_str(m_light)}_tb-{mass_to_str(tb)}"
+    return f"{process}-{comp} -- M{H}-{mass_to_str(m_heavy)}_M{l}-{mass_to_str(m_light)}_tb-{mass_to_str(tb)}"
 
 def get_xsc_br_fromSushi(smpNm, arr):
     print('working on:', smpNm )#, len(smpNm))
@@ -296,13 +296,14 @@ if __name__ == "__main__":
             merged_daspath = []
             
             # =======================================================
-            outf.write(f" tree: Events\n")
-            outf.write(f" eras:\n")
+            outf.write(f"tree: Events\n")
+            outf.write(f"eras:\n")
             for era , opt in eras.items() : 
                 outf.write(f"   '{era}':\n")
                 outf.write(f"     luminosity: {opt['lumi']} #pb \n")
                 outf.write(f"     luminosity-error: {opt['uncer']}\n")
             outf.write("\n")
+            outf.write("samples:\n")
             # =======================================================
             run = None
             for i, smp in enumerate(inf):
