@@ -1643,6 +1643,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     bb_softDropM = bJets[0].msoftdrop
 
                                 plots.append(Skim(  f"LepPlusJetsSel_{process_}_{reg}_{channel.lower()}_{taggerWP.lower()}", {
+                                        # just copy the variable as it is in the nanoAOD input
                                         "run"            : None,
                                         "event"          : None,
                                         "luminosityBlock": None,  
@@ -1666,8 +1667,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
 
                                         'era'            : op.c_int(int(era_)),
                                         'total_weight'   : FinalSel.weight,
-                                        'PU_weight'      : PUWeight if isMC else None, 
-                                        'MC_weight'      : t.genWeight if isMC else None,
+                                        'PU_weight'      : PUWeight if isMC else op.c_float(1.), 
+                                        'MC_weight'      : t.genWeight if isMC else op.c_float(1.),
 
                                         f'nB_{lljj_jetType[reg]}bJets': op.static_cast("UInt_t", op.rng_len(bJets))
                                     }, FinalSel))
