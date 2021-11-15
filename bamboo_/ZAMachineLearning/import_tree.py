@@ -21,7 +21,8 @@ def Tree2Pandas(input_file, variables, era=None, weight=None, cut=None, xsec=Non
     """
     Convert a ROOT TTree to a pandas DF
     """
-    variables = copy.copy([var for var in variables if not var.startswith("$")]) # Otherwise will add the weight and have a duplicate branch
+    # Otherwise will add the weight and have a duplicate branch
+    variables = copy.copy([var for var in variables if not var.startswith("$")]) 
     # Check for repetitions in variables -> makes root_numpy crash #
     repeated_var = [item for item, count in collections.Counter(variables).items() if count > 1]
     if len(repeated_var) != 0:

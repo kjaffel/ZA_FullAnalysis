@@ -1,21 +1,22 @@
 import ROOT as rt
 
-def tdrGrid( gridOn):
-  tdrStyle.SetPadGridX(gridOn)
-  tdrStyle.SetPadGridY(gridOn)
-
 #fixOverlay: Redraws the axis
 def fixOverlay(): gPad.RedrawAxis()
+
+def tdrGrid(gridOn=False):
+  tdrStyle =  rt.TStyle("tdrStyle","Style for P-TDR")
+  tdrStyle.SetPadGridX(gridOn)
+  tdrStyle.SetPadGridY(gridOn)
 
 def setTDRStyle():
   tdrStyle =  rt.TStyle("tdrStyle","Style for P-TDR")
 
-#for the canvas:
+#For the canvas:
   tdrStyle.SetCanvasBorderMode(0)
   tdrStyle.SetCanvasColor(rt.kWhite)
   tdrStyle.SetCanvasDefH(600) #Height of canvas
   tdrStyle.SetCanvasDefW(800) #Width of canvas
-  tdrStyle.SetCanvasDefX(0)   #POsition on screen
+  tdrStyle.SetCanvasDefX(0)   #Position on screen
   tdrStyle.SetCanvasDefY(0)
 
 
@@ -87,11 +88,12 @@ def setTDRStyle():
 
 # Margins:
   tdrStyle.SetPadTopMargin(0.15)
-  tdrStyle.SetPadBottomMargin(0.13)
-  tdrStyle.SetPadLeftMargin(0.13)
-  tdrStyle.SetPadRightMargin(0.15)
+  tdrStyle.SetPadBottomMargin(0.15)
+  tdrStyle.SetPadLeftMargin(0.14)
+  tdrStyle.SetPadRightMargin(0.10)
 
 # For the Global title:
+
   tdrStyle.SetOptTitle(1)
   tdrStyle.SetTitleFont(42)
   tdrStyle.SetTitleColor(1)
@@ -101,29 +103,32 @@ def setTDRStyle():
   tdrStyle.SetTitleH(0.05) # Set the height of the title box
   tdrStyle.SetTitleW(0.8) # Set the width of the title box
   tdrStyle.SetTitleX(0.10) # Set the position of the title box
-  tdrStyle.SetTitleY(0.95) # Set the position of the title box
+  tdrStyle.SetTitleY(0.97) # Set the position of the title box
   # tdrStyle.SetTitleStyle(Style_t style = 1001)
   tdrStyle.SetTitleBorderSize(0)
 
 # For the axis titles:
+
   tdrStyle.SetTitleColor(1, "XYZ")
   tdrStyle.SetTitleFont(42, "XYZ")
   #tdrStyle.SetTitleSize(0.2, "XYZ")
-  tdrStyle.SetTitleXSize(0.3) # Another way to set the size?
-  tdrStyle.SetTitleYSize(0.3)
+  tdrStyle.SetTitleXSize(0.2) # Another way to set the size?
+  tdrStyle.SetTitleYSize(0.2)
   #tdrStyle.SetLabelSize(0.01,'Y')
   #tdrStyle.SetLabelSize(0.2,'X')
-  tdrStyle.SetTitleXOffset(1.3)
-  tdrStyle.SetTitleYOffset(1.3)
+  #tdrStyle.SetTitleXOffset(0.9)
+  #tdrStyle.SetTitleYOffset(1.25)
   # tdrStyle.SetTitleOffset(1.1, "Y") # Another way to set the Offset
 
 # For the axis labels:
+
   tdrStyle.SetLabelColor(1, "XYZ")
   tdrStyle.SetLabelFont(42, "XYZ")
-  tdrStyle.SetLabelOffset(0.3, "XYZ")
-  tdrStyle.SetLabelSize(0.3, "XYZ")
+  tdrStyle.SetLabelOffset(0.2, "XYZ")
+  tdrStyle.SetLabelSize(0.2, "XYZ")
 
 # For the axis:
+
   tdrStyle.SetAxisColor(1, "XYZ")
   tdrStyle.SetStripDecimals(True)
   tdrStyle.SetTickLength(0.03, "XYZ")
@@ -155,4 +160,3 @@ def setTDRStyle():
 
   tdrStyle.cd()
 
-  rt.gROOT.ForceStyle(True);

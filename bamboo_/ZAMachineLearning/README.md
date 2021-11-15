@@ -5,7 +5,7 @@ This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysi
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
 
 ### Prerequisites:
-Modules you will need to load:
+- You can load the needed modules:
 ```
 module load root/6.12.04-sl7_gcc73 boost/1.66.0_sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 python/python36_sl7_gcc73 slurm/slurm_utils 
 ## OR simply in your ~/.bashrc add:
@@ -17,7 +17,7 @@ function dnn_env() {
     module load slurm/slurm_utils
 }
 ```
-Another option is to use LCG is it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): 
+- Or you can use LCG in it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): **[recommended]**
 ```
 function dnn_env() {
     module --force purge
@@ -34,7 +34,7 @@ function dnn_env() {
 Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
 - [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
 - [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
-- [Talos](https://pypi.org/project/talos/) (hyperparameter scans)
+- [Talos](https://pypi.org/project/talos/) (hyperparameter scans): ``pip install talos``
 - [Root_numpy](https://pypi.org/project/root-numpy/) (From ROOT trees to numpy arrays): ``pip install root-numpy``
 - [Seaborn](https://pypi.org/project/seaborn/) (Data Visualization)
 - [Numpy](https://pypi.org/project/numpy/) (Data manipulation)
@@ -86,7 +86,7 @@ They will be described in details in the next subsections. Then we will detail t
 python ZAMachineLearning.py -v (args) --scan name_of_scan -o output_dir --debug
 ```
 - (args): ``--boosted --resolved --process``
-    - ``-p/--process``: It can be a list or str ``ggH`` for gg-fusion and ``bbH`` for b-associated production. f the latest is True, this mean that 1NN is set per process.
+    - ``-p/--process``: It can be a list or str ``ggH`` for gg-fusion and ``bbH`` for b-associated production. If the latest is True, this mean that 1NN is set per process.
     - ``--resolved``  : include catagories with at least 1 AK4 b-tagged jet in the final state when parsing root files.
     - ``--boosted``   : include catagories with at least 1 AK8 b-tagged fatjet in the final state when parsing root files.
 - *Note* : All the hyperparameter combinations will be run sequentially, this might take time ... 
@@ -108,13 +108,13 @@ python ZAMachineLearning.py -v (args) --submit name_of_jobs --split 1 -o output_
 - The split ``.pkl`` files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
 
 ### The Best Model:
-Now that all the ``.zip`` and ``.csv`` files produced in the ``output_dir`` the challenge will be to find the best model among them.
+Now that all the ``.zip`` and ``.csv`` files produced in the ``output_dir/slurm/output/`` the challenge will be to find the best model among them.
 ```python
 python ZAMachineLearning.py -v --report -o output_dir --cache
 ```
-- This will create a concatenated ``output_dir/model/name_of_job.csv`` ordered according to the ``eval_criterion/error`` (evaluation error is better).
+- This will create a concatenated ``output_dir/model/name_of_jobs.csv`` ordered according to the ``eval_criterion/error`` (evaluation error is better).
 - *Note* : For classification the F1 score is used and should be ordered in descending order ( aka the higher the better).
-- A copy of the best model will be saved in ``output_dir/model/*.zip`` format taken from ``output_dir/slurm/output``.
+- A copy of the best model will be saved in ``output_dir/model/*.zip`` format taken from ``output_dir/slurm/output/*``.
 - Then printout the 10 best models (according to the eval_criterion) and plot on the console several histograms and ``.png`` files. 
 The plot definitions are in ``plot_scans.py`` and they are [seaborn](https://seaborn.pydata.org/) based. This will give clues on what parameters are doing better jobs. 
 - Then produce the ``.root`` output files (splited according to ``split_name`` in ``parameters.py``) on the test set. 

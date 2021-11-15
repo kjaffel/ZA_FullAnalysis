@@ -40,3 +40,4 @@ input_initializer =  [node.name for node in onnx_model.graph.initializer]
 net_feed_input = list(set(input_all)  - set(input_initializer))
 print('Inputs: ', net_feed_input)
 print('Outputs: ', output)
+print( [node.input[0] for node in onnx_model.graph.output] )

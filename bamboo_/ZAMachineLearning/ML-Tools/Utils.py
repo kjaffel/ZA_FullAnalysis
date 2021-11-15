@@ -282,7 +282,7 @@ def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
     # Load YAML file #
     if yaml_path.split('/')[-1] != 'plots.yml':
         print("I am not sure this is the yaml file you want to pass, \t
-               it has to be the one you get after running bamboo so you can get the number of generated-events !")
+               It has to be the one you get after running bamboo so that you can get the number of generated-events !")
     with open(yaml_path, 'r') as stream:
         try:
             data = yaml.safe_load(stream)
@@ -296,14 +296,14 @@ def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
             xsec_dict[sample] = dico["cross-section"]
             wgt_dict[sample] = dico["generated-events"]
 
-    with open("%s_xsec.json"%suffix, "w") as handle:
+    with open("data/%s_xsec.json"%suffix, "w") as handle:
         json.dump(xsec_dict,handle,indent=4)
 
-    with open("%s_event_weight_sum.json"%suffix, "w") as handle:
+    with open("data/%s_event_weight_sum.json"%suffix, "w") as handle:
         json.dump(wgt_dict,handle,indent=4)
 
-    print ("Generated file %s_xsec.json"%suffix)
-    print ("Generated file %s_event_weight_sum.json"%suffix)
+    print ("Generated xsc file  : data/%s_xsec.json"%suffix)
+    print ("Generated events weight summ : data/%s_event_weight_sum.json"%suffix)
 
 
 def RemovePreprocessingLayer(json_file,h5_file,suffix):

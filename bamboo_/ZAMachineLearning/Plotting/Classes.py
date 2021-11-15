@@ -706,7 +706,7 @@ class ProcessYAML():
 
     def _loadYAML(self): 
         with open(self.part_template, 'r') as stream:
-            self.config = yaml.load(stream) # Dict of dicts 
+            self.config = yaml.safe_load(stream) # Dict of dicts 
             # config is a dict : keys = names of hist
             #                    values = dict of parameters  
     def Override(self,changes):

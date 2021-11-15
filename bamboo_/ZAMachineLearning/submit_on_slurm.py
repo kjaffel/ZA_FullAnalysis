@@ -12,14 +12,13 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 
 import parameters
 
-def submit_on_slurm(name,args,debug=False):
+def submit_on_slurm(name, args, debug=False):
     # Check arguments #
     # If the value is not found, the find() method returns -1
     GPU = args.find("--GPU") != -1
     
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    out_dir = parameters.path_out
-    slurm_working_dir = os.path.join(out_dir,'slurm')
+    slurm_working_dir = os.path.join(parameters.path_out,'slurm')
 
     config = Configuration()
     config.useJobArray = True
