@@ -1,6 +1,6 @@
 #!/bin/bash
 # https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsPAGPreapprovalChecks
-
+# https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/nonstandard/#fit-parameter-uncertainties
 
 val=${1:?"Missing arg 1 for --expectSignal => expected 1 for S+B and 0 for B-Only"}
 
@@ -23,9 +23,10 @@ for f in *; do
         if [[ ! -d "$fit_diagDIR" ]]; then
             mkdir -p $fit_diagDIR
         fi
-        
-        combine -m 125 -M FitDiagnostics -t -1 --expectSignal $val --toysFrequentist --rMin -20 --rMax 20 $datacard >> "$fit_diagDIR/$output"
-        python ../../../../../HiggsAnalysis/CombinedLimit/test/diffNuisances.py -a fitDiagnostics.root -g plots.root >> "$fit_diagDIR/$output"
+        pwd 
+        #combine -M FitDiagnostics -m 125 -t -1 --expectSignal $val --toysFrequentist --rMin -20 --rMax 20 $datacard >> "$fit_diagDIR/$output"
+        combine -M FitDiagnostics -m 125 -t -1 --expectSignal $val $datacard >> "$fit_diagDIR/$output"
+        python ${CMSSW_BASE}/src/HiggsAnalysis/CombinedLimit/test/diffNuisances.py -a fitDiagnostics.root -g plots.root >> "$fit_diagDIR/$output"
     
         popd
     fi
