@@ -14,10 +14,15 @@ import parameters
 
 def submit_on_slurm(name,args,debug=False):
     # Check arguments #
+    # If the value is not found, the find() method returns -1
     GPU = args.find("--GPU") != -1
-    output = args.find("--output") != -1
+    
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    out_dir = parameters.path_out
+    slurm_working_dir = os.path.join(out_dir,'slurm')
 
     config = Configuration()
+    config.useJobArray = True
     config.sbatch_partition = parameters.partition
     config.sbatch_qos = parameters.QOS
     config.sbatch_chdir = parameters.main_path
@@ -26,33 +31,21 @@ def submit_on_slurm(name,args,debug=False):
     config.sbatch_additionalOptions = ['-n '+str(parameters.tasks)]
     if GPU:
         config.sbatch_additionalOptions += ['--gres gpu:1','--export=NONE']
+    
     config.inputSandboxContent = []
-    config.useJobArray = True
-    config.inputParamsNames = []
     config.inputParams = []
-    if output:
-        config.inputParamsNames += ["--verbose"]
-        config.inputParams += [[""]]
-    if not output:
-        config.inputParamsNames += ['scan','task']
+    config.inputParamsNames = ['scan','task']
 
     config.payload = """ """
-
     if GPU:
         config.payload += "export PYTHONPATH=/root6/lib:$PYTHONPATH\n"
         config.payload += "module load cp3\n" # needed on gpu to load slurm_utils
         config.payload += "module load slurm/slurm_utils\n"
     config.payload += "python3 {script} "
-    if not output:
-        config.payload += "--scan ${{scan}} --task ${{task}} "
+    config.payload += "--scan ${{scan}} --task ${{task}} "
     config.payload += args
 
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    out_dir = parameters.path_out
-
     slurm_config = copy.deepcopy(config)
-    slurm_working_dir = os.path.join(out_dir,'slurm')
-
     slurm_config.batchScriptsDir = os.path.join(slurm_working_dir, 'scripts')
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
     slurm_config.stageoutDir     = os.path.join(slurm_working_dir, 'output')
@@ -61,10 +54,9 @@ def submit_on_slurm(name,args,debug=False):
 
     slurm_config.payload = config.payload.format(script=os.path.join(parameters.main_path,"ZAMachineLearning.py"))
 
-    if not output:
-        for f in glob.glob(os.path.join(parameters.path_out, 'split', name, '*.pkl')):
-            task = os.path.basename(f)
-            slurm_config.inputParams.append([name,task])
+    for f in glob.glob(os.path.join(parameters.path_out, 'split', '*.pkl')):
+        task = os.path.basename(f)
+        slurm_config.inputParams.append([name,task])
 
     # Submit job!
     logging.info("Submitting job...")
@@ -76,4 +68,4 @@ def submit_on_slurm(name,args,debug=False):
         logging.debug(slurm_config.payload)
         logging.debug(slurm_config.inputParamsNames)
         logging.debug(slurm_config.inputParams)
-        logging.info('... don\'t worry, you are in debug mode, jobs not sent, remove --debug to submit to slurm!')
+        logging.info('... don\'t worry, all seems to be fine but you are still in debug mode, jobs not sent, remove --debug to submit to slurm!')

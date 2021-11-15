@@ -18,19 +18,19 @@ from ZAMachineLearning import get_options
 opt = get_options()
 
 ##################################  Path variables ####################################
-
+#######################################################################################
 #samples_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2016Results/skimmedTree/ver5/'
 #samples_path = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/nanov7/skimmedTree/ver0/'
 #samples_path = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/nanov7/skimmedTree/ver1/'
 #samples_path_ul2016 = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver2/'
 #samples_path_ul2016 = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver3/'
-samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver5/results',
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver5/results',
+samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver6/results',
                 '2017' :'',
                 '2018' :'', }
 
 main_path  = os.path.abspath(os.path.dirname(__file__))
 path_out   = os.path.abspath(f'/home/ucl/cp3/kjaffel/scratch/{opt.outputs}')
-#path_out  = os.path.abspath('/home/ucl/cp3/kjaffel/scratch/ul__results/work__1')
 
 if not os.path.isdir(path_out):
     os.makedirs(path_out)
@@ -43,14 +43,13 @@ path_model = os.path.join(path_out,'model')
 ##############################  Datasets proportion   #################################
 #######################################################################################
 # total must be 1 
-training_ratio = 0.7    # Training set sent to keras (contains training + evaluation)
-evaluation_ratio = 0.1  # evaluation set set sent to autom8
-output_ratio = 0.2      # Output set for plotting later
-assert training_ratio + evaluation_ratio + output_ratio == 1 # Will only be taken into account for the masks generation, ignored after
-
+training_ratio   = 0.7    # Training set sent to keras (contains training + evaluation)
+evaluation_ratio = 0.1    # evaluation set set sent to autom8
+output_ratio     = 0.2    # Output set for plotting later
+# Will only be taken into account for the masks generation, ignored after
+assert training_ratio + evaluation_ratio + output_ratio == 1 
 
 # Cross-validation #
-# ->For crossvalidation == True
 N_models = 5                        # Number of models to train
 N_train  = 3                        # Number of slices on which to train
 N_eval   = 1                        # Number of slices on which to evaluate the model
@@ -59,9 +58,10 @@ N_slices = N_train+N_eval+N_apply
 splitbranch = 'event'               # Will split the training based on "event % N_slices" 
 
 if N_slices % N_models != 0: # will not work otherwise
-    raise RuntimeError("N_slices [{}] % N_models [{}] should be == 0".format(N_slices,N_models))
+    raise RuntimeError(f"N_slices [{N_slices}] % N_models [{N_models}] should be == 0")
 if N_apply != N_slices/N_models: # Otherwise the same slice can be applied on several networks
-    raise RuntimeError("You have asked {} models that should be applied {} times, the number of slices should be {} but is {}+{}+{}".format(N_models,N_apply,N_models*N_apply,N_train,N_eval,N_apply))
+    raise RuntimeError("You have asked {N_models} models that should be applied {N_apply} times,\n"
+                       "the number of slices should be {N_models*N_apply} but is {N_train}+{N_eval}+{N_apply}\n")
 
 ############################### Slurm parameters ######################################
 #######################################################################################
@@ -85,7 +85,7 @@ mem = '6900' # ram in MB
 tasks = '1' # Number of threads(as a string) (not parallel training for classic mode)
 
 ######################################  Names  ########################################
-# Model name important only for scans 
+                        # Model name important only for scans 
 #######################################################################################
 
 model  = 'NeuralNetModel'           # Classic mode
@@ -102,8 +102,8 @@ train_cache = os.path.join(path_out,f'train_cache_{suffix}_run2Ulegacy.pkl')
 test_cache  = os.path.join(path_out,f'test_cache_{suffix}_run2Ulegacy.pkl')
 
 # Meta config info #
-xsec_json = os.path.join(main_path,'data/Summer20UL{era}_xsec.json')
-event_weight_sum_json = os.path.join(main_path,'data/Summer20UL{era}_event_weight_sum.json')
+xsec_json = os.path.join("{json_path}",'data/ulegacy{era}_xsec.json')
+event_weight_sum_json = os.path.join("{json_path}",'data/ulegacy{era}_event_weight_sum.json')
 
 # Training resume #
 resume_model = ''
@@ -117,7 +117,7 @@ split_name = 'tag' # 'sample' or 'tag' : criterion for output file splitting
 
 eval_criterion = "eval_error" # either val_loss or eval_error
     
-##############################  Model callbacks ################################
+#####################################  Model callbacks ################################
 #######################################################################################
 # Early stopping to stop learning after some criterion 
 early_stopping_params = {'monitor'   : 'val_loss',             # Value to monitor
@@ -135,14 +135,15 @@ reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
                    'patience'   : 10,           # How much time to wait for an improvement
                    'cooldown'   : 5,            # How many epochs before starting again to monitor
                    'verbose'    : 1,            # Verbosity level
-                   'mode'      : 'min'}         # Mode : 'auto', 'min', 'max'
+                   'mode'       : 'min'}         # Mode : 'auto', 'min', 'max'
 
 #################################  Scan dictionary   ##################################
-# /!\ Lists must always contain something (even if 0, in a list !), otherwise 0 hyperparameters #
+            #  !!! Lists must always contain something (even if 0, in a list !), 
+            # otherwise 0 hyperparameters #
 #######################################################################################
 # Classification #
 p = { 
-    'epochs' : [200],   
+    'epochs' : [2],   
     'batch_size' : [1000], 
     'lr' : [0.01], 
     'hidden_layers' : [2,3,4,5,6], 
@@ -185,6 +186,11 @@ channels   = ['ElEl','MuMu']
 nodes      = ['DY', 'TT', 'ZA'] #'ggH', 'bbH']
 # Input branches (combinations possible just as in ROOT #
 inputs = [
+            #'l1_charge@op_charge',
+            #'l2_pdgId@op_pdgid',
+            #'l2_charge@op_charge',
+            #'region@op_region',
+            #'process@op_process',
             'l1_pdgId@op_pdgid',
             '$era@op_era',
             'bb_M',
@@ -194,11 +200,12 @@ inputs = [
             'bb_M_x_llbb_M',
             '$mA',
             '$mH',
-#           'nB_AK4bJets',
-#           'nB_AK8bJets',
-#           'l1_charge@op_charge',
-#           'l2_pdgId@op_pdgid',
-#           'l2_charge@op_charge',
+            'isResolved',
+            'isBoosted',
+            'isggH',
+            'isbbH',
+            #'nB_AK4bJets',
+            #'nB_AK8bJets',
          ]
 # Output branches #
 outputs = [
@@ -226,10 +233,14 @@ mask_op = [len(inp.split('@'))==2 for inp  in  inputs]
 inputs  = [inp.split('@')[0] for inp  in  inputs]
 
 TTree   = []
-if opt.resolved:
-    TTree.extend([f"LepPlusJetsSel_{opt.process}_resolved_{channel.lower()}_deepcsvm" for channel in channels])
-if opt.boosted:
-    TTree.extend([f"LepPlusJetsSel_{opt.process}_boosted_{channel.lower()}_deepcsvm" for channel in channels])
+process_nodes = []
+for proc in opt.process:
+    if opt.resolved:
+        TTree.extend([f"LepPlusJetsSel_{proc}_resolved_{channel.lower()}_deepcsvm" for channel in channels])
+    if opt.boosted:
+        TTree.extend([f"LepPlusJetsSel_{proc}_boosted_{channel.lower()}_deepcsvm" for channel in channels])
+    if 'ggH' in opt.process: process_nodes = ["GluGluToHToZATo2L2B"]
+    if 'bbH' in opt.process: process_nodes += ["HToZATo2L2B"]
 
 samples_dict_run2UL = collections.defaultdict(dict)
 for era in eras:
@@ -238,7 +249,7 @@ for era in eras:
         samples_dict_run2UL[era][f"combined_{node}_nodes"] = []
         for i_f, fn in enumerate(glob.glob(os.path.join(samples_path[era],'*.root'))):
             smp   = fn.split('/')[-1]
-            subnodes = {"DY": ["DYJetsToLL"], "TT": ["TT", "ST"], "ZA":["HToZATo2L2B"]} 
+            subnodes = {"DY": ["DYJetsToLL"], "TT": ["TT", "ST"], "ZA":process_nodes} 
             if '__skeleton__' in smp:
                 continue
             for node_ in subnodes[node]:
@@ -246,26 +257,26 @@ for era in eras:
                     samples_dict_run2UL[era][f"combined_{node}_nodes"].append(f"{smp}")
 
 sampleList_full = [f"{samples_path[era]}/{smp}" for era in eras for node in nodes for smp in samples_dict_run2UL[era][f"combined_{node}_nodes"]]
-print( " List of samples : ", samples_dict_run2UL )
+#print( " List of samples : ", samples_dict_run2UL )
 print( " TTree :         : ", TTree )  
-
 
 xsec_dict             = dict()
 event_weight_sum_dict = dict()
 for era in eras:
-    if os.path.isfile(xsec_json.format(era=era)): 
-        with open(xsec_json.format(era=era),'r') as handle:
+    json_path = samples_path[era]
+    if os.path.isfile(xsec_json.format(json_path=json_path, era=era)): 
+        with open(xsec_json.format(json_path=json_path, era=era),'r') as handle:
             xsec_dict[era] = json.load(handle)
     else:
         xsec_dict[era] = {}
-    if os.path.isfile( event_weight_sum_json.format(era=era)):
-        with open(event_weight_sum_json.format(era=era),'r') as handle:
+    if os.path.isfile( event_weight_sum_json.format(json_path=json_path, era=era)):
+        with open(event_weight_sum_json.format(json_path=json_path, era=era),'r') as handle:
             event_weight_sum_dict[era] = json.load(handle)
     else:
         event_weight_sum_dict[era] = {}
 
-################################  dtype operation ##############################
-# root_numpy does not like some operators very much #
+#######################################  dtype operation ##############################
+                # root_numpy does not like some operators very much #
 #######################################################################################
 def make_dtype(list_names): 
     list_dtype = [(name.replace('.','_').replace('(','').replace(')','').replace('-','_minus_').replace('*','_times_')) for name in list_names]

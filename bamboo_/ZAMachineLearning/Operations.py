@@ -40,6 +40,26 @@ class op_charge(OperationBase):
     def onehot_dim(self):
         return 2
 
+class op_region(OperationBase):
+    @tf.function
+    def operation(self,x):
+        x = tf.cast(tf.abs(x) > 0, "int32")
+        x = tf.one_hot(tf.cast(x > 0 , "int32"),2)
+        return tf.reshape(x,(tf.shape(x)[0],2))
+    @property
+    def onehot_dim(self):
+        return 2
+
+class op_process(OperationBase):
+    @tf.function
+    def operation(self,x):
+        x = tf.cast(tf.abs(x) > 0, "int32")
+        x = tf.one_hot(tf.cast(x > 0 , "int32"),2)
+        return tf.reshape(x,(tf.shape(x)[0],2))
+    @property
+    def onehot_dim(self):
+        return 2
+
 class op_era(OperationBase):
     @tf.function
     def operation(self,x):

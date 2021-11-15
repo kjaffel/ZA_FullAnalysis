@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import re
 import math
 import glob
@@ -6,7 +7,6 @@ import csv
 import os
 import sys
 import pprint
-import logging
 import copy
 import pickle
 import argparse
@@ -19,6 +19,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 if plt.rcParams['backend'] == 'TkAgg':
     raise ImportError("Change matplotlib backend to 'Agg' in ~/.config/matplotlib/matplotlibrc")
+# Avoid tensorflow print on standard error
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from functools import reduce
 from sklearn import preprocessing
@@ -76,7 +78,7 @@ def get_options():
     # Physics arguments #
     #=========================================================================
     e = parser.add_argument_group('Physics arguments')
-    e.add_argument('-proc','--process', action='store', required=False, default='ggH', choices=['ggH', 'bbH'],
+    e.add_argument('-p','--process', action='store', required=False, nargs='+', default=[],
         help='Which process you want to submit for training ')
     e.add_argument('--resolved', action='store_true', required=False, default=False,
        help='Resolved topology')
@@ -99,10 +101,10 @@ def get_options():
 
     if opt.split!=0 or opt.submit!='':
         if opt.scan!='' or opt.report:
-            logging.critical('These parameters cannot be used together')  
-            logging.critical('--scan to debug and check that all okay locally')  
-            logging.critical('--submit --split 1  : to submit jobs to slurm if the previous okay')  
-            logging.critical('--report            : should be the last step in order to get the best model')
+            logging.critical('These parameters cannot be used together: ')  
+            logging.critical('\t--scan --debug --verbose : to debug and check that all okay locally')  
+            logging.critical('\t--submit --split 1       : to submit jobs to slurm if the previous okay')  
+            logging.critical('\t--report                 : should be the last step in order to get the best model, plots, etc...')
             sys.exit(1)
     
     if opt.submit!='': # Need --output or --split arguments
@@ -135,7 +137,7 @@ def main():
     LOG_LEVEL = logging.DEBUG
     stream = logging.StreamHandler()
     stream.setLevel(LOG_LEVEL)
-    logger = logging.getLogger("ZA-ML")
+    logger = logging.getLogger(__name__)
     logger.setLevel(LOG_LEVEL)
     logger.addHandler(stream)
     try:
@@ -207,24 +209,28 @@ def main():
             DictSplit(opt.split, opt.submit, opt.resubmit)
             logging.info('Splitting jobs done')
         
+        p =''
+        for proc in opt.process:
+            p +=f' {proc}'
         # Arguments to send #
-        args = ' ' # Do not forget the spaces after each arg!
-        if opt.resolved:            args += ' --resolved '
-        if opt.boosted:             args += ' --boosted '
-        if opt.generator:           args += ' --generator '
-        if opt.GPU:                 args += ' --GPU '
-        if opt.resume:              args += ' --resume '
-        if opt.model!='':           args += ' --model ' + opt.model+' '
-        if len(opt.key)!=0:         args += ' --key '+ ' '.join(opt.key)+' '
-        #if opt.outputs!='':         args += ' --outputs '
+        # Do not forget the spaces after each arg!
+        args = '' 
+        if opt.resolved:            args += ' --resolved'
+        if opt.boosted:             args += ' --boosted'
+        if opt.generator:           args += ' --generator'
+        if opt.GPU:                 args += ' --GPU'
+        if opt.resume:              args += ' --resume'
+        if opt.model!='':           args += f' --model {opt.model}'
+        if len(opt.key)!=0:         args += f' --key {opt.key}'
+        if len(opt.process)!=0:     args += f' --process {p} '
+        if len(opt.outputs)!=0:     args += f' --output {opt.outputs} '
 
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
+                submit_on_slurm(name=opt.submit+'_resubmit', args=args, debug=opt.debug)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args)
-        
+                submit_on_slurm(name=opt.submit, args=args, debug=opt.debug)
         sys.exit()
 
     #############################################################################################
@@ -239,7 +245,6 @@ def main():
         
         reportNm   = dict_csv.modelNm()
         modelzipNm = dict_csv.modelzipNm()
-        
         # will solve UnicodeEncodeError: 'ascii' codec 
         # can't encode characters in position 39-188: ordinal not in range(128) in NeuralNet.py", line 298
         os.system('export PYTHONIOENCODING=utf8')
@@ -250,13 +255,10 @@ def main():
     # Output of given files from given model #
     #############################################################################################
     if opt.model != '' and len(opt.key) != 0:
-        
         path_output = os.path.join(opt.outputs,opt.model)
         if not os.path.exists(path_output):
             os.mkdir(path_output)
-
         inst_out = ProduceOutput(model=path_output, generator=opt.generator)
-        
         # Loop over output keys #
         for key in opt.key:
             # Create subdir #
@@ -267,7 +269,6 @@ def main():
                 inst_out.OutputNewData(input_dir=parameters.samples_path,list_sample=samples_dict[key],path_output=path_output_sub)
             except Exception as e:
                 logging.critical('Could not process key "%s" due to "%s"'%(key,e))
-        
         sys.exit()
     
     #############################################################################################
@@ -280,30 +281,32 @@ def main():
     # Input path #
     logging.info('Starting tree importation')
     if opt.cache:
-        if os.path.exists(parameters.train_cache):
+        logging.info(' --- trying to load from cache')
+        if not os.path.exists(parameters.train_cache):
+            raise RuntimeError(f'File not found: {parameters.train_cache}')
+        try:
             logging.info(f'Will load train data from cache: {parameters.train_cache}')
             train_all = pd.read_pickle(parameters.train_cache)
-        else:
-            logging.critical(f'File not found: {parameters.train_cache}')
+        except Exception as ex:
+            raise RuntimeError(f'{ex} when trying to read_pickle({parameters.train_cache}).')
         if parameters.crossvalidation:
-            if os.path.exists(parameters.test_cache):
+            if not os.path.exists(parameters.test_cache):
+                raise RuntimeError(f'File not found: {parameters.test_cache}')
+            try:        
                 logging.info(f'Will load testing data from cache: {parameters.test_cache}')
-                logging.info('... Testing  set : {parameters.test_cache}')
                 test_all = pd.read_pickle(parameters.test_cache)
-            else:
-                logging.critical(f'File not found: {parameters.test_cache}')
+            except Exception as ex:
+                raise RuntimeError(f'{ex} when trying to read_pickle({parameters.test_cache}).')
     else:
         logging.warning('SKIPPED: No cache will be used !')
         # Import arrays #
         data_dict = {}
         for node in parameters.nodes:
             list_sample = []
-            TTree   = []
-
-            if opt.resolved:
-                TTree.extend([f"LepPlusJetsSel_{opt.process}_resolved_{channel.lower()}_deepcsvm" for channel in parameters.channels])
-            if opt.boosted:
-                TTree.extend([f"LepPlusJetsSel_{opt.process}_boosted_{channel.lower()}_deepcsvm" for channel in parameters.channels])
+            TTree   = parameters.TTree
+            if not TTree:
+                logging.critical("selections list is empty, useless to continue !")
+                sys.exit()
 
             data_node = None
             for era,samples_dict in {'2016':parameters.samples_dict_run2UL["2016"][f"combined_{node}_nodes"], 
