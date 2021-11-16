@@ -143,7 +143,7 @@ reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
 #######################################################################################
 # Classification #
 p = { 
-    'epochs' : [2],   
+    'epochs' : [200],   
     'batch_size' : [1000], 
     'lr' : [0.01], 
     'hidden_layers' : [2,3,4,5,6], 
@@ -241,6 +241,7 @@ for proc in opt.process:
         TTree.extend([f"LepPlusJetsSel_{proc}_boosted_{channel.lower()}_deepcsvm" for channel in channels])
     if 'ggH' in opt.process: process_nodes = ["GluGluToHToZATo2L2B"]
     if 'bbH' in opt.process: process_nodes += ["HToZATo2L2B"]
+print( " TTree :         : ", TTree )  
 
 samples_dict_run2UL = collections.defaultdict(dict)
 for era in eras:
@@ -258,22 +259,23 @@ for era in eras:
 
 sampleList_full = [f"{samples_path[era]}/{smp}" for era in eras for node in nodes for smp in samples_dict_run2UL[era][f"combined_{node}_nodes"]]
 #print( " List of samples : ", samples_dict_run2UL )
-print( " TTree :         : ", TTree )  
 
 xsec_dict             = dict()
 event_weight_sum_dict = dict()
 for era in eras:
     json_path = samples_path[era]
-    if os.path.isfile(xsec_json.format(json_path=json_path, era=era)): 
-        with open(xsec_json.format(json_path=json_path, era=era),'r') as handle:
-            xsec_dict[era] = json.load(handle)
-    else:
-        xsec_dict[era] = {}
-    if os.path.isfile( event_weight_sum_json.format(json_path=json_path, era=era)):
-        with open(event_weight_sum_json.format(json_path=json_path, era=era),'r') as handle:
-            event_weight_sum_dict[era] = json.load(handle)
-    else:
-        event_weight_sum_dict[era] = {}
+    xscjson   = xsec_json.format(json_path=json_path, era=era)
+    sumWjson  = event_weight_sum_json.format(json_path=json_path, era=era)
+    
+    if not os.path.exists(xscjson):
+        raise RuntimeError(f'File not found: {xscjson}')
+    with open(xscjson,'r') as handle:
+        xsec_dict[era] = json.load(handle)
+    
+    if not os.path.exists(sumWjson):
+        raise RuntimeError(f'File not found: {sumWjson}')
+    with open(sumWjson,'r') as handle:
+        event_weight_sum_dict[era] = json.load(handle)
 
 #######################################  dtype operation ##############################
                 # root_numpy does not like some operators very much #

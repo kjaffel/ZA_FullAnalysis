@@ -124,11 +124,18 @@ If other files have to be processed, one can use ``--key`` but still these sampl
 ### Plotting:
 To produce the test plots:
 ```python
-python MakeHist.py --model path_to_best_model_dir -v 
+python MakeHist.py --model output_dir/model/ --verbose
+# subdir = all_combined_dict_???_isbest_model/ need to be found in the given path 
 ```
 ```python
-python PlotMassPlane.py  --profile --model ./path_to_best_model_dir/*.zip
+python PlotMassPlane.py --model output_dir/model/all_combined_dict_???_isbest_model.zip
 ```
+*FIXME : work on combination*
+- ``-p``/``--process``: ggH or bbH 
+- ``--era``: 2016 , 2017 or 2018 
+- ``--resolved``: boolean flag default ``False``
+- ``--boosted``: boolean flag  default ``False``
+- ``--channel``: elel or mumu 
 ### Resubmission:
 If some jobs failed, they can be resubmitted with the command: 
 ```python
