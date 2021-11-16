@@ -3,23 +3,24 @@ import sys
 import argparse
 import copy
 import json
-import ROOT
 import enlighten
-
-import numpy as np
-import multiprocessing as mp
-from root_numpy import hist2array
-sys.path.append(os.path.abspath('..'))
-
-import Operations
-from talos import Restore
-from tdrstyle import setTDRStyle
-
-from IPython import embed
-
+import ROOT
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
+import numpy as np
+import multiprocessing as mp
+
+from root_numpy import hist2array
+from IPython import embed
+
+# Avoid tensorflow print on standard error
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+sys.path.append(os.path.abspath('..'))
+import Operations
+from talos import Restore
+from tdrstyle import setTDRStyle
 
 class MassPlane:
     def __init__(self,pdf_path,x_bins,x_min,x_max,y_bins,y_min,y_max,inputs_order,additional_inputs={},plot_DY=False,plot_TT=False,plot_ZA=False,projection=False):
@@ -59,7 +60,6 @@ class MassPlane:
             except:
                 pass
         # When multiple threads loading the model, try again if fails 
-
         return model
 
     def prepareInputs(self,mH,mA):
@@ -70,7 +70,7 @@ class MassPlane:
                   'llbb_M'          : self.y,
                   'bb_M_squared'    : np.power(self.x,2),
                   'llbb_M_squared'  : np.power(self.y,2),
-                  'bb_M_x_llbb_M'   : np.multiply(self.x,self.y)}
+                  'bb_M_x_llbb_M'   : np.multiply(self.x,self.y), }
         inputs.update({inpName:np.ones(N)*inpVal for inpName,inpVal in self.additional_inputs.items()})
 
         if set(self.inputs_order) != set(inputs.keys()):
@@ -78,18 +78,14 @@ class MassPlane:
         inputsArrays = []
         for inpName in self.inputs_order:
             inputsArrays.append(inputs[inpName])
-
         return inputsArrays
-
 
     def plotMassPoint(self,args):
         path_model = args[0]
         mH = round(args[1],3)
         mA = round(args[2],3)
         #print ("Producing plot for MH = %.2f GeV, MA = %.2f"%(mH,mA))
-        
-        model = self.load_model(path_model)
-
+        model  = self.load_model(path_model)
         output = model.predict(self.prepareInputs(mH,mA),batch_size=8192)
         if output.max() > 1.0:
             raise RuntimeError(f'Output max is {output.max()}, this should not happen')
@@ -97,7 +93,6 @@ class MassPlane:
             raise RuntimeError(f'Output min is {output.min()}, this should not happen')
 
         N = self.x.shape[0]
-
         graph_list = []
 
         if self.plot_DY:
@@ -310,40 +305,52 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script to plot mass plane with Neural Net')
     parser.add_argument('--model', action='store', required=True, type=str, 
                    help='Path to model (in zip file)')
+    #=====================================================================================================
     parser.add_argument('--mA', action='store', required=False, type=int, 
                    help='Mass of A for plot')
     parser.add_argument('--mH', action='store', required=False, type=int, 
                    help='Mass of H for plot')
-    parser.add_argument('-j','--jobs', action='store', required=False, default=None, type=int,
-                        help='Number of jobs for multiprocessing')
-    parser.add_argument('--inputs', action='store', required=False, nargs='*', default=None,
-                   help='Additional inputs to provide to the DNN as parameters (synthax : `--inputs pdgid=... era=...`)')
-    parser.add_argument('--DY', action='store_true', required=False, default=False,
+    parser.add_argument('-p', '--process', action='store', required=True, choices=['ggH', 'bbH'],
+                   help='predict model for ggfusion or b-associated production ')
+    parser.add_argument('--resolved', action='store_true', required=False,  default=False,
+                   help='predict model for resolved  regions')
+    parser.add_argument('--boosted', action='store_true', required=False,  default=False,
+                   help=' or in the boosted region')
+    parser.add_argument('--channel', action='store', required=True, default=None, choices=['elel', 'mumu'],
+                   help='from the channel we will get the pdgid')
+    parser.add_argument('--era', action='store', required=True, type=int, choices=[2016, 2017, 2018],
+                    help='predict model for different eras')
+    #=====================================================================================================
+    parser.add_argument('--DY', action='store_true', required=False, default=True,
                    help='Wether to plot the DY output')
-    parser.add_argument('--TT', action='store_true', required=False, default=False,
+    parser.add_argument('--TT', action='store_true', required=False, default=True,
                    help='Wether to plot the TT output')
     parser.add_argument('--ZA', action='store_true', required=False, default=True,
                    help='Wether to plot the ZA output')
+    #=====================================================================================================
     parser.add_argument('--projection', action='store_true', required=False, default=False,
                    help='Wether also plot the projections in MH and MA')
     parser.add_argument('--pavement', action='store', nargs='+', required=False, default=None, type=float,
                    help='Produces pavement for all points considered, need to provide a cut value (can provide several)')
     parser.add_argument('--gif', action='store_true', required=False, default=False, 
                    help='Wether to produce the gif on all mass plane (overriden by --mA and --mH)')
+    parser.add_argument('-j','--jobs', action='store', required=False, default=None, type=int,
+                   help='Number of jobs for multiprocessing')
+    #===================================================================================================== 
     args = parser.parse_args()
 
-    inputs_order = ['pdgid','era','bb_M','llbb_M','bb_M_squared','llbb_M_squared','bb_M_x_llbb_M','mA','mH']
-
-    inputs = {}
-    if args.inputs is not None:
-        for inp in args.inputs:
-            if not '=' in inp:
-                print (f'No `=` in {inp}, will be ignored')
-            else:
-                inputs[inp.split('=')[0]] = float(inp.split('=')[1])
-
-    pdf_path  = os.path.join('plots','MassPlane',f'{os.path.basename(args.model).split(".")[0]}_{"_".join(f"{inpName}_{inpVal}" for inpName,inpVal in inputs.items())}.pdf')
-
+    inputs_order = ['pdgid','era','bb_M','llbb_M','bb_M_squared','llbb_M_squared','bb_M_x_llbb_M','mA','mH', 'isResolved', 'isBoosted', 'isggH', 'isbbH']
+    inputs = {
+        'isResolved' : args.resolved,
+        'isBoosted'  : args.resolved,
+        'isggH'      : True if 'ggH' in args.process else (False),
+        'isbbH'      : True if 'bbH' in args.process else (False),
+        'era'        : float(args.era),
+        'pdgid'      : int(11) if args.channel=='elel' else int(13),
+        }
+    
+    region = 'resolved' if args.resolved else ('boosted')
+    pdf_path  = os.path.join(f'{args.model.split("all_combined")[0]}','plots',f'massplane_{os.path.basename(args.model).split(".")[0]}_{args.process}_{region}_{args.channel}_{args.era}.pdf')
     inst = MassPlane(pdf_path           = pdf_path,
                      x_bins             = 500,
                      x_min              = 0.,
@@ -357,17 +364,15 @@ if __name__ == "__main__":
                      projection         = args.projection,
                      inputs_order       = inputs_order,
                      additional_inputs  = inputs)
-
     graph_list = []
     if args.mA and args.mH:
         graph_list.extend(inst.plotMassPoint([args.model,args.mH,args.mA]))
     elif not args.gif:
         # To pass when needed on all mass points !!
-        with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
-            d = json.load(f)
-            masspoints = [(mH, mA,) for mA, mH in d]
+        #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
+        #    d = json.load(f)
+        #    masspoints = [(mH, mA,) for mA, mH in d]
         masspoints = [(200, 100), ( 300, 50), ( 300, 100), ( 300, 200)]
-
         pbar = enlighten.Counter(total=len(masspoints), desc='Progress', unit='mass points')
         if not args.jobs:
             inst.load_model(args.model)
@@ -381,7 +386,6 @@ if __name__ == "__main__":
                 pbar.update()
             pool.close()
             pool.join()
-
     inst.plotOnCanvas(graph_list)
     if args.pavement is not None:
         inst.makePavement(args.pavement, args.model)
