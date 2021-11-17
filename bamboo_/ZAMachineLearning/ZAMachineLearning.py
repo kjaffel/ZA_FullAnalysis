@@ -289,14 +289,13 @@ def main():
             train_all = pd.read_pickle(parameters.train_cache)
         except Exception as ex:
             raise RuntimeError(f'{ex} when trying to read_pickle({parameters.train_cache}).')
-        if parameters.crossvalidation:
-            if not os.path.exists(parameters.test_cache):
-                raise RuntimeError(f'File not found: {parameters.test_cache}')
-            try:        
-                logging.info(f'Will load testing data from cache: {parameters.test_cache}')
-                test_all = pd.read_pickle(parameters.test_cache)
-            except Exception as ex:
-                raise RuntimeError(f'{ex} when trying to read_pickle({parameters.test_cache}).')
+        if not os.path.exists(parameters.test_cache):
+            raise RuntimeError(f'File not found: {parameters.test_cache}')
+        try:        
+            logging.info(f'Will load testing data from cache: {parameters.test_cache}')
+            test_all = pd.read_pickle(parameters.test_cache)
+        except Exception as ex:
+            raise RuntimeError(f'{ex} when trying to read_pickle({parameters.test_cache}).')
     else:
         logging.warning('SKIPPED: No cache will be used !')
         # Import arrays #
@@ -315,9 +314,8 @@ def main():
                 if len(samples_dict)==0:
                     logging.info(f'Sample dict for era {era} is empty')
                     continue
-                #list_sample = [sample for key in TTree for sample in samples_dict[key]]
                 # cat :  reso, boosted , ee , mumu , ggH , bbH  for tagger+WP 
-                print( samples_dict )
+                #print(samples_dict )
                 list_sample = samples_dict
                 
                 data_node_era = LoopOverTrees(input_dir                 = parameters.samples_path[era],
@@ -479,16 +477,20 @@ def main():
         if opt.scan!='': # If we don't scan we don't need to scale the data
             MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
             
-        train_all.to_pickle(parameters.train_cache)
-        if parameters.crossvalidation:
-            test_all.to_pickle(parameters.test_cache)
         logging.info('Data saved to cache')
-        logging.info('... Training set : %s'%parameters.train_cache)
+        if os.path.exists(parameters.train_cache):
+            os.remove(parameters.train_cache)
+        train_all.to_pickle(parameters.train_cache)
+        logging.info('... Training set saved : %s'%parameters.train_cache)
+        if os.path.exists(parameters.test_cache):
+            os.remove(parameters.test_cache)
+        test_all.to_pickle(parameters.test_cache)
+        logging.info('... Test set saved     : %s'%parameters.train_cache)
 
 
-    logging.info("Sample size seen by network : %d"%train_all.shape[0])
+    logging.info("Sample size to be seen by network : %d"%train_all.shape[0])
     if parameters.crossvalidation:
-        logging.info("Sample size for the output  : %d"%test_all.shape[0])
+        logging.info("Sample size set for the output    : %d"%test_all.shape[0])
     #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
     
     if opt.interactive:
@@ -501,7 +503,6 @@ def main():
         # Start the GPU monitoring thread #
         thread = utilizationGPU(print_time = 900, print_current = False, time_step=0.01)
         thread.start()
-
     if opt.scan != '':
         instance = HyperModel(opt.scan,list_inputs,list_outputs)
         instance.HyperScan(data      = train_all,
@@ -510,7 +511,6 @@ def main():
                            generator = opt.generator,
                            resume    = opt.resume)
         instance.HyperDeploy(best='eval_error')
-        
     if opt.GPU:
         # Closing monitor thread #
         thread.stopLoop()
@@ -521,18 +521,16 @@ def main():
         path_output = os.path.join(opt.outputs, 'model', modelzipNm)
         if not os.path.exists(path_output):
             os.makedirs(path_output)
-
         # Instance of output class #
         inst_out = ProduceOutput(model       = [modelzipNm],
                                  generator   = opt.generator,
                                  list_inputs = list_inputs)
-        
         # Use it on test samples #
         logging.info('  Processing test output sample  '.center(80,'*'))
         if parameters.crossvalidation: # in cross validation the testing set in inside the training DF
-            inst_out.OutputFromTraining(data=test_all,path_output=path_output, crossval_use_training=True)
+            inst_out.OutputFromTraining(data=train_all,path_output=path_output, crossval_use_training=True)
         else:
-            inst_out.OutputFromTraining(data=train_all,path_output=path_output, crossval_use_training=False)
+            inst_out.OutputFromTraining(data=test_all,path_output=path_output, crossval_use_training=False)
              
 if __name__ == "__main__":
     main()

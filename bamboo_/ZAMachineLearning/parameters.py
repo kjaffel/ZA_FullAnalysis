@@ -5,6 +5,7 @@
 #######################################################################################
 import glob
 import json
+import pickle
 import os, sys, os.path
 import multiprocessing
 import collections
@@ -241,7 +242,15 @@ for proc in opt.process:
         TTree.extend([f"LepPlusJetsSel_{proc}_boosted_{channel.lower()}_deepcsvm" for channel in channels])
     if 'ggH' in opt.process: process_nodes = ["GluGluToHToZATo2L2B"]
     if 'bbH' in opt.process: process_nodes += ["HToZATo2L2B"]
-print( " TTree :         : ", TTree )  
+if not opt.report:
+    # allowd to save whenever ZA args are passed
+    with open(f'{path_out}/list_catagories.ob', 'wb') as fp:
+        pickle.dump(TTree, fp)
+else:
+    # avoid to overwrite not in scan/submit model ==> will turn this obj to an empty array!
+    with open (f'{opt.outputs}/list_catagories.ob', 'rb') as fp:
+        TTree = pickle.load(fp)
+print ( ' TTree      :', TTree )  
 
 samples_dict_run2UL = collections.defaultdict(dict)
 for era in eras:
@@ -264,6 +273,8 @@ xsec_dict             = dict()
 event_weight_sum_dict = dict()
 for era in eras:
     json_path = samples_path[era]
+    if json_path =='':
+        continue
     xscjson   = xsec_json.format(json_path=json_path, era=era)
     sumWjson  = event_weight_sum_json.format(json_path=json_path, era=era)
     
