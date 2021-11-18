@@ -18,10 +18,10 @@ git checkout v8.2.0
 scramv1 b clean; scramv1 b # always make a clean build
 ```
 - Now the repository contains a certain amount of analysis-specific code, the following scripts can be used to clone it with a sparse checkout for just the core [CombineHarvester/CombineTools](https://github.com/cms-analysis/CombineHarvester/tree/master/CombineTools) subpackage, speeding up the checkout and compile times:
-- Read more about [CombineHarvester](http://cms-analysis.github.io/CombineHarvester/)framework for the production and analysis of datacards for use with the CMS combine tool. 
+- Read more about [CombineHarvester](http://cms-analysis.github.io/CombineHarvester/) framework for the production and analysis of datacards for use with the CMS combine tool. 
 
 ## Combine Tools:
-This repository is a "top-level" CMSSW package, so it should be located at [$CMSSW_BASE/src/CombineHarvester](). 
+This repository is a "top-level" CMSSW package, so it should be located at [$CMSSW_BASE/src/CombineHarvester](https://cms-analysis.github.io/CombineHarvester/index.html#getting-started). 
 - git clone via ssh:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/master/CombineTools/scripts/sparse-checkout-ssh.sh)
@@ -75,7 +75,8 @@ cmsenv
 - ``-p``/``--parameters``: 
 - ``-v``/``--verbose``: for more printout when debugging
 - ``--era`` : choices ``[2016, 2017, 2018]``
-- ``--dataset``: if ``asimov``; ``-t -1 --expectSignal 1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
+- ``--expectSignal``: ``0`` for B-Only or ``1`` for S+B hypothesis.
+- ``--dataset``: if ``asimov``; ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
 - ``--scale``: 
 - ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node ``ZA`` is the only relevant one.
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
@@ -98,11 +99,13 @@ python ZAlimits.py -p path_to/jsons/ --era
 - ``-p``/``--jsonpath``: path to limits in jsons format which are the results of setp2.
 - ``--era`` : choices ``[2016, 2017, 2018]``
 - ``--unblind``: plot the observe limits
-- ``'--theory``: plot theory cross-section
-- ``'--log'`` : make plot in log scale 
+- ``--rescale-to-za-br``: If set, limits are rescaled to the ZA BR
+- ``--numbers``: If set, show values of expected limits on top of the plot
+- ``--theory``: plot theory cross-section
+- ``--log'`` : make plot in log scale 
 
 ## Trouble-Shooting:
-- If you ever face Segfault in CombineHarvester::WriteDatacard(string, string) in Python[ issue-239](https://github.com/cms-analysis/CombineHarvester/issues/239)you can try with [PR-240](https://github.com/cms-analysis/CombineHarvester/pull/240) do:
+- If you ever face Segfault in CombineHarvester::WriteDatacard(string, string) in Python[ issue-239](https://github.com/cms-analysis/CombineHarvester/issues/239) you can try with [PR-240](https://github.com/cms-analysis/CombineHarvester/pull/240), simply do:
 ```bash
 git checkout master
 git checkout -b master_with_240

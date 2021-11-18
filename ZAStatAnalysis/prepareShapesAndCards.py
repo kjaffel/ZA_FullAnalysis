@@ -3,6 +3,7 @@
 import os, os.path, sys, stat, argparse, getpass, json
 import subprocess
 import json
+import glob
 import ROOT
 ROOT.gROOT.SetBatch()
 ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -17,6 +18,42 @@ import Harvester as H
 import Constants as Constants
 import CombineHarvester.CombineTools.ch as ch
 
+import logging
+LOG_LEVEL = logging.DEBUG
+stream = logging.StreamHandler()
+stream.setLevel(LOG_LEVEL)
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(stream)
+try:
+    import colorlog
+    from colorlog import ColoredFormatter
+    formatter = ColoredFormatter(
+                "%(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s",
+                datefmt=None,
+                reset=True,
+                log_colors={
+                        'DEBUG':    'cyan',
+                        'INFO':     'green',
+                        'WARNING':  'blue',
+                        'ERROR':    'red',
+                        'CRITICAL': 'red',
+                        },
+                secondary_log_colors={},
+                style='%')
+    stream.setFormatter(formatter)
+except ImportError:
+    print(' try https://pypi.org/project/colorlog/  for colorlog')
+    pass
+
+def get_Nm_for_runmode(mode): 
+    Nm_formode = {'ellipse':'rho_steps',
+                  'dnn'    :'dnn_scores',
+                  'mjj'    :'mjj_bins',
+                  'mlljj'  :'mlljj_bins',
+                  'mjj_vs_mlljj' : 'mjj_vs_mlljj_map',
+                  'mjj_and_mlljj': 'mjj_and_mlljj_combined_bins', }
+    return Nm_formode[mode]
 
 def format_parameters(p):
     mH = "%.2f" % p[0]
@@ -49,78 +86,49 @@ def parameter_type(s):
 def get_hist_regex(r):
     return '^%s(__.*(up|down))?$' % r
 
+def get_signal_parameters(f):
+    # HToZATo2L2B_MH-200_MA-50.root
+    split_filename = f.replace('.root','').replace('HToZATo2L2B_','')
+    split_filename = split_filename.split('_')
+    MH = split_filename[0].split('-')[1]
+    MA = split_filename[1].split('-')[1]
+    return int(MH), int(MA)
+
+
 signal_grid = [
         #part0 : 21 signal samples 
-        ( 200, 50), ( 200, 100),
-        ( 250, 50), ( 250, 100),
-        ( 300, 50), ( 300, 100), ( 300, 200),
-        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-        ( 650, 50),
-        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        (1000, 50), (1000, 200), (1000, 500), 
-        (2000, 1000),
-        (3000, 2000) 
+        ( 200, 50), ( 200, 100), ( 300, 100),
+        ( 250, 50), #( 250, 100),
+        #( 300, 50), 
+        ( 300, 100), #( 300, 200),
+        #( 500, 50), ( 500, 200), ( 500, 400),
+        #( 650, 50),
+        #( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+        #(1000, 50), (1000, 200), (1000, 500), 
+        #(2000, 1000),
+        #(3000, 2000) 
         ]
 extra_signals = [
-        #(173.52,  72.01), (209.90,  30.00), (209.90,  37.34), (261.40, 102.99), (261.40, 124.53),
-        #(296.10, 145.93), (296.10,  36.79), (379.00, 205.76), (442.63, 113.53), (442.63,  54.67),
-        #(442.63,  80.03), (609.21, 298.01), (717.96,  30.00), (717.96, 341.02), (846.11, 186.51),
-        #(846.11, 475.64), (846.11,  74.80), (997.14, 160.17), (997.14, 217.19), (997.14, 254.82), (997.14, 64.24)
-        ##part2
-        #(132.00,  30.00), (132.00,  37.34), (173.52,  57.85), (190.85,  71.28), (209.90, 46.48), (261.40,  56.73),
-        #(335.40,  36.79), (379.00, 246.30), (442.63, 135.44), (516.94, 423.96), (516.94, 78.52), (609.21, 135.66),
-        #(609.21, 253.68), (609.21,  54.71), (717.96, 249.34), (717.96,  63.58), (717.96, 99.78), (846.11, 294.51),
-        #(846.11, 405.40), (846.11,  47.37), (846.11, 654.75), (997.14,  55.16)
-        ##part3
-        #(143.44,  46.48), (173.52,  46.48), (209.90, 104.53), (261.40,  69.66), (296.10, 45.12), (335.40, 120.39),
-        #(335.40, 209.73), (442.63, 161.81), (442.63, 193.26), (442.63,  44.76), (442.63, 95.27), (516.94, 212.14),
-        #(516.94,  30.00), (609.21, 158.41), (609.21,  34.86), (609.21, 417.76), (609.21, 85.86), (997.14, 298.97),
-        #(997.14,  30.00), (997.14,  34.93), (997.14, 482.85), (997.14, 566.51)
-        ##part4
-        #(143.44, 30.00), (143.44,  37.34), (173.52,  30.00), (173.52,  37.34), (190.85, 86.78), (230.77, 102.72), (261.40,  37.10),
-        #(261.40, 85.10), (296.10, 120.82), (335.40, 174.55), (335.40,  45.12), (335.40, 67.54), (335.40,  82.14), (379.00, 171.71),
-        #(379.00, 80.99), (516.94, 151.69), (516.94, 179.35), (516.94, 352.61), (516.94, 44.34), (609.21, 116.29), (609.21, 216.52),
-        #(717.96, 40.51), (846.11, 160.17), (997.14, 186.51), (997.14,  87.10)
-        ##part5
-        #(230.77,  37.10), (230.77,  45.88), (230.77, 69.78), (261.40,  45.88), (296.10, 176.02),
-        #(296.10,  82.40), (442.63, 327.94), (442.63, 66.49), (516.94, 128.58), (516.94,  36.47),
-        #(717.96, 400.03), (717.96, 475.80), (717.96, 47.08), (717.96,  85.86), (846.11, 137.54),
-        #(846.11, 217.19), (846.11, 345.53), (846.11, 34.93), (846.11,  40.68), (846.11,  55.16), (997.14, 411.54)
-        ##part6
-        #(190.85,  57.85), (230.77,  30.00), (230.77,  85.09), (261.40, 150.50), (296.10,  67.65),
-        #(335.40, 145.06), (379.00,  66.57), (379.00,  98.26), (442.63, 274.57), (516.94,  53.90),
-        #(516.94,  65.52), (516.94,  93.12), (609.21, 185.18), (609.21,  40.51), (717.96, 157.56),
-        #(717.96, 213.73), (717.96,  34.86), (846.11, 101.43), (846.11, 252.91), (846.11, 558.06),
-        #(846.11,  64.24), (997.14, 118.11), (997.14, 350.77), (997.14,  47.37), (997.14,  74.80)
-        ##part7
-        #(157.77,  46.48), (157.77,  57.85), (190.85,  30.00), (190.85,  37.34), (209.90,  57.71),
-        #(230.77, 123.89), (230.77,  56.73), (296.10,  99.90), (335.40,  30.00), (335.40,  55.33),
-        #(379.00, 118.81), (379.00, 143.08), (379.00,  54.59), (442.63, 230.49), (442.63,  36.64),
-        #(516.94, 296.65), (609.21,  30.00), (609.21, 351.22), (609.21,  47.08), (609.21, 505.93),
-        #(717.96,  73.89), (846.11, 118.11), (846.11,  87.10), (997.14,  40.68), (997.14, 664.66),
-        #(997.14, 779.83)
-        ##part8
-        #(157.77,  30.00), (157.77,  37.34), (190.85,  46.48), (209.90,  71.15), (209.90, 86.79),
-        #(296.10,  30.00), (296.10,  55.33), (335.40,  99.61), (379.00,  30.00), (379.00, 36.63),
-        #(379.00,  44.72), (442.63,  30.00), (516.94, 109.30), (516.94, 250.63), (609.21, 63.58),
-        #(609.21,  99.78), (717.96, 116.19), (717.96, 183.48), (717.96, 291.34), (717.96, 54.71),
-        #(717.96, 577.65), (846.11,  30.00), (997.14, 101.43), (997.14, 137.54)
         ]
     
-
-def prepare_DataCards(grid_data= None, dataset=None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, blind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
+def prepare_DataCards(grid_data= None, dataset=None, expectSignal=None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, blind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
     
     luminosity = Constants.getLuminosity(era)
     
     signal_grid = list(set(grid_data))
-    parameters  = signal_grid 
-
+    parameters = []
+    for f in glob.glob(os.path.join(options.input, '*.root')):
+        split_filename = f.split('/')[-1]
+        if not split_filename.startswith('HToZATo2L2B_'):
+            continue
+        mH, mA = get_signal_parameters(split_filename)
+        if (mH, mA) in signal_grid:
+            parameters.append( (mH, mA) )
+    
     if signal_strength:
         parameters = [( 500, 300)]
-
     if len(parameters) == 1 and parameters[0] == 'all':
         parameters = parameters[:]
-
     for p in parameters:
         if not p in parameters:
             print("Invalid parameter '%s'. Valid values are %s" % (str(p), str(parameters)))
@@ -143,11 +151,11 @@ def prepare_DataCards(grid_data= None, dataset=None, era= None, parameters= None
         content = json.load(inf)
         ellipses['ElEl'] = content
     
-    prepareShapes(input, dataset, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl'], ellipses, mode, output, luminosity, split_by_categories, scale, blind, signal_strength, stat_only, verbose)
+    prepareShapes(input, dataset, expectSignal, era, method, parameters, ['ggH', 'bbH'], ['boosted', 'resolved'], ['MuMu', 'ElEl'], ellipses, mode, output, luminosity, split_by_categories, scale, blind, signal_strength, stat_only, verbose)
 
     # Create helper script to run limits
     output = os.path.join(output, mode)
-    print( '\tThe generated script to run limits can be found in : %s' %output)
+    print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_run_{method}.sh"`
 for script in $scripts; do
@@ -168,12 +176,12 @@ done
     os.chmod(script_name, st.st_mode | stat.S_IEXEC)
 
     if method=="hybridnew":
-        print("All done. You can run everything by executing %r" % ('./' + script_name[:-3]+"_onSlurm.sh"))
+        logger.info("All done. You can run everything by executing %r" % ('./' + script_name[:-3]+"_onSlurm.sh"))
     else:
-        print("All done. You can run everything by executing %r" % ('./' + script_name))
+        logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, blind=False, signal_strength=False, stat_only=False, verbose=False):
+def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, blind=False, signal_strength=False, stat_only=False, verbose=False):
     if mode == "mjj_and_mlljj":
         categories = [
                 (1, 'mlljj'),
@@ -199,13 +207,13 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
     elif mode == "postfit":
         split_by_categories = True
         categories = [
-                # % (flavour, ellipse_index)
-                (1, 'ellipse_{}_{}')
-                (2, 'mlljj'),
-                (3, 'mjj'),
-                (4, 'mjj_vs_mlljj')
                 # % ( MH, MA)
-                (5, 'dnn_ggH_resolved_MH_{}_MA_{}')
+                (1, 'dnn_ggH_resolved_MH_{}_MA_{}')
+                # % (flavour, ellipse_index)
+                #(2, 'ellipse_{}_{}'),
+                #(3, 'mlljj'),
+                #(4, 'mjj'),
+                #(5, 'mjj_vs_mlljj')
                 ]
     elif mode == "dnn":
         categories = [
@@ -216,7 +224,7 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
     histfactory_to_combine_categories = {}
     histfactory_to_combine_processes  = {
             # main Background
-            'ttbar'    : ['^TT*'],  
+            'ttbar'    : ['^TT*', '^ttbar_*'],  
             'SingleTop': ['^ST_*'],
             'DY'       : ['^DYJetsToLL_0J*', '^DYJetsToLL_1J*', '^DYJetsToLL_2J*', '^DYToLL_*'],
             # Others Backgrounds
@@ -227,25 +235,34 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
             #'Wgamma'  : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
             'SMHiggs'  : ['^ggZH_HToBB_ZToNuNu*', '^HZJ_HToWW*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToLL*', '^ttHJet*']
             }
-
+    if options.mode == "postfit":
+        for p in parameters:
+            mH = p[0]
+            mA = p[1]
+            
+            formatted_p = format_parameters(p)
+            formatted_e = format_ellipse(p, ellipses)
+           
+            histfactory_to_combine_categories = {
+                'dnn_ggH_resolved_MH_{}_MA_{}'.format(mH, mA) : get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(mA, mH)),
+                #'ellipse_{}_{}'.format(formatted_p, formatted_e):    get_hist_regex('rho_steps_histo_{flavor}_hZA_lljj_deepCSV_btagM_mll_and_met_cut_%s' % format_ellipse(p, ellipses)),
+                #'mjj':      get_hist_regex('jj_M_{flavor}_hZA_lljj_deepCSV_btagM_'),
+                #'mlljj': get_hist_regex('lljj_M_{flavor}_hZA_lljj_deepCSV_btagM_'),
+            }
     # Shape depending on the signal hypothesis
     for p in parameters:
-
+        mH = p[0]
+        mA = p[1]
+        
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
         
         suffix = formatted_p.replace('MH_', 'MH-').replace('MA_','MA-')
         # Signal process
-        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(p[0],p[1]), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(p[0], p[1])]
+        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(mH,mA), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(mH, mA)]
         
         if mode == "postfit":
-            histfactory_to_combine_categories = {
-                    'ellipse_{}_{}'.format(formatted_p, formatted_e):    get_hist_regex('rho_steps_histo_{flavor}_hZA_lljj_deepCSV_btagM_mll_and_met_cut_%s' % format_ellipse(p, ellipses)),
-                    'mlljj':   get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    'mjj':     get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    'mjj_vs_mlljj': get_hist_regex('jj_M_vs_lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut'),
-                    # FIXME add the dnn histos
-                    }
+            histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(mA, mH))
         elif mode == "mjj_and_mlljj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
             histfactory_to_combine_categories[('mlljj', p)] = get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
@@ -258,8 +275,10 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
         elif mode == "ellipse":
             histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__%s'%formatted_p)
         elif mode == "dnn": # FIXME ugly histos name 
-            histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(p[0], p[1]), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(p[1], p[0]))
-    print( 'histfactory_to_combine_categories    : %s '%histfactory_to_combine_categories )
+            #histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_{flavor}channel_resolvedselection_ZAscan_MA_%s_MH_%s'%(mA, mH))
+            histfactory_to_combine_categories[('dnn_ggH_resolved_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_ZAnode_{flavor}_resolved_DeepCSVM_METCut_gg_fusion_MH_%s_MA_%s'%(mH, mA))
+    
+    print( '\thistfactory_to_combine_categories    : %s '%histfactory_to_combine_categories )
 
     if not blind:
         histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^EGamma*']
@@ -273,7 +292,10 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
     file, systematics = H.prepareFile(processes_map=histfactory_to_combine_processes, categories_map=histfactory_to_combine_categories, input=input, output_filename=output_filename, signal_process='HToZATo2L2B', method=method, luminosity=luminosity, flavors=flavors, era=era, blind=blind)
 
     #print ( "\tsystematics : %s       :" %systematics )
-    for p in parameters:
+    for i, p in enumerate(parameters):
+        mH = p[0]
+        mA = p[1]
+        
         cb = ch.CombineHarvester()
         if verbose:
             cb.SetVerbosity(3)
@@ -281,30 +303,31 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
 
         # Dummy mass value used for all combine input when a mass is needed
         mass = "125"
-
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
 
-        analysis_name = 'HToZATo2L2B'#_MH-%s_MA-%s'%(p[0],p[1)
+        analysis_name = 'HToZATo2L2B'
         categories_with_parameters = categories[:]
         for i, k in enumerate(categories_with_parameters):
-            if mode == 'dnn':
-                categories_with_parameters[i] = (k[0], k[1].format(p[0], p[1]))
+            if mode in ['dnn', 'postfit']:
+                categories_with_parameters[i] = (k[0], k[1].format(mH, mA))
+            elif mode == 'ellipse':
+                categories_with_parameters[i] = (k[0], k[1].format('MH-%s_MA-%s'%(mH, mA), formatted_e))
             else:
-                categories_with_parameters[i] = (k[0], k[1].format('MH-%s_MA-%s'%(p[0],p[1]), formatted_e))
-        print( '\tcategories_with_parameters    :  %s '%categories_with_parameters) 
-        # AddObservations( mass, analysis, era, channel, bin)
+                print( 'FIXME' )
+        print( '\tcategories_with_parameters      :  %s '%categories_with_parameters) 
+        #cb.AddObservations( mass, analysis, era, channel, bin)
         cb.AddObservations(['*'], [analysis_name], ['13TeV_%s'%era], flavors, categories_with_parameters)
         bkg_processes = [
                 'ttbar',
                 'SingleTop',
                 'DY',
-                'WPlusJets',
-                'ttV',
-                'VV',
-                'VVV',
+                #'WPlusJets',
+                #'ttV',
+                #'VV',
+                #'VVV',
                 #'Wgamma',
-                'SMHiggs'
+                #'SMHiggs'
                 ]
 
         # FIXME I am not sure if this intended or a mistake 
@@ -312,11 +335,10 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
             processes = []
             cb.AddProcesses(['*'], [analysis_name], ['13TeV_%s'%era], [flavor], bkg_processes, categories_with_parameters, False)
             processes += bkg_processes
-
         sig_process = 'HToZATo2L2B'
         cb.AddProcesses([mass], [analysis_name], ['13TeV_%s'%era], flavors, [sig_process], categories_with_parameters, True)
         processes += [sig_process]
-        print ( "processes       : %s" %processes)
+        print ( "\tprocesses       : %s" %processes)
         
         if not stat_only:
             processes_without_weighted_data = cb.cp()
@@ -326,14 +348,12 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
             if not H.splitTTbarUncertBinByBin:
                 cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')
                         (['ttbar'], 1.001525372691124) )
-                cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')
-                        (['SingleTop'], 1.0029650414264797) )
-            # FIXME this I don't really undrestand ! 
-            cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process') 
-            #cb.cp().AddSyst(cb, '$DY_xsec', 'lnN', ch.SystMap('process') 
+            cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')
+                    (['SingleTop'], 1.0029650414264797) )
+            cb.cp().AddSyst(cb, 'DY_xsec', 'lnN', ch.SystMap('process') 
                         (['DY'], 1.007841991384859) )
-
             if signal_strength:
+                # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHXSWGHH#Current_recommendations_for_di_H
                 cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process')
                     ([sig_process], 1.0729) )
 
@@ -344,7 +364,7 @@ def prepareShapes(input=None, dataset=None, era=None, method=None, parameters=No
                         if sig_process in process:
                             process = sig_process
                         if not process in cb.cp().channel([flavor]).process_set():
-                                print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, flavor, process))
+                            print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, flavor, process))
                         for s in systematics[flavor][category_with_parameters][process]:
                             s = str(s)
                             if H.ignoreSystematic(flavor, process, s):
@@ -405,10 +425,11 @@ pushd {dir}
 if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
-# Run limits
-combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} {blind} &> {name}.log
+# Run combined
+#combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
+combine {method} -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
 popd
-""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1 --expectSignal 0' if dataset=='asimov' else '-t 8 -s -1'), blind=('--run blind' if blind else ''))
+""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1' if dataset=='asimov' else '-t 8 -s -1'), blind=('--run blind' if blind else ''), expectSignal=expectSignal)
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -427,7 +448,7 @@ popd
 
         print ("Writing datacards!")
         print (categories_with_parameters )
-        mergeable_flavors = ['MuMu', 'ElEl', 'MuEl']
+        mergeable_flavors = ['MuMu', 'ElEl']
         if split_by_categories:
             for flavor in flavors:
                 for i, cat in enumerate(categories_with_parameters):
@@ -450,19 +471,20 @@ popd
             
             for flavor in flavors:
                 if mode == "postfit":
+                    name = get_Nm_for_runmode('dnn')
                     script = """#! /bin/bash
 pushd {dir}
-# Fit the rho distribution
-./{prefix}_cat_{categories}_run_fit.sh
+# Fit the {name} distribution
+./{prefix}_{categories}_run_fit.sh
 
 # Create post-fit shapes for all the categories
 for CAT in {categories}; do
-    text2workspace.py {prefix}_cat_${{CAT}}.dat -m {mass} -o {prefix}_cat_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_cat_${{CAT}}_combine_workspace.root -d {prefix}_cat_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_cat_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --print
-    $CMSSW_BASE/src/ZAStatAnalysis/utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n rho_steps
+    text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --print
+    $CMSSW_BASE/src/ZAStatAnalysis/utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n {name}
 done
 popd
-""".format(prefix=output_prefix + '_' + flavor, flavor=flavor, mass=125, parameter='MH-%s_MA-%s'%(p[0],p[1]), categories=' '.join([x[1] for x in categories_with_parameters]), dir=os.path.abspath(output_dir))
+""".format(prefix=output_prefix + '_' + flavor, flavor=flavor, mass=125, parameter='MH-%s_MA-%s'%(mH,mA), categories=' '.join([x[1] for x in categories_with_parameters]), dir=os.path.abspath(output_dir), name=name)
                     script_file = os.path.join(output_dir, output_prefix + '_' + flavor + ('_do_postfit.sh'))
                     with open(script_file, 'w') as f:
                         f.write(script)
@@ -487,47 +509,48 @@ popd
                 createRunCombineScript(mass, output_dir, output_prefix + '_' + '_'.join(mergeable_flavors))
 
 if __name__ == '__main__':
-    """
-    Parse and return arguments provided by the user
-    """
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
     parser.add_argument('-i', '--input',        action='store', dest='input', type=str, required=True, 
-                                                help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following steps: 1/- final selection(2l+bjets pass btagging discr cut ) \n'
-                                                     '-> 2/- skim -> 3/- DNN trained using these skimmed trees -> 4/- passed again to BAMBOO to produce your dnn outputs( prefit-plot) with al systematics wich willbe used here in combine.\n')
-    parser.add_argument('-e', '--era',          action='store', dest='era', type=str, default= '2016',   
+                                                help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following \n'
+                                                     'steps: 1/- final selection ( 2l+bjets pass btagging discr cut + met + corrections + etc... ) \n'
+                                                     '       2/- do skim  \n'
+                                                     '       3/- DNN trained using these skimmed trees \n'
+                                                     '       4/- run bamboo to produce your dnn outputs(prefit plots) with all systematics variations using the model you get from training.\n')
+    parser.add_argument('-o', '--output',       action='store', dest='output', required=True, default=None,        
+                                                help='Output directory')
+    parser.add_argument('-e', '--era',          action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018'],
                                                 help='You need to pass your era')
     parser.add_argument('-p', '--parameters',   nargs='+', metavar='MH,MA', dest='parameters', type=parameter_type, default=['all'],               
                                                 help='Parameters list. Use `all` as an alias for all parameters')
-    parser.add_argument('-o', '--output',       action='store', dest='output', type=str, default='ul__combinedlimits/ul2016_cards__ver1',        
-                                                help='Output directory')
-    parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only',                                                            
+    parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
                                                 help='Do not consider systematic uncertainties')
-    parser.add_argument('-a', '--mode',         action='store', dest='mode', type=str, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'postfit', 'mjj', 'mlljj', 'ellipse', 'dnn'],
-                                                help='Analysis mode')
-    parser.add_argument('-n', '--node',         action='store', dest='node', type=str, default='ZA', choices=['DY', 'TT', 'ZA'],
-                                                help='DNN nodes')
-    parser.add_argument('-v', '--verbose',      action='store_true', required=False,
+    parser.add_argument('-v', '--verbose',      action='store_true', required=False, default=False, 
                                                 help='For debugging purposes , you may consider this argument !')
-    parser.add_argument('--method',             action='store', dest='method', type=str, default='asymptotic', choices=['asymptotic', 'hybridnew', 'fit'],        
+    parser.add_argument('--expectSignal',       action='store', required=True, type=int, choices=[0, 1],
+                                                help=' Is this S+B fit B-Only  ? ')
+    parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'postfit', 'mjj', 'mlljj', 'ellipse', 'dnn'],
+                                                help='Analysis mode')
+    parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
+                                                help='DNN nodes')
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit'],        
                                                 help='Analysis method')
-    parser.add_argument('--blind',              action='store_true', dest='blind',
+    parser.add_argument('--blind',              action='store_true', dest='blind', required=False,
                                                 help='Use fake data instead of real data')
-    parser.add_argument('--signal-strength',    action='store_true', dest="signal_strength",                                                   
+    parser.add_argument('--signal-strength',    action='store_true', dest="signal_strength", required=False, default=False,                                                  
                                                 help='Put limit on the signal strength instead of the cross-section')
-    parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', default='/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZATools/scripts_ZA/ellipsesScripts/vers20.06.03Inputs/fullEllipseParamWindow_MuMu.json',
+    parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', required=False,
+                                default='/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZATools/scripts_ZA/ellipsesScripts/vers20.06.03Inputs/fullEllipseParamWindow_MuMu.json',
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
-    parser.add_argument('--scale',              action='store_true', dest='scale', default=False,                                                  
+    parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
                                                 help='scale signal rate')
-    parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True,                              
+    parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True, default=None,                             
                                                 help='if asimov:\n'
                                                         '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
-                                                        '--expectSignal 1 \n'
                                                      'if toys: \n'
                                                         '-t N with N > 0. Combine will generate N toy datasets from the model and re-run the method once per toy. \n'
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
-
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, blind=options.blind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)
+    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, blind=options.blind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)

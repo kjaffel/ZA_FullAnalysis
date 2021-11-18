@@ -18,9 +18,9 @@ def CMSNamingConvention(origName, era=None):
     other = {
         # old naming for old histograms, will be removed  soon 
         'puweights2016_Moriond17': "CMS_pileup_%s"%era,
-        'elid':"CMS_eff_el",
-        'muid':"CMS_eff_mu",
-        'muiso':"CMS_iso_mu",
+        'elid':"CMS_eff_el_%s"%era,
+        'muid':"CMS_eff_mu_%s"%era,
+        'muiso':"CMS_iso_mu_%s"%era,
         'eleltrig':"CMS_eff_trigElEl_%s"%era,
         'mumutrig':"CMS_eff_trigMuMu_%s"%era,
         'elmutrig':"CMS_eff_trigElMu_%s"%era,
@@ -32,20 +32,20 @@ def CMSNamingConvention(origName, era=None):
         "btagSF_fixWP_deepcsvM_heavy":"CMS_btag_heavy_%s"%era,
         "btagSF_fixWP_deepflavourM_light":"CMS_btag_light_%s"%era,
         "btagSF_fixWP_deepflavourM_heavy":"CMS_btag_heavy_%s"%era,
-        "L1Prefiring": "CMS_L1PreFiring",
+        "L1Prefiring": "CMS_L1PreFiring_%s"%era,
         "unclustEn": "CMS_UnclusteredEn_%s"%era,
-        'elid_medium':"CMS_eff_elid",
-        'lowpt_ele_reco':"CMS_reff_elreco",
-        'highpt_ele_reco':"CMS_eff_elreco",
-        'muid_medium':"CMS_eff_muid",
-        'muiso_tight':"CMS_eff_muiso",
-        'HHMoriond17__eleltrig':"CMS_eff_trigElEl_%s"%era,
-        'HHMoriond17__mumutrig':"CMS_eff_trigMuMu_%s"%era,
-        'HHMoriond17__elmutrig':"CMS_eff_trigElMu_%s"%era,
-        'HHMoriond17__mueltrig':"CMS_eff_trigMuEl_%s"%era,
+        'elid_medium':"CMS_eff_elid_%s"%era,
+        'lowpt_ele_reco':"CMS_reff_elreco_%s"%era,
+        'highpt_ele_reco':"CMS_eff_elreco_%s"%era,
+        'muid_medium':"CMS_eff_muid_%s"%era,
+        'muiso_tight':"CMS_eff_muiso_%s"%era,
+        'HHMoriond17_eleltrig':"CMS_eff_trigElEl_%s"%era,
+        'HHMoriond17_mumutrig':"CMS_eff_trigMuMu_%s"%era,
+        'HHMoriond17_elmutrig':"CMS_eff_trigElMu_%s"%era,
+        'HHMoriond17_mueltrig':"CMS_eff_trigMuEl_%s"%era,
         # not in use  
         "chMisID": "CMS_chargeMisID_%s"%era,
-        "jesHEMIssue": "CMS_HEM",
+        "jesHEMIssue": "CMS_HEM_%s"%era,
         }
     theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR", "pdf": "pdf"}
     if origName in other:
@@ -64,7 +64,7 @@ def CMSNamingConvention(origName, era=None):
     if origName.startswith("pileup"):
         return "CMS_pileup_%s"%era  
     else:
-        return origName
+        return origName+'_%s'%era
 
 def get_hist_from_key(keys, key):
     h = keys.get(key, None)
@@ -75,7 +75,7 @@ def get_hist_from_key(keys, key):
 def get_listofsystematics(directory):
     systematics = []
     files = glob.glob(os.path.join(directory,"*.root"))
-    for f in files:
+    for i, f in enumerate(files):
         F = ROOT.TFile(f)
         for key in F.GetListOfKeys():
             if not 'TH1' in key.GetClassName():
@@ -83,10 +83,10 @@ def get_listofsystematics(directory):
             if not '__' in key.GetName():
                 continue
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
+            syst = syst.replace('pile_', 'pileup_')
             if syst not in systematics:
                 systematics.append(syst)
         F.Close()
-
     print ("Found systematics:", systematics)
     return systematics
 
@@ -104,7 +104,7 @@ def get_method_group(method):
 
 def get_combine_method(method):
     if method == 'fit':
-        return '-M MaxLikelihoodFit'
+        return '-M FitDiagnostics'#MaxLikelihoodFit'
     elif method == 'asymptotic':
         return '-M AsymptoticLimits --rMax 500'
     elif method == 'hybridnew':
@@ -120,6 +120,8 @@ def ignoreSystematic(flavor, process, s):
     if s == 'FSR':
         return True
     if s == 'ISR':
+        return True
+    if s == 'HLTZvtx_2016-preVFP':
         return True
     return False
 
@@ -146,11 +148,12 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
             d.SetDirectory(ROOT.nullptr)
             return d
     
+    # already done in the post-processing 
     # Rescale histogram to luminosity, if it's not data
-    scale = getScaleFactor(process)
-    if not 'data' in process:
-        scale *= luminosity
-    histogram.Scale(scale)
+    #scale = getScaleFactor(process)
+    #if not 'data' in process:
+    #    scale *= luminosity * xsc * generated_events
+    #histogram.Scale(scale)
 
     d = destination
     if not d:
@@ -163,69 +166,6 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     zeroNegativeBins(d)
     return d
 
-def getKnownSystematics():
-    known_systematics = [
-            'puweights2016_Moriond17',
-            'jesTotal',
-            'jer',
-            'elid',
-            #'ele_reco',
-            'muid',
-            'muiso',
-            #'qcdScale',
-            #'psISR',
-            #'psFSR',
-            #'pdf',
-            'eleltrig',
-            'mumutrig',
-            'elmutrig',
-            'mueltrig',
-            'L1PreFiring',
-            'DeepCSVM',
-            ]
-
-    if splitTTbarUncertBinByBin:
-        for i in range(1,7):
-            known_systematics.append('ttbarNormBin{0}'.format(i))
-
-    if splitPDF:
-        pdf_processes = ['pdf{}'.format(x).lower() for x in ["gg","qg","qq"]]
-        known_systematics.remove('pdf')
-        known_systematics += pdf_processes
-
-    if splitJECBySources:
-        jec_sources = ['jec{}'.format(x).lower() for x in [
-                "AbsoluteFlavMap",
-                "AbsoluteMPFBias",
-                "AbsoluteScale",
-                "AbsoluteStat",
-                "FlavorQCD",
-                "Fragmentation",
-                "PileUpDataMC",
-                "PileUpPtBB",
-                "PileUpPtEC1",
-                "PileUpPtEC2",
-                "PileUpPtHF",
-                "PileUpPtRef",
-                "RelativeBal",
-                "RelativeFSR",
-                "RelativeJEREC1",
-                "RelativeJEREC2",
-                "RelativeJERHF",
-                "RelativePtBB",
-                "RelativePtEC1",
-                "RelativePtEC2",
-                "RelativePtHF",
-                "RelativeStatEC",
-                "RelativeStatFSR",
-                "RelativeStatHF",
-                "SinglePionECAL",
-                "SinglePionHCAL",
-                "TimePtEta"]]
-        known_systematics.remove('jec')
-        known_systematics += jec_sources
-    return known_systematics
-
 def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=['All'], era=None, blind=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
@@ -233,8 +173,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
       1) Each observable is mapped to a subfolder. The name of the folder is the name of the observable
       2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. The name of the histogram is the name of the background.
     """
-
-    known_systematics = get_listofsystematics(input) #getKnownSystematics()
+    known_systematics = get_listofsystematics(input) 
     print("Preparing ROOT file for combine...")
     print("="*60)
     systematics = {f: known_systematics[:] for f in flavors}
@@ -267,7 +206,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             hash.update(process[0])
         else:
             hash.update(process)
-
         map(hash.update, process_files)
 
     # Use a TT file as reference to extract the list of histograms
@@ -320,7 +258,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                         if histograms[category] != nominal_name:
                             raise Exception("The regular expression used for category %r matches more than one histogram: %r and %r" % (category, nominal_name, histograms[category]))
                     histograms[category] = nominal_name
-
         histograms_per_flavor[flavor] = histograms
 
     cms_systematics = {f: [CMSNamingConvention(s, era) for s in v] for f, v in systematics.items()}
@@ -328,7 +265,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         hash.update(f)
         for systematic in cms_systematics[f]:
             hash.update(systematic)
-
     hash.update(get_method_group(method))
     hash = hash.hexdigest()
 
@@ -338,7 +274,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         stored_hash = f.Get('hash')
         if stored_hash and stored_hash.GetTitle() == hash:
             print("File %r already exists and contains all the needed shapes. Skipping file generation." % output_filename)
-
             systematics = f.Get('systematics')
             return output_filename, json.loads(systematics.GetTitle())
         else:
@@ -365,10 +300,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
 
         # final_systematics[systematic_process] = {}
         # shapes[process] = {}
-
         for process_file in process_files:
             f = ROOT.TFile.Open(process_file)
-
             if process_file.split('/')[-1].startswith('__skeleton__'):
                 continue
             # Build a dict key name -> key for faster access
@@ -381,12 +314,10 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             for flavor in flavors:
                 if not flavor in final_systematics:
                     final_systematics[flavor] = {}
-
                 process_with_flavor = process + "_" + flavor
 
                 # Loop over all categories and load the histograms
                 for category, original_histogram_name in histograms_per_flavor[flavor].items():
-
                     category_specific_to_signal_hypo = None
                     if type(category) is tuple:
                         category_specific_to_signal_hypo = category[1]
@@ -395,12 +326,11 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
                         # Keep the category only if the signal hypothesis is the same
                         if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
-                            print("  ignoring category {} for {}".format(category, process))
                             continue
+                        print("   keeping only category {} flavor {} for {}".format(category, flavor, process))
 
                     final_systematics_category = final_systematics[flavor].setdefault(category, {})
                     final_systematics_category_process = final_systematics_category.setdefault(systematic_process, set())
-
                     shapes_category = shapes.setdefault(category, {})
                     shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
 
@@ -418,8 +348,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                         has_both = True
                         for variation in ['up', 'down']:
                             key = cms_systematic + variation.capitalize()
-
-                            h = get_hist_from_key(keys, original_histogram_name + '__' + systematic + variation)
+                            h   = get_hist_from_key(keys, original_histogram_name + '__' + systematic + variation)
                             if h:
                                 try:
                                     shapes_category_process[key] = merge_histograms(flavor, process, h, shapes_category_process.get(key, None), luminosity)
@@ -427,10 +356,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                                     raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name + '__' + systematic + variation, process_file, process_with_flavor))
                             else:
                                 has_both = False
-
                         if has_both:
                             final_systematics_category_process.add(cms_systematic)
-
             f.Close()
         print("Done.")
 
@@ -445,12 +372,9 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             for process, systematics_dict in processes.items():
                 if not process.startswith(signal_process):
                     continue
-
                 for name, shape in systematics_dict.items():
                     shape.Scale(1000)
-
     output_file = ROOT.TFile.Open(output_filename, 'recreate')
-
     # Store hash
     file_hash = ROOT.TNamed('hash', hash)
     file_hash.Write()
@@ -466,14 +390,11 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                 for process, systematics_dict in processes.items():
                     if process.startswith(signal_process):
                         continue
-
                     if not process.endswith(flavor):
                         continue
-
                     scale = 1
                     if 'nobtag_to_btagM' in process and not 'data' in process:
                         scale = -1
-
                     if not fake_data:
                         fake_data = systematics_dict['nominal'].Clone()
                         fake_data.Scale(scale)
@@ -493,7 +414,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                 #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
                 #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_19":
                 #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-
                 processes['data_obs_%s' % flavor] = {'nominal': fake_data}
 
     for category, processes in shapes.items():
@@ -503,11 +423,9 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             for systematic, histogram in systematics_.items():
                 if process == 'data_obs' and systematic != 'nominal':
                     continue
-
                 histogram.SetName(process if systematic == 'nominal' else process + '__' + systematic)
                 histogram.Write()
         output_file.cd()
-
     output_file.Close()
     print("Done. File saved as %r" % output_filename)
     return output_filename, final_systematics

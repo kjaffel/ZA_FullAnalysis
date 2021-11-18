@@ -34,15 +34,15 @@ import CMSStyle as CMSStyle
 
 parser = argparse.ArgumentParser(description='Draw non-resonant 1D scan')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
+parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br', help='If set, limits are rescaled to the ZA BR')
 parser.add_argument('--era', action='store', type=str, choices=['2016', '2017', '2018'], help='Output directory', required=True)
-parser.add_argument('-u', '--unblind', action='store_true', dest='unblind', help='If set, draw also observed upper limits')
-parser.add_argument('-t', '--theory', action='store_true', dest='theory', help='If set, draw theoretical cross-section')
-parser.add_argument('-l', '--log', action='store_true', dest='log', help='If set, draw limits plot in log-scale')
-parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za', help='If set, limits are rescaled to the ZA BR')
-parser.add_argument('-n', '--numbers', action='store_true', dest='numbers', help='If set, show values of expected limits on top of the plot')
+parser.add_argument('--unblind', action='store_true', dest='unblind', help='If set, draw also observed upper limits')
+parser.add_argument('--theory', action='store_true', dest='theory', help='If set, draw theoretical cross-section')
+parser.add_argument('--log', action='store_true', dest='log', help='If set, draw limits plot in log-scale')
+parser.add_argument('--numbers', action='store_true', dest='numbers', help='If set, show values of expected limits on top of the plot')
 parser.add_argument('--no-latex', action='store_true', dest='no_latex', help='Do not create LaTeX table of limits')
 parser.add_argument('--leg-pos', action='store', type=str, dest='leg_pos', default='left', choices=['left', 'right'], help='Legend position')
-parser.add_argument('-s', '--scan', action='store', type=str, dest='scan', default='mA', choices=['mA', 'mH'], help='Parameter being scanned')
+parser.add_argument('--scan', action='store', type=str, dest='scan', default='mA', choices=['mA', 'mH'], help='Parameter being scanned')
 #parser.add_argument('--mH', action='store', type=float, dest='mH', default=500, help='default value for m_H')
 parser.add_argument('--mA', action='store', type=float, dest='mA', default=300, help='default value for m_A')
 parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do a regular limit plot instead of a boxed one')
@@ -50,7 +50,7 @@ parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do
 options = parser.parse_args()
 
 parameters = ['mH', 'mA']
-mH_list    = [250, 300, 800]
+mH_list    = [200, 250, 300]
 
 th_files = [
     #'sigmaBR_HZA_type-2_tb-0p5_cba-0p01.json',
@@ -96,20 +96,21 @@ axes_y_limits = {
 
 axes_log_y_limits = {
     "mH": { },
-    "mA": {'ymin': 4, 'ymax':6000},
+    "mA": {'ymin': 0, 'ymax':2000},
     }
 show_markers = {
     'mH': False,
     'mA': True
     }
 colors = {
-    'MuMu'    : '#7040f5',
-    'ElEl'    : '#ff7f0e',
-    'MuEl'    : '#a02c4d',
-    'Combined': 'black',
+    'MuMu'     : '#7040f5',
+    'ElEl'     : '#ff7f0e',
+    'MuEl'     : '#a02c4d',
+    'MuMu_ElEl': 'black',
     }
     
-flavors = ['MuMu', 'ElEl']#, 'Combined']
+#flavors = ['MuMu', 'ElEl', 'MuMu_ElEl']
+flavors = ['MuMu_ElEl']
 
 output_dir = options.jsonpath
 for the_mH in mH_list:
@@ -136,9 +137,11 @@ for the_mH in mH_list:
     available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
     available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
      
-    print( available_parameters )
     flavors_data = {}
-    scanning_SM = False
+    scanning_SM  = False
+    print('available_parameters for mH = ', the_mH, available_parameters )
+    if not available_parameters:
+        continue
     for point in available_parameters:
         next_point = False
         ## Only keep points request by the user for the scan
@@ -166,14 +169,28 @@ for the_mH in mH_list:
             param_val = point[parameter_index[options.scan]]
             x.append(param_val)
     
-            expected.append(limits[point]['expected'])
-            observed.append(limits[point].get('observed', 0))
+            # from pb to fb 
+            expected.append(limits[point]['expected']*1000)
+            observed.append(limits[point].get('observed', 0)*1000)
     
+            exp_plus_1sigma  = limits[point]['one_sigma'][1]*1000
+            exp_minus_1sigma = limits[point]['one_sigma'][0]*1000
+            exp_plus_2sigma  = limits[point]['two_sigma'][1]*1000
+            exp_minus_2sigma = limits[point]['two_sigma'][0]*1000
+            
+            br = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(point[0]), Constants.mass_to_str(point[1]), 'ggH', 'HToZA')
+            if options.rescale_to_za_br:
+                exp_plus_1sigma  *= br
+                exp_minus_1sigma *= br
+                exp_plus_2sigma  *= br
+                exp_minus_2sigma *= br
+            
             # Index 0 is DOWN error, index 1 is UP error
-            one_sigma[1].append(limits[point]['one_sigma'][1])
-            one_sigma[0].append(limits[point]['one_sigma'][0])
-            two_sigma[1].append(limits[point]['two_sigma'][1])
-            two_sigma[0].append(limits[point]['two_sigma'][0])
+            one_sigma[1].append(exp_plus_1sigma)
+            one_sigma[0].append(exp_minus_1sigma)
+            two_sigma[1].append(exp_plus_2sigma)
+            two_sigma[0].append(exp_minus_2sigma)
+        
     
     for f in flavors:
         data = flavors_data[f]
@@ -183,12 +200,7 @@ for the_mH in mH_list:
         data['one_sigma'] = np.asarray(data['one_sigma'])
         data['two_sigma'] = np.asarray(data['two_sigma'])
     
-        br = Constants.getZATollbbBR()
-        if options.rescale_to_za:
-            data['expected'] /= br
-            data['observed'] /= br
-            data['one_sigma'] /= br
-            data['two_sigma'] /= br
+        
     
     CMSStyle.changeFont()
     # Create a figure instance
@@ -196,10 +208,10 @@ for the_mH in mH_list:
     
     # Create an axes instance
     ax = fig.add_subplot(111)
-    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b}) fb^{{-1}}$')
+    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b}) fb$')
     ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
-    if options.rescale_to_za:
-        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA) fb^{{-1}}$')
+    if options.rescale_to_za_br:
+        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA) fb$')
     
     fig.tight_layout()
     ax.grid()
@@ -261,7 +273,7 @@ for the_mH in mH_list:
                 down = [(th['sigma'][i] - pow(pow(th['sigma_err_muRm'][i], 2) + pow(th['sigma_errIntegration'][i], 2), 0.5)) * 1000  * th['BR'][i] for i in indices]
                 up   = [(th['sigma'][i] + pow(pow(th['sigma_err_muRp'][i], 2) + pow(th['sigma_errIntegration'][i], 2), 0.5)) * 1000 * th['BR'][i] for i in indices]
         
-                #if not options.rescale_to_za:
+                #if not options.rescale_to_za_br:
                 #    xs = xs * br
                 #    down = down * br
                 #    up = up * br
@@ -431,8 +443,8 @@ for the_mH in mH_list:
         plot_name += p
     plot_name = plot_name[:len(plot_name)-1]
     
-    if options.rescale_to_za:
-        plot_name += '_rescaled_to_ZA'
+    if options.rescale_to_za_br:
+        plot_name += '_rescaled_to_ZA_BR'
     
     if not options.no_latex:
         with open('%s/%s.tex' % (output_dir, plot_name), 'w') as f:
