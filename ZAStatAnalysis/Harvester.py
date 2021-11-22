@@ -1,11 +1,12 @@
+import sys
+sys.dont_write_bytecode  = True
+import os, os.path
 import ROOT
 import json
 import glob
-import os, os.path, sys
 import re, hashlib
-
-sys.dont_write_bytecode  = True
 import Constants as Constants
+logger = Constants.ZAlogger(__name__)
 
 splitPDF                 = False
 splitJECBySources        = False
@@ -66,7 +67,7 @@ def CMSNamingConvention(origName, era=None):
     else:
         return origName+'_%s'%era
 
-def get_hist_from_key(keys, key):
+def get_hist_from_key(keys=None, key=None):
     h = keys.get(key, None)
     if h:
         return h.ReadObj()
@@ -104,7 +105,7 @@ def get_method_group(method):
 
 def get_combine_method(method):
     if method == 'fit':
-        return '-M FitDiagnostics'#MaxLikelihoodFit'
+        return '-M FitDiagnostics'# -M MaxLikelihoodFit'
     elif method == 'asymptotic':
         return '-M AsymptoticLimits --rMax 500'
     elif method == 'hybridnew':
@@ -130,8 +131,9 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     Merge two histograms together. If the destination histogram does not exist, it
     is created by cloning the input histogram
     Parameters:
-        flavor          Flavor
-        process         Name of the current process
+        production      gg-fusion , bb-assocaited production 
+        flavor          elel , mumu 
+        process         MH-{}_MA-{}
         histogram       Pointer to TH1 to merge
         destination     Destination histogram
     Return:
@@ -139,7 +141,6 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     """
     if not histogram:
         raise Exception()
-
     if histogram.GetEntries() == 0:
         if destination:
             return destination
@@ -147,14 +148,11 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
             d = histogram.Clone()
             d.SetDirectory(ROOT.nullptr)
             return d
-    
     # already done in the post-processing 
-    # Rescale histogram to luminosity, if it's not data
     #scale = getScaleFactor(process)
     #if not 'data' in process:
     #    scale *= luminosity * xsc * generated_events
     #histogram.Scale(scale)
-
     d = destination
     if not d:
         d = histogram.Clone()
@@ -162,21 +160,31 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     else:
         d = destination
         d.Add(histogram)
-
     zeroNegativeBins(d)
     return d
 
-def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=['All'], era=None, blind=False):
+def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=None, regions=None, productions=None, era=None, unblind=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
       1) Each observable is mapped to a subfolder. The name of the folder is the name of the observable
       2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. The name of the histogram is the name of the background.
     """
+    
+    flav_categories= []
+    for prod in productions:
+        for reg in regions:
+            for flavor in flavors:
+                cat = '{}_{}_{}'.format(prod, reg, flavor)
+                flav_categories.append(cat)
+    logger.info("Categories                                : %s"%flav_categories )
+    
     known_systematics = get_listofsystematics(input) 
-    print("Preparing ROOT file for combine...")
-    print("="*60)
-    systematics = {f: known_systematics[:] for f in flavors}
+    # FIXME some systematics doesn't go in all falvors catgories !
+    systematics = {f: known_systematics[:] for f in flav_categories}
+    
+    logger.info("Preparing ROOT file for combine...")
+    logger.info("="*60)
 
     if not os.path.exists(os.path.dirname(output_filename)):
         os.makedirs(os.path.dirname(output_filename))
@@ -223,48 +231,55 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     # we are interested in.
     # The key is the category name and the value is a list of histogram. The list will always
     # contains at least one histogram (the nominal histogram), and possibly more, two per systematic (up & down variation)
-    histogram_names_per_flavor = {}
-    for flavor in flavors:
-        hash.update(flavor)
-        histogram_names = {}
-        for category, histogram_name in categories_map.items():
-            histogram_name = histogram_name.format(flavor=flavor)
-            if type(category) is tuple:
-                hash.update(category[0])
-            else:
-                hash.update(category)
-            hash.update(histogram_name)
-            r = re.compile(histogram_name, re.IGNORECASE)
-            histogram_names[category] = [n for n in keys if r.search(n)]
-            if len(histogram_names[category]) == 0:
-                print("[{}, {}] Warning: no histogram found matching {}".format(flavor, category, histogram_name))
-        histogram_names_per_flavor[flavor] = histogram_names
+    histogram_names_per_cat = {}
+    for prod in productions:
+        for reg in regions:
+            for flavor in flavors:
+                hash.update(flavor)
+                histogram_names = {}
+                for category, histogram_name in categories_map.items():
+                    histogram_name = histogram_name.format(flavor=flavor, reg=reg, prod=prod)
+                    if type(category) is tuple:
+                        hash.update(category[0])
+                    else:
+                        hash.update(category)
+                    hash.update(histogram_name)
+                    r = re.compile(histogram_name, re.IGNORECASE)
+                    histogram_names[category] = [n for n in keys if r.search(n)]
+                    if len(histogram_names[category]) == 0:
+                        print("[{}, {}] Warning: no histogram found matching {}".format(flavor, category, histogram_name))
+                histogram_names_per_cat['{}_{}_{}'.format(prod, reg, flavor)] = histogram_names
 
     # Extract list of expand histogram name
     systematics_regex = re.compile('__(.*)(up|down)$', re.IGNORECASE)
-    histograms_per_flavor = {}
-    for flavor in flavors:
-        histograms = {}
-        for category, histogram_names in histogram_names_per_flavor[flavor].items():
-            for histogram_name in histogram_names:
-                m = systematics_regex.search(histogram_name)
-                if m:
-                    # It's a systematic histogram
-                    pass
-                else:
-                    nominal_name = histogram_name
-                    if category in histograms:
-                        # Check that the regex used by the user only match 1 histogram
-                        if histograms[category] != nominal_name:
-                            raise Exception("The regular expression used for category %r matches more than one histogram: %r and %r" % (category, nominal_name, histograms[category]))
-                    histograms[category] = nominal_name
-        histograms_per_flavor[flavor] = histograms
+    histograms_per_cat = {}
+    for prod in productions:
+        for reg in regions:
+            for flavor in flavors:
+                histograms = {}
+                for category, histogram_names in histogram_names_per_cat['{}_{}_{}'.format(prod, reg, flavor)].items():
+                    for histogram_name in histogram_names:
+                        m = systematics_regex.search(histogram_name)
+                        if m:
+                            # It's a systematic histogram
+                            pass
+                        else:
+                            nominal_name = histogram_name
+                            if category in histograms:
+                                # Check that the regex used by the user only match 1 histogram
+                                if histograms[category] != nominal_name:
+                                    raise Exception("The regular expression used for category %r matches more than one histogram: %r and %r" % (category, nominal_name, histograms[category]))
+                            histograms[category] = nominal_name
+                histograms_per_cat['{}_{}_{}'.format(prod, reg, flavor)] = histograms
 
     cms_systematics = {f: [CMSNamingConvention(s, era) for s in v] for f, v in systematics.items()}
-    for f in flavors:
-        hash.update(f)
-        for systematic in cms_systematics[f]:
-            hash.update(systematic)
+    for prod in productions:
+        for reg in regions:
+            for flav in flavors:
+                cat = '{}_{}_{}'.format(prod, reg, flav)
+                hash.update(cat)
+                for systematic in cms_systematics[cat]:
+                    hash.update(systematic)
     hash.update(get_method_group(method))
     hash = hash.hexdigest()
 
@@ -279,9 +294,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         else:
             print("File %r already exists but is no longer up-to-date. It'll be regenerated." % output_filename)
 
-    # [flavor][category][process] -> set()
     final_systematics = {}
-    # [category][process_with_flavor] = {}
     shapes = {}
 
     # Try to open each file once
@@ -308,63 +321,69 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             keys = {}
             for key in f.GetListOfKeys():
                 # Only keep the highest cycle
+                print( key, key.GetName() )
                 if not key.GetName() in keys:
                     keys[key.GetName()] = key
+            
+            for prod in productions:
+                for reg in regions:
+                    for flavor in flavors:
+                        if not '{}_{}_{}'.format(prod, reg, flav) in final_systematics:
+                            final_systematics['{}_{}_{}'.format(prod, reg, flavor)] = {}
+                        process_with_flavor = process + "_" + prod + "_" + reg + "_" + flavor
 
-            for flavor in flavors:
-                if not flavor in final_systematics:
-                    final_systematics[flavor] = {}
-                process_with_flavor = process + "_" + flavor
+                        # Loop over all categories and load the histograms
+                        for category, original_histogram_name in histograms_per_cat['{}_{}_{}'.format(prod, reg, flavor)].items():
+                            category_specific_to_signal_hypo = None
+                            if type(category) is tuple:
+                                category_specific_to_signal_hypo = category[1]
+                                category = category[0]
 
-                # Loop over all categories and load the histograms
-                for category, original_histogram_name in histograms_per_flavor[flavor].items():
-                    category_specific_to_signal_hypo = None
-                    if type(category) is tuple:
-                        category_specific_to_signal_hypo = category[1]
-                        category = category[0]
+                            if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
+                                # Keep the category only if the signal hypothesis is the same
+                                if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
+                                    continue
+                                logger.info("Keeping only category {} with (flavor: {}), (region: {}), (production: {}) for : {}".format(category, flavor, reg, prod, process))
 
-                    if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
-                        # Keep the category only if the signal hypothesis is the same
-                        if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
-                            continue
-                        print("   keeping only category {} flavor {} for {}".format(category, flavor, process))
+                            final_systematics_category         = final_systematics['{}_{}_{}'.format(prod, reg, flavor)].setdefault(category, {})
+                            final_systematics_category_process = final_systematics_category.setdefault(systematic_process, set())
+                            
+                            shapes_category         = shapes.setdefault(category, {})
+                            shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
 
-                    final_systematics_category = final_systematics[flavor].setdefault(category, {})
-                    final_systematics_category_process = final_systematics_category.setdefault(systematic_process, set())
-                    shapes_category = shapes.setdefault(category, {})
-                    shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
+                            # Load nominal shape
+                            try:
+                                hist = get_hist_from_key(keys, original_histogram_name)
+                                shapes_category_process['nominal'] = merge_histograms(flavor, process, hist, shapes_category_process.get('nominal', None), luminosity)
+                            except:
+                                raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name, process_file, process_with_flavor))
 
-                    # Load nominal shape
-                    try:
-                        hist = get_hist_from_key(keys, original_histogram_name)
-                        shapes_category_process['nominal'] = merge_histograms(flavor, process, hist, shapes_category_process.get('nominal', None), luminosity)
-                    except:
-                        raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name, process_file, process_with_flavor))
+                            # Load systematics shapes
+                            for systematic in systematics['{}_{}_{}'.format(prod, reg, flavor)]:
+                                cms_systematic = CMSNamingConvention(systematic, era)
 
-                    # Load systematics shapes
-                    for systematic in systematics[flavor]:
-                        cms_systematic = CMSNamingConvention(systematic, era)
-
-                        has_both = True
-                        for variation in ['up', 'down']:
-                            key = cms_systematic + variation.capitalize()
-                            h   = get_hist_from_key(keys, original_histogram_name + '__' + systematic + variation)
-                            if h:
-                                try:
-                                    shapes_category_process[key] = merge_histograms(flavor, process, h, shapes_category_process.get(key, None), luminosity)
-                                except:
-                                    raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name + '__' + systematic + variation, process_file, process_with_flavor))
-                            else:
-                                has_both = False
-                        if has_both:
-                            final_systematics_category_process.add(cms_systematic)
+                                has_both = True
+                                for variation in ['up', 'down']:
+                                    key = cms_systematic + variation.capitalize()
+                                    h   = get_hist_from_key(keys, original_histogram_name + '__' + systematic + variation)
+                                    if h:
+                                        try:
+                                            shapes_category_process[key] = merge_histograms(flavor, process, h, shapes_category_process.get(key, None), luminosity)
+                                        except:
+                                            raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name + '__' + systematic + variation, process_file, process_with_flavor))
+                                    else:
+                                        has_both = False
+                                if has_both:
+                                    final_systematics_category_process.add(cms_systematic)
             f.Close()
         print("Done.")
 
-    for flavor in flavors:
-        for category, d in final_systematics[flavor].items():
-            for key, value in d.items():
-                d[key] = list(value)
+    for prod in productions:
+        for reg in regions:
+            for flavor in flavors:
+                for category, d in final_systematics['{}_{}_{}'.format(prod, reg, flavor)].items():
+                    for key, value in d.items():
+                        d[key] = list(value)
 
     # In 'fit' mode, scale the signal to 1 pb instead of 1 fb
     if method == 'fit':
@@ -382,39 +401,41 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     systematics_object = ROOT.TNamed('systematics', json.dumps(final_systematics))
     systematics_object.Write()
 
-    if blind:
-        for flavor in flavors:
-            for category, processes in shapes.items():
-                category = category
-                fake_data = None
-                for process, systematics_dict in processes.items():
-                    if process.startswith(signal_process):
-                        continue
-                    if not process.endswith(flavor):
-                        continue
-                    scale = 1
-                    if 'nobtag_to_btagM' in process and not 'data' in process:
-                        scale = -1
-                    if not fake_data:
-                        fake_data = systematics_dict['nominal'].Clone()
-                        fake_data.Scale(scale)
-                        fake_data.SetDirectory(ROOT.nullptr)
-                    else:
-                        fake_data.Add(systematics_dict['nominal'], scale)
-                #create fake excess
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_3":
-                #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_6":
-                #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_9":
-                #    fake_data.SetBinContent(3, fake_data.GetBinContent(3)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_10":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_12":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_19":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-                processes['data_obs_%s' % flavor] = {'nominal': fake_data}
+    if not unblind:
+        for prod in productions:
+            for reg in regions:
+                for flavor in flavors:
+                    for category, processes in shapes.items():
+                        category = category
+                        fake_data = None
+                        for process, systematics_dict in processes.items():
+                            if process.startswith(signal_process):
+                                continue
+                            if not process.endswith("_" + prod + "_" + reg + "_" + flavor):
+                                continue
+                            scale = 1
+                            if 'nobtag_to_btagM' in process and not 'data' in process:
+                                scale = -1
+                            if not fake_data:
+                                fake_data = systematics_dict['nominal'].Clone()
+                                fake_data.Scale(scale)
+                                fake_data.SetDirectory(ROOT.nullptr)
+                            else:
+                                fake_data.Add(systematics_dict['nominal'], scale)
+                        #create fake excess
+                        #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_3":
+                        #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
+                        #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_6":
+                        #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
+                        #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_9":
+                        #    fake_data.SetBinContent(3, fake_data.GetBinContent(3)*1.4)
+                        #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_10":
+                        #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
+                        #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_12":
+                        #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
+                        #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_19":
+                        #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
+                        processes['data_obs_{}_{}_{}'.format(prod, reg, flavor)] = {'nominal': fake_data}
 
     for category, processes in shapes.items():
         output_file.mkdir(category).cd()
