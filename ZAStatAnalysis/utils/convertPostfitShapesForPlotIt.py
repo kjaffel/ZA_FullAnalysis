@@ -52,6 +52,7 @@ if __name__ == '__main__':
         cat.pop()
         channels.add('_'.join(cat))
     channels = list(channels)
+    channels = filter(lambda x: x != '', channels)
     print ("Detected channels: ", channels )
     
     # Construct the list of backgrounds

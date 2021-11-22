@@ -384,14 +384,15 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     for key, value in d.items():
                         d[key] = list(value)
 
-    # In 'fit' mode, scale the signal to 1 pb instead of 1 fb
-    if method == 'fit':
-        for category, processes in shapes.items():
-            for process, systematics_dict in processes.items():
-                if not process.startswith(signal_process):
-                    continue
-                for name, shape in systematics_dict.items():
-                    shape.Scale(1000)
+    # In 'fit' mode, scale the signal to 1 pb
+    # everything already in pb 
+    #if method == 'fit':
+    #    for category, processes in shapes.items():
+    #        for process, systematics_dict in processes.items():
+    #            if not process.startswith(signal_process):
+    #                continue
+    #            for name, shape in systematics_dict.items():
+    #                shape.Scale(1000)
     output_file = ROOT.TFile.Open(output_filename, 'recreate')
     # Store hash
     file_hash = ROOT.TNamed('hash', hash)

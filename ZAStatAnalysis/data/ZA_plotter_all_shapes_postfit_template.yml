@@ -4,8 +4,8 @@ configuration:
   luminosity-label: '%1$.0f fb^{-1} (13 TeV)'
   experiment: "CMS"
   extra-label: "Preliminary"
-  root: root_path
-  luminosity: 35922
+  root: myroot_path
+  luminosity: 35921.875594646
   no-lumi-rescaling: true
   blinded-range-fill-color: "16" #"#29556270"
   blinded-range-fill-style: 3004
@@ -30,7 +30,7 @@ plots:
     labels:
     - position: [0.22, 0.895]
       size: 24
-      text: channel
+      text: mychannel
     legend-columns: 2
     log-y: both
     ratio-y-axis-range: [0.6, 1.2]
@@ -74,7 +74,7 @@ legend:
   position: [0.62, 0.61, 0.95, 0.89]
   entries:
   -
-    label: 'Signal (1 pb)'
+    label: mysignal
     type: signal
     order: 1000  # Always on top
 systematics:

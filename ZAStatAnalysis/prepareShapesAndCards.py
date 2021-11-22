@@ -68,8 +68,8 @@ def get_signal_parameters(f):
 
 signal_grid = [
         #part0 : 21 signal samples 
-        ( 200, 50), ( 200, 100), ( 300, 100),
-        ( 250, 50), ( 250, 100),
+        ( 200, 50), #( 200, 100), ( 300, 100),
+        #( 250, 50), ( 250, 100),
         #( 300, 50), ( 300, 200),
         #( 500, 50), ( 500, 200), ( 500, 400),
         #( 650, 50),
@@ -142,10 +142,10 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  verbose                = verbose)
 
     # Create helper script to run limits
-    output = os.path.join(output, mode)
+    output = os.path.join(output, method, mode)
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
-scripts=`find {output} -name "*_run_{method}.sh"`
+scripts=`find {output} -name "*_{suffix}.sh"`
 for script in $scripts; do
     dir=$(dirname $script)
     script=$(basename $script)
@@ -154,9 +154,9 @@ for script in $scripts; do
     . $script
     popd &> /dev/null
 done
-""".format(output=output, method=method)
+""".format(output=output, suffix='do_postfit' if method=='fit' else 'run_%s'%method)
     
-    script_name = "run_combined_%s_%s.sh" % (mode, method)
+    script_name = "run_combined_%s_%s%s.sh" % (mode, method,'limits' if method !='fit' else '')
     with open(script_name, 'w') as f:
         f.write(script)
 
@@ -193,17 +193,6 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                 # % (flavour, ellipse_index)
                 (1, 'ellipse_{}_{}')
                 ]
-    elif mode == "postfit":
-        split_by_categories = True
-        categories = [
-                # % ( MH, MA)
-                (1, 'dnn_MH_{}_MA_{}')
-                # % (flavour, ellipse_index)
-                #(2, 'ellipse_{}_{}'),
-                #(3, 'mlljj'),
-                #(4, 'mjj'),
-                #(5, 'mjj_vs_mlljj')
-                ]
     elif mode == "dnn":
         categories = [
                 # % ( prod, reg, MH, MA)
@@ -224,20 +213,6 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
             #'Wgamma'  : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
             'SMHiggs'  : ['^ggZH_HToBB_ZToNuNu*', '^HZJ_HToWW*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToLL*', '^ttHJet*']
             }
-    if options.mode == "postfit":
-        for p in parameters:
-            mH = p[0]
-            mA = p[1]
-            
-            formatted_p = format_parameters(p)
-            formatted_e = format_ellipse(p, ellipses)
-           
-            histfactory_to_combine_categories = {
-                'dnn_MH_{}_MA_{}'.format(mH, mA) : get_hist_regex('DNNOutput_ZAnode_{flavor}_{reg}_DeepCSVM_METCut_{prod}_MH_%s_MA_%s'%(mH, mA)),
-                #'ellipse_{}_{}'.format(formatted_p, formatted_e):    get_hist_regex('rho_steps_histo_{flavor}_hZA_lljj_deepCSV_btagM_mll_and_met_cut_%s' % format_ellipse(p, ellipses)),
-                #'mjj':      get_hist_regex('jj_M_{flavor}_hZA_lljj_deepCSV_btagM_'),
-                #'mlljj': get_hist_regex('lljj_M_{flavor}_hZA_lljj_deepCSV_btagM_'),
-            }
     # Shape depending on the signal hypothesis
     for p in parameters:
         mH = p[0]
@@ -247,11 +222,9 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         formatted_e = format_ellipse(p, ellipses)
         
         suffix = formatted_p.replace('MH_', 'MH-').replace('MA_','MA-')
-        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(mH,mA), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(mH, mA), '^GluGluToHToZATo2L2B_MH-%s_MA-%s*']
+        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(mH,mA), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(mH, mA), '^GluGluToHToZATo2L2B_MH-%s_MA-%s*'%(mH, mA)]
         
-        if mode == "postfit":
-            histfactory_to_combine_categories[('dnn_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_ZAnode_{flavor}_{reg}_DeepCSVM_METCut_{prod}_MH_%s_MA_%s'%(mH, mA))
-        elif mode == "mjj_and_mlljj":
+        if mode == "mjj_and_mlljj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
             histfactory_to_combine_categories[('mlljj', p)] = get_hist_regex('lljj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
         elif mode == "mjj_vs_mlljj": 
@@ -311,7 +284,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         analysis_name = 'HToZATo2L2B'
         categories_with_parameters = categories[:]
         for i, k in enumerate(categories_with_parameters):
-            if mode in ['dnn', 'postfit']:
+            if mode  == 'dnn':
                 categories_with_parameters[i] = (k[0], k[1].format(mH, mA))
             elif mode == 'ellipse':
                 categories_with_parameters[i] = (k[0], k[1].format('MH-%s_MA-%s'%(mH, mA), formatted_e))
@@ -396,7 +369,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         output_prefix      = 'HToZATo2L2B'
         #output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
         
-        output_dir = os.path.join(output, mode, H.get_method_group(method), 'MH-%s_MA-%s'%(p[0],p[1]))
+        output_dir = os.path.join(output, H.get_method_group(method), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         def createRunCombineScript(mass, output_dir, output_prefix):
@@ -435,7 +408,6 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-#combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
 combine {method} -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
 popd
 """.format(workspace_root = workspace_file, 
@@ -491,9 +463,9 @@ popd
                         createRunCombineScript(mass, output_dir, merged_datacard_name)
             
             for cat in flav_categories:
-                if mode == "postfit":
-                    name = get_Nm_for_runmode('dnn')
+                if method == "fit":
                     script = """#! /bin/bash
+# http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
 pushd {dir}
 # Fit the {name} distribution
 ./{prefix}_{categories}_run_fit.sh
@@ -501,7 +473,7 @@ pushd {dir}
 # Create post-fit shapes for all the categories
 for CAT in {categories}; do
     text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --print
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --covariance --total-shapes --print
     $CMSSW_BASE/../utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n {name}
 done
 popd
@@ -510,8 +482,8 @@ popd
            mass       = 125, 
            parameter  = 'MH-%s_MA-%s'%(mH,mA), 
            categories = ' '.join([x[1] for x in categories_with_parameters]), 
-           dir        = os.path.abspath(output_dir), 
-           name       = name  )
+           dir        = os.path.abspath(output_dir),
+           name       = get_Nm_for_runmode(mode) )
 
                     script_file = os.path.join(output_dir, output_prefix + '_' + cat + ('_do_postfit.sh'))
                     with open(script_file, 'w') as f:
@@ -557,7 +529,7 @@ if __name__ == '__main__':
                                                 help='Parameters list. Use `all` as an alias for all parameters')
     parser.add_argument('--expectSignal',       action='store', required=True, type=int, choices=[0, 1],
                                                 help=' Is this S+B fit B-Only  ? ')
-    parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'postfit', 'mjj', 'mlljj', 'ellipse', 'dnn'],
+    parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn'],
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
