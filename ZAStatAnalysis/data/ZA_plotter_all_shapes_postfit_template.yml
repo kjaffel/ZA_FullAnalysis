@@ -1,0 +1,81 @@
+configuration:
+  width: 800
+  height: 800
+  luminosity-label: '%1$.0f fb^{-1} (13 TeV)'
+  experiment: "CMS"
+  extra-label: "Preliminary"
+  root: root_path
+  luminosity: 35922
+  no-lumi-rescaling: true
+  blinded-range-fill-color: "16" #"#29556270"
+  blinded-range-fill-style: 3004
+  yields-table-align: v
+  book-keeping-file: 'plots.root'
+files:
+  data_obs_postfit_histos.root:
+    type: data
+    group: data
+  DY_postfit_histos.root:
+    type: mc
+    group: DY
+  ttbar_postfit_histos.root:
+    type: mc
+    group: ttbar
+  SingleTop_postfit_histos.root:
+    type: mc
+    group: ST
+plots:
+  dnn_scores:
+    blinded-range: [0.6, 1.0]
+    labels:
+    - position: [0.22, 0.895]
+      size: 24
+      text: channel
+    legend-columns: 2
+    log-y: both
+    ratio-y-axis-range: [0.6, 1.2]
+    save-extensions: [pdf, png]
+    show-ratio: true
+    sort-by-yields: false
+    x-axis: DNN_Output ZA
+    x-axis-range:
+    - 0.0
+    - 1.0
+    y-axis: Events
+    y-axis-show-zero: true
+groups:
+  data:
+    legend: 'Data'
+  DY:
+    legend: 'Drell-Yan'
+    legend-order: 4
+    fill-color: "#0000FF"
+  ttbar:
+    legend: ' t#bar{t}'
+    legend-order: 3
+    fill-color: "#00ffc7"
+  ST:
+    legend: 'Single top'
+    legend-order: 2
+    fill-color: "#9890f0"
+#  ZZ:
+#    legend: ZZ
+#    fill-color: "#ff4800"
+#    order: 3
+#  SM:
+#    legend: tth, Zh
+#    fill-color: "#ff0038"
+#    order: 2
+#  others:
+#    legend: others( tt+V, W+Jets , VVV, VV)
+#    fill-color: "#c4ffff"
+#    order: 1
+legend:
+  position: [0.62, 0.61, 0.95, 0.89]
+  entries:
+  -
+    label: 'Signal (1 pb)'
+    type: signal
+    order: 1000  # Always on top
+systematics:
+  - postfit

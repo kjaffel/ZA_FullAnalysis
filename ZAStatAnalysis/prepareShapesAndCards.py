@@ -419,7 +419,14 @@ combine {method} --expectedFromGrid=0.16 --X-rtd MINIMIZER_analytic -m {mass} -n
 combine {method} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P2sigma.log
 combine {method} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M2sigma.log
 popd
-""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard))) 
+""".format(workspace_root = workspace_file, 
+           datacard       = os.path.basename(datacard), 
+           name           = output_prefix, 
+           mass           = mass, 
+           systematics    = (0 if stat_only else 1), 
+           method         = H.get_combine_method(method), 
+           dir            = os.path.dirname(os.path.abspath(datacard)) )
+
             else:
                 script = """#! /bin/bash
 pushd {dir}
@@ -431,7 +438,16 @@ fi
 #combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
 combine {method} -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
 popd
-""".format(workspace_root=workspace_file, datacard=os.path.basename(datacard), name=output_prefix, mass=mass, systematics=(0 if stat_only else 1), method=H.get_combine_method(method), dir=os.path.dirname(os.path.abspath(datacard)), dataset=('-t -1' if dataset=='asimov' else '-t 8 -s -1'), blind=('' if unblind else '--run blind'), expectSignal=expectSignal)
+""".format(workspace_root = workspace_file, 
+           datacard       = os.path.basename(datacard), 
+           name           = output_prefix, 
+           mass           = mass, 
+           systematics    = (0 if stat_only else 1), 
+           method         = H.get_combine_method(method), 
+           dir            = os.path.dirname(os.path.abspath(datacard)), 
+           dataset        = ('-t -1' if dataset=='asimov' else '-t 8 -s -1'), 
+           blind          = ('' if method=='fit' else('' if unblind else '--run blind')), 
+           expectSignal   = expectSignal )
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -464,7 +480,7 @@ popd
                     if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
                         print("Merging {} datacards into a single one for {}".format(flavors, cat[1]))
                         # Merge all flavors into a single datacards
-                        datacards = ["{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
+                        datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
                         args      = ['combineCards.py'] + datacards
                         
                         merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
@@ -485,11 +501,18 @@ pushd {dir}
 # Create post-fit shapes for all the categories
 for CAT in {categories}; do
     text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --print
-    $CMSSW_BASE/src/ZAStatAnalysis/utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n {name}
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --print
+    $CMSSW_BASE/../utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n {name}
 done
 popd
-""".format(prefix=output_prefix + '_' + cat, flavor=cat, mass=125, parameter='MH-%s_MA-%s'%(mH,mA), categories=' '.join([x[1] for x in categories_with_parameters]), dir=os.path.abspath(output_dir), name=name)
+""".format(prefix     = output_prefix + '_' + cat, 
+           flavor     = cat, 
+           mass       = 125, 
+           parameter  = 'MH-%s_MA-%s'%(mH,mA), 
+           categories = ' '.join([x[1] for x in categories_with_parameters]), 
+           dir        = os.path.abspath(output_dir), 
+           name       = name  )
+
                     script_file = os.path.join(output_dir, output_prefix + '_' + cat + ('_do_postfit.sh'))
                     with open(script_file, 'w') as f:
                         f.write(script)
@@ -504,7 +527,7 @@ popd
             if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
                 print("Merging flavors datacards into a single one")
                 # Merge all flavors into a single datacards
-                datacards = ["{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
+                datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
                 args      = ['combineCards.py'] + datacards
 
                 merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]

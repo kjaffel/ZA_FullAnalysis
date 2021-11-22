@@ -1,12 +1,41 @@
-import math
 import sys
-import logging
-logger = logging.getLogger(__name__)
-import numpy as np
 sys.dont_write_bytecode = True
+import math
+import numpy as np
+
+def ZAlogger(nm):
+    import logging
+    LOG_LEVEL = logging.DEBUG
+    stream = logging.StreamHandler()
+    stream.setLevel(LOG_LEVEL)
+    logger = logging.getLogger('{}'.format(nm))
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler(stream)
+    try:
+        import colorlog
+        from colorlog import ColoredFormatter
+        formatter = ColoredFormatter(
+                    "%(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s",
+                    datefmt=None,
+                    reset=True,
+                    log_colors={
+                            'DEBUG':    'green',
+                            'INFO':     'cyan',
+                            'WARNING':  'blue',
+                            'ERROR':    'red',
+                            'CRITICAL': 'red',
+                            },
+                    secondary_log_colors={},
+                    style='%')
+        stream.setFormatter(formatter)
+    except ImportError:
+        print(' try https://pypi.org/project/colorlog/  for colorlog')
+        pass
+    return logger
 
 def getZATollbbBR(H, A, tb ):
     return 1.
+
 def mass_to_str(m):
     m = '%.2f' % (float(m))
     return str(m).replace('.', 'p')

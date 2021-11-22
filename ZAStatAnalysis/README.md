@@ -61,15 +61,13 @@ cd ${CMSSW_BASE}/src
 scram b -j7
 ```
 ###  Prepare Shape Cards:
+**Warning:** make sure that the inputs root file are normalized !
 ```bash
 cms_env
 cd ${CMSSW_BASE}/src
 cmsenv
-```
-```python
 ./prepareShapesAndCards.py --era -i -o --blind --dataset 
 ```
-**Warning:** make sure that the inputs root file are normalized !
 - ``-i``/``--input`` : path to inputs prefit histograms
 - ``-o``/``--output``: path to where you want to save the datacards 
 - ``-p``/``--parameters``: 
@@ -77,20 +75,17 @@ cmsenv
 - ``--era`` : choices ``[2016, 2017, 2018]``
 - ``--expectSignal``: ``0`` for B-Only or ``1`` for S+B hypothesis.
 - ``--dataset``: if ``asimov``; ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
-- ``--scale``: 
 - ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node ``ZA`` is the only relevant one.
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
 - ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit]``
 - ``--blind``: ``--run blind`` options will be added to combine commands.
-- ``--signal-strength``:
-- ``--ellipses-mumu-file``:
 
 ## Collect Limits:
 ```python
 python collectLimits.py -i output_path_of_previous_step/
 ```
-- ``-i``/``--inputs`` : path to (ROOT) combine output file
-The combined limits will be saved by default in ``args.inputs/jsons/*.json``.
+- ``-i``/``--inputs`` : path to (ROOT) combine output file, the combined limits will be saved by default in ``args.inputs/jsons/*.json``.
+- ``--method``: ``asymptotic or hybridnew`` required to collect the limits from ``higgsCombinexxxx_.AsymptoticLimits.mH125.root`` if the method is asymptotic for instance.
 
 ## Plot ZA Limits:
 ```python

@@ -321,7 +321,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             keys = {}
             for key in f.GetListOfKeys():
                 # Only keep the highest cycle
-                print( key, key.GetName() )
                 if not key.GetName() in keys:
                     keys[key.GetName()] = key
             
