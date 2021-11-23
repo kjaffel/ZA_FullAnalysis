@@ -1,6 +1,7 @@
 import sys
 sys.dont_write_bytecode  = True
 import os, os.path
+import yaml
 import ROOT
 import json
 import glob
@@ -83,7 +84,10 @@ def get_listofsystematics(directory):
                 continue
             if not '__' in key.GetName():
                 continue
-            syst = key.GetName().split('__')[1].replace('up','').replace('down','')
+            if not 'down' in key.GetName() :#or not 'up' in key.GetName():
+                continue
+            syst = key.GetName().replace('__METCut_NobJetER', '_METCut_NobJetER')
+            syst = syst.split('__')[1].replace('up','').replace('down','')
             syst = syst.replace('pile_', 'pileup_')
             if syst not in systematics:
                 systematics.append(syst)
@@ -107,14 +111,35 @@ def get_combine_method(method):
     if method == 'fit':
         return '-M FitDiagnostics'# -M MaxLikelihoodFit'
     elif method == 'asymptotic':
-        return '-M AsymptoticLimits --rMax 500'
+        return '-M AsymptoticLimits --rMax 500' # -X-rtd MINIMIZER_no_analytic
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
-def getScaleFactor(process):
-    if scaleZAToSMCrossSection and 'ggZA' in process:
-        return Constants.getZACrossSection() * Constants.getZATollbbBR()
-    return 1.
+def getnormalisationScale(inDir=None):
+    dict_scale = {} 
+    yaml_file = os.path.join(inDir.split('results')[0], 'plots.yml')
+    try:
+        with open(yaml_file, 'r') as inf:
+            config = yaml.safe_load(inf)
+    except yaml.YAMLError as exc:
+        logger.error('failed reading file : %s '%exc)
+    
+    for proc_path in glob.glob(os.path.join(inDir, "*.root")): 
+        process = proc_path.split('/')[-1]
+        if process.startswith('__skeleton__'):
+            continue
+        for smp, smpCfg in config["files"].items():
+            if smp == process:
+                lumi = config["configuration"]["luminosity"][smpCfg["era"]]
+                if smpCfg.get("type") == "mc":
+                    smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
+                elif smpCfg.get("type") == "signal":
+                    smpScale = lumi / smpCfg["generated-events"]
+                #    smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+                elif smpCfg.get("type") == "data":
+                    smpScale = 1
+                dict_scale[smp] =  smpScale
+    return dict_scale
 
 # If some systematics cause problems yoy can add them here 
 def ignoreSystematic(flavor, process, s):
@@ -126,7 +151,7 @@ def ignoreSystematic(flavor, process, s):
         return True
     return False
 
-def merge_histograms(flavor, process, histogram, destination, luminosity):
+def merge_histograms(smp=None, smpScale=None, flavor=None, process=None, histogram=None, destination=None, luminosity=None, normalize=False):
     """
     Merge two histograms together. If the destination histogram does not exist, it
     is created by cloning the input histogram
@@ -139,6 +164,7 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     Return:
     The merged histogram
     """
+    
     if not histogram:
         raise Exception()
     if histogram.GetEntries() == 0:
@@ -148,11 +174,12 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
             d = histogram.Clone()
             d.SetDirectory(ROOT.nullptr)
             return d
-    # already done in the post-processing 
-    #scale = getScaleFactor(process)
-    #if not 'data' in process:
-    #    scale *= luminosity * xsc * generated_events
-    #histogram.Scale(scale)
+
+    if normalize and not 'data' in process and smpScale is not None:
+        # In case is needed , but this already should be done 
+        # in the post-processing step in bamboo
+        histogram.Scale(smpScale)
+    
     d = destination
     if not d:
         d = histogram.Clone()
@@ -163,7 +190,7 @@ def merge_histograms(flavor, process, histogram, destination, luminosity):
     zeroNegativeBins(d)
     return d
 
-def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=None, regions=None, productions=None, era=None, unblind=False):
+def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, flavors=None, regions=None, productions=None, era=None, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -179,6 +206,9 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                 flav_categories.append(cat)
     logger.info("Categories                                : %s"%flav_categories )
     
+    scalefactors = getnormalisationScale(input)
+    logger.info("scalefactors                              : %s"%scalefactors )
+
     known_systematics = get_listofsystematics(input) 
     # FIXME some systematics doesn't go in all falvors catgories !
     systematics = {f: known_systematics[:] for f in flav_categories}
@@ -296,7 +326,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
 
     final_systematics = {}
     shapes = {}
-
+    smpScale = None
     # Try to open each file once
     for process, process_files in processes_files.items():
         process_specific_to_signal_hypo = None
@@ -311,12 +341,12 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         if signal_process in systematic_process:
             systematic_process = signal_process
 
-        # final_systematics[systematic_process] = {}
-        # shapes[process] = {}
         for process_file in process_files:
             f = ROOT.TFile.Open(process_file)
-            if process_file.split('/')[-1].startswith('__skeleton__'):
+            smp = process_file.split('/')[-1]
+            if smp.startswith('__skeleton__'):
                 continue
+            smpScale = scalefactors[smp]
             # Build a dict key name -> key for faster access
             keys = {}
             for key in f.GetListOfKeys():
@@ -353,7 +383,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                             # Load nominal shape
                             try:
                                 hist = get_hist_from_key(keys, original_histogram_name)
-                                shapes_category_process['nominal'] = merge_histograms(flavor, process, hist, shapes_category_process.get('nominal', None), luminosity)
+                                shapes_category_process['nominal'] = merge_histograms(smp, smpScale, flavor, process, hist, shapes_category_process.get('nominal', None), luminosity, normalize)
                             except:
                                 raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name, process_file, process_with_flavor))
 
@@ -367,7 +397,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                                     h   = get_hist_from_key(keys, original_histogram_name + '__' + systematic + variation)
                                     if h:
                                         try:
-                                            shapes_category_process[key] = merge_histograms(flavor, process, h, shapes_category_process.get(key, None), luminosity)
+                                            shapes_category_process[key] = merge_histograms(smp, smpScale, flavor, process, h, shapes_category_process.get(key, None), luminosity, normalize)
                                         except:
                                             raise Exception('Missing histogram %r in %r for %r. This should not happen.' % (original_histogram_name + '__' + systematic + variation, process_file, process_with_flavor))
                                     else:
@@ -414,8 +444,6 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                             if not process.endswith("_" + prod + "_" + reg + "_" + flavor):
                                 continue
                             scale = 1
-                            if 'nobtag_to_btagM' in process and not 'data' in process:
-                                scale = -1
                             if not fake_data:
                                 fake_data = systematics_dict['nominal'].Clone()
                                 fake_data.Scale(scale)

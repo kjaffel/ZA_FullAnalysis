@@ -54,6 +54,11 @@ def parameter_type(s):
     except:
         raise argparse.ArgumentTypeError("Parameter must be x,y")
 
+def required_params(method):
+    if method =="fit ":
+        return True
+    return False
+
 def get_hist_regex(r):
     return '^%s(__.*(up|down))?$' % r
 
@@ -68,7 +73,7 @@ def get_signal_parameters(f):
 
 signal_grid = [
         #part0 : 21 signal samples 
-        ( 200, 50), #( 200, 100), ( 300, 100),
+        ( 200, 50), ( 200, 100), #( 300, 100),
         #( 250, 50), ( 250, 100),
         #( 300, 50), ( 300, 200),
         #( 500, 50), ( 500, 200), ( 500, 400),
@@ -81,7 +86,7 @@ signal_grid = [
 extra_signals = [
         ]
     
-def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False):
+def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False, normalize=False):
     
     luminosity = Constants.getLuminosity(era)
     
@@ -127,8 +132,8 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  era                    = era, 
                  method                 = method, 
                  parameters             = parameters, 
-                 productions            = ['gg_fusion', 'bb_associatedProduction'], 
-                 regions                = ['resolved', 'boosted'], 
+                 productions            = ['gg_fusion'],# 'bb_associatedProduction'], 
+                 regions                = ['resolved'],# 'boosted'], 
                  flavors                = ['MuMu', 'ElEl'], 
                  ellipses               = ellipses, 
                  mode                   = mode,  
@@ -139,10 +144,11 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  unblind                  = unblind, 
                  signal_strength        = signal_strength, 
                  stat_only              = stat_only, 
+                 normalize              = normalize,
                  verbose                = verbose)
 
     # Create helper script to run limits
-    output = os.path.join(output, method, mode)
+    output = os.path.join(output, method+"-"+H.get_method_group(method), mode)
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
@@ -169,7 +175,7 @@ done
         logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, unblind=False, signal_strength=False, stat_only=False, verbose=False):
+def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -234,7 +240,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         elif mode == "mjj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
         elif mode == "ellipse":
-            histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_resolved_histo_{flavor}_hZA_lljj_DeepCSV_btagM__METCut__%s'%formatted_p)
+            histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_{flavor}_{reg}_DeepCSVM__METCut_NobJetER_{prod}_MH_%sp0_MA_%sp0'%(mH, mA))
         elif mode == "dnn": 
             histfactory_to_combine_categories[('dnn_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_ZAnode_{flavor}_{reg}_DeepCSVM_METCut_{prod}_MH_%s_MA_%s'%(mH, mA))
     logger.info('Histfactory_to_combine_categories         : %s '%histfactory_to_combine_categories )
@@ -258,7 +264,8 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                                       regions             = regions, 
                                       productions         = productions, 
                                       era                 = era, 
-                                      unblind             = unblind)
+                                      unblind             = unblind,
+                                      normalize           = normalize)
     flav_categories = []
     for prod in productions:
         for reg in regions:
@@ -287,7 +294,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
             if mode  == 'dnn':
                 categories_with_parameters[i] = (k[0], k[1].format(mH, mA))
             elif mode == 'ellipse':
-                categories_with_parameters[i] = (k[0], k[1].format('MH-%s_MA-%s'%(mH, mA), formatted_e))
+                categories_with_parameters[i] = (k[0], k[1].format(formatted_p, formatted_e))
             else:
                 print( 'FIXME' )
         logger.info( 'looking for categories_with_parameters      :  %s '%categories_with_parameters) 
@@ -369,7 +376,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         output_prefix      = 'HToZATo2L2B'
         #output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
         
-        output_dir = os.path.join(output, H.get_method_group(method), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
+        output_dir = os.path.join(output, method+"-"+H.get_method_group(method), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         def createRunCombineScript(mass, output_dir, output_prefix):
@@ -408,7 +415,7 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-combine {method} -m {mass} -n {name} {workspace_root} {dataset} --expectSignal {expectSignal} {blind} &> {name}.log
+combine {method} -m {mass} -n {name} {workspace_root} {dataset} {expectSignal} {blind} &> {name}.log
 popd
 """.format(workspace_root = workspace_file, 
            datacard       = os.path.basename(datacard), 
@@ -417,9 +424,11 @@ popd
            systematics    = (0 if stat_only else 1), 
            method         = H.get_combine_method(method), 
            dir            = os.path.dirname(os.path.abspath(datacard)), 
-           dataset        = ('-t -1' if dataset=='asimov' else '-t 8 -s -1'), 
+           #dataset        = ('--bypassFrequentistFit' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
+           #dataset        = ('--noFitAsimov --newExpected 0' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
+           dataset        = ('--noFitAsimov' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
            blind          = ('' if method=='fit' else('' if unblind else '--run blind')), 
-           expectSignal   = expectSignal )
+           expectSignal   = '' if H.get_method_group(method)=='limits' else '--expectSignal {}'.format(expectSignal) )
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -461,6 +470,21 @@ popd
                             subprocess.check_call(args, cwd=output_dir, stdout=f)
 
                         createRunCombineScript(mass, output_dir, merged_datacard_name)
+
+                for reg in regions:
+                    for i, cat in enumerate(categories_with_parameters):
+                        if all(x in flavors for x in mergeable_flavors):
+                            print("Merging {} datacards into a single one for {}".format(flavors, cat[1]))
+                            datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=reg, flavor=x, category=cat[1]) for x in mergeable_flavors]
+                            args      = ['combineCards.py'] + datacards
+                            
+                            merged_datacard_name = output_prefix + '_'+ prod +'_' + reg + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
+                            merged_datacard      = os.path.join(output_dir, merged_datacard_name + '.dat')
+                            with open(merged_datacard, 'w') as f:
+                                subprocess.check_call(args, cwd=output_dir, stdout=f)
+
+                            createRunCombineScript(mass, output_dir, merged_datacard_name)
+
             
             for cat in flav_categories:
                 if method == "fit":
@@ -543,6 +567,8 @@ if __name__ == '__main__':
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
     parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
                                                 help='scale signal rate')
+    parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
+                                                help='normalize the inputs histograms')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True, default=None,                             
                                                 help='if asimov:\n'
                                                         '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
@@ -553,4 +579,4 @@ if __name__ == '__main__':
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale)
+    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale, normalize=options.normalize)

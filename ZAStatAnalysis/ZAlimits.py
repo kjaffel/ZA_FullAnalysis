@@ -96,7 +96,7 @@ axes_y_limits = {
 
 axes_log_y_limits = {
     "mH": { },
-    "mA": {'ymin': 0, 'ymax':2000},
+    "mA": {'ymin': 0, 'ymax':6000},
     }
 show_markers = {
     'mH': False,
@@ -106,11 +106,11 @@ colors = {
     'MuMu'     : '#7040f5',
     'ElEl'     : '#ff7f0e',
     'MuEl'     : '#a02c4d',
-    'MuMu_ElEl': 'black',
+    'ElEl_MuMu': 'black',
     }
     
-#flavors = ['MuMu', 'ElEl', 'MuMu_ElEl']
-flavors = ['MuMu_ElEl']
+#flavors = ['MuMu', 'ElEl', 'ElEl_MuMu']
+flavors = ['ElEl_MuMu']
 
 output_dir = options.jsonpath
 for the_mH in mH_list:
@@ -125,7 +125,8 @@ for the_mH in mH_list:
     for flav in flavors:
         limits = flavors_limits.setdefault(flav, {})
         #with open(os.path.join(options.jsonpath, 'all_limits_{}.json'.format(flav))) as f:
-        with open(os.path.join(options.jsonpath, 'combinedlimits_{}.json'.format(flav))) as f:
+        #with open(os.path.join(options.jsonpath, 'combinedlimits_{}.json'.format(flav))) as f:
+        with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav))) as f:
             limits_ = json.load(f)
     
             for l in limits_:

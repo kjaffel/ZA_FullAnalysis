@@ -115,46 +115,51 @@ def getLimitsFromFile(input_file, method):
 parser = argparse.ArgumentParser(description='Collection non-resonant limits')
 parser.add_argument('-i','--inputs', action='store', type=str, required=True,  
                 help='List of (ROOT) combine output file to collect the limits (e.g. higgsCombineBLABLA_.AsymptoticLimits.mH125.root) or higgsCombineBLABLA_.HybridNew.mH125.root')
-parser.add_argument('--method', action='store', required=True, dest='method', type=str, choices=['asymptotic', 'hybridnew', 'fit'], 
+parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], 
                 help='Analysis method')
-
+parser.add_argument('--mode', action='store', required=True, type=str, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn'], 
+                help='Analysis mode')
 options = parser.parse_args()
+
+if options.method == "asymptotic":
+    s = '.AsymptoticLimits.mH125.root'
+elif options.method == "hybridnew":
+    s = '.HybridNew.mH125.root'
 
 limits = defaultdict(dict)
 print("Extracting limits...")
-for cat in ['MuMu_ElEl']:
-    limits[cat] = []
-    for f in glob.glob(os.path.join(options.inputs, 'dnn/limits/', '*', '*.root')):
-        root   =  f.split('/')[-1]
-        mH, mA =  string_to_mass(f.split('/')[-2])
-        print ("MH, MA: ", mH, mA )
-        
-        if options.method == "asymptotic":
-            s = '.AsymptoticLimits.mH125.root'
-        elif options.method == "hybridnew":
-            s = '.HybridNew.mH125.root'
-        if not root.endswith(s):
-            continue
-        if not root.startswith('higgsCombineHToZATo2L2B_{}'.format(cat)):
-            continue
-    
-        point_limits = getLimitsFromFile(f, options.method)
-        channel =  f.split('higgsCombineHToZATo2L2B_')[-1].replace('*.root','').split(s)[0]
-        print( channel)
-        print ("point_limits: ", point_limits)
-    
-        if point_limits['expected'] == 0:
-            print("Warning: expected is 0, skipping point")
-            continue
-        limits[cat].append({
-            'parameters': (mH, mA),
-            'limits'    : point_limits
-            })
+for prod in ['gg_fusion', 'bb_associatedProduction']:
+    process = 'ggH' if prod =='gg_fusion' else 'bbH'
+    for reg in ['resolved', 'boosted']:
+        for flavor in ['ElEl_MuMu', 'ElEl', 'MuMu']:
+            
+            limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, '*', '*{}'.format(s)))
+            limits['{}_{}_{}'.format(process, reg, flavor)] = []
+            for f in limits_path:
+                root     =  f.split('/')[-1]
+                mH, mA   =  string_to_mass(f.split('/')[-2])
+                
+                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}'.format(prod, reg, flavor)):
+                    continue
+                point_limits = getLimitsFromFile(f, options.method)
+                print (" working on -- MH, MA: ", mH, mA , 'template:', options.mode, 'flavor:', flavor)
+                #print ("point_limits: ", point_limits)
+            
+                if point_limits['expected'] == 0:
+                    print("Warning: expected is 0, skipping point")
+                    continue
+                limits['{}_{}_{}'.format(process, reg, flavor)].append({
+                    'parameters': (mH, mA),
+                    'limits'    : point_limits
+                    })
 
-if not os.path.exists(os.path.join(options.inputs, 'jsons')):
-    os.makedirs(os.path.join(options.inputs, 'jsons'))
+limits_out = os.path.join(options.inputs, 'jsons', options.mode)
+if not os.path.exists(limits_out):
+    os.makedirs(limits_out)
 for k, v in limits.items():
-    output_file = os.path.join(options.inputs, 'jsons', 'combinedlimits_{}.json'.format(k))
+    if not v:
+        continue
+    output_file = os.path.join(limits_out, 'combinedlimits_{}.json'.format(k))
     with open(output_file, 'w') as jf:
         json.dump(v, jf, indent=4)
     print("Limits saved as %s" % output_file)
