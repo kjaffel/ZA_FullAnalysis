@@ -115,7 +115,7 @@ def get_combine_method(method):
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
-def getnormalisationScale(inDir=None):
+def getnormalisationScale(inDir=None, method=None):
     dict_scale = {} 
     yaml_file = os.path.join(inDir.split('results')[0], 'plots.yml')
     try:
@@ -126,16 +126,22 @@ def getnormalisationScale(inDir=None):
     
     for proc_path in glob.glob(os.path.join(inDir, "*.root")): 
         process = proc_path.split('/')[-1]
+        
         if process.startswith('__skeleton__'):
             continue
+        
         for smp, smpCfg in config["files"].items():
             if smp == process:
                 lumi = config["configuration"]["luminosity"][smpCfg["era"]]
+                
                 if smpCfg.get("type") == "mc":
                     smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
+                
                 elif smpCfg.get("type") == "signal":
                     smpScale = lumi / smpCfg["generated-events"]
-                #    smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+                    if method == "fit":
+                        smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+                
                 elif smpCfg.get("type") == "data":
                     smpScale = 1
                 dict_scale[smp] =  smpScale
@@ -206,7 +212,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                 flav_categories.append(cat)
     logger.info("Categories                                : %s"%flav_categories )
     
-    scalefactors = getnormalisationScale(input)
+    scalefactors = getnormalisationScale(input, method)
     logger.info("scalefactors                              : %s"%scalefactors )
 
     known_systematics = get_listofsystematics(input) 

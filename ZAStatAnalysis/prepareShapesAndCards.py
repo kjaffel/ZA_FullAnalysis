@@ -86,7 +86,7 @@ signal_grid = [
 extra_signals = [
         ]
     
-def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, split_by_categories= False, scale= False, normalize=False):
+def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards_by_cat= False, scale= False, normalize=False):
     
     luminosity = Constants.getLuminosity(era)
     
@@ -139,7 +139,7 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  mode                   = mode,  
                  output                 = output, 
                  luminosity             = luminosity, 
-                 split_by_categories    = split_by_categories, 
+                 merge_cards_by_cat    = merge_cards_by_cat, 
                  scale                  = scale, 
                  unblind                  = unblind, 
                  signal_strength        = signal_strength, 
@@ -148,7 +148,7 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  verbose                = verbose)
 
     # Create helper script to run limits
-    output = os.path.join(output, method+"-"+H.get_method_group(method), mode)
+    output = os.path.join(output, method+("-"+H.get_method_group(method) if method !='fit' else ""), mode)
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
@@ -175,7 +175,7 @@ done
         logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, split_by_categories=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False):
+def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, merge_cards_by_cat=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -373,10 +373,8 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
             bbb.MergeBinErrors(bkgs)
             bbb.AddBinByBin(bkgs, cb)
 
-        output_prefix      = 'HToZATo2L2B'
-        #output_prefix_run = 'HToZATo2L2B_%s' % (formatted_e)
-        
-        output_dir = os.path.join(output, method+"-"+H.get_method_group(method), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
+        output_prefix  = 'HToZATo2L2B'
+        output_dir     = os.path.join(output, method+("-"+H.get_method_group(method) if method !="fit" else ""), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         def createRunCombineScript(mass, output_dir, output_prefix):
@@ -406,8 +404,8 @@ popd
            systematics    = (0 if stat_only else 1), 
            method         = H.get_combine_method(method), 
            dir            = os.path.dirname(os.path.abspath(datacard)) )
-
-            else:
+            
+            elif method == 'asymptotic':
                 script = """#! /bin/bash
 pushd {dir}
 # If workspace does not exist, create it once
@@ -415,20 +413,40 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-combine {method} -m {mass} -n {name} {workspace_root} {dataset} {expectSignal} {blind} &> {name}.log
+combine {method} -m {mass} -n {name} {workspace_root} {dataset} {blind} &> {name}.log
 popd
 """.format(workspace_root = workspace_file, 
            datacard       = os.path.basename(datacard), 
            name           = output_prefix, 
            mass           = mass, 
-           systematics    = (0 if stat_only else 1), 
+           #systematics    = (0 if stat_only else 1), 
            method         = H.get_combine_method(method), 
            dir            = os.path.dirname(os.path.abspath(datacard)), 
-           #dataset        = ('--bypassFrequentistFit' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
-           #dataset        = ('--noFitAsimov --newExpected 0' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
-           dataset        = ('--noFitAsimov' if H.get_method_group(method)=='limits' else('-t -1' if dataset=='asimov' else '-t 8 -s -1')), 
-           blind          = ('' if method=='fit' else('' if unblind else '--run blind')), 
-           expectSignal   = '' if H.get_method_group(method)=='limits' else '--expectSignal {}'.format(expectSignal) )
+           #dataset       = '--bypassFrequentistFit' , 
+           #dataset       = '--noFitAsimov --newExpected 0', 
+           dataset        = '--noFitAsimov',
+           blind          = ('' if unblind else '--run blind') )
+            
+            elif method =='fit':
+                script = """#! /bin/bash
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+# Run combined
+combine {method} -m {mass} -n {name} {workspace_root} {dataset} {expectSignal} --plots &> {name}.log
+popd
+""".format(workspace_root = workspace_file, 
+           datacard       = os.path.basename(datacard), 
+           name           = output_prefix, 
+           mass           = mass, 
+           #systematics    = (0 if stat_only else 1), 
+           method         = H.get_combine_method(method), 
+           dir            = os.path.dirname(os.path.abspath(datacard)), 
+           dataset        = '', #('-t -1' if dataset=='asimov' else '-t 8 -s -1'), 
+           expectSignal   = '', #'--expectSignal {}'.format(expectSignal)) 
+           )
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -444,32 +462,62 @@ popd
             c.cp().mass([mass, "*"]).WriteDatacard(datacard, os.path.join(output_dir, output_prefix + '_shapes.root'))
             if script:
                 createRunCombineScript(mass, output_dir, output_prefix)
+        
+        
+        for cat in flav_categories:
+            if method == "fit":
+                script = """#! /bin/bash
+# http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
+pushd {dir}
+# Fit the {name} distribution
+./{prefix}_{categories}_run_fit.sh
+
+# Create post-fit shapes for all the categories
+for CAT in {categories}; do
+    text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}_{fit_what}.root -f fitDiagnostics{prefix}_${{CAT}}.root:{fit_what} -m {mass} --postfit --sampling --samples 1000 --covariance --total-shapes --print
+    $CMSSW_BASE/../utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}_{fit_what}.root -o plotIt_{flavor}_{fit_what} --signal-process HToZATo2L2B -n {name}
+done
+popd
+""".format(prefix     = output_prefix + '_' + cat, 
+           flavor     = cat, 
+           mass       = 125, 
+           parameter  = 'MH-%s_MA-%s'%(mH,mA), 
+           categories = ' '.join([x[1] for x in categories_with_parameters]), 
+           dir        = os.path.abspath(output_dir),
+           name       = get_Nm_for_runmode(mode), 
+           fit_what   = 'fit_b' if expectSignal==0 else 'fit_s')
+
+                script_file = os.path.join(output_dir, output_prefix + '_' + cat + ('_do_postfit.sh'))
+                with open(script_file, 'w') as f:
+                    f.write(script)
+
+                st = os.stat(script_file)
+                os.chmod(script_file, st.st_mode | stat.S_IEXEC)
 
         logger.info("Writing datacards!")
         print (categories_with_parameters )
 
-        if split_by_categories:
-            for flavor in flav_categories:
-                for i, cat in enumerate(categories_with_parameters):
-                    cat_output_prefix = output_prefix + '_%s_%s' % (flavor, cat[1])
-                    writeCard(cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, i + 1 == len(categories_with_parameters))
+        for flavor in flav_categories:
+            for i, cat in enumerate(categories_with_parameters):
+                cat_output_prefix = output_prefix + '_%s_%s' % (flavor, cat[1])
+                writeCard(cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, i + 1 == len(categories_with_parameters))
             
+        if merge_cards_by_cat:
             mergeable_regions = ['resolved', 'boosted']
             mergeable_flavors = ['ElEl', 'MuMu']
             for prod in productions:
-                for i, cat in enumerate(categories_with_parameters):
-                    if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
-                        print("Merging {} datacards into a single one for {}".format(flavors, cat[1]))
-                        # Merge all flavors into a single datacards
-                        datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
-                        args      = ['combineCards.py'] + datacards
-                        
-                        merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
-                        merged_datacard      = os.path.join(output_dir, merged_datacard_name + '.dat')
-                        with open(merged_datacard, 'w') as f:
-                            subprocess.check_call(args, cwd=output_dir, stdout=f)
-
-                        createRunCombineScript(mass, output_dir, merged_datacard_name)
+               # for i, cat in enumerate(categories_with_parameters):
+               #     if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
+               #         print("Merging {} datacards into a single one for {}".format(flavors, cat[1]))
+               #         # Merge all flavors into a single datacards
+               #         datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
+               #         args      = ['combineCards.py'] + datacards
+               #         merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
+               #         merged_datacard      = os.path.join(output_dir, merged_datacard_name + '.dat')
+               #         with open(merged_datacard, 'w') as f:
+               #             subprocess.check_call(args, cwd=output_dir, stdout=f)
+               #         createRunCombineScript(mass, output_dir, merged_datacard_name)
 
                 for reg in regions:
                     for i, cat in enumerate(categories_with_parameters):
@@ -485,53 +533,6 @@ popd
 
                             createRunCombineScript(mass, output_dir, merged_datacard_name)
 
-            
-            for cat in flav_categories:
-                if method == "fit":
-                    script = """#! /bin/bash
-# http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
-pushd {dir}
-# Fit the {name} distribution
-./{prefix}_{categories}_run_fit.sh
-
-# Create post-fit shapes for all the categories
-for CAT in {categories}; do
-    text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:fit_b -m {mass} --postfit --sampling --samples 1000 --covariance --total-shapes --print
-    $CMSSW_BASE/../utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}.root -o plotIt_{flavor} --signal-process HToZATo2L2B -n {name}
-done
-popd
-""".format(prefix     = output_prefix + '_' + cat, 
-           flavor     = cat, 
-           mass       = 125, 
-           parameter  = 'MH-%s_MA-%s'%(mH,mA), 
-           categories = ' '.join([x[1] for x in categories_with_parameters]), 
-           dir        = os.path.abspath(output_dir),
-           name       = get_Nm_for_runmode(mode) )
-
-                    script_file = os.path.join(output_dir, output_prefix + '_' + cat + ('_do_postfit.sh'))
-                    with open(script_file, 'w') as f:
-                        f.write(script)
-
-                    st = os.stat(script_file)
-                    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
-        else:
-            mergeable_regions = ['resolved', 'boosted']
-            mergeable_flavors = ['ElEl', 'MuMu']
-            for cat in flav_categories:
-                writeCard(cb.cp().channel([cat]), mass, output_dir, output_prefix + "_" + cat)
-            if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
-                print("Merging flavors datacards into a single one")
-                # Merge all flavors into a single datacards
-                datacards = ["{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=y, flavor=x, category=cat[1]) for x in mergeable_flavors for y in mergeable_regions]
-                args      = ['combineCards.py'] + datacards
-
-                merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
-                with open(merged_datacard, 'w') as f:
-                    subprocess.check_call(args, cwd=output_dir, stdout=f)
-                
-                createRunCombineScript(mass, output_dir, output_prefix + '_' + '_'.join(mergeable_flavors))
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
@@ -545,6 +546,7 @@ if __name__ == '__main__':
                                                 help='Output directory')
     parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
                                                 help='Do not consider systematic uncertainties')
+            
     parser.add_argument('-v', '--verbose',      action='store_true', required=False, default=False, 
                                                 help='For debugging purposes , you may consider this argument !')
     parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018'],
@@ -579,4 +581,4 @@ if __name__ == '__main__':
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, split_by_categories=True, scale=options.scale, normalize=options.normalize)
+    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, merge_cards_by_cat=True, scale=options.scale, normalize=options.normalize)
