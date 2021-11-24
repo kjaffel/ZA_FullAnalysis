@@ -77,8 +77,8 @@ if __name__ == '__main__':
         for background in backgrounds[channel]:
     
             output_filename = "%s_postfit_histos.root" % (background)
-            if options.signal_process in background:
-                continue
+            #if options.signal_process in background:
+            #    continue
             if ignore_background(background):
                 continue
             # Nominal post-fit shape
@@ -86,7 +86,6 @@ if __name__ == '__main__':
             if not nominal_postfit:
                 print("[{}, {}] Shape not found, skipping".format(background, channel))
                 continue
-            #nominal_postfit.SetName('{}_{}'.format(options.name, channel))
             nominal_postfit.SetName('{}'.format(options.name))
             remove_errors(nominal_postfit)
     
@@ -121,7 +120,7 @@ if __name__ == '__main__':
                 # nominal_postfit_down.Write()
         
         if data_driven_dy_histogram:
-            output_filename = "dy_mc_postfit_histos.root"
+            output_filename = "DY_postfit_histos.root"
             plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'update')
             data_driven_dy_histogram.Write()
             plot_file.Close()
