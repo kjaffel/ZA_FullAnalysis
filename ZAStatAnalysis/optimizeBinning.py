@@ -12,6 +12,7 @@ import ROOT as R
 R.gROOT.SetBatch(True)
 from faker import Factory
 fake = Factory.create()
+import Harvester as H
 import HistogramTools as HT
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
@@ -108,12 +109,19 @@ def rebinCustom(hist, binning, name):
 
     return newHist
 
-def plotRebinnedHistograms(files, to_plot, folder, norm=True):
+def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
     plotsDIR = os.path.join(folder, "plots")
     if not os.path.isdir(plotsDIR):
         os.makedirs(plotsDIR)
     
-    color  = fake.hex_color() 
+    smpConfig  = H.getnormalisationScale(inDir, method=None, seperate=True)
+    lumiconfig = smpConfig['configuration']
+    """
+    smpConfig = {"Configurations": {}
+                 smp_signal : [era, lumi, xsc , generated-events, br],
+                 smp_mc     : [era, lumi, xsc , generated-events, None], 
+                 smp_data   : [era, None, None, None,           , None] }
+    """
     with open(f"data/rebinned_template.yml", 'r') as inf:
         with open(f"{folder}/plots.yml", 'w+') as outf:
             for line in inf:
@@ -127,15 +135,37 @@ def plotRebinnedHistograms(files, to_plot, folder, norm=True):
                         if kf == 'data':
                             continue # bug need to be solved first 
                         _type = kf if kf in ['data', 'signal'] else 'mc'
+                        color = fake.hex_color()
                         for root_f in vf:
-                            smp = root_f.split('/')[-1]
+                            smp    = root_f.split('/')[-1]
+                            era    = smpConfig[smp][0]
+                            lumi   = smpConfig[smp][1]
+                            xsc    = smpConfig[smp][2]
+                            genevt = smpConfig[smp][3]
+                            br     = smpConfig[smp][4]
+                            
                             outf.write(f"  {smp}:\n")
                             outf.write(f"    type: {_type}\n")
                             outf.write(f"    group: {kf}\n")
+                            outf.write(f"    era: {era}\n")
+                            
                             if _type == 'signal':
                                 outf.write(f"    legend: {smp.split('.root')[0]}\n")
-                                outf.write("    line-color: '{color}'\n")
+                                outf.write(f"    line-color: '{color}'\n")
                                 outf.write("    line-type: 1\n")
+                                if norm:
+                                    outf.write(f"    Branching-ratio: {br}\n")
+                                    outf.write(f"    generated-events: {genevt}\n")
+                                    outf.write(f"    cross-section: {xsc} # pb\n")
+                            elif _type == 'mc' and norm:
+                                    outf.write(f"    generated-events: {genevt}\n")
+                                    outf.write(f"    cross-section: {xsc} # pb\n")
+                elif "  - myera" in line:
+                    for era in lumiconfig.keys():
+                        outf.write(f"  - {era}\n")
+                elif "    myera: mylumi" in line:
+                    for era, lumi in lumiconfig.items():
+                        outf.write(f"    {era}: {lumi}\n")
                 elif "plots:" in line:
                     outf.write("plots:\n")
                     for plotNm in to_plot:
@@ -243,7 +273,7 @@ if __name__ == "__main__":
             files['signal'].append(rf)
         elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
             files['data'].append(rf)
-            continue # just for now sth wrong with the ranges in rebinCustom step 
+            #continue # just for now sth wrong with the ranges in rebinCustom step 
         elif any( x in smpNm for x in ['DYJetsToLL']):
             files['DY'].append(rf)
         elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar']):
@@ -290,7 +320,7 @@ if __name__ == "__main__":
         outFile.Close()
         print(' rebinned histogram saved in: {} '.format(os.path.join(args.output, "rebinned_histograms", f"{smpNm}.root")))
     
-    plotRebinnedHistograms(files, to_plot, args.output, norm=True)
+    plotRebinnedHistograms(os.path.join(args.input, 'results'), files, to_plot, args.output, norm=True)
     
     with open(os.path.join(args.output, f"rebinned_edges.json"), 'w') as _f:
         json.dump(binnings, _f, indent=4)

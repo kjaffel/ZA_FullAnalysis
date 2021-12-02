@@ -115,9 +115,10 @@ def get_combine_method(method):
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
-def getnormalisationScale(inDir=None, method=None):
+def getnormalisationScale(inDir=None, method=None, seperate=False):
     dict_scale = {} 
-    yaml_file = os.path.join(inDir.split('results')[0], 'plots.yml')
+    dict_seperateInfos = {} 
+    yaml_file  = os.path.join(inDir.split('results')[0], 'plots.yml')
     try:
         with open(yaml_file, 'r') as inf:
             config = yaml.safe_load(inf)
@@ -133,19 +134,23 @@ def getnormalisationScale(inDir=None, method=None):
         for smp, smpCfg in config["files"].items():
             if smp == process:
                 lumi = config["configuration"]["luminosity"][smpCfg["era"]]
+                dict_seperateInfos["configuration"] = config["configuration"]["luminosity"]
                 
                 if smpCfg.get("type") == "mc":
                     smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
+                    dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], None]
                 
                 elif smpCfg.get("type") == "signal":
                     smpScale = lumi / smpCfg["generated-events"]
                     if method == "fit":
                         smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+                    dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
                 
                 elif smpCfg.get("type") == "data":
                     smpScale = 1
+                    dict_seperateInfos[smp] = [smpCfg["era"], None, None, None, None]
                 dict_scale[smp] =  smpScale
-    return dict_scale
+    return dict_seperateInfos if seperate else dict_scale
 
 # If some systematics cause problems yoy can add them here 
 def ignoreSystematic(flavor, process, s):
@@ -442,7 +447,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
             for reg in regions:
                 for flavor in flavors:
                     for category, processes in shapes.items():
-                        category = category
+                        category  = category
                         fake_data = None
                         for process, systematics_dict in processes.items():
                             if process.startswith(signal_process):
