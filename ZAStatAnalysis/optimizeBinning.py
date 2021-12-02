@@ -6,6 +6,7 @@ import os
 import random
 import itertools
 import math
+import shutil
 import subprocess
 import numpy as np
 import ROOT as R
@@ -59,7 +60,10 @@ def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=
         # This is my threshold:"having at least a yield (i.e. sum of weights in the bin) of 1 for the background 
         #                       and 1 for the signal, 
         #                       plus having statistical uncertainty in both of at least maxUncertainty*100 % "
-        while uncertainty < maxUncertainty or content < maxEvents:
+        if hist.Integral(upEdge, upEdge+1) !=0:
+            population = binContents[upEdge]/hist.Integral(upEdge, upEdge+1)
+        yields = 0.5
+        while uncertainty < maxUncertainty or population < yields: # content < maxEvents:
             if upEdge == NBins + 2:
                 # we've now included the overflow bin without going below the required uncertainty
                 # -> stop and make sure we merge last bin with next-to-last one
@@ -95,7 +99,6 @@ def rebinCustom(hist, binning, name):
     newHist  = R.TH1D(name, hist.GetTitle(), nBins, np.array(edges))
     newHist.Sumw2()
     oldSumw2 = list(hist.GetSumw2())
-
     for newBinX in range(1, nBins + 2):
         content = 0
         sumw2   = 0
@@ -109,7 +112,55 @@ def rebinCustom(hist, binning, name):
 
     return newHist
 
-def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
+def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, scale=False):
+    smpCfg  = H.getnormalisationScale(inDir, method=None, seperate=True)        
+    sorted_inputs= {'data'  :[], 
+                    'mc'    :[], 
+                    'signal':[] }
+    for rf in inputs:
+        smp   = rf.split('/')[-1]
+        smpNm = smp.replace('.root','')
+        if smpNm.startswith('__skeleton__'):
+            continue
+        lumi   = smpCfg[smp][1]
+        xsc    = smpCfg[smp][2]
+        genevt = smpCfg[smp][3]
+        br     = smpCfg[smp][4]
+        
+        if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+            sorted_inputs['data'].append(rf)
+            shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
+        else:
+            smpScale = lumi / genevt
+            if any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
+                smpScale *= xsc * br
+                sorted_inputs['signal'].append(rf)
+            else:
+                smpScale *= xsc
+                sorted_inputs['mc'].append(rf)
+        
+        if scale:
+            resultsFile    = HT.openFileAndGet(os.path.join(inDir, smp), mode="READ")
+            normalizedFile = HT.openFileAndGet(os.path.join(outDir, smp), "recreate")
+            for hk in resultsFile.GetListOfKeys():
+                hist  = hk.ReadObj()
+                #hist = resultsFile.Get(hk.GetName())
+                if not hist.InheritsFrom("TH1"): 
+                    continue
+                hist.Scale(smpScale)
+                hist.Write()
+            normalizedFile.Write()
+            resultsFile.Close()
+
+    for k, val in sorted_inputs.items():
+        haddCmd = ["hadd", "-f", os.path.join(outDir, sumPath, f"summed_{era}{k}_samples.root")]+val
+        try:
+            logger.info("running {}".format(" ".join(haddCmd)))
+            subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+
+def plotRebinnedHistograms(inDir, files, to_plot, folder, normalized=False):
     plotsDIR = os.path.join(folder, "plots")
     if not os.path.isdir(plotsDIR):
         os.makedirs(plotsDIR)
@@ -132,11 +183,9 @@ def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
                     for kf, vf in files.items():
                         if not vf:
                             continue
-                        if kf == 'data':
-                            continue # bug need to be solved first 
                         _type = kf if kf in ['data', 'signal'] else 'mc'
-                        color = fake.hex_color()
                         for root_f in vf:
+                            color  = fake.hex_color()
                             smp    = root_f.split('/')[-1]
                             era    = smpConfig[smp][0]
                             lumi   = smpConfig[smp][1]
@@ -153,11 +202,11 @@ def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
                                 outf.write(f"    legend: {smp.split('.root')[0]}\n")
                                 outf.write(f"    line-color: '{color}'\n")
                                 outf.write("    line-type: 1\n")
-                                if norm:
+                                if normalized:
                                     outf.write(f"    Branching-ratio: {br}\n")
                                     outf.write(f"    generated-events: {genevt}\n")
                                     outf.write(f"    cross-section: {xsc} # pb\n")
-                            elif _type == 'mc' and norm:
+                            elif _type == 'mc' and normalized:
                                     outf.write(f"    generated-events: {genevt}\n")
                                     outf.write(f"    cross-section: {xsc} # pb\n")
                 elif "  - myera" in line:
@@ -172,13 +221,12 @@ def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
                         infos  = plotNm.split('_')
                         flavor = infos[2].lower()
                         region = infos[3]
-                        signal_smp = f'MH-{infos[9]}_MA-{infos[10]}'
                         outf.write(f"  {plotNm}:\n")
                         outf.write("    blinded-range: [0.6, 1.0]\n")
                         outf.write("    labels:\n")
                         outf.write("    - position: [0.22, 0.895]\n")
                         outf.write("      size: 24\n")
-                        outf.write(f"      text: {flavor}\n")
+                        outf.write(f"      text: {region}, {flavor}\n")
                         outf.write("    legend-columns: 2\n")
                         outf.write("    log-y: both\n")
                         outf.write("    ratio-y-axis-range: [0.6, 1.2]\n")
@@ -199,57 +247,42 @@ def plotRebinnedHistograms(inDir, files, to_plot, folder, norm=True):
         subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+    print( f'\tplots saved in : {plotsDIR}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help='input file', required=True)
     parser.add_argument('-o', '--output', help='json output file name for new binning', required=True)
-    parser.add_argument('-u', '--uncertainty', type=float, default=0.008, help='max stat. uncertainty')
+    parser.add_argument('-u', '--uncertainty', type=float, default=0.3, help='max stat. uncertainty')
     parser.add_argument('-e', '--events', type=float, default=10e2, help='max entries in bins')
+    parser.add_argument('-s', '--scale', action='store_true', default=True, help=' normalize histograms before start rebining')
+    parser.add_argument('-n', '--normalized', action='store_true', default=False, 
+                            help= 'rebinned plots will be generated pass this flag if you want them to be normalized to 1')
     parser.add_argument('-r', '--rebin', action='store', choices= ['custom', 'standalone'], required=True, 
                             help='compute new binning by setting some treshold on the uncer and number of events\n'
                                  'or just re-arrange the oldbins to merge few bins into one, starting from the left to the right\n')
     args = parser.parse_args()
-    era = '2016' 
-    keep_bins = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 52] 
+    era  = '2016' 
+    keep_bins = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 52] 
     suffix  = "custom_rebin" if args.rebin =="custom" else "standalone_rebin"
+    sumPath = "summed_scaled_histogramms" if args.scale else "summed_histogramms"
+
+    inDir  = os.path.join(args.input, 'results')
+    outDir = os.path.join(args.output, 'inputs')
     
     if not os.path.isdir(os.path.join(args.output, suffix)):
         os.makedirs(os.path.join(args.output, suffix))
-    list_inputs = glob.glob(os.path.join(args.input, 'results', '*.root'))
+    list_inputs = glob.glob(os.path.join(inDir, '*.root'))
   
-    path_to_hadded_f = os.path.join(args.output, "inputs")
-    if not os.path.isdir(path_to_hadded_f):
-        os.makedirs(path_to_hadded_f)
-    
-    if not os.listdir(path_to_hadded_f):
-        sorted_inputs= {'data'  :[], 
-                        'mc'    :[], 
-                        'signal':[] }
-        
-        for rf in list_inputs:
-            smpNm = rf.split('/')[-1].replace('.root','')
-            if smpNm.startswith('__skeleton__'):
-                continue
-            if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
-                sorted_inputs['data'].append(rf)
-            elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
-                sorted_inputs['signal'].append(rf)
-            else:
-                sorted_inputs['mc'].append(rf)
-
-        for k, val in sorted_inputs.items():
-            haddCmd = ["hadd", "-f", os.path.join(args.output, 'inputs', f"summed_{era}{k}_samples.root")]+val
-            try:
-                logger.info("running {}".format(" ".join(haddCmd)))
-                subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+    if not os.path.isdir(outDir):
+        os.makedirs(outDir)
+        os.makedirs(os.path.join(outDir, sumPath))
+        normalizeAndSumSamples(inDir, outDir, sumPath, list_inputs, args.scale)
     else:
-        logger.info(f'directory {path_to_hadded_f}/ exist and not empty, skipping hadd step, if you have an updated files version rm dir and run again!' )
-    
+        logger.warning(f'{outDir}/ already exist and not empty, * Scale/Sum step will be skipped * if you have an updated files version or you want to rerun normalisation and sum step , please remove {outDir}/ and start over!' )
+
     if args.rebin == 'custom':
-        inputs = glob.glob(os.path.join(args.output, 'inputs', '*.root')) 
+        inputs = glob.glob(os.path.join(outDir, sumPath, '*.root')) 
     else:
         inputs = list_inputs
 
@@ -272,8 +305,8 @@ if __name__ == "__main__":
         if any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
             files['signal'].append(rf)
         elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+            continue # just for now sth wrong with the ranges in rebinCustom step 
             files['data'].append(rf)
-            #continue # just for now sth wrong with the ranges in rebinCustom step 
         elif any( x in smpNm for x in ['DYJetsToLL']):
             files['DY'].append(rf)
         elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar']):
@@ -320,8 +353,9 @@ if __name__ == "__main__":
         outFile.Close()
         print(' rebinned histogram saved in: {} '.format(os.path.join(args.output, "rebinned_histograms", f"{smpNm}.root")))
     
-    plotRebinnedHistograms(os.path.join(args.input, 'results'), files, to_plot, args.output, norm=True)
+    if args.rebin == 'standalone': 
+        plotRebinnedHistograms(os.path.join(args.input, 'results'), files, to_plot, args.output, normalized=args.normalized)
     
-    with open(os.path.join(args.output, f"rebinned_edges.json"), 'w') as _f:
+    with open(os.path.join(args.output, f"rebinned_edges_{args.rebin}.json"), 'w') as _f:
         json.dump(binnings, _f, indent=4)
-    print(' rebinned template saved in : {} '.format(os.path.join(args.output, "rebinned_edges.json")))
+    print(' rebinned template saved in : {} '.format(os.path.join(args.output, f"rebinned_edges_{args.rebin}.json")))
