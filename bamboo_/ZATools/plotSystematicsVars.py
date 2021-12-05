@@ -1,22 +1,34 @@
 #! /bin/env python
-
-import os, sys, argparse
-import yaml
-
-# to prevent pyroot to hijack argparse we need to go around
-tmpargv = sys.argv[:] 
-sys.argv = []
-
-# ROOT imports
+import yaml, json
+import glob
 import ROOT
 ROOT.gROOT.SetBatch()
 ROOT.PyConfig.IgnoreCommandLineOptions = True
+import os, sys, argparse
+# to prevent pyroot to hijack argparse we need to go around
+tmpargv  = sys.argv[:] 
+sys.argv = []
 sys.argv = tmpargv
-
+sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
 from HistogramTools import setTDRStyle
-
+import utils as utils
+logger = utils.ZAlogger(__name__)
 # For systematics computed with alternate samples, draw statistical uncertainties on ratios
 alternateSamples = ['isr', 'fsr', 'tune', 'hdamp']
+
+def halfRound(r):
+    """Round up to closest half-decimal:
+        0.04  -> 0.05
+        0.009 -> 0.01
+    """
+    power = 0
+    while r < 1:
+        r *= 10
+        power -= 1
+    if r >= 5:
+        return pow(10., power+1)
+    else:
+        return 5. * pow(10., power)
 
 def beautify(s):
     if s == 'ttbar':
@@ -37,7 +49,6 @@ def beautify(s):
         return 'SM Higgs'
     if s == 'ggHH':
         return 'SM HH'
-
     if s == 'CMS_eff_b':
         return 'Jet b-tagging'
     if s == 'CMS_eff_trigger':
@@ -58,7 +69,6 @@ def beautify(s):
         return 'Parton distributions'
     if s == 'lumi_13TeV_2015':
         return 'Luminosity'
-
     if s == 'ttbar_modeling':
         return r'$\ttbar$ modeling'
     if s == 'ttbar_xsec':
@@ -71,14 +81,31 @@ def beautify(s):
         return r'Single top modeling'
     if s == 'SingleTop_xsec':
         return r'Single top cross-section'
-
     if s == 'MC_stat':
         return 'MC stat.'
-
     if 'QCDscale' in s:
         return 'QCD scale'
-
     return s + '**'
+
+def get_listofsystematics(directory):
+    systematics = []
+    files = glob.glob(os.path.join(directory,"*.root"))
+    for i, f in enumerate(files):
+        F = ROOT.TFile(f)
+        for key in F.GetListOfKeys():
+            if not 'TH1' in key.GetClassName():
+                continue
+            if not '__' in key.GetName():
+                continue
+            if not 'down' in key.GetName() :#or not 'up' in key.GetName():
+                continue
+            syst = key.GetName().replace('__METCut_NobJetER', '_METCut_NobJetER')
+            syst = syst.split('__')[1].replace('up','').replace('down','')
+            syst = syst.replace('pile_', 'pileup_')
+            if syst not in systematics:
+                systematics.append(syst)
+        F.Close()
+    return systematics
 
 def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
 
@@ -102,7 +129,7 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
     hi_pad.cd()
 
     up.SetLineWidth(2)
-    up.SetLineColor(ROOT.TColor.GetColor('#468966'))
+    up.SetLineColor(ROOT.TColor.GetColor('#ff0000'))
     up.GetYaxis().SetLabelSize(0.02 / 0.666)
     up.GetYaxis().SetTitleSize(0.03 / 0.666)
     up.GetYaxis().SetTitleOffset(1.7 * 0.666)
@@ -112,13 +139,13 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
 
     nominal.SetLineWidth(2)
     nominal.SetLineStyle(2)
-    nominal.SetLineColor(ROOT.TColor.GetColor('#FFB03B'))
+    nominal.SetLineColor(ROOT.TColor.GetColor('#000000'))
     nominal.Draw("hist same")
 
     up.Draw("hist same")
 
     down.SetLineWidth(2)
-    down.SetLineColor(ROOT.TColor.GetColor('#8E2800'))
+    down.SetLineColor(ROOT.TColor.GetColor('#0000ff'))
     down.Draw("hist same")
 
     hist_max = -100
@@ -153,8 +180,8 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
     up_ratio.GetYaxis().SetNdivisions(502, True)
     up_ratio.GetYaxis().SetRangeUser(0.5, 1.5)
 
-    up_ratio.SetLineColor(ROOT.TColor.GetColor('#468966'))
-    up_ratio.SetMarkerColor(ROOT.TColor.GetColor('#468966'))
+    up_ratio.SetLineColor(ROOT.TColor.GetColor('#ff0000'))
+    up_ratio.SetMarkerColor(ROOT.TColor.GetColor('#ff0000'))
     up_ratio.SetMarkerStyle(20)
     up_ratio.SetMarkerSize(0.6)
     up_ratio.Draw(ratio_style)
@@ -166,9 +193,8 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
 
     down_ratio = down.Clone()
     down_ratio.Divide(nominal)
-
-    down_ratio.SetLineColor(ROOT.TColor.GetColor('#8E2800'))
-    down_ratio.SetMarkerColor(ROOT.TColor.GetColor('#8E2800'))
+    down_ratio.SetLineColor(ROOT.TColor.GetColor('#0000ff'))
+    down_ratio.SetMarkerColor(ROOT.TColor.GetColor('#0000ff'))
     down_ratio.SetMarkerStyle(20)
     down_ratio.SetMarkerSize(0.6)
     down_ratio.Draw(ratio_style + "same")
@@ -182,27 +208,13 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
         ratio_max = max(ratio_max, up_ratio.GetBinContent(i), down_ratio.GetBinContent(i))
         ratio_min = min(ratio_min, up_ratio.GetBinContent(i), down_ratio.GetBinContent(i))
 
-    def halfRound(r):
-        """Round up to closest half-decimal:
-            0.04 -> 0.05
-            0.009 -> 0.01
-        """
-        power = 0
-        while r < 1:
-            r *= 10
-            power -= 1
-        if r >= 5:
-            return pow(10., power+1)
-        else:
-            return 5. * pow(10., power)
-
-
     # Symetrize
     # ratio_range = halfRound(max(abs(ratio_max - 1), abs(1 - ratio_min)))
     # print(f"min: {ratio_min}, rounded: {halfRound(1-ratio_min)}")
     # print(f"max: {ratio_max}, rounded: {halfRound(ratio_max - 1)}")
     # up_ratio.GetYaxis().SetRangeUser(max(0, 1 - ratio_range), 1 + ratio_range)
     # up_ratio.GetYaxis().SetRangeUser(1 - halfRound(1 - ratio_min), 1 + halfRound(ratio_max - 1))
+    
     up_ratio.GetYaxis().SetRangeUser(.95 * ratio_min, 1.05 * ratio_max)
     up_ratio.GetYaxis().SetNdivisions(210)
     up_ratio.GetYaxis().SetTitle('Ratio')
@@ -215,8 +227,8 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
     l.SetBorderSize(0)
 
     l.AddEntry(nominal, "Nominal")
-    l.AddEntry(up, "+1 std. deviation")
-    l.AddEntry(down, "-1 std. deviation")
+    l.AddEntry(up, "up variation")
+    l.AddEntry(down, "down variation")
     l.Draw("same")
 
     text = f"systematic: {syst}, {proc}"
@@ -226,65 +238,73 @@ def drawSystematic(nominal, up, down, title, syst, proc, plotOpts, output):
     syst_text.SetTextSize(0.03)
     syst_text.Draw("same")
 
+    name = "%s_%s.pdf" % (title, syst)
+    name = "%s_%s.png" % (title, syst)
+    
+    proc_output = os.path.join(options.output, proc)
+    if not os.path.isdir(proc_output):
+        os.makedirs(proc_output)
+    c.SaveAs(os.path.join(proc_output, name))
 
-    name = "%s_%s_%s.pdf" % (title, proc, syst)
-    name = "%s_%s_%s.png" % (title, proc, syst)
-    c.SaveAs(os.path.join(output, name))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Draw systematics')
+    parser.add_argument('-i', '--input' , type=str , help='Input to bamboo directory'  , required=True)
+    parser.add_argument('-o', '--output', type=str , help='Output directory', default ='sysvars')
+    parser.add_argument('-p', '--plots' , nargs='*', help='Restrict to those plots - use all by default')
+    parser.add_argument('-f', '--files' , nargs='*', help='Restrict to those files - use all by default')
+    parser.add_argument('-s', '--syst'  , nargs='*', help='Restrict to those systematics - use all by default')
+    
+    options = parser.parse_args()
 
-# Options
+    if not os.path.isdir(options.output):
+        os.makedirs(options.output)
+    
+    with open(os.path.join(options.input, 'plots.yml')) as _f:
+        plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
+    
+    systematics = plotConfig["systematics"]
+    with open(os.path.join(options.output, "systematics.json"), 'w') as _f:
+        json.dump(systematics, _f, indent=4)
+    logger.info( f'found systematics saved in : {options.output}/systematics.json' )
+    # use the sys we get from the histogram 
+    found_systematics = get_listofsystematics(os.path.join(options.input, 'results'))
+    print( found_systematics )
+    ignore_systematics = ['jer2', 'unclustEn', 'jer4', 'jer3', 'L1PreFiring', 'jer0', 'jer5', 'jer1', 'jmr', 'jms', 'HLTZvtx_2016postVFP', 'HLTZvtx_2016', 'HLTZvtx_2016preVFP']
 
-parser = argparse.ArgumentParser(description='Draw systematics')
-parser.add_argument('-i', '--input', type=str, help='Input YML file')
-parser.add_argument('-o', '--output', type=str, default ='sysvars', help='Output directory')
-parser.add_argument('-p', '--plots', nargs='*', help='Restrict to those plots - use all by default')
-parser.add_argument('-f', '--files', nargs='*', help='Restrict to those files - use all by default')
-parser.add_argument('-s', '--syst', nargs='*', help='Restrict to those systematics - use all by default')
-
-options = parser.parse_args()
-
-if not os.path.isdir(options.output):
-    os.makedirs(options.output)
-
-with open(options.input) as _f:
-    plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
-
-systematics = plotConfig["systematics"]
-print ( systematics )
-files = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
-plots = plotConfig["plots"]
-
-setTDRStyle()
-
-for proc in files:
-    if options.files:
-        if proc not in options.files:
-            continue
-
-    _tf = ROOT.TFile.Open(os.path.join(os.path.dirname(options.input), plotConfig["configuration"]["root"], proc))
-    print (_tf)
-    for plot in plots:
-        if options.plots:
-            if plot not in options.plots:
+    files = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
+    plots = plotConfig["plots"]
+    
+    setTDRStyle()
+    
+    for proc in files:
+        if options.files:
+            if proc not in options.files:
                 continue
-        #if "DYweight" in plot or "DY_weight" in plot or "dxy" in plot or "dz" in plot or "miniPFRelIso_all" in plot or "sip3d" in plot or "Yield" in plot: # for now I don't have any sys for DY-rewighting 
-         #   continue
-        nominal = _tf.Get(plot)
-
-        for syst in systematics:
-            if options.syst:
-                if syst not in options.syst:
+    
+        _tf = ROOT.TFile.Open(os.path.join(os.path.dirname(options.input), plotConfig["configuration"]["root"], proc))
+        logger.info(f'working on {_tf}')
+        for plot in plots:
+            if options.plots:
+                if plot not in options.plots:
                     continue
-
-            up = _tf.Get(plot + "__" + syst + "up")
-            print( plot + "__" + syst + "up")
-            if not (up and up.InheritsFrom("TH1")):
-                print(f"Could not find up variation for systematic {syst}, using nominal")
-                up = nominal
-            down = _tf.Get(plot + "__" + syst + "down")
-            if not (down and down.InheritsFrom("TH1")):
-                print(f"Could not find down variation for systematic {syst}, using nominal")
-                down = nominal
-
-            drawSystematic(nominal, up, down, plot, syst, proc.split(".root")[0], plots[plot], options.output)
-
-    _tf.Close()
+            if not plot.startswith('DNNOutput_ZAnode_'):
+                continue
+            
+            nominal = _tf.Get(plot)
+            for syst in found_systematics:
+                if options.syst:
+                    if syst not in options.syst:
+                        continue
+                if syst in ignore_systematics:
+                    continue
+                
+                up = _tf.Get(plot + "__" + syst + "up")
+                if not (up and up.InheritsFrom("TH1")):
+                    logger.error(f"\tCould not find up variation for systematic {syst}, using nominal")
+                    continue
+                down = _tf.Get(plot + "__" + syst + "down")
+                if not (down and down.InheritsFrom("TH1")):
+                    logger.error(f"\tCould not find down variation for systematic {syst}, using nominal")
+                    continue
+                drawSystematic(nominal, up, down, plot, syst, proc.split(".root")[0], plots[plot], options.output)
+        _tf.Close()
