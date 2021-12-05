@@ -108,13 +108,13 @@ def get_mcNmConvention_and_group(smpNm):
     shortnames = {'DYJetsToLL_0J'   : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_1J'   : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_2J'   : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
-                  'TTHadronic'            : ['ttbar_FullHadronic', 0.,     0., 'tt Full Had.',  '#00ffc7',  7],
-                  'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 831.76, 0., 'tt Semi Lept.', '#9370DB',  6],
-                  'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.40,  0., 'tt Full Lept.', '#c4ffff',  5],
+                  'TTHadronic'            : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  7],
+                  'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  6],
+                  'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  5],
                   'ST_tW_top_5f'          : ['ST', 34.91,  0., 'Single Top',    '#ffc800',  4],
                   'ST_tW_antitop_5f'      : ['ST', 34.97,  0., 'Single Top',    '#ffc800',  4],
-                  'ST_tchannel_top_4f'    : ['ST', 113.3,  0., 'Single Top',    '#ffc800',  4],
-                  'ST_tchannel_antitop_4f': ['ST', 67.91,  0., 'Single Top',    '#ffc800',  4],
+                  'ST_tchannel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  4],
+                  'ST_tchannel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  4],
                   'ST_schannel_4f'        : ['ST', 3.74,   0., 'Single Top',    '#ffc800',  4],
                   'ZZTo2L2Nu'   : ['ZZ', 0.5644, 0.0002688, 'ZZ',   '#ff4800',  3],
                   'ZZTo2L2Q'    : ['ZZ', 3.222, 0.004901,   'ZZ',   '#ff4800',  3],
@@ -343,19 +343,19 @@ if __name__ == "__main__":
                     Nm      = smpNm.replace('-','_')+f'_{era_[1]}'
                     br      = br_HeavytoZlight *  br_lighttobb
                     leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
-                    split   = 1 
+                    split   = 4 
                     search  = smpNm
                     details = f'{H} -> Z{l} : {br_HeavytoZlight} * {l} -> bb : {br_lighttobb}'
                 elif isdata:
                     Nm = f'{smpNm}_UL{era_[0]}{run}_{era_[1]}'
                     run_range = run2_ranges[era][run]
                     cert = certification[era.split('-')[0]] # FIXME make sure that this assuption is correct : means the certefication is the same for pre/post VFP
-                    split  = 1
+                    split  = 4
                     search = smpNm
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
                     Nm = Nm + f'_{era_[1]}'
-                    split = 4
+                    split = 8
                     search = smpNm
                     if group not in groups.keys(): 
                         groups[group] = {}
