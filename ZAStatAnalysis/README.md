@@ -66,20 +66,21 @@ scram b -j7
 cms_env
 cd ${CMSSW_BASE}/src
 cmsenv
-./prepareShapesAndCards.py --era -i -o --blind --dataset 
+./prepareShapesAndCards.py --era -i -o --dataset --mode --method 
 ```
 - ``-i``/``--input`` : path to inputs prefit histograms
 - ``-o``/``--output``: path to where you want to save the datacards 
-- ``-p``/``--parameters``: 
+- ``-p``/``--parameters``: take a list of float ntuples ``[(MH, MA)]``, by default will do all signal mass points that can be found in ``inputs/results/*.root``
 - ``-v``/``--verbose``: for more printout when debugging
 - ``--era`` : choices ``[2016, 2017, 2018]``
 - ``--expectSignal``: ``0`` for B-Only or ``1`` for S+B hypothesis.
 - ``--dataset``: if ``asimov``; ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
-- ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node ``ZA`` is the only relevant one.
+- ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node by default ``ZA`` is the only relevant one.
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
 - ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit]``
-- ``--blind``: ``--run blind`` options will be added to combine commands.
-
+- ``--unblind``: if set to False``--run blind`` options will be added to combine commands otherwise real_data will be used instead. 
+- **``--normalize``: normalize inputs histograms if the given --inputs are not**
+- ``--scale``: scale signal rate; the signale is usualy normalized to 1pb, this flag will scale signal process to ``BR * cross-section``.
 ## Collect Limits:
 ```python
 python collectLimits.py -i output_path_of_previous_step/
@@ -97,8 +98,15 @@ python ZAlimits.py -p path_to/jsons/ --era
 - ``--rescale-to-za-br``: If set, limits are rescaled to the ZA BR
 - ``--numbers``: If set, show values of expected limits on top of the plot
 - ``--theory``: plot theory cross-section
-- ``--log'`` : make plot in log scale 
-
+- ``--log`` : make plot in log scale 
+## Optimize Binning startegy: 
+```python
+python optimizeBinning.py --inputs bla/ --output test/ --rebin standalone
+```
+- ``-r``/``--rebin``:
+- ``-n``/``--normalized``: 
+- ``-e``/``--events``:
+- ``-u``/``--uncertainty``:
 ## Trouble-Shooting:
 - If you ever face Segfault in CombineHarvester::WriteDatacard(string, string) in Python[ issue-239](https://github.com/cms-analysis/CombineHarvester/issues/239) you can try with [PR-240](https://github.com/cms-analysis/CombineHarvester/pull/240), simply do:
 ```bash

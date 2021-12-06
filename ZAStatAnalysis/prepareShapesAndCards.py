@@ -311,8 +311,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                 #'Wgamma',
                 #'SMHiggs'
                 ]
-
-        # FIXME I am not sure if this intended or a mistake 
+        # FIXME 
         for cat in flav_categories:
             processes = []
             cb.AddProcesses(['*'], [analysis_name], ['13TeV_%s'%era], [cat], bkg_processes, categories_with_parameters, False)
@@ -381,7 +380,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
             # Write small script to compute the limit
             datacard = os.path.join(output_dir, output_prefix + '.dat')
             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-
+            
             if method == 'hybridnew':
                 script = """#! /bin/bash
 pushd {dir}
@@ -435,7 +434,7 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-combine {method} -m {mass} -n {name} {workspace_root} {dataset} {expectSignal} --plots &> {name}.log
+combine {method} -m {mass} --saveWithUncertainties --ignoreCovWarning -n {name} {workspace_root} {dataset} {expectSignal} --plots &> {name}.log
 popd
 """.format(workspace_root = workspace_file, 
            datacard       = os.path.basename(datacard), 
@@ -472,11 +471,11 @@ pushd {dir}
 # Fit the {name} distribution
 ./{prefix}_{categories}_run_fit.sh
 
-# Create post-fit shapes for all the categories
+# Create pre/post-fit shapes for all the categories
 for CAT in {categories}; do
     text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o postfit_shapes_${{CAT}}_{fit_what}.root -f fitDiagnostics{prefix}_${{CAT}}.root:{fit_what} -m {mass} --postfit --sampling --samples 1000 --covariance --total-shapes --print
-    $CMSSW_BASE/../utils/convertPostfitShapesForPlotIt.py -i postfit_shapes_${{CAT}}_{fit_what}.root -o plotIt_{flavor}_{fit_what} --signal-process HToZATo2L2B -n {name}
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o fit_shapes_${{CAT}}_{fit_what}.root -f fitDiagnostics{prefix}_${{CAT}}.root:{fit_what} -m {mass} --postfit --sampling --covariance --total-shapes --print
+    $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_{fit_what}.root -o plotIt_{flavor}_{fit_what} --signal-process HToZATo2L2B -n {name}
 done
 popd
 """.format(prefix     = output_prefix + '_' + cat, 

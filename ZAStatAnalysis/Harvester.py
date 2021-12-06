@@ -109,9 +109,9 @@ def get_method_group(method):
 
 def get_combine_method(method):
     if method == 'fit':
-        return '-M FitDiagnostics'# -M MaxLikelihoodFit'
+        return '-M FitDiagnostics --rMax 500'# -M MaxLikelihoodFit'
     elif method == 'asymptotic':
-        return '-M AsymptoticLimits --rMax 500' # -X-rtd MINIMIZER_no_analytic
+        return '-M AsymptoticLimits --X-rtd MINIMIZER_analytic'# --rMax 500 -X-rtd MINIMIZER_no_analytic
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
@@ -425,8 +425,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     for key, value in d.items():
                         d[key] = list(value)
 
-    # In 'fit' mode, scale the signal to 1 pb
-    # everything already in pb 
+    # Alessia: In 'fit' mode, scale the signal to 1 pb
+    # Khawla: everything already in pb 
     #if method == 'fit':
     #    for category, processes in shapes.items():
     #        for process, systematics_dict in processes.items():

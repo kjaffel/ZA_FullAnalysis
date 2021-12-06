@@ -3,7 +3,6 @@ def changeFont():
     """
     Change current font to Arial
     """
-
     from matplotlib import rc
     rc('font', **{'family': 'sans-serif', 'sans-serif':['Arial', 'Helvetica', 'Nimbus Sans L', 'Liberation Sans']})
     rc('mathtext', default='regular')
@@ -11,16 +10,13 @@ def changeFont():
 def applyStyle(fig, ax, lumi, extra='Preliminary', pos='out', figures=1):
     """
     Apply CMS style to a matplotlib figure
-
     Parameters:
-
     fig     The figure
     ax      The axes of the figure
     lumi    The integrated luminosity in /pb
     pos     The position of the texts. Can be 'out', 'upper_left', 'upper_right',
             'bottom_left', 'bottom_right'
     """
-
     def get_extra_label_position(text):
         ex = text.get_window_extent(renderer=fig.canvas.get_renderer())
         inv = fig.transFigure.inverted()
@@ -61,29 +57,24 @@ def applyStyle(fig, ax, lumi, extra='Preliminary', pos='out', figures=1):
     cms_text_va = 'baseline'
 
     if pos == 'out':
-
         cms_text_x = axes_bbox.x0
         cms_text_y = lumi_text_y
 
     elif pos == 'top_left':
-
         cms_text_x = axes_bbox.x0 + 0.03
         cms_text_y = axes_bbox.y1 - 0.06
 
     elif pos == 'top_right':
-
         cms_text_x = axes_bbox.x1 - 0.03
         cms_text_y = axes_bbox.y1 - 0.06
         cms_text_ha = 'right'
 
     elif pos == 'bottom_right':
-
         cms_text_x = axes_bbox.x1 - 0.03
         cms_text_y = axes_bbox.y0 + 0.06
         cms_text_ha = 'right'
 
     elif pos == 'bottom_left':
-
         cms_text_x = axes_bbox.x0 + 0.03
         cms_text_y = axes_bbox.y0 + 0.06
 
@@ -103,4 +94,3 @@ def applyStyle(fig, ax, lumi, extra='Preliminary', pos='out', figures=1):
         fmt = "{lumi:.{figures}f} $fb^{{-1}}$ (13 TeV)".format(lumi=(lumi / 1000.), figures=figures)
 
     ax.text(lumi_text_x, lumi_text_y, fmt, transform=fig.transFigure, fontsize='large', va='baseline', ha='right')
-

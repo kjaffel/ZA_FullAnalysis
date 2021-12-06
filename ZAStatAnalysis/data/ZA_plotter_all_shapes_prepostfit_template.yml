@@ -12,25 +12,25 @@ configuration:
   yields-table-align: v
   book-keeping-file: 'plots.root'
 files:
-  data_obs_postfit_histos.root:
+  data_obs_fit-type_histos.root:
     type: data
     group: data
-  HToZATo2L2B_postfit_histos.root:
+  HToZATo2L2B_fit-type_histos.root:
     type: signal
     legend: mysignal
     line-color: '#834da4'
     line-type: 1
-  DY_postfit_histos.root:
+  DY_fit-type_histos.root:
     type: mc
     group: DY
-  ttbar_postfit_histos.root:
+  ttbar_fit-type_histos.root:
     type: mc
     group: ttbar
-  SingleTop_postfit_histos.root:
+  SingleTop_fit-type_histos.root:
     type: mc
     group: ST
 plots:
-  dnn_scores:
+  dnn_scores_fit-type:
     blinded-range: [0.6, 1.0]
     labels:
     - position: [0.22, 0.895]
@@ -38,7 +38,7 @@ plots:
       text: mychannel
     legend-columns: 2
     log-y: both
-    ratio-y-axis-range: [0.6, 1.2]
+    ratio-y-axis-range: [0.6, 1.4]
     save-extensions: [pdf, png]
     show-ratio: true
     sort-by-yields: false
@@ -63,19 +63,19 @@ groups:
     legend: 'Single Top'
     legend-order: 2
     fill-color: "#9890f0"
-#  ZZ:
-#    legend: ZZ
-#    fill-color: "#ff4800"
-#    order: 3
-#  SM:
-#    legend: tth, Zh
-#    fill-color: "#ff0038"
-#    order: 2
-#  others:
-#    legend: others( tt+V, W+Jets , VVV, VV)
-#    fill-color: "#c4ffff"
-#    order: 1
+  ZZ:
+    legend: ZZ
+    fill-color: "#ff4800"
+    order: 3
+  SM:
+    legend: tth, Zh
+    fill-color: "#ff0038"
+    order: 2
+  others:
+    legend: others( tt+V, W+Jets , VVV, VV)
+    fill-color: "#c4ffff"
+    order: 1
 legend:
   position: [0.62, 0.61, 0.95, 0.89]
 systematics:
-  - postfit
+  - fit-type
