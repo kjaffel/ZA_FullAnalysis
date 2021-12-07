@@ -79,7 +79,7 @@ cmsenv
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
 - ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit]``
 - ``--unblind``: if set to False``--run blind`` options will be added to combine commands otherwise real_data will be used instead. 
-- **``--normalize``: normalize inputs histograms if the given --inputs are not**
+- **``--normalize``: normalize inputs histograms if the given --inputs are not !**
 - ``--scale``: scale signal rate; the signale is usualy normalized to 1pb, this flag will scale signal process to ``BR * cross-section``.
 ## Collect Limits:
 ```python
@@ -94,11 +94,11 @@ python ZAlimits.py -p path_to/jsons/ --era
 ```
 - ``-p``/``--jsonpath``: path to limits in jsons format which are the results of setp2.
 - ``--era`` : choices ``[2016, 2017, 2018]``
-- ``--unblind``: plot the observe limits
-- ``--rescale-to-za-br``: If set, limits are rescaled to the ZA BR
-- ``--numbers``: If set, show values of expected limits on top of the plot
-- ``--theory``: plot theory cross-section
-- ``--log`` : make plot in log scale 
+- ``--unblind``: plot the observed limits.
+- ``--rescale-to-za-br``: If set, limits are rescaled to the ZA branching-ratio.
+- ``--numbers``: If set, show values of expected limits on top of the plot.
+- ``--theory``: plot theory cross-section.
+- ``--log`` : make plot in log scale.
 ## Optimize Binning startegy: 
 ```python
 python optimizeBinning.py --inputs bla/ --output test/ --rebin standalone

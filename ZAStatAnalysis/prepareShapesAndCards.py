@@ -86,7 +86,7 @@ signal_grid = [
 extra_signals = [
         ]
     
-def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards_by_cat= False, scale= False, normalize=False):
+def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= None, parameters= None, mode= None, input= None, ellipses_mumu_file= None, output= None, method= None, node= None, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards_by_cat= False, scale= False, normalize= False, submit_to_slurm= False):
     
     luminosity = Constants.getLuminosity(era)
     
@@ -139,16 +139,17 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  mode                   = mode,  
                  output                 = output, 
                  luminosity             = luminosity, 
-                 merge_cards_by_cat    = merge_cards_by_cat, 
+                 merge_cards_by_cat     = merge_cards_by_cat, 
                  scale                  = scale, 
-                 unblind                  = unblind, 
+                 unblind                = unblind, 
                  signal_strength        = signal_strength, 
                  stat_only              = stat_only, 
                  normalize              = normalize,
-                 verbose                = verbose)
+                 verbose                = verbose,
+                 submit_to_slurm        = submit_to_slurm)
 
     # Create helper script to run limits
-    output = os.path.join(output, method+("-"+H.get_method_group(method) if method !='fit' else ""), mode)
+    output = os.path.join(output, method+("-"+H.get_method_group(method) if method !="fit" else ""), mode)
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
@@ -162,7 +163,11 @@ for script in $scripts; do
 done
 """.format(output=output, suffix='do_postfit' if method=='fit' else 'run_%s'%method)
     
-    script_name = "run_combined_%s_%s%s.sh" % (mode, method,'limits' if method !='fit' else '')
+    if method == 'fit': suffix= 'prepost'
+    elif method == 'impacts': suffix= 'pulls'
+    else: suffix= 'limits'
+
+    script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
     with open(script_name, 'w') as f:
         f.write(script)
 
@@ -175,7 +180,7 @@ done
         logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, merge_cards_by_cat=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False):
+def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=None, parameters=None, productions=None, regions=None, flavors=None, ellipses=None, mode=None, output=None, luminosity=None, merge_cards_by_cat=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -440,21 +445,52 @@ popd
            datacard       = os.path.basename(datacard), 
            name           = output_prefix, 
            mass           = mass, 
-           #systematics    = (0 if stat_only else 1), 
            method         = H.get_combine_method(method), 
            dir            = os.path.dirname(os.path.abspath(datacard)), 
            dataset        = '', #('-t -1' if dataset=='asimov' else '-t 8 -s -1'), 
-           expectSignal   = '', #'--expectSignal {}'.format(expectSignal)) 
+           expectSignal   = '', #'--expectSignal {}'.format(expectSignal)
            )
+            
+            elif method =='impacts':
+                script = """#! /bin/bash
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+{slurmConfiguration}
+# Run combined
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --doInitialFit --robustFit 1 &> {name}.log
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --robustFit 1 --doFits --parallel 30 &> {name}.log
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}.log
+{slurm}plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} &> {name}.log
+popd
+""".format(workspace_root     = workspace_file, 
+           slurm              = 'srun ' if submit_to_slurm else '',
+           slurmConfiguration = """SBATCH --job-name=impacts__{}
+SBATCH --array=0-206
+SBATCH --time=24:00:00
+SBATCH --ntasks=1
+SBATCH --mem-per-cpu=1500
+SBATCH -p debug -n 1
+""".format('expectSignal%s_%sdataset'%( expectSignal, dataset)) if submit_to_slurm else '',
+           name           = output_prefix,
+           fNm            = 'expectSignal{}_{}dataset'.format( expectSignal, dataset),
+           datacard       = os.path.basename(datacard), 
+           mass           = mass,
+           method         = H.get_combine_method(method), 
+           dir            = os.path.dirname(os.path.abspath(datacard)), 
+           dataset        = ('-t -1' if dataset=='asimov' else '-t 8 -s -1'),
+           expectSignal   = '--expectSignal {}'.format(expectSignal) ) 
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
             with open(script_file, 'w') as f:
                 f.write(script)
-
+    
             st = os.stat(script_file)
             os.chmod(script_file, st.st_mode | stat.S_IEXEC)
-
+    
         # Write card
         def writeCard(c, mass, output_dir, output_prefix, script=True):
             datacard = os.path.join(output_dir, output_prefix + '.dat')
@@ -558,7 +594,7 @@ if __name__ == '__main__':
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
-    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit'],        
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit', 'impacts'],        
                                                 help='Analysis method')
     parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
                                                 help='Use fake data instead of real data')
@@ -568,6 +604,8 @@ if __name__ == '__main__':
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
     parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
                                                 help='scale signal rate')
+    parser.add_argument('--submit',             action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
+                                                help='slurm submission for long pull and impacts jobs')
     parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
                                                 help='normalize the inputs histograms')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True, default=None,                             
@@ -580,4 +618,4 @@ if __name__ == '__main__':
     options = parser.parse_args()
     options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, merge_cards_by_cat=True, scale=options.scale, normalize=options.normalize)
+    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, merge_cards_by_cat=True, scale=options.scale, normalize=options.normalize, submit_to_slurm=options.submit_to_slurm)

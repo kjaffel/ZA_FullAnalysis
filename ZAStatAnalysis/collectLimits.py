@@ -117,8 +117,6 @@ parser.add_argument('-i','--inputs', action='store', type=str, required=True,
                 help='List of (ROOT) combine output file to collect the limits (e.g. higgsCombineBLABLA_.AsymptoticLimits.mH125.root) or higgsCombineBLABLA_.HybridNew.mH125.root')
 parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], 
                 help='Analysis method')
-parser.add_argument('--mode', action='store', required=True, type=str, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn'], 
-                help='Analysis mode')
 options = parser.parse_args()
 
 if options.method == "asymptotic":
@@ -133,16 +131,16 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
     for reg in ['resolved', 'boosted']:
         for flavor in ['ElEl_MuMu', 'ElEl', 'MuMu']:
             
-            limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, '*', '*{}'.format(s)))
+            limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), '*', '*', '*{}'.format(s)))
             limits['{}_{}_{}'.format(process, reg, flavor)] = []
             for f in limits_path:
                 root     =  f.split('/')[-1]
                 mH, mA   =  string_to_mass(f.split('/')[-2])
-                
+                mode     =  f.split('/')[-3]
                 if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}'.format(prod, reg, flavor)):
                     continue
                 point_limits = getLimitsFromFile(f, options.method)
-                print (" working on -- MH, MA: ", mH, mA , 'template:', options.mode, 'flavor:', flavor)
+                print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
                 #print ("point_limits: ", point_limits)
             
                 if point_limits['expected'] == 0:
@@ -153,7 +151,7 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
                     'limits'    : point_limits
                     })
 
-limits_out = os.path.join(options.inputs, 'jsons', options.mode)
+limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), 'jsons', mode)
 if not os.path.exists(limits_out):
     os.makedirs(limits_out)
 for k, v in limits.items():

@@ -104,6 +104,8 @@ def zeroNegativeBins(h):
 def get_method_group(method):
     if method == 'fit':
         return 'fit'
+    elif method == 'impacts':
+        return 'pulls'
     else:
         return 'limits'
 
@@ -112,6 +114,8 @@ def get_combine_method(method):
         return '-M FitDiagnostics --rMax 500'# -M MaxLikelihoodFit'
     elif method == 'asymptotic':
         return '-M AsymptoticLimits --X-rtd MINIMIZER_analytic'# --rMax 500 -X-rtd MINIMIZER_no_analytic
+    elif method == 'impacts':
+        return '-M Impacts --rMin -20 --rMax 20' 
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
 
