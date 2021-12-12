@@ -9,6 +9,7 @@ import math
 import shutil
 import subprocess
 
+from hepstats.modeling.bayesian_blocks import bayesian_blocks, Prior
 from scipy import stats
 from astropy import visualization
 from astropy import stats
@@ -26,7 +27,17 @@ import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
 
-def BayesianBlocks(old_hist=None, name=None, output=None, logy=True, plotit=False):
+def get_new_histogramWgt(hist, newEdges, oldEdges, old_wgt):
+    new_wgt   = np.array([])
+    FinalBins = []
+    for x in newEdges:
+        b = hist.FindBin(x)
+        FinalBins.append(b)
+        new_wgt = np.append(new_wgt, hist.GetBinContent(b))
+    return new_wgt, FinalBins
+
+
+def BayesianBlocks(old_hist=None, name=None, output=None, logy=False, include_overflow=False):
     """
     Bayesian Blocks is a dynamic histogramming method which optimizes one of
     several possible fitness functions to determine an optimal binning for
@@ -36,18 +47,73 @@ def BayesianBlocks(old_hist=None, name=None, output=None, logy=True, plotit=Fals
     
     https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
     
+    bin_content = []
+    binnxs = [hist.GetXaxis().GetBinLowEdge(1)]
+    for i in range(1,hist.GetNbinsX()+1):
+        bin_content.append(hist.GetBinContent(i))
+        binnxs.append(hist.GetXaxis().GetBinUpEdge(i))
+    print( bin_content, binnxs )
     """
-    method   = {}
 
     Nbins = old_hist.GetNbinsX() 
-    np_arr_edges_oldhist = root_numpy.hist2array(old_hist, include_overflow=True, copy=False, return_edges=True)
+    np_arr_edges_oldhist = root_numpy.hist2array(old_hist, include_overflow=include_overflow, copy=True, return_edges=True)
     np_arr_oldhist = np_arr_edges_oldhist[0]
-    oldedges       = np_arr_edges_oldhist[1][0].tolist()
-    print( np_arr_edges_oldhist, 'Nbins =', Nbins)
-    
+    oldEdges       = np_arr_edges_oldhist[1][0]
+    if include_overflow:
+        oldEdges   = np.append(oldEdges, 1.02 )#.tolist()
+    else:
+        oldEdges   = oldEdges[:-1]
+
+    print( oldEdges.shape , np_arr_oldhist.shape )
+    print( np_arr_edges_oldhist, 'Nbins =', Nbins, len(np_arr_edges_oldhist[0]))
+   
     fig = plt.figure(figsize=(10, 4))
     fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
     
+    
+    for i in np.arange(0.01, 1., 0.01):
+        pNm = name + "_%.2fp0" %i
+        if not i ==0.01: #this p0 isn't changing anything FIXME
+            continue
+        for p0, subplot in zip([i, i+0.01], [121, 122]):
+           
+            ax = fig.add_subplot(subplot)
+            prior = Prior(p0=p0, gamma=None)
+            #newEdges = bayesian_blocks(oldEdges, np_arr_oldhist, p0=p0)
+            newEdges = bayesian_blocks(np_arr_oldhist, p0=p0)
+            print( "newEdges : ",  newEdges , len(newEdges), "p0 =", p0)
+            np_arr_newhist, FinalBins= get_new_histogramWgt(old_hist, newEdges, oldEdges, np_arr_oldhist)
+            print( "newBinContents : ",  np_arr_newhist, FinalBins, "p0 =", p0)
+
+            rebin = len(newEdges) +1
+            root_newhist = R.TH1D(name, "", rebin, 0., 1.)
+            #newHist      = root_numpy.array2hist(np_arr_newhist, root_newhist)
+        
+            ax.hist(np_arr_oldhist, bins=oldEdges, histtype='stepfilled', weights=None,
+                    alpha=0.2, density=True, label='standard histogram')
+            #ax.hist(newEdges, bins=newEdges, color='red', weights=np_arr_oldhist, stacked=True,
+            #        histtype='stepfilled', density=True)
+                     
+  
+            ax.hist(np_arr_newhist, bins=newEdges, color='black', weights=None, 
+                    histtype='step', density=True, label=f"Bayesian blocks: {'%.2f' % (float(p0))}")
+            
+            ax.legend(prop=dict(size=12))
+            ax.set_xlabel('DNN_output ZA')
+            ax.set_ylabel('Events')
+            if logy:
+                ax.set_yscale('log') 
+        
+        if logy:
+            pNm += '_logy'
+        fig.savefig(os.path.join(output, pNm+'.png')) 
+        fig.savefig(os.path.join(output, pNm+'.pdf'))
+        #plt.show()
+        plt.gcf().clear()
+    print(f" plots saved in : {output}" )
+
+    """  works better for unweighted histogram !! 
+    method   = {}
     normal   = [['scott', 'freedman'], ['Scott’s rule', 'Freedman-Diaconis rule']]
     bayesian = [['knuth', 'blocks'], ["Knuth's rule", 'Bayesian blocks']]
     
@@ -55,51 +121,31 @@ def BayesianBlocks(old_hist=None, name=None, output=None, logy=True, plotit=Fals
         pNm = name + f'_{i}'
         for bins, title, subplot in zip(m[0],m[1],[121, 122]):
             ax = fig.add_subplot(subplot)
-    
+            #ax.set_xlim([0., 1.])
+            
             # plot a standard histogram in the background, with alpha transparency
-            visualization.hist(np_arr_oldhist, bins=Nbins, histtype='stepfilled',
+            visualization.hist(data, bins=oldEdges, histtype='stepfilled',
                 alpha=0.2, density=False, label='standard histogram')
             
             # plot an adaptive-width histogram on top
-            visualization.hist(np_arr_oldhist, bins=bins, ax=ax, color='black',
+            visualization.hist(data, bins=bins, ax=ax, color='black',
                 histtype='step', density=False, label=title)
-
+            
             np_arr_edges_newhist = stats.histogram(np_arr_oldhist, bins=bins, range=None, weights=None)
-            print( f'{title} new edges : {np_arr_edges_newhist[0]}' )
-            print( f'{title} new hist  : {np_arr_edges_newhist[1]}' )
+            print( f'{title} new hist  : {np_arr_edges_newhist[0]}' )
+            print( f'{title} new edges : {np_arr_edges_newhist[1]}' )
             
-            rebin = len(np_arr_edges_newhist[0]) +1
-            print( rebin )
-            root_newhist = R.TH1D(name+'_'+bins, "", rebin, 0., 1.)
+            rebin = len(newEdges[0]) +1
+            root_newhist = R.TH1D(name, "", rebin, 0., 1.)
             
-            newHist    = root_numpy.array2hist(np.flipud(np_arr_edges_newhist[1]), root_newhist)
-            mergedBins = np.flipud(np_arr_edges_newhist[0]).tolist()
+            newHist    = root_numpy.array2hist(np.flipud(np_arr_newhist), root_newhist)
+            mergedBins = np.flipud(newEdges).tolist()
             
-            newEdges   = []
-            upEdges    = [1]
-            up = 0
-            for b in mergedBins:
-                up += b
-                upEdges.append(up)
             for b in range(1, len(mergedBins) +2):
                 newEdges.append(newHist.GetXaxis().GetBinLowEdge(b))
             method[bins] = [newHist, [newEdges, upEdges]]
-            
-            ax.legend(prop=dict(size=12))
-            ax.set_xlabel('DNN_output ZA')
-            ax.set_ylabel('Events')
-            if logy:
-                ax.set_yscale('log') 
-    
-        if logy:
-            pNm += '_logy'
-        fig.savefig(os.path.join(output, pNm+'.png')) 
-        fig.savefig(os.path.join(output, pNm+'.pdf'))
-    
-        #plt.show()
-        plt.gcf().clear()
-    
-    return  method['blocks'][0],  method['blocks'][1]
+    """     
+    return newHist, newEdges
 
 def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=True):
     """ Optimize binning, return result in the form of:
@@ -191,7 +237,7 @@ def rebinCustom(hist, binning, name):
         for oldBinX in range(binning[1][newBinX - 1], maxOldBinX):
             content += hist.GetBinContent(oldBinX)
             sumw2   += oldSumw2[hist.GetBin(oldBinX)]
-        print( f'merging bins {binning[1][newBinX-1]} -> {maxOldBinX} : BinContent = {content}')
+        print( f'merging bins {binning[1][newBinX-1]} ({hist.GetXaxis().GetBinLowEdge(binning[1][newBinX-1])}) -> {maxOldBinX} ({hist.GetXaxis().GetBinLowEdge(maxOldBinX)}) : BinContent = {content}')
         newHist.SetBinContent(newBinX, content)
         newHist.GetSumw2()[newHist.GetBin(newBinX)] = sumw2
 
@@ -246,7 +292,7 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
         except subprocess.CalledProcessError:
             logger.error("Failed to run {0}".format(" ".join(haddCmd)))
 
-def plotRebinnedHistograms(inDir, files, to_plot, folder, suffix, normalized=False):
+def plotRebinnedHistograms(inDir, files, to_plot, folder, suffix, year, normalized=False):
     plotsDIR   = os.path.join(folder, "plots")
     smpConfig  = H.getnormalisationScale(inDir, method=None, seperate=True)
     lumiconfig = smpConfig['configuration']
@@ -298,6 +344,10 @@ def plotRebinnedHistograms(inDir, files, to_plot, folder, suffix, normalized=Fal
                 elif "    myera: mylumi" in line:
                     for era, lumi in lumiconfig.items():
                         outf.write(f"    {era}: {lumi}\n")
+                elif "  extra-label: myextralabel" in line:
+                    if year =='2016': label = 'pre/-postVFP' 
+                    else: label =  year
+                    outf.write(f"  extra-label: {label} ULegacy Preliminary\n")
                 elif "plots:" in line:
                     outf.write("plots:\n")
                     for plotNm in to_plot:
@@ -336,26 +386,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help='input file', required=True)
     parser.add_argument('-o', '--output', help='json output file name for new binning', required=True)
-    parser.add_argument('-y', '--era', help='era', required=True)
-    parser.add_argument('-u', '--uncertainty', type=float, default=0.3, help='max stat. uncertainty')
-    parser.add_argument('-e', '--events', type=float, default=10e2, help='max entries in bins')
-    parser.add_argument('-s', '--scale', action='store_true', default=False, help=' scale histograms before start rebining')
-    parser.add_argument('-p', '--plotit', action='store_true', default=False, help=' do plots after rebining')
-    parser.add_argument('-n', '--normalized', action='store_true', default=False, 
+    parser.add_argument('--era', help='era', required=True)
+    parser.add_argument('--uncertainty', type=float, default=0.3, help='max stat. uncertainty')
+    parser.add_argument('--events', type=float, default=10e2, help='max entries in bins')
+    parser.add_argument('--scale', action='store_true', default=False, help=' scale histograms before start rebining')
+    parser.add_argument('--test', action='store_true', default=False, help=' cross check with 1 histogram + the corresponding systematics ')
+    parser.add_argument('--plotit', action='store_true', default=False, help=' do plots after rebining')
+    parser.add_argument('--submit', action='store_true', default=False, 
+                            help='submit or test, useful when small modification is need for plotting\n'
+                                 'without a need to touch the histogram again\n')
+    parser.add_argument('--normalized', action='store_true', default=False, 
                             help= 'rebinned plotit-plots can be normalized to 1pb')
-    parser.add_argument('-r', '--rebin', action='store', choices= ['custom', 'standalone', 'bayesian'], required=True, 
+    parser.add_argument('--rebin', action='store', choices= ['custom', 'standalone', 'bayesian'], required=True, 
                             help='compute new binning by setting some treshold on the uncer and number of events\n'
                                  'or just re-arrange the oldbins to merge few bins into one, starting from the left to the right\n')
     args = parser.parse_args()
-    keep_bins = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 52] 
+    keep_bins = [1, 3, 9, 21, 39, 51, 52] # accept overflow  
     sumPath = "summed_scaled_histogramms" if args.scale else "summed_histogramms"
-
+    
+    inDir  = os.path.join(args.input, 'results/')
+    outDir = os.path.join(args.output, 'inputs/')
+    
+    
     if   args.rebin == "custom":     suffix= "custom_rebin" 
     elif args.rebin == "standalone": suffix="standalone_rebin"
     else: suffix= "bayesian_rebin"
-    
-    inDir  = os.path.join(args.input, 'results')
-    outDir = os.path.join(args.output, 'inputs')
     
     list_inputs = glob.glob(os.path.join(inDir, '*.root'))
     
@@ -376,24 +431,34 @@ if __name__ == "__main__":
                      '\tScale and hadd steps will be skipped \n'
                      '\tif you have an updated version of files OR you want to rerun the steps above :\n'
                      f'\tplease remove {outDir}/ and start over!\n' )
+    shutil.copyfile(os.path.join(args.input, 'plots.yml'), os.path.join(args.output, 'plots.yml'))
+    
+    inputs = []
+    if args.submit:
+        if args.plotit or args.rebin =='standalone':
+            # bkg , data and signal as it given/found in the args.inputs
+            inputs = list_inputs
+        else:
+            # take hadded files ( 1 tot bkg , 1 tot. data and 1 tot. signal )
+            inputs = glob.glob(os.path.join(outDir, sumPath, '*.root')) 
 
-    if args.plotit:
-        # bkg seperate
-        inputs = list_inputs
-    else:
-        # take hadded files 
-        inputs = glob.glob(os.path.join(outDir, sumPath, '*.root')) 
-
-    binnings = {}
-    files    = {'signal': [],
-                'data'  : [],
-                'DY'    : [],
-                'ttbar' : [],
-                'ST'    : [] }
+    binnings = {
+            'histograms': {},
+            'files': {'signal': [],
+                      'data'  : [],
+                      'DY'    : [],
+                      'ttbar' : [],
+                      'ST'    : [],
+                      'ZZ'    : [],
+                      'SM'    : [],
+                      'others': [] }
+            }
     
     for rf in inputs:
         smpNm = rf.split('/')[-1].replace('.root','')
-        if 'data' in smpNm:
+        #if 'data' in smpNm:
+        #    continue
+        if 'mc' in smpNm:
             continue
         if 'signal' in smpNm:
             continue
@@ -401,39 +466,47 @@ if __name__ == "__main__":
         if smpNm.startswith('__skeleton__'):
             continue
         if any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
-            files['signal'].append(rf)
+            binnings['files']['signal'].append(rf)
         elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
             continue # just for now sth wrong with the ranges in rebinCustom step 
-            files['data'].append(rf)
+            binnings['files']['data'].append(rf)
         elif any( x in smpNm for x in ['DYJetsToLL']):
-            files['DY'].append(rf)
+            binnings['files']['DY'].append(rf)
         elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar']):
-            files['ttbar'].append(rf)
+            binnings['files']['ttbar'].append(rf)
         elif any( x in smpNm for x in ['ST']):
-            files['ST'].append(rf)
+            binnings['files']['ST'].append(rf)
 
         print( ' working on :', rf ) 
         rf_out  = os.path.join(args.output, suffix, f"{smpNm}.root")
         inFile  = HT.openFileAndGet(rf)
         outFile = HT.openFileAndGet(rf_out, "recreate")
 
-        nameTemplate = 'DNNOutput_ZAnode_ElEl_resolved_DeepCSVM_METCut_gg_fusion_MH_650_MA_50' # for test only 
-        binnings[nameTemplate] = []
-        to_plot = []
+        isSys = False
         for key in inFile.GetListOfKeys():
-            if not key.GetName().startswith(nameTemplate):
+            if args.test:
+                if not key.GetName().startswith('DNNOutput_ZAnode_ElEl_resolved_DeepCSVM_METCut_gg_fusion_MH_650_MA_50'):
+                    continue
+                if '__' in key.GetName():
+                    continue
+
+            if '__' in key.GetName(): isSys =True
+
+            hist = inFile.Get(key.GetName())
+            if not (hist and hist.InheritsFrom("TH1")):
                 continue
-            if '__' in key.GetName(): # ignore systematics histograms let's look only to the nominal
+            if hist.GetEntries() == 0.:
                 continue
-            
+
             oldHist = inFile.Get(key.GetName())
-            to_plot.append(key.GetName() + '_rebin')
-            
-            name = f'{nameTemplate}' +'__rebin'
+           
+            if not isSys:
+                binnings['histograms'][key.GetName()] = []
+            name = key.GetName() +'_rebin'
             if args.rebin == 'custom':
                 binning = optimizeBinning(oldHist, args.events, args.uncertainty)
-                binnings[nameTemplate].append(binning[0])
-                newHist = rebinCustom(oldHist, binning, oldHist.GetName() + "_rebin")
+                newEdges= binning[0]
+                newHist = rebinCustom(oldHist, binning, oldHist.GetName())
                 name   += '_custome'
 
             elif args.rebin == 'standalone':
@@ -442,22 +515,23 @@ if __name__ == "__main__":
                 for i in keep_bins:
                     newEdges.append(oldHist.GetXaxis().GetBinLowEdge(i))
                 binning  = [newEdges, keep_bins]
-                binnings[nameTemplate].append(binning[0])
-                newHist  =  rebinCustom(oldHist, binning, oldHist.GetName() + "_rebin")
+                newHist  =  rebinCustom(oldHist, binning, oldHist.GetName())
                 name    += '_standalone'
             
             elif args.rebin == 'bayesian':
                 if args.plotit:
                     f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}.json"))
                     data = json.load(f)
-                    binning  = data[nameTemplate][0]
-                    newHist  =  rebinCustom(oldHist, binning, oldHist.GetName() + "_rebin")
+                    newEdges = data['histograms'][key.GetName()][0]
+                    newHist  =  rebinCustom(oldHist, newEdges, oldHist.GetName())
                 else:
                     name   += '_bayesian'
-                    newHist, newEdges = BayesianBlocks(oldHist, name, plotsDIR, args.plotit)
-                    binnings[nameTemplate].append(newEdges)
+                    newHist, newEdges = BayesianBlocks(oldHist, name, plotsDIR, logy=False, include_overflow=False)
+            
+            if not isSys:        
+                binnings['histograms'][key.GetName()].append(newEdges)
 
-            print(np.sqrt(sum(list(newHist.GetSumw2())))/newHist.Integral())
+            #print(np.sqrt(sum(list(newHist.GetSumw2())))/newHist.Integral())
             outFile.cd()
             newHist.Write()
         inFile.Close()
@@ -465,7 +539,7 @@ if __name__ == "__main__":
         print(' rebinned histogram saved in: {} '.format(os.path.join(args.output, suffix, f"{smpNm}.root")))
    
     if args.plotit:
-        plotRebinnedHistograms(inDir, files, to_plot, args.output, suffix, normalized=args.normalized)
+        plotRebinnedHistograms(inDir, binnings['files'], binnings['histograms'], args.output, suffix, args.era, normalized=args.normalized)
     if not args.plotit: 
         # avoid overwitting this file 
         with open(os.path.join(args.output, f"rebinned_edges_{args.rebin}.json"), 'w') as _f:
