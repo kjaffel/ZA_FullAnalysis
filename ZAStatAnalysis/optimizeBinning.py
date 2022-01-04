@@ -56,6 +56,25 @@ def available_points(inputs=None):
             points.append(p)
     return points
 
+def get_histNm_orig(mode=None, smpNm=None, mass=None, info=False):
+    if 'gg_fusion' in smpNm: process = 'gg_fusion'
+    else: process = 'bb_associatedProduction'
+    if 'ElEl' in smpNm: flavor='ElEl'
+    else: flavor='MuMu'
+    if 'resolved' in smpNm: region='resolved'
+    else: region='boosted'
+    if 'DeepCSVM' in smpNm: taggerWP= 'DeepCSVM'
+    else: taggerWP='DeepFlavourM'
+    
+    histNm  = f'{mode}_{flavor}_{region}_{taggerWP}_METCut_{process}_{mass}'
+    details = {'process':process,
+               'flavor' :flavor,
+               'region' :region,
+               'taggerWP':taggerWP,
+               'mass'    :mass
+               }
+    return histNm, details if info else histNm
+
 def get_new_histogramWgt(hist, newEdges, oldEdges, oldNbins):
     binContent= np.array([])
     FinalBins = []
@@ -81,14 +100,15 @@ def get_new_histogramWgt(hist, newEdges, oldEdges, oldNbins):
     return binContent, FinalBins
 
 
-def PLotHybrideHistos(rf=None, old_hist_S=None, histNm=None, name=None, output=None, newEdges=None, include_overflow=False, logy=False):
+#def PLotHybrideHistos(rf=None, old_hist_S=None, histNm=None, name=None, output=None, newEdges=None, include_overflow=False, logy=False
+def PLotHybrideHistos(oldHist=None, name=None, output=None, newEdges=None, include_overflow=False, logy=False):
     fig = plt.figure(figsize=(10, 7))
     ax  = fig.add_subplot(111)
 
-    inFile  = HT.openFileAndGet(rf)
-    old_hist_B = inFile.Get(histNm)
+    #inFile  = HT.openFileAndGet(rf)
+    #old_hist_B = inFile.Get(histNm)
     
-    oldHist = {'B':old_hist_B, 'S': old_hist_S}
+    #oldHist = {'B':old_hist_B, 'S': old_hist_S}
 
     oldEdges = {}
     np_arr_oldhist = {}
@@ -110,8 +130,8 @@ def PLotHybrideHistos(rf=None, old_hist_S=None, histNm=None, name=None, output=N
 
     np_arr_hybride['hybride']= np.add(np_arr_hybride['B'],np_arr_hybride['S'])
     #print( 'BACKGROUND:', oldEdges["B"] , np_arr_oldhist["B"], len( oldEdges["B"]), len(np_arr_oldhist["B"]))
-    #print( 'SIGNAL:', oldEdges["S"] , np_arr_oldhist["S"], len(oldEdges["S"]), len(np_arr_oldhist["S"]) )
-    #print( 'HYBRIDE:', newEdges['hybride'], np_arr_newhist["B"], np_arr_newhist["S"], len(newEdges['hybride']), len(np_arr_newhist["B"]), len(np_arr_newhist["S"]))
+    #print( 'SIGNAL    :', oldEdges["S"] , np_arr_oldhist["S"], len(oldEdges["S"]), len(np_arr_oldhist["S"]) )
+    #print( 'HYBRIDE   :', newEdges['hybride'], np_arr_newhist["B"], np_arr_newhist["S"], len(newEdges['hybride']), len(np_arr_newhist["B"]), len(np_arr_newhist["S"]))
     
     ax.hist( [oldEdges["S"], oldEdges["B"]], bins   =oldEdges["B"],  # they were the same (50 bins) for both 
                                              color  =['red', 'blue'], 
@@ -132,13 +152,13 @@ def PLotHybrideHistos(rf=None, old_hist_S=None, histNm=None, name=None, output=N
     if logy:
         ax.set_yscale('log') 
         name += '_logy'
-    fig.savefig(os.path.join(output, name+'_hybride.png')) 
-    fig.savefig(os.path.join(output, name+'_hybride.pdf'))
+    fig.savefig(os.path.join(output, name+'.png')) 
+    fig.savefig(os.path.join(output, name+'.pdf'))
     
     inFile.Close()
     plt.gcf().clear()
 
-def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', stdhist=None, logy=False, isSignal=False, include_overflow=False, plot_merged=False):
+def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', histNm=None, label=None, logy=False, isSignal=False, include_overflow=False):
     """
     Bayesian Blocks is a dynamic histogramming method which optimizes one of
     several possible fitness functions to determine an optimal binning for
@@ -148,6 +168,7 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', st
     
     https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
     https://root.cern.ch/doc/master/classTH1.html#ae0895b66e993b9e9ec728d828b9336fe 
+    
     bin_content = []
     binnxs = [hist.GetXaxis().GetBinLowEdge(1)]
     for i in range(1,hist.GetNbinsX()+1):
@@ -173,7 +194,7 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', st
         np_arr_oldhist = np.append(np_arr_oldhist, 0. )
     
     oldNbins = old_hist.GetNbinsX() 
-    oldBins = []
+    oldBins  = []
     for i in oldEdges:
         oldBins.append(old_hist.FindBin(i))
     
@@ -193,13 +214,14 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', st
             _fitness = stats.FitnessFunc(p0=p0, gamma=None, ncp_prior=None)
             ncp      = _fitness.compute_ncp_prior(N=old_hist.GetNbinsX()) # or prior.calc(N=old_hist.GetNbinsX())
         
-            newEdges = bayesian_blocks(oldEdges, weights=np_arr_oldhist, p0=p0, gamma=None)
+            newEdges  = bayesian_blocks(oldEdges, weights=np_arr_oldhist, p0=p0, gamma=None)
             #newEdges = stats.bayesian_blocks(oldEdges, np_arr_oldhist, fitness='measures')   
             logger.info( f'ncp = {ncp}, prior = {p0}, newBlocks = {len(newEdges)} ') 
         
     if doplot:
-        p0 = 0.1 if isSignal else 0.05 
-        pNm = stdhist + name + '_' + cat + "_%.2fp0" %p0
+        color = 'red' if isSignal else 'blue' 
+        p0  = 0.1 if isSignal else 0.05 
+        pNm = histNm + name + '_' + cat + "_%.2fp0" %p0
         for p0, subplot in zip([p0, p0+0.01], [121, 122]):
             
             print("prior p0:", p0 )
@@ -223,8 +245,8 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', st
             root_newhist = R.TH1D(name, "", len(newEdges), 0., 1.)
             newHist      = root_numpy.array2hist(np_arr_newhist, root_newhist)
         
-            ax.hist(oldEdges, bins=oldEdges, histtype='stepfilled', weights=np_arr_oldhist,
-                    alpha=0.2, density=False, label=stdhist)
+            ax.hist(oldEdges, bins=oldEdges, color=color, histtype='stepfilled', weights=np_arr_oldhist,
+                    alpha=0.2, density=False, label=label)
             ax.hist(newEdges, bins=newEdges, color='black', weights=np_arr_newhist,
                     histtype='step', density=False, label=f"Bayesian blocks: {'%.2f' % (float(p0))}")
             
@@ -350,13 +372,13 @@ def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=
     return newEdges, finalBins
 
 
-def rebinCustom(hist, binning, name):
+def rebinCustom(hist, binning, name, verbose=False):
     """ Rebin 1D hist using bin numbers and edges as returned by optimizeBinning() """
 
     edges = binning[0]
     nBins = len(edges) - 1
     oldNbins = hist.GetNbinsX()
-    print( f'name: {name}, Title: {hist.GetTitle()}, nbinsx: {nBins}, xlow, xup : {np.array(edges)}, FinalBins: {binning[1]}' )
+    print( f'processing ::: name: {name}, Title: {hist.GetTitle()}, nbinsx: {nBins}, xlow, xup : {np.array(edges)}, FinalBins: {binning[1]}' )
     newHist  = R.TH1D(name, hist.GetTitle(), nBins, np.array(edges))
     newHist.Sumw2()
     oldSumw2 = list(hist.GetSumw2())
@@ -367,7 +389,8 @@ def rebinCustom(hist, binning, name):
         for oldBinX in range(binning[1][newBinX - 1], maxOldBinX):
             content += hist.GetBinContent(oldBinX)
             sumw2   += oldSumw2[hist.GetBin(oldBinX)]
-        print( f'merging bins {binning[1][newBinX-1]} ({hist.GetXaxis().GetBinLowEdge(binning[1][newBinX-1])}) -> {maxOldBinX} ({hist.GetXaxis().GetBinLowEdge(maxOldBinX)}) : BinContent = {content}')
+        if verbose:
+            print( f'merging bins {binning[1][newBinX-1]} ({hist.GetXaxis().GetBinLowEdge(binning[1][newBinX-1])}) -> {maxOldBinX} ({hist.GetXaxis().GetBinLowEdge(maxOldBinX)}) : BinContent = {content}')
         newHist.SetBinContent(newBinX, content)
         newHist.GetSumw2()[newHist.GetBin(newBinX)] = sumw2
 
@@ -426,103 +449,138 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
         except subprocess.CalledProcessError:
             logger.error("Failed to run {0}".format(" ".join(haddCmd)))
 
-def plotRebinnedHistograms(inDir, binnings, folder, suffix, year, rebin, normalized=False):
-    plotsDIR   = os.path.join(folder, "plots", "plotit")
-    if not os.path.isdir(plotsDIR):
-        os.makedirs(plotsDIR)
-    smpConfig  = H.getnormalisationScale(inDir, method=None, seperate=True)
-    lumiconfig = smpConfig['configuration']
-    """
-    smpConfig = {"Configurations": {}
-                 smp_signal : [era, lumi, xsc , generated-events, br],
-                 smp_mc     : [era, lumi, xsc , generated-events, None], 
-                 smp_data   : [era, None, None, None,           , None] }
-    """
-    with open(f"data/rebinned_template.yml", 'r') as inf:
-        with open(f"{folder}/plots.yml", 'w+') as outf:
-            for line in inf:
-                if "  root: myroot_path" in line:
-                    outf.write(f"  root: {folder}/{suffix}/\n")
-                elif "files:" in line:
-                    outf.write("files:\n")
-                    for kf, vf in binnings['files'].items():
-                        if not vf:
-                            continue
-                        _type = kf if kf in ['data', 'signal'] else 'mc'
-                        for root_f in vf:
-                            color  = fake.hex_color()
-                            smp    = root_f.split('/')[-1]
-                            era    = smpConfig[smp][0]
-                            lumi   = smpConfig[smp][1]
-                            xsc    = smpConfig[smp][2]
-                            genevt = smpConfig[smp][3]
-                            br     = smpConfig[smp][4]
+def plotRebinnedHistograms(binnings, folder, mode_, suffix, year, toysdata=False, normalized=False):
+   
+    if normalized:
+        smpConfig  = H.getnormalisationScale(folder, method=None, seperate=True)
+        lumiconfig = smpConfig['configuration']
+        """
+        smpConfig = {"Configurations": {}
+                    smp_signal : [era, lumi, xsc , generated-events, br],
+                    smp_mc     : [era, lumi, xsc , generated-events, None], 
+                    smp_data   : [era, None, None, None,           , None] }
+        """
+    if toysdata:
+        plotsDIR = os.path.join(folder, 'bayesian_rebinned_on_toysdata')
+        for pr in binnings['files']['toys']:
+            smpNm = pr.split('/')[-1]
+            mass  = 'MH_' + smpNm.split('_MH_')[-1] 
+            pNm, infos = get_histNm_orig(mode_, smpNm, mass, info=True) 
+            with open(f"data/bayesianblocks_rebin_withtoys_template.yml", 'r') as inf:
+                with open(f"{pr}/plots.yml", 'w+') as outf:
+                    for line in inf:
+                        if '  root: myroot_path' in line:
+                            outf.write(f"  root: {pr}\n")
+                        elif '  myplot_Name:' in line:
+                            outf.write(f"  {pNm}:\n")
+                        elif '    legend: mysignal' in line:
+                            outf.write(f"    legend: '{infos['mass']}'\n")
+                        elif '      text: mychannel' in line:
+                            outf.write(f"      text: {infos['region']}, {infos['flavor'].lower()}\n")
+                        else:
+                            outf.write(line)
+            plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", plotsDIR, "--", f"{pr}/plots.yml"]
+            try:
+                logger.info("running {}".format(" ".join(plotitCmd)))
+                subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+            print( f'\tplots saved in : {plotsDIR}')
+    else:
+        plotsDIR   = os.path.join(folder, "plots", "plotit")
+        if not os.path.isdir(plotsDIR):
+            os.makedirs(plotsDIR)
+        
+        with open(f"data/rebinned_template.yml", 'r') as inf:
+            with open(f"{folder}/plots.yml", 'w+') as outf:
+                for line in inf:
+                    if "  root: myroot_path" in line:
+                        outf.write(f"  root: {folder}/{suffix}/\n")
+                    elif "files:" in line:
+                        outf.write("files:\n")
+                        for kf, vf in binnings['files'].items():
                             
-                            outf.write(f"  {smp}:\n")
-                            outf.write(f"    type: {_type}\n")
-                            if not _type=='signal': 
-                                outf.write(f"    group: {kf}\n")
-                            outf.write(f"    era: {era}\n")
+                            if not vf:
+                                continue
+                            _type = kf if kf in ['data', 'signal'] else 'mc'
                             
-                            if _type == 'signal':
-                                outf.write(f"    legend: {smp.split('.root')[0]}\n")
-                                outf.write(f"    line-color: '{color}'\n")
-                                outf.write("    line-type: 1\n")
+                            for root_f in vf:
+
+                                color  = fake.hex_color()
+                                smp    = root_f.split('/')[-1]
                                 if normalized:
-                                    outf.write(f"    Branching-ratio: {br}\n")
-                                    outf.write(f"    generated-events: {genevt}\n")
-                                    outf.write(f"    cross-section: {xsc} # pb\n")
-                            elif _type == 'mc' and normalized:
-                                    outf.write(f"    generated-events: {genevt}\n")
-                                    outf.write(f"    cross-section: {xsc} # pb\n")
-                elif "  - myera" in line:
-                    for era in lumiconfig.keys():
-                        outf.write(f"  - {era}\n")
-                elif "    myera: mylumi" in line:
-                    for era, lumi in lumiconfig.items():
-                        outf.write(f"    {era}: {lumi}\n")
-                elif "  extra-label: myextralabel" in line:
-                    if year =='2016': label = 'pre/-postVFP' 
-                    else: label =  year
-                    outf.write(f"  extra-label: {label} ULegacy Preliminary\n")
-                elif "plots:" in line:
-                    outf.write("plots:\n")
-                    for plotNm in binnings['histograms']:
-                        infos  = plotNm.split('_')
-                        flavor = infos[2].lower()
-                        region = infos[3]
-                        outf.write(f"  {plotNm}:\n")
-                        outf.write("    blinded-range: [0.6, 1.0]\n")
-                        outf.write("    labels:\n")
-                        outf.write("    - position: [0.22, 0.895]\n")
-                        outf.write("      size: 24\n")
-                        outf.write(f"      text: {region}, {flavor}\n")
-                        outf.write("    legend-columns: 2\n")
-                        outf.write("    log-y: both\n")
-                        outf.write("    ratio-y-axis-range: [0.6, 1.2]\n")
-                        outf.write("    save-extensions: [pdf, png]\n")
-                        outf.write("    show-ratio: true\n")
-                        outf.write("    sort-by-yields: false\n")
-                        outf.write("    x-axis: DNN_Output ZA node\n")
-                        outf.write("    x-axis-range:\n")
-                        outf.write("    - 0.0\n")
-                        outf.write("    - 1.0\n")
-                        outf.write("    y-axis: Events\n")
-                        outf.write("    y-axis-show-zero: true\n")
-                else:
-                    outf.write(line)
-    plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", plotsDIR, "--", f"{folder}/plots.yml"]
-    try:
-        logger.info("running {}".format(" ".join(plotitCmd)))
-        subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-    print( f'\tplots saved in : {plotsDIR}')
+                                    year   = smpConfig[smp][0]
+                                    lumi   = smpConfig[smp][1]
+                                    xsc    = smpConfig[smp][2]
+                                    genevt = smpConfig[smp][3]
+                                    br     = smpConfig[smp][4]
+                                
+                                outf.write(f"  {smp}:\n")
+                                outf.write(f"    type: {_type}\n")
+                                if not _type=='signal': 
+                                    outf.write(f"    group: {kf}\n")
+                                outf.write(f"    era: {year}\n")
+                                
+                                if _type == 'signal':
+                                    outf.write(f"    legend: {smp.split('.root')[0]}\n")
+                                    outf.write(f"    line-color: '{color}'\n")
+                                    outf.write("    line-type: 1\n")
+                                    if normalized:
+                                        outf.write(f"    Branching-ratio: {br}\n")
+                                        outf.write(f"    generated-events: {genevt}\n")
+                                        outf.write(f"    cross-section: {xsc} # pb\n")
+                                elif _type == 'mc' and normalized:
+                                        outf.write(f"    generated-events: {genevt}\n")
+                                        outf.write(f"    cross-section: {xsc} # pb\n")
+                    elif "  - myera" in line:
+                    #    for era in lumiconfig.keys():
+                        outf.write(f"  - {year}\n")
+                    elif "    myera: mylumi" in line:
+                    #    for era, lumi in lumiconfig.items():
+                        lumi = Constants.getLuminosity(era)
+                        outf.write(f"    {year}: {lumi}\n")
+                    elif "  extra-label: myextralabel" in line:
+                        if year =='2016': label = 'pre/-postVFP' 
+                        else: label =  year
+                        outf.write(f"  extra-label: {label} ULegacy Preliminary\n")
+                    elif "plots:" in line:
+                        outf.write("plots:\n")
+                        for plotNm in binnings['histograms']:
+                            infos  = plotNm.split('_')
+                            flavor = infos[2].lower()
+                            region = infos[3]
+                            outf.write(f"  {plotNm}:\n")
+                            outf.write("    blinded-range: [0.6, 1.0]\n")
+                            outf.write("    labels:\n")
+                            outf.write("    - position: [0.22, 0.895]\n")
+                            outf.write("      size: 24\n")
+                            outf.write(f"      text: {region}, {flavor}\n")
+                            outf.write("    legend-columns: 2\n")
+                            outf.write("    log-y: both\n")
+                            outf.write("    ratio-y-axis-range: [0.6, 1.2]\n")
+                            outf.write("    save-extensions: [pdf, png]\n")
+                            outf.write("    show-ratio: true\n")
+                            outf.write("    sort-by-yields: false\n")
+                            outf.write("    x-axis: DNN_Output ZA node\n")
+                            outf.write("    x-axis-range:\n")
+                            outf.write("    - 0.0\n")
+                            outf.write("    - 1.0\n")
+                            outf.write("    y-axis: Events\n")
+                            outf.write("    y-axis-show-zero: true\n")
+                    else:
+                        outf.write(line)
+        plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", plotsDIR, "--", f"{folder}/plots.yml"]
+        try:
+            logger.info("running {}".format(" ".join(plotitCmd)))
+            subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+        print( f'\tplots saved in : {plotsDIR}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='input file', required=True)
-    parser.add_argument('-o', '--output', help='json output file name for new binning', required=True)
+    parser.add_argument('-i', '--input', help='input file, either toys data or bamboo output files', required=True)
+    parser.add_argument('-o', '--output', help='output dir', required=True)
     parser.add_argument('--era', help='era', required=True)
     parser.add_argument('--uncertainty', type=float, default=0.3, help='max stat. uncertainty')
     parser.add_argument('--events', type=float, default=10e2, help='max entries in bins')
@@ -537,7 +595,7 @@ if __name__ == "__main__":
                             help=' useful to set to True when the changes is only at the plotting stage')
     parser.add_argument('--logy', action='store_true', default=False, help=' produce plots in log scale')
     parser.add_argument('--sys', action='store_true', default=False, help=' produce rebinned systematic histograms')
-    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'rho', 'DNN'], help='Analysis mode')
+    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'rho', 'dnn'], help='Analysis mode')
     parser.add_argument('--submit', action='store', default='test', choices=['all', 'test'],
                             help='submit all or just pass test, useful when small modification is need for plotting\n'
                                  'without a need to touch the histogram again\n')
@@ -547,15 +605,15 @@ if __name__ == "__main__":
                             help='compute new binning by setting some treshold on the uncer and number of events\n'
                                  'or just re-arrange the oldbins to merge few bins into one, starting from the left to the right\n')
     args = parser.parse_args()
+    
     keep_bins = [1, 3, 9, 21, 39, 51, 52] # accept overflow  
     sumPath   = "summed_scaled_histogramms" if args.scale else "summed_histogramms"
-    
-    if   args.rebin == "custom":     suffix= "custom_rebin" 
-    elif args.rebin == "standalone": suffix="standalone_rebin"
-    else: suffix= "bayesian_rebin"
+    mode_     = 'DNNOutput_ZAnode' if args.mode =='dnn' else args.mode
+    suffix    = f"{args.rebin}_rebin" 
+    suff      = '_hybride' if args.submit=='all' and args.rebin== 'bayesian' else ''
 
     if args.toys:
-        inDir  = os.path.join(args.input, 'generatetoys-limits/dnn/*')
+        inDir  = os.path.join(args.input, f'generatetoys-limits/{args.mode}/*')
         list_inputs = glob.glob(os.path.join(inDir, '*_shapes.root'))
     else:
         inDir  = os.path.join(args.input, 'results/')
@@ -594,58 +652,112 @@ if __name__ == "__main__":
                 smpNm = rf.split('/')[-1].replace('.root','')
                 if any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
                     inputs.append(rf)
-    if args.onlypost: inputs = [] # do not process any files 
-
-    binnings = {
-            'histograms':[],
-            'files': {
-                      'signal': [],
-                      'data'  : [],
-                      'DY'    : [],
-                      'ttbar' : [],
-                      'ST'    : [],
-                      'ZZ'    : [],
-                      'SM'    : [],
-                      'others': [] }
-            }
     
-    print( inputs) 
+    if args.onlypost: 
+        inputs = [] # do not process any files 
+        f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json"))
+        binnings = json.load(f)
+    else:
+        binnings = {
+                'files': {
+                        'toys'     : [],
+                        'signal'   : [],
+                        'data'     : [],
+                        'DY'       : [],
+                        'ttbar'    : [],
+                        'SingleTop': [],
+                        'ZZ'       : [],
+                        'SM'       : [],
+                        'others'   : []},
+                'histograms':{}
+                }
     
     if args.toys:
         name = '_bayesian_toys'
         for rf in inputs:
             smpNm    = rf.split('/')[-1].split('_shapes')[0]
             channels = set()
-            inFile   = HT.openFileAndGet(rf)
+            inFile  = HT.openFileAndGet(rf)
             for k in inFile.GetListOfKeys():
                 cat = k.GetName()
+                if not cat.startswith(args.mode):
+                    continue
                 channels.add(cat)
             channels = list(channels)
             print ("Detected channels: ", channels )
             
             for channel in channels:
-                isSignal=False
+                newHist   = {} 
+                oldHist   = {}
+                newEdges  = {}
+                FinalBins = {}
+                isSignal  = False
+                isData    = False
+                
+                sNm = channel.replace(f'{args.mode}_', '')
+                binnings['histograms'][get_histNm_orig(mode_, smpNm, sNm)] = {}
+                
                 for key in inFile.Get(channel).GetListOfKeys():
-                    oldHist = inFile.Get(channel).Get(key.GetName())
                     
                     if key.GetName().startswith('HToZATo2L2B'): isSignal=True
-                    if not ('data' in key.GetName() or isSignal):
+                    elif 'data' in key.GetName(): isData=True 
+                    
+
+                    k = 'S' if isSignal else 'B'
+                    if not (isData or isSignal):
                         continue
+                    oldHist[k] = inFile.Get(channel).Get(key.GetName())
                     
                     if not oldHist:
                         logger.error('could not find object: inFile.Get({channel}).Get({key.GetName()}) -- return null pointer!')
                     logger.info( f' working on : {key.GetName()}' ) 
                     
-                    histNm = 'signal' if isSignal else key.GetName()  
-                    newHist, newEdges, FinalBins = BayesianBlocks(oldHist, 
-                                                                  name, 
-                                                                  plotsDIR, 
-                                                                  prior             = args.prior, 
-                                                                  cat               = smpNm, 
-                                                                  stdhist           = histNm, 
-                                                                  logy              = args.logy, 
-                                                                  isSignal          = isSignal, 
-                                                                  include_overflow  = False)
+                    label  = sNm if isSignal else 'B-Only toy data'
+                    histNm = 'signal' if isSignal else key.GetName()
+                    newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( oldHist[k], 
+                                                                            name, 
+                                                                            output            = plotsDIR, 
+                                                                            prior             = args.prior, 
+                                                                            cat               = smpNm, 
+                                                                            histNm            = histNm, 
+                                                                            label             = label,
+                                                                            logy              = args.logy, 
+                                                                            isSignal          = isSignal, 
+                                                                            include_overflow  = False)
+                
+                binning  = hybride_binning( BOnly= [newEdges['B'], FinalBins['B']], SOnly= [newEdges['S'], FinalBins['S']] )
+                hybridebinning_dict = {'B': newEdges['B'],
+                                       'S': newEdges['S'],
+                                       'hybride': binning[0]}
+                PLotHybrideHistos(oldHist, 
+                                  name                  = 'hybride_bininngS+B_bayesian_toys' + '_' + smpNm, 
+                                  output                = plotsDIR, 
+                                  newEdges              = hybridebinning_dict, 
+                                  include_overflow      = False, 
+                                  logy                  = args.logy)
+
+                binnings['histograms'][get_histNm_orig(mode_, smpNm, sNm)].update({'B': [newEdges['B'], FinalBins['B']],
+                                                                                   'S': [newEdges['S'], FinalBins['S']],
+                                                                                   'hybride': binning })
+                
+                inFile  = HT.openFileAndGet(rf)
+                for key in inFile.Get(channel).GetListOfKeys():
+                    for histNm, bins in binnings['histograms'].items():
+                    
+                        oldHist_  = inFile.Get(channel).Get(key.GetName())
+                        newHist_  = rebinCustom(oldHist_, bins['hybride'], histNm, verbose=False)
+                
+                        out_ = os.path.join(args.output, f'{args.rebin}_rebinned_on_toysdata/{smpNm}')
+                        binnings['files']['toys'].append(out_)
+                        if not os.path.isdir(out_):
+                            os.makedirs(out_)
+                        
+                        rf_out  = os.path.join(out_, f"{key.GetName()}.root")
+                        outFile = HT.openFileAndGet(rf_out, "recreate")
+                        outFile.cd()
+                        newHist_.Write()
+                        outFile.Close()
+            inFile.Close()
     else:
         for rf in inputs:
             smpNm = rf.split('/')[-1].replace('.root','')
@@ -680,7 +792,6 @@ if __name__ == "__main__":
             inFile  = HT.openFileAndGet(rf)
             outFile = HT.openFileAndGet(rf_out, "recreate")
 
-            mode_ = 'DNNOutput_ZAnode' if args.mode =='DNN' else args.mode
             isSys = False
             binnings[smpNm] = collections.defaultdict(dict)
             for key in inFile.GetListOfKeys():
@@ -692,7 +803,8 @@ if __name__ == "__main__":
                     continue
                 
                 if args.submit == "test":
-                    if not (key.GetName().startswith(f"DNNOutput_ZAnode_MuMu_resolved_DeepCSVM_METCut_gg_fusion") or key.GetName().startswith(f"DNNOutput_ZAnode_ElEl_resolved_DeepCSVM_METCut_gg_fusion")):
+                    if not (key.GetName().startswith(f"DNNOutput_ZAnode_MuMu_resolved_DeepCSVM_METCut_gg_fusion") 
+                         or key.GetName().startswith(f"DNNOutput_ZAnode_ElEl_resolved_DeepCSVM_METCut_gg_fusion")):
                         continue
                 else: # just for now, these catagories are a bit messy 
                     if 'boosted' in key.GetName() or 'DeepFlavourM' in key.GetName() or 'bb_associatedProduction' in key.GetName() or 'MuEl' in key.GetName():
@@ -700,6 +812,7 @@ if __name__ == "__main__":
                 
                 if 'gg_fusion' in key.GetName(): process = 'gg_fusion'
                 else: process = 'bb_associatedProduction' 
+                
                 sig = key.GetName().split(process+'_')[-1].replace('MH_', 'MH-').replace('MA_', 'MA-')
                 if not key.GetName().split(process+'_')[-1] in available_points(inputs):
                     #logger.info(f'{sig} mass point not found between the .root signal files, will skip this one !')
@@ -754,10 +867,24 @@ if __name__ == "__main__":
                                                'S':data[f'HToZATo2L2B_{sig}']['histograms'][key.GetName()][0][0],
                                                'hybride':binning[0]}
                         if isSignal:
-                            PLotHybrideHistos(os.path.join(outDir, sumPath, f'summed_{s}{args.era}{toy}_samples.root'), oldHist, key.GetName(), name, plotsDIR, hybridebinning_dict, include_overflow=False, logy=args.logy)
+                            PLotHybrideHistos( os.path.join(outDir, sumPath, f'summed_{s}{args.era}{toy}_samples.root'), 
+                                               oldHist, 
+                                               key.GetName(), 
+                                               name, 
+                                               output               = plotsDIR, 
+                                               newEdges             = hybridebinning_dict, 
+                                               include_overflow     = False, 
+                                               logy                 = args.logy)
                     else: 
                         name   += f'_bayesian'
-                        newHist, newEdges, FinalBins = BayesianBlocks(oldHist, name, plotsDIR, prior=args.prior, stdhist=type_, logy=args.logy, isSignal=isSignal, include_overflow=False)
+                        newHist, newEdges, FinalBins = BayesianBlocks(  oldHist, 
+                                                                        name, 
+                                                                        output           = plotsDIR, 
+                                                                        prior            = args.prior, 
+                                                                        label            = type_, 
+                                                                        logy             = args.logy, 
+                                                                        isSignal         = isSignal, 
+                                                                        include_overflow = False)
                         binning = [newEdges, FinalBins]
                 
                 if not isSys:
@@ -770,12 +897,10 @@ if __name__ == "__main__":
             outFile.Close()
             print(' rebinned histogram saved in: {} '.format(os.path.join(args.output, suffix, f"{smpNm}.root")))
        
-    suff = '_hybride' if args.submit=='all' and args.rebin== 'bayesian' else ''
     if not args.onlypost: 
         with open(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json"), 'w') as _f:
             json.dump(binnings, _f, indent=2)
         print(' rebinned template saved in : {} '.format(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json")))
+    
     if args.plotit:
-        f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json"))
-        binnings = json.load(f)
-        plotRebinnedHistograms(inDir, binnings, args.output, suffix, args.era, args.rebin, normalized=args.normalized)
+        plotRebinnedHistograms(binnings, args.output, mode_, suffix, args.era, args.toys, normalized=args.normalized)

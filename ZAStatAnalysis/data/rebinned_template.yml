@@ -7,7 +7,7 @@ configuration:
     myera: mylumi
   luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
   experiment: "CMS"
-  extra-label: "Preliminary"
+  extra-label: myextralabel
   root: myroot_path
   no-lumi-rescaling: true
   blinded-range-fill-color: '#FDFBFB' #"16" #"#29556270"
@@ -24,10 +24,10 @@ groups:
     legend-order: 4
     fill-color: "#0000FF"
   ttbar:
-    legend: 't#bar{t}'
+    legend: 'ttbar'
     legend-order: 3
     fill-color: "#00ffc7"
-  ST:
+  SingleTop:
     legend: 'Single Top'
     legend-order: 2
     fill-color: "#9890f0"
