@@ -38,11 +38,10 @@ bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/m
 function cms_env() {
     module --force purge
     module load cp3
+    module load cms/cmssw
     module load grid/grid_environment_sl7
-    /cvmfs/cms.cern.ch/cmsset_default.sh
     module load crab/crab3
     module load slurm/slurm_utils
-    module load cms/cmssw
     }
 # then every time you want to setup your env start with;
 cms_env
@@ -77,9 +76,9 @@ cmsenv
 - ``--dataset``: if ``asimov``; ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
 - ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node by default ``ZA`` is the only relevant one.
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
-- ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit]``
+- ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit, impacts, generatetoys]``
 - ``--unblind``: if set to False``--run blind`` options will be added to combine commands otherwise real_data will be used instead. 
-- **``--normalize``: normalize inputs histograms if the given --inputs are not !**
+- **``--normalize``: normalize inputs histograms if the given ``--inputs`` are not !**
 - ``--scale``: scale signal rate; the signale is usualy normalized to 1pb, this flag will scale signal process to ``BR * cross-section``.
 ## Collect Limits:
 ```python
@@ -99,7 +98,10 @@ python ZAlimits.py -p path_to/jsons/ --era
 - ``--numbers``: If set, show values of expected limits on top of the plot.
 - ``--theory``: plot theory cross-section.
 - ``--log`` : make plot in log scale.
-## Optimize Binning startegy: 
+## Optimize Binning: 
+- Important notes: 
+    - If you are running on ingrid-ui1, you need to run on a worker node with a more recent CPU``srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash``
+    - Needs python3 environment, you can use LCG [here](https://github.com/kjaffel/ZA_FullAnalysis#environment-setup-always-).
 ```python
 python optimizeBinning.py --inputs bla/ --output test/ --rebin standalone
 ```
