@@ -163,9 +163,10 @@ for script in $scripts; do
 done
 """.format(output=output, suffix='do_postfit' if method=='fit' else 'run_%s'%method)
     
-    if method == 'fit': suffix= 'prepost'
+    if   method == 'fit': suffix= 'prepost'
     elif method == 'impacts': suffix= 'pulls'
-    else: suffix= 'limits'
+    elif method in ['asymptotic', 'hybridnew'] :suffix= 'limits'
+    else: suffix= ''
 
     script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
     with open(script_name, 'w') as f:
@@ -401,13 +402,13 @@ combine {method} --expectedFromGrid=0.16 --X-rtd MINIMIZER_analytic -m {mass} -n
 combine {method} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_P2sigma.log
 combine {method} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} &> {name}_M2sigma.log
 popd
-""".format(workspace_root = workspace_file, 
-           datacard       = os.path.basename(datacard), 
-           name           = output_prefix, 
-           mass           = mass, 
-           systematics    = (0 if stat_only else 1), 
-           method         = H.get_combine_method(method), 
-           dir            = os.path.dirname(os.path.abspath(datacard)) )
+""".format( workspace_root = workspace_file, 
+            datacard       = os.path.basename(datacard), 
+            name           = output_prefix, 
+            mass           = mass, 
+            systematics    = (0 if stat_only else 1), 
+            method         = H.get_combine_method(method), 
+            dir            = os.path.dirname(os.path.abspath(datacard)) )
             
             elif method == 'asymptotic':
                 script = """#! /bin/bash
@@ -419,17 +420,17 @@ fi
 # Run combined
 combine {method} -m {mass} -n {name} {workspace_root} {dataset} {blind} &> {name}.log
 popd
-""".format(workspace_root = workspace_file, 
-           datacard       = os.path.basename(datacard), 
-           name           = output_prefix, 
-           mass           = mass, 
-           #systematics    = (0 if stat_only else 1), 
-           method         = H.get_combine_method(method), 
-           dir            = os.path.dirname(os.path.abspath(datacard)), 
-           #dataset       = '--bypassFrequentistFit' , 
-           #dataset       = '--noFitAsimov --newExpected 0', 
-           dataset        = '--noFitAsimov',
-           blind          = ('' if unblind else '--run blind') )
+""".format( workspace_root = workspace_file, 
+            datacard       = os.path.basename(datacard), 
+            name           = output_prefix, 
+            mass           = mass, 
+            #systematics    = (0 if stat_only else 1), 
+            method         = H.get_combine_method(method), 
+            dir            = os.path.dirname(os.path.abspath(datacard)), 
+            #dataset       = '--bypassFrequentistFit' , 
+            #dataset       = '--noFitAsimov --newExpected 0', 
+            dataset        = '--noFitAsimov',
+            blind          = ('' if unblind else '--run blind') )
             
             elif method =='fit':
                 script = """#! /bin/bash
@@ -441,15 +442,13 @@ fi
 # Run combined
 combine {method} -m {mass} --saveWithUncertainties --ignoreCovWarning -n {name} {workspace_root} {dataset} {expectSignal} --plots &> {name}.log
 popd
-""".format(workspace_root = workspace_file, 
-           datacard       = os.path.basename(datacard), 
-           name           = output_prefix, 
-           mass           = mass, 
-           method         = H.get_combine_method(method), 
-           dir            = os.path.dirname(os.path.abspath(datacard)), 
-           dataset        = '', #('-t -1' if dataset=='asimov' else '-t 8 -s -1'), 
-           expectSignal   = '', #'--expectSignal {}'.format(expectSignal)
-           )
+""".format( workspace_root = workspace_file, 
+            datacard       = os.path.basename(datacard), 
+            name           = output_prefix, 
+            mass           = mass, 
+            method         = H.get_combine_method(method), 
+            dir            = os.path.dirname(os.path.abspath(datacard)), 
+            )
             
             elif method =='impacts':
                 script = """#! /bin/bash
@@ -465,23 +464,46 @@ fi
 {slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}.log
 {slurm}plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} &> {name}.log
 popd
-""".format(workspace_root     = workspace_file, 
-           slurm              = 'srun ' if submit_to_slurm else '',
-           slurmConfiguration = """SBATCH --job-name=impacts__{}
+""".format( workspace_root     = workspace_file, 
+            slurm              = 'srun ' if submit_to_slurm else '',
+            slurmConfiguration = """SBATCH --job-name=impacts__{}
 SBATCH --array=0-206
 SBATCH --time=24:00:00
 SBATCH --ntasks=1
 SBATCH --mem-per-cpu=1500
 SBATCH -p debug -n 1
-""".format('expectSignal%s_%sdataset'%( expectSignal, dataset)) if submit_to_slurm else '',
-           name           = output_prefix,
-           fNm            = 'expectSignal{}_{}dataset'.format( expectSignal, dataset),
-           datacard       = os.path.basename(datacard), 
-           mass           = mass,
-           method         = H.get_combine_method(method), 
-           dir            = os.path.dirname(os.path.abspath(datacard)), 
-           dataset        = ('-t -1' if dataset=='asimov' else '-t 8 -s -1'),
-           expectSignal   = '--expectSignal {}'.format(expectSignal) ) 
+""".format( 'expectSignal%s_%sdataset'%( expectSignal, dataset)) if submit_to_slurm else '',
+            name           = output_prefix,
+            fNm            = 'expectSignal{}_{}dataset'.format( expectSignal, dataset),
+            datacard       = os.path.basename(datacard), 
+            mass           = mass,
+            method         = H.get_combine_method(method), 
+            dir            = os.path.dirname(os.path.abspath(datacard)), 
+            dataset        = ('-t -1' if dataset=='asimov' else '-t 8 -s -1'),
+            expectSignal   = '--expectSignal {}'.format(expectSignal) ) 
+            
+            
+            elif method =='generatetoys':
+                t  = '--toysNoSystematics' if stat_only else '--toysFrequentist'
+                script = """#! /bin/bash
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+combine -M GenerateOnly {workspace_root} {dataset} --toysFile --saveToys -m 125 {expectSignal} {systematics} -n {fNm} &> {name}.log
+popd
+""".format( dir            = os.path.dirname(os.path.abspath(datacard)),
+            workspace_root = workspace_file,
+            datacard       = os.path.basename(datacard), 
+            mass           = mass,
+            dataset        = ('-t -1' if dataset=='asimov' else '-t 1 -s -1'),
+            expectSignal   = '--expectSignal {}'.format(expectSignal),
+            systematics    = t, 
+            name           = output_prefix,
+            fNm            = '_{}_expectSignal{}_{}'.format(t.replace('--',''), expectSignal, output_prefix),
+            )
+            
             
             script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
             print( method, script_file)
@@ -490,7 +512,8 @@ SBATCH -p debug -n 1
     
             st = os.stat(script_file)
             os.chmod(script_file, st.st_mode | stat.S_IEXEC)
-    
+            
+
         # Write card
         def writeCard(c, mass, output_dir, output_prefix, script=True):
             datacard = os.path.join(output_dir, output_prefix + '.dat')
@@ -594,7 +617,7 @@ if __name__ == '__main__':
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
-    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit', 'impacts'],        
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys'],        
                                                 help='Analysis method')
     parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
                                                 help='Use fake data instead of real data')
@@ -616,6 +639,23 @@ if __name__ == '__main__':
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
     options = parser.parse_args()
-    options.mode = options.mode.lower()
 
-    prepare_DataCards(grid_data= signal_grid + extra_signals, dataset= options.dataset, expectSignal=options.expectSignal, era=options.era, parameters=options.parameters, mode=options.mode, input=options.input, ellipses_mumu_file=options.ellipses_mumu_file, output=options.output, method=options.method, node=options.node, unblind=options.unblind, signal_strength=options.signal_strength, stat_only=options.stat_only, verbose=options.verbose, merge_cards_by_cat=True, scale=options.scale, normalize=options.normalize, submit_to_slurm=options.submit_to_slurm)
+    prepare_DataCards(grid_data          = signal_grid + extra_signals, 
+                      dataset            = options.dataset, 
+                      expectSignal       = options.expectSignal, 
+                      era                = options.era, 
+                      parameters         = options.parameters, 
+                      mode               = options.mode.lower(), 
+                      input              = options.input, 
+                      ellipses_mumu_file = options.ellipses_mumu_file, 
+                      output             = options.output, 
+                      method             = options.method, 
+                      node               = options.node, 
+                      unblind            = options.unblind, 
+                      signal_strength    = options.signal_strength, 
+                      stat_only          = options.stat_only, 
+                      verbose            = options.verbose, 
+                      merge_cards_by_cat = True, 
+                      scale              = options.scale, 
+                      normalize          = options.normalize, 
+                      submit_to_slurm    = options.submit_to_slurm)
