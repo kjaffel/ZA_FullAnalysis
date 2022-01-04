@@ -122,7 +122,8 @@ def get_combine_method(method):
 def getnormalisationScale(inDir=None, method=None, seperate=False):
     dict_scale = {} 
     dict_seperateInfos = {} 
-    yaml_file  = os.path.join(inDir.split('results')[0], 'plots.yml')
+    subdir = inDir.split('/')[-2]
+    yaml_file  = os.path.join(inDir.split(subdir)[0], 'plots.yml')
     try:
         with open(yaml_file, 'r') as inf:
             config = yaml.safe_load(inf)
