@@ -28,20 +28,21 @@ logger = Constants.ZAlogger(__name__)
 
 def hybride_binning(BOnly=None, SOnly=None):
     """Use min() to find the nearest value in a list to a given one 
+        low bin edges from signal template are not accurate: 
+        do not accept values below 0.6 
     """
     print( 'S-Only:', SOnly[0], 'B-Only:', BOnly[0] )
-    # low bin edges from signal template are not accurate: 
-    # do not accept values below 0.6 
+
     signal_edges = [item for item in SOnly[0] if item > 0.65]
     given_value  = signal_edges[0]
-    index2 = SOnly[0].index(given_value)
+    idx2 = SOnly[0].index(given_value)
 
     absolute_difference_function = lambda list_value : abs(list_value - given_value)
     closest_value = min(BOnly[0], key=absolute_difference_function)
-    print( f'given_value:  {given_value}, closest_value: {closest_value} ')
-    index = BOnly[0].index(closest_value)
-    newEdges  = BOnly[0][0:index] + signal_edges
-    FinalBins = BOnly[1][0:index] + SOnly[1][index2:]
+    print( f'given_value:  {given_value}, closest_value: {closest_value} starting from {idx2}')
+    idx = BOnly[0].index(closest_value) 
+    newEdges  = BOnly[0][0:idx] + signal_edges
+    FinalBins = BOnly[1][0:idx] + SOnly[1][idx2:]
     print( f'hybride binning: {newEdges} , len: {len(newEdges)}')
     return [newEdges, FinalBins]
 
@@ -60,90 +61,86 @@ def get_histNm_orig(mode=None, smpNm=None, mass=None, info=False):
     if 'gg_fusion' in smpNm: process = 'gg_fusion'
     else: process = 'bb_associatedProduction'
     if 'ElEl' in smpNm: flavor='ElEl'
-    else: flavor='MuMu'
+    elif 'MuMu' in smpNm: flavor='MuMu'
+    else: flavor= 'MuEl'
     if 'resolved' in smpNm: region='resolved'
     else: region='boosted'
-    if 'DeepCSVM' in smpNm: taggerWP= 'DeepCSVM'
-    else: taggerWP='DeepFlavourM'
+    if 'DeepFlavourM' in smpNm: taggerWP= 'DeepFlavourM'
+    else: taggerWP='DeepCSVM'
     
     histNm  = f'{mode}_{flavor}_{region}_{taggerWP}_METCut_{process}_{mass}'
-    details = {'process':process,
-               'flavor' :flavor,
-               'region' :region,
+    details = {'process' :process,
+               'flavor'  :flavor,
+               'region'  :region,
                'taggerWP':taggerWP,
                'mass'    :mass
                }
-    return histNm, details if info else histNm
+    if info:
+        return histNm, details
+    else:
+        return histNm
 
-def get_new_histogramWgt(hist, newEdges, oldEdges, oldNbins):
+def get_new_histogramWgt(hist, newEdges, oldEdges, oldNbins, verbose=False):
     binContent= np.array([])
     FinalBins = []
     for x in newEdges:
         b = hist.FindBin(x)
-        #if not b in FinalBins:
         FinalBins.append(b)
-
-    nBins = len(oldEdges) - 1 
-    #print( f"FinalBins : {FinalBins}" )
-    for i, newBinX in enumerate(FinalBins):
-        if i ==len(FinalBins) -1:
-            continue
+    nBins = len(newEdges) - 1 
+    for newBinX in range(1, nBins+2):
         content = 0
-        print("==="*20)
-        print(f" merging bins {newBinX} -> {FinalBins[i+1]}") 
-        maxOldBinX = FinalBins[i+1] if newBinX <= nBins else oldNbins + 2
-        for oldBinX in range(newBinX, maxOldBinX):
+        maxOldBinX = FinalBins[newBinX] if newBinX <= nBins else oldNbins + 2
+        if verbose:
+            print("==="*20)
+            print(f" merging bins {FinalBins[newBinX - 1]} -> {maxOldBinX}") 
+        for oldBinX in range(FinalBins[newBinX - 1], maxOldBinX):
             content += hist.GetBinContent(oldBinX)
-            print(f"\tGetting from bin {oldBinX }, content = {content}") 
+            if verbose:
+                print(f"\tGetting from bin {oldBinX }, content = {content}") 
         binContent = np.append(binContent, content)
-    #print( len( binContent), len(FinalBins), len(newEdges))
     return binContent, FinalBins
 
 
-#def PLotHybrideHistos(rf=None, old_hist_S=None, histNm=None, name=None, output=None, newEdges=None, include_overflow=False, logy=False
 def PLotHybrideHistos(oldHist=None, name=None, output=None, newEdges=None, include_overflow=False, logy=False):
     fig = plt.figure(figsize=(10, 7))
     ax  = fig.add_subplot(111)
-
-    #inFile  = HT.openFileAndGet(rf)
-    #old_hist_B = inFile.Get(histNm)
-    
-    #oldHist = {'B':old_hist_B, 'S': old_hist_S}
 
     oldEdges = {}
     np_arr_oldhist = {}
     np_arr_newhist = {}
     np_arr_hybride = {}
     for k, v in oldHist.items():
+        
         np_arr_edges_oldhist= root_numpy.hist2array(v, include_overflow=include_overflow, copy=True, return_edges=True)
         np_arr_oldhist[k] = np_arr_edges_oldhist[0]
         oldEdges[k]       = np_arr_edges_oldhist[1][0]
-        if include_overflow: oldEdges[k]   = np.append(oldEdges[k], 1.02 )
-        else: np_arr_oldhist[k] = np.append(np_arr_oldhist[k], 0. )
 
         oldNbins = v.GetNbinsX() 
         np_arr_newhist[k] = get_new_histogramWgt(v, newEdges[k], oldEdges[k], oldNbins)[0]
-        np_arr_newhist[k] = np.append(np_arr_newhist[k], np_arr_oldhist[k][-1])    
-
         np_arr_hybride[k] = get_new_histogramWgt(oldHist[k], newEdges['hybride'], oldEdges[k], oldNbins)[0]
-        np_arr_hybride[k] = np.append(np_arr_hybride[k], np_arr_hybride[k][-1])
 
     np_arr_hybride['hybride']= np.add(np_arr_hybride['B'],np_arr_hybride['S'])
-    #print( 'BACKGROUND:', oldEdges["B"] , np_arr_oldhist["B"], len( oldEdges["B"]), len(np_arr_oldhist["B"]))
-    #print( 'SIGNAL    :', oldEdges["S"] , np_arr_oldhist["S"], len(oldEdges["S"]), len(np_arr_oldhist["S"]) )
-    #print( 'HYBRIDE   :', newEdges['hybride'], np_arr_newhist["B"], np_arr_newhist["S"], len(newEdges['hybride']), len(np_arr_newhist["B"]), len(np_arr_newhist["S"]))
     
-    ax.hist( [oldEdges["S"], oldEdges["B"]], bins   =oldEdges["B"],  # they were the same (50 bins) for both 
-                                             color  =['red', 'blue'], 
-                                             weights=[np_arr_oldhist["S"],np_arr_oldhist["B"]], 
-                                             alpha=0.2, histtype='stepfilled', stacked=True, density=False, label=['50bins: S-Only', '50bins: B-Only'])
-    
-    ax.hist(newEdges["S"], bins=newEdges["S"], color='red', weights=np_arr_newhist["S"], 
-                                            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: S-Only")
-    ax.hist(newEdges["B"], bins=newEdges["B"], color='blue', weights=np_arr_newhist["B"], 
-                                            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: B-Only")
-    ax.hist(newEdges["hybride"], bins=newEdges["hybride"], color='black', weights=np_arr_hybride["hybride"], 
-                                            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: S+B")
+    ax.hist( [oldEdges["S"][:-1], oldEdges["B"][:-1]], 
+            bins    = oldEdges["B"],  # they were the same (50 bins) for both 
+            color   = ['red', 'blue'], 
+            weights = [np_arr_oldhist["S"], np_arr_oldhist["B"]], 
+            alpha=0.2, histtype= 'stepfilled', stacked=True, density=False, label=['50 uniform bins: S-Only', '50 uniform bins: B-Only'])
+    ax.hist(newEdges["S"], 
+            bins    = newEdges["S"]+[1.], 
+            color   = 'red', 
+            weights = np_arr_newhist["S"], 
+            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: S-Only")
+    ax.hist(newEdges["B"], 
+            bins    = newEdges["B"]+[1.], 
+            color   ='blue', 
+            weights = np_arr_newhist["B"], 
+            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: B-Only")
+    ax.hist(newEdges["hybride"], 
+            bins    = newEdges["hybride"]+[1.], 
+            color   = 'black', 
+            weights = np_arr_hybride["hybride"], 
+            histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: hybride")
             
     ax.legend(prop=dict(size=12), loc='best')
     ax.set_xlabel('DNN_output ZA')
@@ -154,11 +151,9 @@ def PLotHybrideHistos(oldHist=None, name=None, output=None, newEdges=None, inclu
         name += '_logy'
     fig.savefig(os.path.join(output, name+'.png')) 
     fig.savefig(os.path.join(output, name+'.pdf'))
-    
-    inFile.Close()
     plt.gcf().clear()
 
-def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', histNm=None, label=None, logy=False, isSignal=False, include_overflow=False):
+def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', histNm=None, label=None, logy=False, isSignal=False, doplot=False, dofindPrior=False, include_overflow=False):
     """
     Bayesian Blocks is a dynamic histogramming method which optimizes one of
     several possible fitness functions to determine an optimal binning for
@@ -174,24 +169,10 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', hi
     for i in range(1,hist.GetNbinsX()+1):
         bin_content.append(hist.GetBinContent(i))
         binnxs.append(hist.GetXaxis().GetBinUpEdge(i))
-    print( bin_content, binnxs )
-    
-    #assert_equal(old_hist.GetDimension(), np_arr_edges_oldhist.ndim)
-    #for iaxis, axis in enumerate('XYZ'[:np_arr_edges_oldhist.ndim]):
-    #    if include_overflow:
-    #        assert_equal(array.shape[iaxis], getattr(old_hist, 'GetNbins{0}'.format(axis))() + 2)
-    #    else:
-    #        assert_equal(array.shape[iaxis], getattr(old_hist, 'GetNbins{0}'.format(axis))())
     """
-
     np_arr_edges_oldhist = root_numpy.hist2array(old_hist, include_overflow=include_overflow, copy=True, return_edges=True)
     np_arr_oldhist = np_arr_edges_oldhist[0]
     oldEdges       = np_arr_edges_oldhist[1][0]
-    
-    if include_overflow:
-        oldEdges   = np.append(oldEdges, 1.02 )
-    else:
-        np_arr_oldhist = np.append(np_arr_oldhist, 0. )
     
     oldNbins = old_hist.GetNbinsX() 
     oldBins  = []
@@ -199,55 +180,70 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', hi
         oldBins.append(old_hist.FindBin(i))
     
     print( "oldBins :", oldBins, "NBins :", oldNbins)
-    print( oldEdges.shape , np_arr_oldhist.shape )
-    print( np_arr_edges_oldhist, len(np_arr_oldhist), len(oldEdges))
+    print( "oldBinContents : ",  np_arr_oldhist, len(np_arr_oldhist))
+    print( "oldEdges       : ",  oldEdges ,      len(oldEdges))
    
-    fig = plt.figure(figsize=(10, 4))
-    fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
-    doplot = True
-    find_best_prior = False
-
-    if find_best_prior:
-        for p0 in np.arange(0., 1., 0.001):
+    if dofindPrior:
+        random_seed = {'toy1': 500.}#, 'toy2':458., 'toy3': 42.}
+        for t, rd in random_seed.items():
+            toydata = np.array([])
+            for el in np_arr_oldhist:
+                toydata = np.append(toydata, [el*rd])
+        
+            for p_star in np.arange(0.95, 1., 0.01):
+                p0 = p_star
+                _fitness = stats.FitnessFunc(p0=p_star, gamma=None, ncp_prior=None)
+                ncp      = _fitness.compute_ncp_prior(N=old_hist.GetNbinsX()) # or prior.calc(N=old_hist.GetNbinsX())
+                newEdges = bayesian_blocks(oldEdges, weights=toydata, p0=p_star, gamma=None)
+                logger.info( f'{t}, ncp= {ncp}, prior= {p0}, newBlocks= {len(newEdges)}, newEdges= {newEdges}') 
                 
-            prior    = Prior(p0=p0, gamma=None)
-            _fitness = stats.FitnessFunc(p0=p0, gamma=None, ncp_prior=None)
-            ncp      = _fitness.compute_ncp_prior(N=old_hist.GetNbinsX()) # or prior.calc(N=old_hist.GetNbinsX())
-        
-            newEdges  = bayesian_blocks(oldEdges, weights=np_arr_oldhist, p0=p0, gamma=None)
-            #newEdges = stats.bayesian_blocks(oldEdges, np_arr_oldhist, fitness='measures')   
-            logger.info( f'ncp = {ncp}, prior = {p0}, newBlocks = {len(newEdges)} ') 
-        
+                p0 = p_star*(1/len(newEdges))
+                new_toydata = get_new_histogramWgt(old_hist, newEdges, oldEdges, oldNbins, verbose=False) [0]
+                new_toydata = np.append(new_toydata, toydata[-1])
+                rev_fitness = stats.FitnessFunc(p0=p0, gamma=None, ncp_prior=None)
+                rev_ncp = _fitness.compute_ncp_prior(N=len(newEdges))
+                new_newEdges  = bayesian_blocks(newEdges, weights=new_toydata, p0=p0, gamma=None)
+                logger.info( f'{t}, reversed ncp= {rev_ncp}, prior= {p0}, newBlocks= {len(new_newEdges)}, newEdges= {new_newEdges}') 
+                logger.info('======'*20) 
+    
     if doplot:
+        fig = plt.figure(figsize=(10, 4))
+        fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
         color = 'red' if isSignal else 'blue' 
-        p0  = 0.1 if isSignal else 0.05 
-        pNm = histNm + name + '_' + cat + "_%.2fp0" %p0
+        p0  = 0.1 if isSignal else 0.02 
+        pNm = histNm + '_' + name + '_bayesian_blocks'+ "_%.2fp0" %p0
+        
         for p0, subplot in zip([p0, p0+0.01], [121, 122]):
             
-            print("prior p0:", p0 )
             ax = fig.add_subplot(subplot)
-            
-            newEdges = bayesian_blocks(oldEdges,np_arr_oldhist, p0=p0)
+            # this will protect me from exiting the bayesian blocks algo when bin content is 0. 
             #newEdges = stats.bayesian_blocks(oldEdges, np_arr_oldhist, fitness='measures', p0=p0, ncp_prior=None) 
-            newEdges = [float(format(e,'.2f')) for e in newEdges]
+            safe_arr = np.array([])
+            for el in np_arr_oldhist:
+                safe_arr = np.append(safe_arr, [el+1e-7])
+            newEdges  = bayesian_blocks(oldEdges[:-1],safe_arr, p0=p0)
+            newEdges  = [float(format(e,'.2f')) for e in newEdges]
             
-            np_arr_newhist, FinalBins= get_new_histogramWgt(old_hist, newEdges, oldEdges, oldNbins)
-            np_arr_newhist = np.append(np_arr_newhist, np_arr_oldhist[-1])
+            np_arr_newhist, FinalBins= get_new_histogramWgt(old_hist, newEdges, oldEdges, oldNbins, verbose=True)
+            
+            # merge last 2 bins: keep me safe from having bins with 0 to few bkg events
+            newEdges = newEdges[:-1]
+            np_arr_newhist = np.append( np_arr_newhist[:-2], np_arr_newhist[-1]+np_arr_newhist[-2]) 
 
             if np.sum(np_arr_newhist) != np.sum(np_arr_oldhist):
                 logger.warning("sum of binContents between 2 histogram does not match\n"
                                 f"new = {np.sum(np_arr_newhist)}   old = {np.sum(np_arr_oldhist)}")
-            print( "oldBinContents : ",  np_arr_oldhist, len(np_arr_oldhist))
+            print( "prior p0:", p0 )
             print( "newBinContents : ",  np_arr_newhist, len(np_arr_newhist))
-            print( "oldEdges       : ",  oldEdges ,      len(oldEdges))
             print( "newEdges       : ",  newEdges ,      len(newEdges))
             
-            root_newhist = R.TH1D(name, "", len(newEdges), 0., 1.)
+            print( np.array(newEdges) )
+            root_newhist = R.TH1D(name+"_%.2fp0" %p0, "", len(newEdges), np.array(newEdges))
             newHist      = root_numpy.array2hist(np_arr_newhist, root_newhist)
-        
-            ax.hist(oldEdges, bins=oldEdges, color=color, histtype='stepfilled', weights=np_arr_oldhist,
+
+            ax.hist(oldEdges[:-1], bins=oldEdges, color=color, histtype='stepfilled', weights=np_arr_oldhist,
                     alpha=0.2, density=False, label=label)
-            ax.hist(newEdges, bins=newEdges, color='black', weights=np_arr_newhist,
+            ax.hist(newEdges, bins=newEdges+ [1.0], color='black', weights=np_arr_newhist,
                     histtype='step', density=False, label=f"Bayesian blocks: {'%.2f' % (float(p0))}")
             
             ax.legend(prop=dict(size=12))
@@ -260,9 +256,10 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', hi
             pNm += '_logy'
         fig.savefig(os.path.join(output, pNm+'.png')) 
         fig.savefig(os.path.join(output, pNm+'.pdf'))
-        #plt.show()
         plt.gcf().clear()
-    print(f" plots saved in : {output}" )
+        print(f" plots saved in : {output}" )
+    
+    return newHist, newEdges+[1.0], FinalBins
 
     """  works better for unweighted histogram !! 
     method   = {}
@@ -297,7 +294,6 @@ def BayesianBlocks(old_hist=None, name=None, output=None, prior=None, cat='', hi
                 newEdges.append(newHist.GetXaxis().GetBinLowEdge(b))
             method[bins] = [newHist, [newEdges, upEdges]]
     """     
-    return newHist, newEdges, FinalBins
 
 def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=True):
     """ Optimize binning, return result in the form of:
@@ -449,6 +445,7 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
         except subprocess.CalledProcessError:
             logger.error("Failed to run {0}".format(" ".join(haddCmd)))
 
+
 def plotRebinnedHistograms(binnings, folder, mode_, suffix, year, toysdata=False, normalized=False):
    
     if normalized:
@@ -485,7 +482,7 @@ def plotRebinnedHistograms(binnings, folder, mode_, suffix, year, toysdata=False
                 subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
             except subprocess.CalledProcessError:
                 logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-            print( f'\tplots saved in : {plotsDIR}')
+        print( f'\tplots saved in : {plotsDIR}')
     else:
         plotsDIR   = os.path.join(folder, "plots", "plotit")
         if not os.path.isdir(plotsDIR):
@@ -575,7 +572,7 @@ def plotRebinnedHistograms(binnings, folder, mode_, suffix, year, toysdata=False
             subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-        print( f'\tplots saved in : {plotsDIR}')
+    print( f'\tplots saved in : {plotsDIR}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -613,7 +610,7 @@ if __name__ == "__main__":
     suff      = '_hybride' if args.submit=='all' and args.rebin== 'bayesian' else ''
 
     if args.toys:
-        inDir  = os.path.join(args.input, f'generatetoys-limits/{args.mode}/*')
+        inDir  = os.path.join(args.input, f'generatetoys-/{args.mode}/*')
         list_inputs = glob.glob(os.path.join(inDir, '*_shapes.root'))
     else:
         inDir  = os.path.join(args.input, 'results/')
@@ -638,15 +635,15 @@ if __name__ == "__main__":
             logger.info(f'{outDir}/ already exist and not empty!\n'
                         '\tScale and hadd steps will be skipped \n'
                         '\tif you have an updated version of files OR you want to rerun the steps above :\n'
-                        f'\tplease remove {outDir}/ and start over!\n' )
-        shutil.copyfile(os.path.join(args.input, 'plots.yml'), os.path.join(args.output, 'plots.yml'))
+                       f'\tplease remove {outDir}/ and start over!\n' )
+        #shutil.copyfile(os.path.join(args.input, 'plots.yml'), os.path.join(args.output, 'plots.yml'))
     
     if args.submit=='all':
         # bkg , data and signal as it is given/found in the args.inputs
         inputs= list_inputs
     elif args.submit=='test':
         # take hadded files ( 1 tot bkg , 1 tot. data and 1 tot. signal )
-        inputs= glob.glob(os.path.join(outDir, sumPath, '*.root'))
+        inputs = glob.glob(os.path.join(outDir, sumPath, '*.root'))
         if not args.toys: 
             for rf in glob.glob(os.path.join(outDir, '*.root')): # add also the signals seperatly 
                 smpNm = rf.split('/')[-1].replace('.root','')
@@ -655,8 +652,11 @@ if __name__ == "__main__":
     
     if args.onlypost: 
         inputs = [] # do not process any files 
-        f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json"))
-        binnings = json.load(f)
+        try:
+            f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}{suff}.json"))
+            binnings = json.load(f)
+        except Exception as ex:
+            raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_{args.rebin}{suff}.json')
     else:
         binnings = {
                 'files': {
@@ -673,9 +673,10 @@ if __name__ == "__main__":
                 }
     
     if args.toys:
-        name = '_bayesian_toys'
         for rf in inputs:
-            smpNm    = rf.split('/')[-1].split('_shapes')[0]
+            smpNm = rf.split('/')[-1].split('_shapes')[0]
+            out_  = os.path.join(args.output, f'{args.rebin}_rebinned_on_toysdata/{smpNm}')
+            binnings['files']['toys'].append(out_)
             channels = set()
             inFile  = HT.openFileAndGet(rf)
             for k in inFile.GetListOfKeys():
@@ -687,44 +688,45 @@ if __name__ == "__main__":
             print ("Detected channels: ", channels )
             
             for channel in channels:
-                newHist   = {} 
                 oldHist   = {}
+                
+                newHist   = {} 
                 newEdges  = {}
                 FinalBins = {}
-                isSignal  = False
-                isData    = False
                 
-                sNm = channel.replace(f'{args.mode}_', '')
-                binnings['histograms'][get_histNm_orig(mode_, smpNm, sNm)] = {}
+                mass = channel.replace(f'{args.mode}_', '')
+                binnings['histograms'][get_histNm_orig(mode_, smpNm, mass, info=False)] = {}
                 
                 for key in inFile.Get(channel).GetListOfKeys():
                     
+                    isSignal  = False
+                    isData    = False
                     if key.GetName().startswith('HToZATo2L2B'): isSignal=True
-                    elif 'data' in key.GetName(): isData=True 
-                    
+                    if 'data' in key.GetName(): isData=True 
 
-                    k = 'S' if isSignal else 'B'
+                    k = 'S' if isSignal else ('B' if isData else(key.GetName()))
                     if not (isData or isSignal):
                         continue
                     oldHist[k] = inFile.Get(channel).Get(key.GetName())
                     
-                    if not oldHist:
+                    if not oldHist[k]:
                         logger.error('could not find object: inFile.Get({channel}).Get({key.GetName()}) -- return null pointer!')
                     logger.info( f' working on : {key.GetName()}' ) 
                     
-                    label  = sNm if isSignal else 'B-Only toy data'
+                    label  = mass if isSignal else 'B-Only toy data'
                     histNm = 'signal' if isSignal else key.GetName()
-                    newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( oldHist[k], 
-                                                                            name, 
+                    newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( old_hist          = oldHist[k], 
+                                                                            name              = get_histNm_orig(mode_, smpNm, mass, info=False),
                                                                             output            = plotsDIR, 
                                                                             prior             = args.prior, 
-                                                                            cat               = smpNm, 
                                                                             histNm            = histNm, 
                                                                             label             = label,
                                                                             logy              = args.logy, 
                                                                             isSignal          = isSignal, 
+                                                                            doplot            = True,
+                                                                            dofindPrior       = False,
                                                                             include_overflow  = False)
-                
+
                 binning  = hybride_binning( BOnly= [newEdges['B'], FinalBins['B']], SOnly= [newEdges['S'], FinalBins['S']] )
                 hybridebinning_dict = {'B': newEdges['B'],
                                        'S': newEdges['S'],
@@ -736,19 +738,16 @@ if __name__ == "__main__":
                                   include_overflow      = False, 
                                   logy                  = args.logy)
 
-                binnings['histograms'][get_histNm_orig(mode_, smpNm, sNm)].update({'B': [newEdges['B'], FinalBins['B']],
+                binnings['histograms'][get_histNm_orig(mode_, smpNm, mass, info=False)].update({'B': [newEdges['B'], FinalBins['B']],
                                                                                    'S': [newEdges['S'], FinalBins['S']],
                                                                                    'hybride': binning })
-                
                 inFile  = HT.openFileAndGet(rf)
                 for key in inFile.Get(channel).GetListOfKeys():
-                    for histNm, bins in binnings['histograms'].items():
                     
-                        oldHist_  = inFile.Get(channel).Get(key.GetName())
-                        newHist_  = rebinCustom(oldHist_, bins['hybride'], histNm, verbose=False)
-                
-                        out_ = os.path.join(args.output, f'{args.rebin}_rebinned_on_toysdata/{smpNm}')
-                        binnings['files']['toys'].append(out_)
+                    for histNm, bins in binnings['histograms'].items():
+                        oldHist_ = inFile.Get(channel).Get(key.GetName())
+                        newHist_ = rebinCustom(oldHist_, bins['hybride'], histNm, verbose=False)
+                        
                         if not os.path.isdir(out_):
                             os.makedirs(out_)
                         
@@ -759,6 +758,12 @@ if __name__ == "__main__":
                         outFile.Close()
             inFile.Close()
     else:
+        try:
+            f = open(os.path.join(args.output, f"rebinned_edges_bayesian_hybride_keepsafe.json"))
+            data = json.load(f)
+        except Exception as ex:
+            raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_bayesian_hybride_keepsafe.json')
+        
         for rf in inputs:
             smpNm = rf.split('/')[-1].replace('.root','')
             if smpNm.startswith('__skeleton__'):
@@ -785,36 +790,39 @@ if __name__ == "__main__":
             elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar']):
                 binnings['files']['ttbar'].append(rf)
             elif any( x in smpNm for x in ['ST']):
-                binnings['files']['ST'].append(rf)
+                binnings['files']['SingleTop'].append(rf)
 
             logger.info( f' working on : {rf}' ) 
             rf_out  = os.path.join(args.output, suffix, f"{smpNm}.root")
             inFile  = HT.openFileAndGet(rf)
             outFile = HT.openFileAndGet(rf_out, "recreate")
 
-            isSys = False
-            binnings[smpNm] = collections.defaultdict(dict)
             for key in inFile.GetListOfKeys():
-                if not key.GetName().startswith(args.mode):
+                isSys = False
+                if not key.GetName().startswith(mode_):
                     continue
-               
+                               
                 if '__' in key.GetName(): isSys=True
                 if not args.sys and isSys: 
                     continue
                 
-                if args.submit == "test":
-                    if not (key.GetName().startswith(f"DNNOutput_ZAnode_MuMu_resolved_DeepCSVM_METCut_gg_fusion") 
-                         or key.GetName().startswith(f"DNNOutput_ZAnode_ElEl_resolved_DeepCSVM_METCut_gg_fusion")):
-                        continue
-                else: # just for now, these catagories are a bit messy 
-                    if 'boosted' in key.GetName() or 'DeepFlavourM' in key.GetName() or 'bb_associatedProduction' in key.GetName() or 'MuEl' in key.GetName():
-                        continue
-                
                 if 'gg_fusion' in key.GetName(): process = 'gg_fusion'
                 else: process = 'bb_associatedProduction' 
-                
-                sig = key.GetName().split(process+'_')[-1].replace('MH_', 'MH-').replace('MA_', 'MA-')
-                if not key.GetName().split(process+'_')[-1] in available_points(inputs):
+               
+                mass = key.GetName().split(process+'_')[-1].split('__')[0]
+                sig = mass.replace('MH_', 'MH-').replace('MA_', 'MA-')
+                params = get_histNm_orig(mode_, key.GetName(), mass, info=True)[1]
+               
+                if params['process'] == 'bb_associatedProduction':
+                    continue
+                if params['taggerWP'] == 'DeepFlavourM':
+                    continue
+                if params['region'] == 'boosted':
+                    continue
+                if params['flavor'] == 'MuEl':
+                    continue
+
+                if not mass in available_points(inputs):
                     #logger.info(f'{sig} mass point not found between the .root signal files, will skip this one !')
                     continue
                 if isSignal and not key.GetName().endswith(smpNm.split('To2L2B_')[-1].replace('-','_')) and not args.plotit:
@@ -830,7 +838,7 @@ if __name__ == "__main__":
                 oldHist = inFile.Get(key.GetName())
                 
                 if not isSys:
-                    binnings[smpNm]['histograms'][key.GetName()] = []
+                    binnings['histograms'][key.GetName()] = []
                     if not key.GetName() in binnings['histograms']:
                         binnings['histograms'].append(key.GetName())
                 
@@ -851,21 +859,17 @@ if __name__ == "__main__":
                 
                 elif args.rebin == 'bayesian':
                     if args.submit =='all':
-                        toy  = 'mc'
-                        s    = 'scaled_' if args.scale else '' 
-                        try:
-                            f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}.json"))
-                            data = json.load(f)
-                        except Exception as ex:
-                            raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_{args.rebin}.json')
-                        
-                        binning  = hybride_binning( BOnly= data[f'summed_{s}{args.era}{toy}_samples']['histograms'][key.GetName()][0], 
-                                                    SOnly= data[f'HToZATo2L2B_{sig}']['histograms'][key.GetName()][0])
+                        #toy  = 'mc'
+                        #s    = 'scaled_' if args.scale else '' 
+                        #binning  = hybride_binning( BOnly= data[f'summed_{s}{args.era}{toy}_samples']['histograms'][key.GetName()][0], 
+                        #                            SOnly= data[f'HToZATo2L2B_{sig}']['histograms'][key.GetName()][0])
+                        binning = data['histograms'][key.GetName()]['hybride']
                         newHist  = rebinCustom(oldHist,binning, oldHist.GetName())
                         
-                        hybridebinning_dict = {'B':data[f'summed_{s}{args.era}{toy}_samples']['histograms'][key.GetName()][0][0],
-                                               'S':data[f'HToZATo2L2B_{sig}']['histograms'][key.GetName()][0][0],
-                                               'hybride':binning[0]}
+                        #hybridebinning_dict = {'B':data[f'summed_{s}{args.era}{toy}_samples']['histograms'][key.GetName()][0][0],
+                        #                       'S':data[f'HToZATo2L2B_{sig}']['histograms'][key.GetName()][0][0],
+                        #                       'hybride':binning[0]}
+                    """
                         if isSignal:
                             PLotHybrideHistos( os.path.join(outDir, sumPath, f'summed_{s}{args.era}{toy}_samples.root'), 
                                                oldHist, 
@@ -886,9 +890,9 @@ if __name__ == "__main__":
                                                                         isSignal         = isSignal, 
                                                                         include_overflow = False)
                         binning = [newEdges, FinalBins]
-                
+                    """
                 if not isSys:
-                    binnings[smpNm]['histograms'][key.GetName()].append(binning)
+                    binnings['histograms'][key.GetName()].append(binning)
                 
                 #print(np.sqrt(sum(list(newHist.GetSumw2())))/newHist.Integral())
                 outFile.cd()
