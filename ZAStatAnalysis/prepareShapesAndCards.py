@@ -2,6 +2,7 @@
 # https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
 import os, os.path, sys, stat, argparse, getpass, json
 import subprocess
+import shutil
 import json
 import glob
 import ROOT
@@ -73,15 +74,15 @@ def get_signal_parameters(f):
 
 signal_grid = [
         #part0 : 21 signal samples 
-        ( 200, 50), ( 200, 100), #( 300, 100),
-        #( 250, 50), ( 250, 100),
-        #( 300, 50), ( 300, 200),
-        #( 500, 50), ( 500, 200), ( 500, 400),
-        #( 650, 50),
-        #( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        #(1000, 50), (1000, 200), (1000, 500), 
-        #(2000, 1000),
-        #(3000, 2000) 
+        ( 200, 50), ( 200, 100), ( 300, 100),
+        ( 250, 50), ( 250, 100),
+        ( 300, 50), ( 300, 200),
+        ( 500, 50), ( 500, 200), ( 500, 400),
+        ( 650, 50),
+        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+        (1000, 50), (1000, 200), (1000, 500), 
+        (2000, 1000),
+        (3000, 2000) 
         ]
 extra_signals = [
         ]
@@ -165,7 +166,7 @@ done
     
     if   method == 'fit': suffix= 'prepost'
     elif method == 'impacts': suffix= 'pulls'
-    elif method in ['asymptotic', 'hybridnew'] :suffix= 'limits'
+    elif method in ['asymptotic', 'hybridnew']: suffix= 'limits'
     else: suffix= ''
 
     script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
@@ -266,6 +267,7 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                                       signal_process      = 'HToZATo2L2B', 
                                       method              = method, 
                                       luminosity          = luminosity, 
+                                      mode                = mode,
                                       flavors             = flavors, 
                                       regions             = regions, 
                                       productions         = productions, 
@@ -620,7 +622,7 @@ if __name__ == '__main__':
     parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys'],        
                                                 help='Analysis method')
     parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
-                                                help='Use fake data instead of real data')
+                                                help='Unblind analysis :: use real data instead of fake pseudo-data')
     parser.add_argument('--signal-strength',    action='store_true', dest="signal_strength", required=False, default=False,                                                  
                                                 help='Put limit on the signal strength instead of the cross-section')
     parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', required=False, default='./data/fullEllipseParamWindow_MuMu.json',
@@ -639,7 +641,10 @@ if __name__ == '__main__':
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
     options = parser.parse_args()
-
+    if not os.path.isdir(options.output):
+        os.makedirs(options.output)
+    shutil.copyfile(os.path.join(options.input.split(options.input.split('/')[-2])[0], 'plots.yml'), os.path.join(options.output, 'plots.yml'))
+    
     prepare_DataCards(grid_data          = signal_grid + extra_signals, 
                       dataset            = options.dataset, 
                       expectSignal       = options.expectSignal, 

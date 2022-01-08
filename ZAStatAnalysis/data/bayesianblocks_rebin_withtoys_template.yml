@@ -19,7 +19,8 @@ files:
     type: signal
     legend: mysignal
     line-color: '#710A60'
-    line-type: 2
+    line-type: 1
+    line-width: 2
   DY.root:
     type: mc
     group: DY
