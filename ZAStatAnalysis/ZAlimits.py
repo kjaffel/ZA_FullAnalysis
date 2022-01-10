@@ -30,9 +30,10 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import matplotlib.transforms as transforms
 import Constants as Constants
+sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/utils')
 import CMSStyle as CMSStyle
 
-parser = argparse.ArgumentParser(description='Draw non-resonant 1D scan')
+parser = argparse.ArgumentParser(description='Draw 95%CL Limits')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
 parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br', help='If set, limits are rescaled to the ZA BR')
 parser.add_argument('--era', action='store', type=str, choices=['2016', '2017', '2018'], help='Output directory', required=True)
@@ -50,7 +51,27 @@ parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do
 options = parser.parse_args()
 
 parameters = ['mH', 'mA']
-mH_list    = [200, 250, 300]
+signal_grid = [
+        #part0 : 21 signal samples 
+        ( 200, 50), ( 200, 100), ( 300, 100),
+        ( 250, 50), ( 250, 100),
+        ( 300, 50), ( 300, 200),
+        ( 500, 50), ( 500, 200), ( 500, 400),
+        ( 650, 50),
+        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
+        (1000, 50), (1000, 200), (1000, 500), 
+        (2000, 1000),
+        (3000, 2000) 
+        ]
+mH_list = []
+available_parameters={}
+for mH, mA in signal_grid:
+    if not mH in mH_list:
+        mH_list.append(mH)
+        available_parameters[mH]= []
+for mH in mH_list:
+    for tup in signal_grid:
+        if mH ==tup[0]: available_parameters[mH].append((str(tup[0]),str(tup[1])))
 
 th_files = [
     #'sigmaBR_HZA_type-2_tb-0p5_cba-0p01.json',
@@ -91,12 +112,11 @@ axes_x_limits = {
     }
 axes_y_limits = {
     "mH": {},
-    "mA": {'ymin': 0, 'ymax':500}, # FIXME why my limits are very small for some mass points!
+    "mA": {'ymin': 0, 'ymax':600}, 
     }
-
 axes_log_y_limits = {
     "mH": { },
-    "mA": {'ymin': 0, 'ymax':6000},
+    "mA": {'ymin': 4, 'ymax':6000},
     }
 show_markers = {
     'mH': False,
@@ -109,7 +129,7 @@ colors = {
     'ElEl_MuMu': 'black',
     }
     
-#flavors = ['MuMu', 'ElEl', 'ElEl_MuMu']
+#flavors = ['MuMu', 'ElEl']#, 'ElEl_MuMu']
 flavors = ['ElEl_MuMu']
 
 output_dir = options.jsonpath
@@ -128,22 +148,23 @@ for the_mH in mH_list:
         #with open(os.path.join(options.jsonpath, 'combinedlimits_{}.json'.format(flav))) as f:
         with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav))) as f:
             limits_ = json.load(f)
-    
+            
+            print('working on ::', os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav)))
             for l in limits_:
                 limits[tuple(l['parameters'])] = l['limits']
     
-    available_parameters = flavors_limits[flavors[0]].keys() # just needed to get the keys 
-    available_parameters = [tuple(map(lambda x: x.encode('utf-8'), tup)) for tup in available_parameters]
-    available_parameters = [ (float(i), float(j)) for i,j in available_parameters]
-    available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
-    available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
+    #available_parameters = flavors_limits[flavors[0]].keys() # just needed to get the keys 
+    #available_parameters = [tuple(map(lambda x: x.encode('utf-8'), tup)) for tup in available_parameters]
+    #available_parameters = [ (float(i), float(j)) for i,j in available_parameters]
+    #available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
+    #available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
      
     flavors_data = {}
     scanning_SM  = False
-    print('available_parameters for mH = ', the_mH, available_parameters )
-    if not available_parameters:
+    print('available_parameters for mH = %s  ---> %s ' %(the_mH, available_parameters[the_mH]) )
+    if not available_parameters[the_mH]:
         continue
-    for point in available_parameters:
+    for point in available_parameters[the_mH]:
         next_point = False
         ## Only keep points request by the user for the scan
         for name, value in parameter_values.items():
@@ -151,6 +172,9 @@ for the_mH in mH_list:
                 next_point = True
                 break
         if next_point:
+           continue
+        if not point in limits.keys():
+           print("NO limits provided for point %s !" % str(point) )
            continue
         print("Working on point %s" % str(point))
     
@@ -191,8 +215,9 @@ for the_mH in mH_list:
             one_sigma[0].append(exp_minus_1sigma)
             two_sigma[1].append(exp_plus_2sigma)
             two_sigma[0].append(exp_minus_2sigma)
-        
-    
+   
+    if not flavors_data:
+        continue
     for f in flavors:
         data = flavors_data[f]
         data['x'] = np.asarray(data['x'])
@@ -201,18 +226,16 @@ for the_mH in mH_list:
         data['one_sigma'] = np.asarray(data['one_sigma'])
         data['two_sigma'] = np.asarray(data['two_sigma'])
     
-        
-    
     CMSStyle.changeFont()
     # Create a figure instance
     fig = plt.figure(1, figsize=(7, 7), dpi=300)
     
     # Create an axes instance
     ax = fig.add_subplot(111)
-    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b}) fb$')
+    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ fb')
     ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
     if options.rescale_to_za_br:
-        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA) fb$')
+        ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ fb')
     
     fig.tight_layout()
     ax.grid()
