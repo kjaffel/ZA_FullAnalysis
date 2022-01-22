@@ -11,7 +11,7 @@ from faker import Factory
 fake = Factory.create()
 
 # TODO 
-# 2- finish xsc uncer checks for mc 
+# 2- finish xsc uncer checks for mc and signal !! 
 
 def get_era_and_luminosity(smp=None, run=None, isdata=False):
     preVFPruns  = ["B", "C", "D", "E", "F"]
@@ -69,10 +69,10 @@ def get_list_ofsystematics(eras):
         'lowpt_ele_reco',
         'highpt_ele_reco',
         '# on the trigger',
-        'HHMoriond17__eleltrig',
-        'HHMoriond17__mumutrig',
-        'HHMoriond17__elmutrig',
-        'HHMoriond17__mueltrig',
+        'HHMoriond17_eleltrig',
+        'HHMoriond17_mumutrig',
+        'HHMoriond17_elmutrig',
+        'HHMoriond17_mueltrig',
         '  # sys from theory  ',
         'qcdScale',
         'qcdMuF',
@@ -147,23 +147,27 @@ def get_mcNmConvention_and_group(smpNm):
 
 def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=False):
     das_tomerge  = []
-    to_ignore    = []
+    das_toignore = []
+    
+    version = smp.split('/')[-2].split('asymptotic_')[1]
+    if '_ext' in version: s = version.split('_ext')[0]+'-v'
+    else: s = version.split('-')[0]+'_ext'
     #https://newbedev.com/python-regular-express-cheat-sheet
-    with open(options.das, 'r') as inf:
-        for line in inf:
+    with open(inf, 'r') as file:
+        for line in file:
             path   = line.split()[0]
             if isdata:
                 regex = re.compile(f"/{search}/Run{era.split('-')[0]}{run}-ver*", re.IGNORECASE)
-            else:
-                # FIXME
-                regex = re.compile(f"/{search}/RunIISummer[20,19]UL{era.split('-')[0].split('20')[1]}NanoAOD*_ext*/NANOAODSIM$", re.IGNORECASE)
+            if isMC:
+                regex = re.compile(f"/{search}/{smp.split('/')[-2].split('asymptotic_')[0]+'asymptotic_'+ s}*", re.IGNORECASE)
             m = regex.search(path)
             if m:
                 # this is an extension add to merge 
                 das_tomerge.append('das:{}'.format(path))
-                to_ignore.append( path)
+                das_tomerge.append('das:{}'.format(smp))
+                das_toignore.append(path)
     if das_tomerge:
-        return das_tomerge, to_ignore
+        return das_tomerge, das_toignore
     else:
         return 'das:{}'.format(smp), []
 
@@ -288,9 +292,6 @@ if __name__ == "__main__":
     print( eras)
     with open(options.das, 'r') as inf:
         with open(options.output, 'w+') as outf:
-            isMC     = False
-            isdata   = False
-            issignal = False
             
             groups = defaultdict()
             merged_daspath = []
@@ -307,23 +308,21 @@ if __name__ == "__main__":
             # =======================================================
             run = None
             for i, smp in enumerate(inf):
+                isMC     = False
+                isdata   = False
+                issignal = False
                 smp   = smp.split()[0]
                 smpNm = smp.split('/')[1]
+                
                 if "HToZATo2L2B" in smp or "AToZHTo2L2B" in smp : 
-                    isMC     = False
-                    isdata   = False
                     issignal = True
                     mode     = ('AToZH' if smpNm.startswith('AToZH') else 'HToZA')
                     comp     = 'nlo' if 'amcatnlo' in smp else 'lo'
                     process  = 'ggH' if smpNm.startswith('GluGlu') else('bbH')
                 elif smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']: 
-                    isMC     = False
                     isdata   = True
-                    issignal = False
                 else: 
                     isMC     = True
-                    isdata   = False
-                    issignal = False
                 
                 color  = fake.hex_color()
                 #color = '#%06x' % random.randint(0, 0xFFFFFF)
@@ -349,7 +348,7 @@ if __name__ == "__main__":
                 elif isdata:
                     Nm = f'{smpNm}_UL{era_[0]}{run}_{era_[1]}'
                     run_range = run2_ranges[era][run]
-                    cert = certification[era.split('-')[0]] # FIXME make sure that this assuption is correct : means the certefication is the same for pre/post VFP
+                    cert = certification[era.split('-')[0]] # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
                     split  = 4
                     search = smpNm
                 elif isMC:
