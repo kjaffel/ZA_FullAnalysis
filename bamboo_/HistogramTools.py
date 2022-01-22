@@ -1,11 +1,316 @@
+# code from : Sebastien Wertz 
+import os
 from math import ceil
 from array import array
 import numpy as np
 
 from bamboo.root import gbl as ROOT
 
+def getEnvelopeHistograms(nominal, variations):
+    """
+    Compute envelope histograms create by all variations histograms. The envelop is simply the maximum
+    and minimum deviations from nominal for each bin of the distribution
+    Arguments:
+    nominal: The nominal histogram
+    variations: a list of histograms to compute the envelop from
+    """
+    if len(variations) < 2:
+        raise TypeError("At least two variations histograms must be provided")
+
+    # Use GetNcells() so that it works also for 2D histograms
+    n_bins = nominal.GetNcells()
+    for v in variations:
+        if v.GetNcells() != n_bins:
+            raise RuntimeError("Variation histograms do not have the same binning as the nominal histogram")
+
+    up = nominal.Clone()
+    up.SetDirectory(ROOT.nullptr)
+    up.Reset()
+
+    down = nominal.Clone()
+    down.SetDirectory(ROOT.nullptr)
+    down.Reset()
+
+    for i in range(0, n_bins):
+        minimum = float("inf")
+        maximum = float("-inf")
+
+        for v in variations:
+            c = v.GetBinContent(i)
+            minimum = min(minimum, c)
+            maximum = max(maximum, c)
+
+        up.SetBinContent(i, maximum)
+        down.SetBinContent(i, minimum)
+
+    return (up, down)
+
+class FileCache(object):
+    """Hold a set of TFile's open. If a new file is requested, it os opened and returned. If it is already known, it is cd()'d to and returned."""
+    def __init__(self):
+        self.files = {}
+    def get(self, path):
+        if path not in self.files:
+            self._open(path)
+        tf = self.files[path]
+        tf.cd()
+        return tf
+    def _open(self, path):
+        self.files[path] = openFileAndGet(path)
+    def __del__(self):
+        for f in self.files.values():
+            f.Close()
+
+def loadHisto(path, name, cache=None):
+    """Load histogram with name 'name' from file path 'path', use a FileCache object if given"""
+    # print(f"Loading {name} from {path}")
+    if not cache:
+        cache = FileCache()
+    tf = cache.get(path)
+    th = tf.Get(name)
+    try:
+        th.SetDirectory(0)
+    except AttributeError as e:
+        print(f"Could not load {name} from {path}")
+        raise e
+    return th
+
+
+def equaliseBins(hist, title='BLR bins'):
+    """
+    Change bin boundaries along X axis of hist to 1, 2, ..., nBins+1.
+    Does not affect actual bin contents or errors.
+    Return a cloned histogram, no side-effect on hist.
+    """
+    newHist = hist.Clone()
+    newHist.SetDirectory(ROOT.nullptr)
+    xAxis = newHist.GetXaxis()
+    xAxis.SetTitle(title)
+    nBins = xAxis.GetNbins()
+    newBins = array('f', range(1, nBins + 2))
+    xAxis.Set(nBins, newBins)
+    return newHist
+
+
+def openFileAndGet(path, mode="read"):
+    """Open ROOT file in a mode, check if open properly, and return TFile handle."""
+    tf = ROOT.TFile.Open(path, mode)
+    if not tf or not tf.IsOpen():
+        raise Exception("Could not open file {}".format(path))
+    return tf
+
+
+def readRecursiveDirContent(content, currTDir, resetDir=True):
+    """
+    Fill dictionary content with the directory structure of currTDir.
+    Every object is read and put in content with their name as the key.
+    Sub-folders will define sub-dictionaries in content with their name as the key.
+    """
+    if not currTDir.InheritsFrom("TDirectory") or not isinstance(content, dict):
+        return
+
+    # Retrieve the directory structure inside the ROOT file
+    currPath = currTDir.GetPath().split(':')[-1].split('/')[-1]
+
+    if currPath == '':
+        # We are in the top-level directory
+        thisContent = content
+    else:
+        thisContent = {}
+        content[currPath] = thisContent
+
+    listKeys = currTDir.GetListOfKeys()
+
+    for key in listKeys:
+        obj = key.ReadObj()
+        if obj.InheritsFrom("TDirectory"):
+            print("Entering sub-directory {}".format(obj.GetPath()))
+            readRecursiveDirContent(thisContent, obj)
+        else:
+            name = obj.GetName()
+            thisContent[name] = obj
+            if resetDir:
+                obj.SetDirectory(0)
+
+
+def writeRecursiveDirContent(content, currTDir):
+    """Write the items in dictionary content to currTDir, respecting the sub-directory structure."""
+    if not currTDir.IsWritable() or not isinstance(content, dict):
+        return
+
+    for key, obj in content.items():
+        if isinstance(obj, dict):
+            print("Creating new sub-directory {}".format(key))
+            subDir = currTDir.mkdir(key)
+            writeRecursiveDirContent(obj, subDir)
+        elif isinstance(obj, ROOT.TObject):
+            currTDir.WriteTObject(obj, key)
+
+
+def randomiseHistMCStats(hist):
+    """Randomise the yields in each bin according to the statistical uncertainty in the bin"""
+    newHist = hist.Clone()
+
+    rng = ROOT.TRandom2()
+    rng.SetSeed(0)
+    sumw2Arr = hist.GetSumw2()
+    assert(sumw2Arr.GetSize() == hist.GetNcells())
+
+    for i in range(hist.GetNcells()):
+        orig = hist.GetBinContent(i)
+        sumw2 = sumw2Arr[i]
+        if sumw2 == 0 or orig == 0:
+            continue
+        effN = ceil(orig ** 2 / sumw2)
+        ran = rng.Poisson(effN)
+        new = ran * orig / effN
+        # print("Rel. uncertainty: {}, effective: {}, old: {}, new: {}".format(sqrt(sumw2)/orig, effN, orig, new))
+        newHist.SetBinContent(i, new)
+
+    return newHist
+
+
+def addHists(histList, newName):
+    """Add histograms in list `histList` together, return histogram with name `newName`"""
+    myIt = iter(histList)
+    newHist = next(myIt).Clone(newName)
+    for hist in myIt:
+        newHist.Add(hist)
+    return newHist
+
+
+def randomString(stringLength=10):
+    """Generate a random string of fixed length """
+    import random
+    import string
+    letters = string.ascii_lowercase
+    return ''.join(random.sample(letters, stringLength))
+
+
+def plot2DSlices(hist, outDir, axis, fn=None):
+    """From a TH3 'hist', plot all the 2D slices across direction 'axis' ('x'/'y'/'z'). Output directory is 'outDir'; file names are taken from 'fn' or from histogram name."""
+    ROOT.gErrorIgnoreLevel = ROOT.kWarning
+
+    style = setTDRStyle()
+    style.SetPadRightMargin(0.15)
+    style.SetLabelSize(0.03, "XYZ")
+    style.SetPaintTextFormat(".3f")
+
+    axes = "zyx".replace(axis, "")
+    if axis == "x":
+        ax = hist.GetXaxis()
+    elif axis == "y":
+        ax = hist.GetYaxis()
+    else:
+        ax = hist.GetZaxis()
+
+    title = hist.GetTitle()
+    name = hist.GetName()
+
+    for i in range(0, ax.GetNbins() + 2):
+        c = ROOT.TCanvas(randomString(), title, 800, 600)
+        if i == 0:
+            ax.SetRange(-1, 0) # because ROOT
+        else:
+            ax.SetRange(i, i)
+        proj = hist.Project3D(axes)
+        proj.Draw("colztexte")
+        proj.GetYaxis().SetTitleOffset(1.5)
+
+        if not proj.GetXaxis().GetTitle():
+            proj.GetXaxis().SetTitle(f"{axes[1]} axis")
+        if not proj.GetYaxis().GetTitle():
+            proj.GetYaxis().SetTitle(f"{axes[0]} axis")
+
+        axTitle = ax.GetTitle()
+        if not axTitle:
+            axTitle = axis + "-axis"
+        if i == 0:
+            label = f"{axTitle} #leq {ax.GetBinUpEdge(i)}"
+        elif i == ax.GetNbins() + 1:
+            label = f"{ax.GetBinLowEdge(i)} #leq {axTitle}"
+        else:
+            label = f"{ax.GetBinLowEdge(i)} #leq {axTitle} #leq {ax.GetBinUpEdge(i)}"
+        text = ROOT.TLatex(0.16, 0.96, label)
+        text.SetNDC(True)
+        text.SetTextFont(42)
+        text.SetTextSize(0.03)
+        text.Draw("same")
+
+        if fn is None:
+            fn = name
+        c.Print(os.path.join(outDir, f"{fn}_{axis}_{i}.pdf"))
+
+    # don't forget to reset range
+    ax.SetRange(0, ax.GetNbins() + 1)
+
+
+class RatioPalette:
+    """Create color palette by assembling several "beautiful" (possibly inverted) ROOT palettes"""
+    colors = {
+        "deepsea": (np.array([0./255.,  9./255., 13./255., 17./255., 24./255.,  32./255.,  27./255.,  25./255.,  29./255.]),
+                    np.array([0./255.,  0./255.,  0./255.,  2./255., 37./255.,  74./255., 113./255., 160./255., 221./255.]),
+                    np.array([28./255., 42./255., 59./255., 78./255., 98./255., 129./255., 154./255., 184./255., 221./255.])),
+        "bird": (np.array([0.2082, 0.0592, 0.0780, 0.0232, 0.1802, 0.5301, 0.8186, 0.9956, 0.9764]),
+                 np.array([0.1664, 0.3599, 0.5041, 0.6419, 0.7178, 0.7492, 0.7328, 0.7862, 0.9832]),
+                 np.array([0.5293, 0.8684, 0.8385, 0.7914, 0.6425, 0.4662, 0.3499, 0.1968, 0.0539])),
+        "invDarkBody": (np.array([242./255., 234./255., 237./255., 230./255., 212./255., 156./255., 99./255., 45./255., 0./255.]),
+                        np.array([243./255., 238./255., 238./255., 168./255., 101./255.,  45./255.,  0./255.,  0./255., 0./255.]),
+                        np.array([230./255.,  95./255.,  11./255.,   8./255.,   9./255.,   3./255.,  1./255.,  1./255., 0./255.])),
+        "greyScale": (np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.]),
+                      np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.]),
+                      np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.])),
+        "blueYellow": (np.array([0./255.,  22./255., 44./255., 68./255., 93./255., 124./255., 160./255., 192./255., 237./255.]),
+                       np.array([0./255.,  16./255., 41./255., 67./255., 93./255., 125./255., 162./255., 194./255., 241./255.]),
+                       np.array([97./255., 100./255., 99./255., 99./255., 93./255.,  68./255.,  44./255.,  26./255.,  74./255.])),
+        # "middle" is at 0.5
+        "temperatureMap": (np.array([34./255.,  70./255., 129./255., 187./255., 225./255., 226./255., 216./255., 193./255., 179./255.]),
+                           np.array([48./255.,  91./255., 147./255., 194./255., 226./255., 229./255., 196./255., 110./255.,  12./255.]),
+                           np.array([234./255., 212./255., 216./255., 224./255., 206./255., 110./255.,  53./255.,  40./255.,  29./255.])),
+        # "middle" is at 0.36/0.64
+        "blackBody": (np.array([243./255., 243./255., 240./255., 240./255., 241./255., 239./255., 186./255., 151./255., 129./255.]),
+                      np.array([0./255.,  46./255.,  99./255., 149./255., 194./255., 220./255., 183./255., 166./255., 147./255.]),
+                      np.array([6./255.,   8./255.,  36./255.,  91./255., 169./255., 235./255., 246./255., 240./255., 233./255.])),
+        # "blueYellow": (np.array([]),
+        #                np.array([]),
+        #                np.array([])),
+    }
+
+    def __init__(self, paletteList, nColors=250):
+        red = np.concatenate([np.flip(self.colors[colSet][0]) if doFlip else self.colors[colSet][0] for colSet, doFlip in paletteList])
+        green = np.concatenate([np.flip(self.colors[colSet][1]) if doFlip else self.colors[colSet][1] for colSet, doFlip in paletteList])
+        blue = np.concatenate([np.flip(self.colors[colSet][2]) if doFlip else self.colors[colSet][2] for colSet, doFlip in paletteList])
+        number = len(red)
+        self.nColors = nColors
+        stops = np.linspace(0., 1., number)
+        index = ROOT.TColor.CreateGradientColorTable(number, stops, red, green, blue, self.nColors, 1.)
+        ROOT.gStyle.SetPalette(ROOT.kBird)
+        assert(index >= 0)
+        self.palette = np.arange(index + 1, index + self.nColors + 2, dtype=np.int32)
+
+    def set(self, hist, logLower=True, powerLower=10., logUpper=True, powerUpper=10., middle=0.5):
+        """ Apply palette to ratio histogram, so that the color at "middle" lies at the level of z=1 """
+
+        ROOT.gStyle.SetPalette(self.nColors, self.palette)
+        nContours = 100
+        middleContour = int(middle * nContours)
+        if logLower:
+            lower = np.log10(np.linspace(np.power(powerLower, hist.GetMinimum()), 10., middleContour, endpoint=False)) / np.log10(powerLower)
+        else:
+            lower = np.linspace(hist.GetMinimum(), 1., middleContour, endpoint=False)
+        if logUpper:
+            upper = np.power(powerUpper, np.linspace(0., np.log10(hist.GetMaximum()) / np.log10(powerUpper), nContours - middleContour))
+        else:
+            upper = np.linspace(1., hist.GetMaximum(), nContours - middleContour)
+        contours = np.concatenate((lower, upper))
+        hist.SetContour(nContours, contours)
+
+    def reset(self):
+        ROOT.gStyle.SetPalette(ROOT.kBird)
+
+
 def setTDRStyle():
-  tdrStyle =  ROOT.TStyle("tdrStyle","Style for P-TDR")
+  tdrStyle =  ROOT.TStyle(randomString(), "Style for P-TDR")
 
    #for the canvas:
   tdrStyle.SetCanvasBorderMode(0)
@@ -294,213 +599,3 @@ def CMS_lumi(pad, iPeriod, iPosX, extraText="Preliminary"):
         latex.DrawLatex(posX_, posY_, extraText)      
 
     pad.Update()
-
-
-def getEnvelopeHistograms(nominal, variations):
-    """
-    Compute envelop histograms create by all variations histograms. The envelop is simply the maximum
-    and minimum deviations from nominal for each bin of the distribution
-    Arguments:
-    nominal: The nominal histogram
-    variations: a list of histograms to compute the envelop from
-    """
-
-    if len(variations) < 2:
-        raise TypeError("At least two variations histograms must be provided")
-
-    # Use GetNcells() so that it works also for 2D histograms
-    n_bins = nominal.GetNcells()
-    for v in variations:
-        if v.GetNcells() != n_bins:
-            raise RuntimeError("Variation histograms do not have the same binning as the nominal histogram")
-
-    up = nominal.Clone()
-    up.SetDirectory(ROOT.nullptr)
-    up.Reset()
-
-    down = nominal.Clone()
-    down.SetDirectory(ROOT.nullptr)
-    down.Reset()
-
-    for i in range(0, n_bins):
-        minimum = float("inf")
-        maximum = float("-inf")
-
-        for v in variations:
-            c = v.GetBinContent(i)
-            minimum = min(minimum, c)
-            maximum = max(maximum, c)
-
-        up.SetBinContent(i, maximum)
-        down.SetBinContent(i, minimum)
-
-    return (up, down)
-
-
-def equaliseBins(hist, title='BLR bins'):
-    """Change bin boundaries along X axis of hist to 1, 2, ..., nBins+1.
-    Does not affect actual bin contents or errors.
-    Return a cloned histogram, no side-effect on hist."""
-
-    newHist = hist.Clone()
-    newHist.SetDirectory(ROOT.nullptr)
-    xAxis = newHist.GetXaxis()
-    xAxis.SetTitle(title)
-    nBins = xAxis.GetNbins()
-    newBins = array('f', range(1, nBins + 2))
-    xAxis.Set(nBins, newBins)
-    return newHist
-
-
-def openFileAndGet(path, mode="read"):
-    """Open ROOT file in a mode, check if open properly, and return TFile handle."""
-
-    _tf = ROOT.TFile.Open(path, mode)
-    if not _tf or not _tf.IsOpen():
-        raise Exception("Could not open file {}".format(path))
-    return _tf
-
-
-def readRecursiveDirContent(content, currTDir, resetDir=True):
-    """Fill dictionary content with the directory structure of currTDir.
-    Every object is read and put in content with their name as the key.
-    Sub-folders will define sub-dictionaries in content with their name as the key.
-    """
-
-    if not currTDir.InheritsFrom("TDirectory") or not isinstance(content, dict):
-        return
-
-    # Retrieve the directory structure inside the ROOT file
-    currPath = currTDir.GetPath().split(':')[-1].split('/')[-1]
-
-    if currPath == '':
-        # We are in the top-level directory
-        thisContent = content
-    else:
-        thisContent = {}
-        content[currPath] = thisContent
-
-    listKeys = currTDir.GetListOfKeys()
-
-    for key in listKeys:
-        obj = key.ReadObj()
-        if obj.InheritsFrom("TDirectory"):
-            print("Entering sub-directory {}".format(obj.GetPath()))
-            readRecursiveDirContent(thisContent, obj)
-        else:
-            name = obj.GetName()
-            thisContent[name] = obj
-            if resetDir:
-                obj.SetDirectory(0)
-
-
-def writeRecursiveDirContent(content, currTDir):
-    """Write the items in dictionary content to currTDir, respecting the sub-directory structure."""
-
-    if not currTDir.IsWritable() or not isinstance(content, dict):
-        return
-
-    for key, obj in content.items():
-        if isinstance(obj, dict):
-            print("Creating new sub-directory {}".format(key))
-            subDir = currTDir.mkdir(key)
-            writeRecursiveDirContent(obj, subDir)
-        elif isinstance(obj, ROOT.TObject):
-            currTDir.WriteTObject(obj, key)
-
-
-def randomiseHistMCStats(hist):
-    """Randomise the yields in each bin according to the statistical uncertainty in the bin"""
-
-    newHist = hist.Clone()
-
-    rng = ROOT.TRandom2()
-    rng.SetSeed(0)
-    sumw2Arr = hist.GetSumw2()
-    assert(sumw2Arr.GetSize() == hist.GetNcells())
-
-    for i in range(hist.GetNcells()):
-        orig = hist.GetBinContent(i)
-        sumw2 = sumw2Arr[i]
-        if sumw2 == 0 or orig == 0:
-            continue
-        effN = ceil(orig ** 2 / sumw2)
-        ran = rng.Poisson(effN)
-        new = ran * orig / effN
-        # print("Rel. uncertainty: {}, effective: {}, old: {}, new: {}".format(sqrt(sumw2)/orig, effN, orig, new))
-        newHist.SetBinContent(i, new)
-
-    return newHist
-
-
-def addHists(histList, newName):
-    myIt = iter(histList)
-    newHist = next(myIt).Clone(newName)
-    for hist in myIt:
-        newHist.Add(hist)
-    return newHist
-
-
-class RatioPalette:
-    """ Create color palette by assembling several "beautiful" (possibly inverted) ROOT palettes"""
-
-    colors = {
-        "deepsea": (np.array([0./255.,  9./255., 13./255., 17./255., 24./255.,  32./255.,  27./255.,  25./255.,  29./255.]),
-                    np.array([0./255.,  0./255.,  0./255.,  2./255., 37./255.,  74./255., 113./255., 160./255., 221./255.]),
-                    np.array([28./255., 42./255., 59./255., 78./255., 98./255., 129./255., 154./255., 184./255., 221./255.])),
-        "bird": (np.array([0.2082, 0.0592, 0.0780, 0.0232, 0.1802, 0.5301, 0.8186, 0.9956, 0.9764]),
-                 np.array([0.1664, 0.3599, 0.5041, 0.6419, 0.7178, 0.7492, 0.7328, 0.7862, 0.9832]),
-                 np.array([0.5293, 0.8684, 0.8385, 0.7914, 0.6425, 0.4662, 0.3499, 0.1968, 0.0539])),
-        "invDarkBody": (np.array([242./255., 234./255., 237./255., 230./255., 212./255., 156./255., 99./255., 45./255., 0./255.]),
-                        np.array([243./255., 238./255., 238./255., 168./255., 101./255.,  45./255.,  0./255.,  0./255., 0./255.]),
-                        np.array([230./255.,  95./255.,  11./255.,   8./255.,   9./255.,   3./255.,  1./255.,  1./255., 0./255.])),
-        "greyScale": (np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.]),
-                      np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.]),
-                      np.array([0./255., 32./255., 64./255., 96./255., 128./255., 160./255., 192./255., 224./255., 255./255.])),
-        "blueYellow": (np.array([0./255.,  22./255., 44./255., 68./255., 93./255., 124./255., 160./255., 192./255., 237./255.]),
-                       np.array([0./255.,  16./255., 41./255., 67./255., 93./255., 125./255., 162./255., 194./255., 241./255.]),
-                       np.array([97./255., 100./255., 99./255., 99./255., 93./255.,  68./255.,  44./255.,  26./255.,  74./255.])),
-        # "middle" is at 0.5
-        "temperatureMap": (np.array([34./255.,  70./255., 129./255., 187./255., 225./255., 226./255., 216./255., 193./255., 179./255.]),
-                           np.array([48./255.,  91./255., 147./255., 194./255., 226./255., 229./255., 196./255., 110./255.,  12./255.]),
-                           np.array([234./255., 212./255., 216./255., 224./255., 206./255., 110./255.,  53./255.,  40./255.,  29./255.])),
-        # "middle" is at 0.36/0.64
-        "blackBody": (np.array([243./255., 243./255., 240./255., 240./255., 241./255., 239./255., 186./255., 151./255., 129./255.]),
-                      np.array([0./255.,  46./255.,  99./255., 149./255., 194./255., 220./255., 183./255., 166./255., 147./255.]),
-                      np.array([6./255.,   8./255.,  36./255.,  91./255., 169./255., 235./255., 246./255., 240./255., 233./255.])),
-        # "blueYellow": (np.array([]),
-        #                np.array([]),
-        #                np.array([])),
-    }
-
-    def __init__(self, paletteList, nColors=250):
-        red = np.concatenate([np.flip(self.colors[colSet][0]) if doFlip else self.colors[colSet][0] for colSet, doFlip in paletteList])
-        green = np.concatenate([np.flip(self.colors[colSet][1]) if doFlip else self.colors[colSet][1] for colSet, doFlip in paletteList])
-        blue = np.concatenate([np.flip(self.colors[colSet][2]) if doFlip else self.colors[colSet][2] for colSet, doFlip in paletteList])
-        number = len(red)
-        self.nColors = nColors
-        stops = np.linspace(0., 1., number)
-        index = ROOT.TColor.CreateGradientColorTable(number, stops, red, green, blue, self.nColors, 1.)
-        ROOT.gStyle.SetPalette(ROOT.kBird)
-        assert(index >= 0)
-        self.palette = np.arange(index + 1, index + self.nColors + 2, dtype=np.int32)
-
-    def set(self, hist, logLower=True, powerLower=10., logUpper=True, powerUpper=10., middle=0.5):
-        """ Apply palette to ratio histogram, so that the color at "middle" lies at the level of z=1 """
-
-        ROOT.gStyle.SetPalette(self.nColors, self.palette)
-        nContours = 100
-        middleContour = int(middle * nContours)
-        if logLower:
-            lower = np.log10(np.linspace(np.power(powerLower, hist.GetMinimum()), 10., middleContour, endpoint=False)) / np.log10(powerLower)
-        else:
-            lower = np.linspace(hist.GetMinimum(), 1., middleContour, endpoint=False)
-        if logUpper:
-            upper = np.power(powerUpper, np.linspace(0., np.log10(hist.GetMaximum()) / np.log10(powerUpper), nContours - middleContour))
-        else:
-            upper = np.linspace(1., hist.GetMaximum(), nContours - middleContour)
-        contours = np.concatenate((lower, upper))
-        hist.SetContour(nContours, contours)
-
-    def reset(self):
-        ROOT.gStyle.SetPalette(ROOT.kBird)

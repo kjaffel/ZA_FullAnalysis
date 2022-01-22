@@ -2,17 +2,44 @@
 import os
 import re
 import yaml
-import logging
-logger = logging.getLogger("ZAutils")
-
 import numpy as np
+import HistogramTools as HT
 
 from bamboo.plots import Plot, SummedPlot
+from bamboo.root import gbl as ROOT
 from bamboo import treefunctions as op
 from bamboo import scalefactors
-from bamboo.root import gbl as ROOT
 
-import HistogramTools as HT
+def ZAlogger(name):
+    import logging
+    LOG_LEVEL = logging.DEBUG
+    stream = logging.StreamHandler()
+    stream.setLevel(LOG_LEVEL)
+    logger = logging.getLogger(f'{name}')
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler(stream)
+    try:
+        import colorlog
+        from colorlog import ColoredFormatter
+        formatter = ColoredFormatter(
+                        "%(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s",
+                        datefmt=None,
+                        reset=True,
+                        log_colors={
+                                'DEBUG':    'green',
+                                'INFO':     'cyan',
+                                'WARNING':  'blue',
+                                'ERROR':    'red',
+                                'CRITICAL': 'red',
+                            },
+                        secondary_log_colors={},
+                        style='%'
+                        )
+        stream.setFormatter(formatter)
+    except ImportError:
+        print(" You can add colours to the output of Python logging module via : https://pypi.org/project/colorlog/")
+        pass
+    return logger
 
 def getOpts(name, **kwargs):
     uname=name.lower()
@@ -55,7 +82,6 @@ def getRunEra(sample):
     result = re.search(r'Run201.([A-Z]?)', sample)
     if result is None:
         raise RuntimeError("Could not find run era from sample {}".format(sample))
-
     return result.group(1)
 
 def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
@@ -71,7 +97,6 @@ def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
     The variables can also be iterables for multi-dimensional plots.
     """
     plotsToAdd = []
-    
     for cat in categDef:
         if len(cat) == 2:
             (catName, catSel), catVar = cat, var
@@ -87,7 +112,6 @@ def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
         elif len(catVar) == 3:
             plotType = Plot.make3D
         plotsToAdd.append(plotType(thisName, catVar, catSel, binning, **kwargs))
-
     return plotsToAdd + [SummedPlot(f"{newCat}_{name}", plotsToAdd, **kwargs)]
 
 def declareHessianPDFCalculator():
@@ -142,7 +166,6 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True,
         else:
             logger.info("This sample has Hessian PDF variations")
         noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
-
     return noSel
 
 def splitTTjetFlavours(cfg, tree, noSel):
@@ -155,22 +178,23 @@ def splitTTjetFlavours(cfg, tree, noSel):
         noSel = noSel.refine(subProc, cut=op.in_range(40, tree.genTtbarId % 100, 46))
     elif subProc == "ttjj":
         noSel = noSel.refine(subProc, cut=(tree.genTtbarId % 100) < 41)
-
     return noSel
 
 def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, outPath):
     import shutil
-    for smp, smpCfg in in config["samples"].items():
-        if cfg.get("group") == "data":
+    for smp, smpCfg in config["samples"].items():
+        if smpCfg.get("group") == "data":
             #copy results file to outPath
             shutil.copyfile( os.path.join(inDir, f"{smp}.root"), os.path.join(outPath,f"{smp}.root"))
         else:
             resultsFile    = HT.openFileAndGet(os.path.join(inDir, f"{smp}.root"), mode="READ")
             normalizedFile = HT.openFileAndGet(os.path.join(outPath, f"{smp}.root"), "recreate")
             lumi = config["eras"][smpCfg["era"]]["luminosity"]
-            smpScale = lumi * smpCfg["cross-section"] / counterReader(tf)[cfg["generated-events"])
-            if cfg.get("type") == "signal":
-                smpScale *= smpCfg["Branching-ratio"]
+            smpScale = lumi / counterReader(resultsFile)[smpCfg["generated-events"]]
+            if smpCfg.get("type") == "signal":
+                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+            if smpCfg.get("type") == "mc":
+                smpScale *= smpCfg["cross-section"]
             for plot in plots:
                 hNom = resultsFile.Get(plot.name)
                 hNom.Scale(smpScale)
@@ -181,8 +205,8 @@ def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, out
                         hV = resultsFile.Get(hk.GetName())
                         hV.Scale(smpScale)
                         hV.Write()
-            resultsFile.Write()
-
+            normalizedFile.Write()
+            resultsFile.Close()
 
 def getSumw(resultsFile, smpCfg, readCounters=None):
     if "generated-events" in smpCfg:
@@ -246,14 +270,12 @@ def produceMEScaleEnvelopes(plots, scaleVariations, path):
         up, down = HT.getEnvelopeHistograms(nominal, variations)
         up.Write(f"{plot.name}__qcdScaleup", ROOT.TObject.kOverwrite)
         down.Write(f"{plot.name}__qcdScaledown", ROOT.TObject.kOverwrite)
-
     _tf.Close()
 
 def producePDFEnvelopes(plots, task, resultsdir):
     sample = task.name
     smpCfg = task.config
     path   = os.path.join(resultsdir, task.outputFile)
-
     logger.info(f"Producing PDF uncertainty envelopes for sample {sample}")
 
     def sigmaFromReplicasMC(replicas):
@@ -303,5 +325,4 @@ def producePDFEnvelopes(plots, task, resultsdir):
         down.Write("", ROOT.TObject.kOverwrite)
 
     logger.info(f"Found {nVar} PDF variations for sample {sample}")
-
     tf.Close()
