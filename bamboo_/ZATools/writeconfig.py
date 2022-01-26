@@ -150,7 +150,12 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
     das_tomerge  = []
     das_toignore = []
     
-    version = smp.split('/')[-2].split('asymptotic_')[1]
+    if era == '2016':
+        lookfor = 'asymptotic_'
+    else:
+        lookfor = 'realistic_'
+
+    version = smp.split('/')[-2].split(lookfor)[1]
     if '_ext' in version: s = version.split('_ext')[0]+'-v'
     else: s = version.split('-')[0]+'_ext'
     #https://newbedev.com/python-regular-express-cheat-sheet
@@ -158,9 +163,9 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
         for line in file:
             path   = line.split()[0]
             if isdata:
-                regex = re.compile(f"/{search}/Run{era.split('-')[0]}{run}-ver*", re.IGNORECASE)
+                regex = re.compile(f"/{search}/Run{era}{run}-ver*", re.IGNORECASE)
             else:
-                regex = re.compile(f"/{search}/{smp.split('/')[-2].split('asymptotic_')[0]+'asymptotic_'+ s}*", re.IGNORECASE)
+                regex = re.compile(f"/{search}/{smp.split('/')[-2].split(lookfor)[0]+lookfor+ s}*", re.IGNORECASE)
             m = regex.search(path)
             if m:
                 # this is an extension add to merge 
@@ -331,8 +336,14 @@ if __name__ == "__main__":
                 if isdata:
                     run = smp.split('/')[2].split('-')[0][-1]
                 era, lumi, uncer = get_era_and_luminosity(smp, run, isdata)
-                era_ = era.split('-')
                 
+                if  '2016' in era :
+                    era_ = era.split('-')[0]
+                    VFP  = f'_{era_[1]}'
+                else:
+                    era_ = era
+                    VFP = ''
+
                 if issignal:
                     benchmarks = loadSushiInfos(len(smpNm),f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
                     fullsim    = loadSushiInfos(len(smpNm),f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
@@ -340,21 +351,21 @@ if __name__ == "__main__":
                     
                     arrs = np.concatenate((benchmarks, fullsim, all_))
                     H, l, mHeavy, mlight, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, arrs)
-                    Nm      = smpNm.replace('-','_')+f'_{era_[1]}'
+                    Nm      = smpNm.replace('-','_')+VFP
                     br      = br_HeavytoZlight *  br_lighttobb
                     leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
                     split   = 4 
                     search  = smpNm
                     details = f'{H} -> Z{l} : {br_HeavytoZlight} * {l} -> bb : {br_lighttobb}'
                 elif isdata:
-                    Nm = f'{smpNm}_UL{era_[0]}{run}_{era_[1]}'
+                    Nm = f'{smpNm}_UL{era_}{run}{VFP}'
                     run_range = run2_ranges[era][run]
                     cert = certification[era.split('-')[0]] # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
                     split  = 4
                     search = smpNm
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
-                    Nm = Nm + f'_{era_[1]}'
+                    Nm = Nm + VFP
                     split = 8
                     search = smpNm
                     if group not in groups.keys(): 
@@ -365,7 +376,7 @@ if __name__ == "__main__":
                 
                 if str(smp) in merged_daspath:
                     continue
-                das__path, to_ignore = get_das_path(options.das, smp, search, era, run, isdata, isMC, issignal)
+                das__path, to_ignore = get_das_path(options.das, smp, search, era_, run, isdata, isMC, issignal)
                 merged_daspath.extend( to_ignore)
                 
                 outf.write(f"  {Nm}:\n")
