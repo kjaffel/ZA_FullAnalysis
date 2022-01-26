@@ -36,6 +36,7 @@ def get_list_ofsystematics(eras):
         '# total on the jets energy resolution',
         'jer',
         '  # affect shape variations',
+        '  # splited  between (kinematic) regions',
         'jer0',
         'jer1',
         'jer2',
@@ -45,14 +46,6 @@ def get_list_ofsystematics(eras):
         'jmr',
         'jms',
         'unclustEn',
-        '  # splited  between (kinematic) regions',
-        'Jer_backward',
-        'Jer_eta_1p93TO2p5',
-        'Jer_eta_2p5TO3_bin1',
-        'Jer_eta_2p5TO3_bin2',
-        'Jer_eta_3TO2p5_bin1',
-        'Jer_eta_3TO2p5_bin2',
-        'Jer_forward',
         '# on the jets energy scale ',
         'jesTotal',
         '  # splited by source',
@@ -73,15 +66,13 @@ def get_list_ofsystematics(eras):
         'HHMoriond17_mumutrig',
         'HHMoriond17_elmutrig',
         'HHMoriond17_mueltrig',
-        '  # sys from theory  ',
+        '# sys from theory  ',
         'qcdScale',
         'qcdMuF',
         'qcdMuR',
         'psISR',
         'psFSR',
         'pdf',
-        '# L1 pre-firing event correction weight',
-        'L1PreFiring',
         '# on the btagged jets ',
         'btagSF_fixWP_subjetdeepcsvM_light',
         'btagSF_fixWP_subjetdeepcsvM_heavy',
@@ -89,7 +80,7 @@ def get_list_ofsystematics(eras):
         'btagSF_fixWP_deepcsvM_heavy',
         'btagSF_fixWP_deepflavourM_light',
         'btagSF_fixWP_deepflavourM_heavy',
-        '# jets energry resolution / pu and HLTZvtx uncorelated per year',
+        '# jets energry resolution / pu and HLTZvtx uncorrelated per year',
         ]
     for era in eras.keys():
         sys += [
@@ -100,22 +91,32 @@ def get_list_ofsystematics(eras):
             f'jesHF_{era}',
             f'jesRelativeSample_{era}',
             f'pileup_UL{era}',
-            f'HLTZvtx_{era}',
+        ]
+        if era == '2017':
+            sys += [f'HLTZvtx_{2017}',]
+        if era != '2018':
+            sys += [
+            '# L1 pre-firing event correction weight',
+            'L1PreFiring',
         ]
     return sys
 
 def get_mcNmConvention_and_group(smpNm):
+    """
+    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns
+    https://twiki.cern.ch/twiki/bin/viewauth/CMS/HowToGenXSecAnalyzer
+    """
     shortnames = {'DYJetsToLL_0J'   : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_1J'   : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_2J'   : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
                   'TTHadronic'            : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  7],
                   'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  6],
                   'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  5],
-                  'ST_tW_top_5f'          : ['ST', 34.91,  0., 'Single Top',    '#ffc800',  4],
-                  'ST_tW_antitop_5f'      : ['ST', 34.97,  0., 'Single Top',    '#ffc800',  4],
+                  'ST_tW_top_5f'          : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  4],
+                  'ST_tW_antitop_5f'      : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  4],
                   'ST_tchannel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  4],
                   'ST_tchannel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  4],
-                  'ST_schannel_4f'        : ['ST', 3.74,   0., 'Single Top',    '#ffc800',  4],
+                  'ST_schannel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  4],
                   'ZZTo2L2Nu'   : ['ZZ', 0.5644, 0.0002688, 'ZZ',   '#ff4800',  3],
                   'ZZTo2L2Q'    : ['ZZ', 3.222, 0.004901,   'ZZ',   '#ff4800',  3],
                   'ZZTo4L'      : ['ZZ', 1.256, 0.002271,   'ZZ',   '#ff4800',  3],
@@ -158,7 +159,7 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
             path   = line.split()[0]
             if isdata:
                 regex = re.compile(f"/{search}/Run{era.split('-')[0]}{run}-ver*", re.IGNORECASE)
-            if isMC:
+            else:
                 regex = re.compile(f"/{search}/{smp.split('/')[-2].split('asymptotic_')[0]+'asymptotic_'+ s}*", re.IGNORECASE)
             m = regex.search(path)
             if m:
