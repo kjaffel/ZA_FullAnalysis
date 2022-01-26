@@ -1,7 +1,7 @@
 # ZA Machine Learning: 
 This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysis](https://github.com/FlorianBury/HHbbWWAnalysis/tree/master/MachineLearning) and it was udapted to do multi-classification for **H/A-> Z(ll) A/H(bb)** analysis for full run2 data.
 
-## Getting Started:
+## Getting Started with Installation and setup:
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
 
 ### Prerequisites:
@@ -17,7 +17,7 @@ function dnn_env() {
     module load slurm/slurm_utils
 }
 ```
-- Or you can use LCG in it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): **[recommended]**
+- Or you can use LCG in it's latest version [SPI LCG distribution](http://spi.web.cern.ch/): **[Recommended]**
 ```
 function dnn_env() {
     module --force purge
@@ -26,34 +26,31 @@ function dnn_env() {
     module load slurm/slurm_utils
     source /cvmfs/cms.cern.ch/cmsset_default.sh
     source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc10-opt/setup.sh
-    python -m venv $HOME/bamboodev/bamboovenv101 # only 1st time 
+    python -m venv $HOME/bamboodev/bamboovenv101 ## only 1st time 
     source $HOME/bamboodev/bamboovenv101/bin/activate
 }
 ```
 ### Installing required python packages: 
-Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this. If you do not have sysadmin rights, do not forget to use ``pip install --user``.
-- [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
-- [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
+Below are the required packages that can be installed with pip. If you are working on ``ingrid-ui1`` you don't have to do any of this, most of them are there for you. If not and you do not have sysadmin rights, do not forget to use ``pip install --user``.
+- [Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning): ``pip install --upgrade tensorflow``
+- [Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow): ``pip install keras``
 - [Talos](https://pypi.org/project/talos/) (hyperparameter scans): ``pip install talos``
 - [Root_numpy](https://pypi.org/project/root-numpy/) (From ROOT trees to numpy arrays): ``pip install root-numpy``
-- [Seaborn](https://pypi.org/project/seaborn/) (Data Visualization)
-- [Numpy](https://pypi.org/project/numpy/) (Data manipulation)
-- [Pandas](https://pypi.org/project/pandas/) (Useful to manipulate numpy arrays altogether)
+- [Seaborn](https://pypi.org/project/seaborn/) (Data Visualization): ``pip install seaborn``
+- [Numpy](https://pypi.org/project/numpy/) (Data manipulation): ``pip install numpy``
+- [Pandas](https://pypi.org/project/pandas/) (Useful to manipulate numpy arrays altogether): ``pip install pandas``
 - [Astetik](https://pypi.org/project/astetik/) (Simplified templates of seaborn required by Talos): ``pip install astetik``
 - [Enlighten](https://pypi.org/project/enlighten/) (Practical process bar): ``pip install enlighten``
-- [Scipy](https://pypi.org/project/scipy/) (Data processing)
+- [Scipy](https://pypi.org/project/scipy/) (Data processing): ``pip install scipy``
 - [plotille]( https://pypi.org/project/plotille/) (Plot in the terminal using braille dots): ``pip install plotille``
 - [pynvml]( https://pypi.org/project/pynvml/) (Python Bindings for the NVIDIA Management Library): ``pip install pynvml``
 - [wrangle](https://pypi.org/project/wrangle/) (Wrangle - Data Preparation for Deep Learning): ``pip install wrangle``
 - [chances](https://pypi.org/project/chances/) (Chances provides a simple utility to access random methods in a unified manner) : ``pip install chances``
 
 ## Workflow:
-All the tweaks are done in :
-- ``parameters.py`` : It's a configuration script includes most of the parameters that will be used during the training.
-They will be described in details in the next subsections. Then we will detail the usual workflow of the hyperparameter scans.
-
-### Scripts Configuration:
-- ``parameters.py``: contains the global information required by all the scripts, all the variables are accessed via ``parameters.something``.
+### Script Configuration:
+Most of the tweaks is done in ``parameters.py``;
+- ``parameters.py`` : It's a configuration script includes most of the parameters that will be used during the training. It contains the global information required by all the scripts, all the variables are accessed via ``parameters.something``.
     - [Path variables](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAMachineLearning/parameters.py#L17-L18): where the script will be running, produce the output and models
     - [Datasets proportion](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAMachineLearning/parameters.py#L27-L30): one part goes for training, one for evaluation of the model (used in hyperparameter scans) and one for producing an output for testing. A check is done to make sure the total accounts to 1, cross validation is not yet included.
 - Slurm parameters : will be provided to ``submit_on_slurm.py``
@@ -81,7 +78,7 @@ They will be described in details in the next subsections. Then we will detail t
     - other_variables : Other variables you want to keep in the tree but not use as inputs not targets
 - make_dtype : This is because we use root_numpy to produce the root files and it does not like ``.``, ``(``, ``)``, ``-`` neither ``*``
 
-### Local Test: 
+### Test your setup- Local Test: 
 ``` python
 python ZAMachineLearning.py -v (args) --scan name_of_scan -o output_dir --debug
 ```
@@ -136,7 +133,7 @@ python PlotMassPlane.py --model output_dir/model/all_combined_dict_???_isbest_mo
 - ``--resolved``: boolean flag default ``False``
 - ``--boosted``: boolean flag  default ``False``
 - ``--channel``: elel or mumu 
-### Resubmission:
+### Dealing with (failed) batch jobs/ Resubmission:
 If some jobs failed, they can be resubmitted with the command: 
 ```python
 python ZAMachineLearning.py (args) --submit name_of_jobs --split 1 --resubmit /slurm/name_of_jobs/output/
