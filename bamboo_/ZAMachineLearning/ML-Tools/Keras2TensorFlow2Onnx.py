@@ -3,9 +3,13 @@ import os
 import json
 import glob 
 import argparse
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+sys.path.append(os.path.abspath('../..'))
+import utils as utils
+logger = utils.ZAlogger(__name__)
+#import logging
+#logging.basicConfig(level=logging.INFO)
+#logger = logging.getLogger(__name__)
 
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json
@@ -18,7 +22,6 @@ import Operations
 from preprocessing import PreprocessLayer
 
 print("TensorFlow version is :"+tf.__version__)
-
 
 def load_graph(frozen_graph_filename):
     with tf.io.gfile.GFile(frozen_graph_filename, "rb") as f:
@@ -69,8 +72,15 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
         try: 
             import keras2onnx
             print("keras2onnx version is :"+keras2onnx.__version__)
-            logger.warning("TensorFlow version is :2.3.0 && keras2onnx version is :1.7.0 with LCG100 defnietly works try degrade you version")
-            
+            if not (keras2onnx.__version__ =='2.3.0' and tf.__version__=='1.7.0'):
+                logger.warning("This may not work \n"
+                               "TensorFlow version : 2.3.0  and keras2onnx version :1.7.0 using LCG100 defnietly works, so try degrade you version\n"
+                               "simply in clean shell do:\n"
+                               "cms_env\n"
+                               "source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh\n"
+                               "python -m venv $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100 # only the 1st time\n"
+                               "source $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100/bamboovenv100/bin/activate\n")
+
             onnx_model  = keras2onnx.convert_keras(keras_model, keras_model.name)
             keras2onnx.save_model(onnx_model, os.path.join(outdir, suffix+".onnx"))
             
@@ -133,7 +143,7 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', '-p', required=True, type=str, help='path where I an get the model/*_isbest_model/*.json && *.h5')
+    parser.add_argument('--path', '-p', required=True, type=str, help='path where I can get the dir / model/*_isbest_model/*.json && *.h5')
     parser.add_argument('--outdir','-o', dest='outdir', required=False, default='./keras_tf_onnx_models', help='The directory to place the output files - default("./keras_tf_onnx_models")')
     parser.add_argument('--job', required=True, type=str, choices=['k2tf', 'k2onnx'], help='What do you want: Keras -> TF or Keras -> ONNX')
    
