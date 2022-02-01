@@ -61,7 +61,6 @@ def Tree2Pandas(input_file, variables, era=None, weight=None, cut=None, xsec=Non
 
     # Convert to pandas dataframe #
     df = pd.DataFrame(data)
-
     # Reweighting #
     relative_weight = 1
     if weight is not None and xsec is not None and event_weight_sum is not None:
@@ -74,7 +73,6 @@ def Tree2Pandas(input_file, variables, era=None, weight=None, cut=None, xsec=Non
                 luminosity = 16977.701784453
             else:
                 luminosity = 36645.514633552
-        
         relative_weight = xsec * luminosity / event_weight_sum
         
         logging.debug('\t\tReweighting requested')
@@ -105,19 +103,16 @@ def Tree2Pandas(input_file, variables, era=None, weight=None, cut=None, xsec=Non
         if param is None:
             param = 0
         df['param'] = np.ones(df.shape[0]) * param
-
     # Register additional columns #
     if len(additional_columns.keys()) != 0:
         for key,val in additional_columns.items():
             df[key] = pd.Series([val]*df.shape[0])
-
     # Slice printout #
     if start is not None or stop is not None:
         ni = start if start is not None else 0
         nf = stop if stop is not None else N
         logging.debug(f"Reading from {ni} to {nf} in input tree (over {N} entries)")
     file_handle.Close()
-
     return df
 
 
@@ -128,9 +123,7 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
     # Check if directory #
     if not os.path.exists(input_dir):
         raise RuntimeError("%s does not exist"%input_dir)
-
     logging.debug("Accessing directory : "+input_dir)
-
     # Xsec #
     if xsec_dict is not None and not isinstance(xsec_dict,dict):
         raise NotImplementedError('Cannot handle xsec not being a dict')
@@ -139,14 +132,11 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
         raise NotImplementedError('Cannot handle event weight sum not being a dict')
     if era is None and (xsec_dict is None or event_weight_sum_dict is None):
         raise RuntimeError('If you plan to use xsec and even weight sum you need to provide the era (either one value or a list with one element per sample)')
-    
-
     # Wether to use a given sample list or loop over files inside a dir #
     if list_sample is None:
         list_sample = glob.glob(os.path.join(input_dir,"*.root"))
     else:
         list_sample = [os.path.join(input_dir,s) for s in list_sample]
-
     # Start and stop #
     if isinstance(start,list) and isinstance(stop,list):
         if len(start) != len(list_sample):
@@ -164,17 +154,14 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
         # Eras
         if isinstance(era,list):
             era = eras
-        
         # Cross section #
         xsec = None
         if xsec_dict is not None and sample_name in xsec_dict[era].keys():
             xsec = xsec_dict[era][sample_name]
-
         # Event weight sum #
         event_weight_sum = None
         if event_weight_sum_dict is not None and sample_name in event_weight_sum_dict[era].keys():
             event_weight_sum = event_weight_sum_dict[era][sample_name]
-
         # Start #
         ni = None
         if start is not None:
@@ -182,7 +169,6 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
                 ni = start[i]
             else:
                 ni = start
-
         # Stop #
         nf = None
         if stop is not None:
@@ -208,9 +194,23 @@ def LoopOverTrees(input_dir, variables, list_sample=None, weight=None, cut=None,
             if df is None:
                 continue
             # Find mH, mA #
-            if sample_name.find('HToZA')!=-1: # Signal -> Search for mH and mA
-                mH = [int(re.findall(r'\d+', sample_name)[2])]*df.shape[0]
-                mA = [int(re.findall(r'\d+', sample_name)[3])]*df.shape[0]
+            if sample_name.find('HToZATo2L2B')!=-1: # Signal -> Search for mH and mA
+                logging.debug(f'working on : {sample_name}' )
+                if 'tb_20p00' in sample_name or 'tb_1p50' in sample_name:
+                    # new bbH signal sample
+                    # HToZATo2L2B_MH_800p00_MA_700p00_tb_20p00_TuneCP5_bbH4F_13TeV_amcatnlo_pythia8_preVFP.root
+                    # new ggH signal sample
+                    # GluGluToHToZATo2L2B_MH_1000p00_MA_50p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_preVFP.root
+                    split_smpNm = sample_name.split('_')
+                    mH = [float(split_smpNm[2].replace('p','.'))]*df.shape[0]
+                    mA = [float(split_smpNm[4].replace('p','.'))]*df.shape[0]
+                    logging.debug( f"mH = {float(split_smpNm[2].replace('p','.'))}, mA = {float(split_smpNm[4].replace('p','.'))}")
+                else:
+                    # old signal samples: 
+                    # HToZATo2L2B_MH-3000_MA-2000
+                    mH = [int(re.findall(r'\d+', sample_name)[2])]*df.shape[0]
+                    mA = [int(re.findall(r'\d+', sample_name)[3])]*df.shape[0]
+                    logging.debug( "mH = {} , mA = {}".format(int(re.findall(r'\d+', sample_name)[2]), int(re.findall(r'\d+', sample_name)[3])))
             else: # Background, set them at 0
                 mH = [0]*df.shape[0]
                 mA = [0]*df.shape[0]
