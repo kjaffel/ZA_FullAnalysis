@@ -5,6 +5,7 @@ import yaml
 import random
 import argparse, optparse
 import numpy as np
+import pandas as pd
 import re
 from collections import defaultdict
 from faker import Factory
@@ -47,14 +48,28 @@ def get_list_ofsystematics(eras):
         'jms',
         'unclustEn',
         '# on the jets energy scale ',
-        'jesTotal',
+        'jesTotal']
+    for era in eras.keys():
+        sys += [
         '  # splited by source',
-        'jesAbsolute',
-        'jesBBEC1',
-        'jesEC2',
-        'jesFlavorQC',
-        'jesHF',
-        'jesRelativeBal',
+            f'   #{era}',
+            f'jesAbsolute_{era}',
+            f'jesBBEC1_{era}',
+            f'jesEC2_{era}',
+            f'jesHF_{era}',
+            f'jesRelativeSample_{era}',
+        '# on pu and HLTZvtx uncorrelated per year',
+            f'pileup',
+        ]
+        if era == '2017':
+            sys += [f'HLTZvtx']
+        if era != '2018':
+            sys += [
+            '# L1 pre-firing event correction weight',
+            'L1PreFiring',
+        ]
+
+    sys += [
         '# leptons ID, ISO and RCO SFs ',
         'muid_medium',
         'muiso_tight',
@@ -80,24 +95,6 @@ def get_list_ofsystematics(eras):
         'btagSF_fixWP_deepcsvM_heavy',
         'btagSF_fixWP_deepflavourM_light',
         'btagSF_fixWP_deepflavourM_heavy',
-        '# jets energry resolution / pu and HLTZvtx uncorrelated per year',
-        ]
-    for era in eras.keys():
-        sys += [
-            f'   #{era}',
-            f'jesAbsolute_{era}',
-            f'jesBBEC1_{era}',
-            f'jesEC2_{era}',
-            f'jesHF_{era}',
-            f'jesRelativeSample_{era}',
-            f'pileup_UL{era}',
-        ]
-        if era == '2017':
-            sys += [f'HLTZvtx_{2017}',]
-        if era != '2018':
-            sys += [
-            '# L1 pre-firing event correction weight',
-            'L1PreFiring',
         ]
     return sys
 
@@ -150,14 +147,14 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
     das_tomerge  = []
     das_toignore = []
     
-    if era == '2016':
-        lookfor = 'asymptotic_'
-    else:
-        lookfor = 'realistic_'
-
-    version = smp.split('/')[-2].split(lookfor)[1]
-    if '_ext' in version: s = version.split('_ext')[0]+'-v'
-    else: s = version.split('-')[0]+'_ext'
+    if not isdata:
+        if era == '2016': lookfor = 'asymptotic_'
+        else: lookfor = 'realistic_'
+        
+        version = smp.split('/')[-2].split(lookfor)[1]
+        if '_ext' in version: s = version.split('_ext')[0]+'-v'
+        else: s = version.split('-')[0]+'_ext'
+    
     #https://newbedev.com/python-regular-express-cheat-sheet
     with open(inf, 'r') as file:
         for line in file:
@@ -172,6 +169,7 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
                 das_tomerge.append('das:{}'.format(path))
                 das_tomerge.append('das:{}'.format(smp))
                 das_toignore.append(path)
+    das_tomerge = pd.unique(das_tomerge).tolist()
     if das_tomerge:
         return das_tomerge, das_toignore
     else:
@@ -181,7 +179,6 @@ def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
     return f"{process}-{comp} -- M{H}-{mass_to_str(m_heavy)}_M{l}-{mass_to_str(m_light)}_tb-{mass_to_str(tb)}"
 
 def get_xsc_br_fromSushi(smpNm, arr):
-    print('working on:', smpNm )#, len(smpNm))
     for lis in arr:
         if not smpNm == lis[0]: continue
         if 'HToZATo2L2B' in smpNm: 
@@ -336,13 +333,13 @@ if __name__ == "__main__":
                 if isdata:
                     run = smp.split('/')[2].split('-')[0][-1]
                 era, lumi, uncer = get_era_and_luminosity(smp, run, isdata)
-                
-                if  '2016' in era :
+                year = era.replace('20', '')
+                if  'VFP' in era :
                     era_ = era.split('-')[0]
-                    VFP  = f'_{era_[1]}'
+                    VFP  = f"_UL16{era.split('-')[1]}"
                 else:
                     era_ = era
-                    VFP = ''
+                    VFP = f"_UL{year}"
 
                 if issignal:
                     benchmarks = loadSushiInfos(len(smpNm),f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
@@ -354,7 +351,6 @@ if __name__ == "__main__":
                     Nm      = smpNm.replace('-','_')+VFP
                     br      = br_HeavytoZlight *  br_lighttobb
                     leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
-                    split   = 4 
                     search  = smpNm
                     details = f'{H} -> Z{l} : {br_HeavytoZlight} * {l} -> bb : {br_lighttobb}'
                 elif isdata:
@@ -366,7 +362,7 @@ if __name__ == "__main__":
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
                     Nm = Nm + VFP
-                    split = 8
+                    split = 150
                     search = smpNm
                     if group not in groups.keys(): 
                         groups[group] = {}
@@ -381,8 +377,9 @@ if __name__ == "__main__":
                 
                 outf.write(f"  {Nm}:\n")
                 outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                outf.write(f"    files: dascache/nanov9/{Nm}.dat\n")
-                outf.write(f"    split: {split}\n")
+                outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                if not issignal:
+                    outf.write(f"    split: {split}\n")
                 outf.write(f"    era: '{era}'\n")
                 if isMC :
                     outf.write(f"    group: {group}\n")

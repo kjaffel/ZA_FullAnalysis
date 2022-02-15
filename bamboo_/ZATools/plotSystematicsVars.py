@@ -105,10 +105,12 @@ def beautify(s, era):
 def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era =None, normalize=True):
     files= {'mc':{'DY':[], 
                   'ttbar':[],
-                  'SingleTop':[]}
+                  'SingleTop':[],
+                  'total':[]}
             }
+    
     s = 'normalized_' if normalize else ''
-
+    
     for rf in inputs:
         smp   = rf.split('/')[-1]
         smpNm = smp.replace('.root','')
@@ -123,7 +125,7 @@ def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era 
         lumi   = Cfg["configuration"]["luminosity"][year]
         xsc    = Cfg['files'][smp]["cross-section"]
         genevt = Cfg['files'][smp]["generated-events"]
-       
+        root   = Cfg["configuration"]["root"]
         rf = os.path.join(outDir, f'summed_{s}processes', rf)
 
         if any( x in smpNm for x in ['DYJetsToLL']):
@@ -133,6 +135,7 @@ def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era 
         elif any( x in smpNm for x in ['ST']):
             files['mc']['SingleTop'].append(rf)
         
+        files['mc']['total']= files['mc']['DY']+files['mc']['ttbar']+files['mc']['SingleTop']
         smpScale = (lumi * xsc )/ genevt
 
         if normalize:
@@ -159,7 +162,7 @@ def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era 
 
 def get_listofsystematics(directory):
     systematics = []
-    files = glob.glob(os.path.join(directory,"*.root"))
+    files = glob.glob(os.path.join(directory, "*.root"))
     for i, f in enumerate(files):
         F = ROOT.TFile(f)
         for key in F.GetListOfKeys():
@@ -339,7 +342,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input' , type=str , help='Input to bamboo directory'  , required=True)
     parser.add_argument('-o', '--output', type=str , help='Output directory', default ='sysvars')
     parser.add_argument('-e', '--era'   , type=str , help='', required=True)
-    parser.add_argument('-m', '--merge' , action='store_true', default=False , help='merge bkg processes instead of going through them seperatly')
+    parser.add_argument('-m', '--merge' , action='store_true', default=True, help='merge bkg processes instead of going through them seperatly')
     parser.add_argument('-n', '--normalize', action='store_true', default=True, help='normalize mc samples')
     parser.add_argument('-p', '--plots' , nargs='*', help='Restrict to those plots - use all by default')
     parser.add_argument('-f', '--files' , nargs='*', help='Restrict to those files - use all by default')
@@ -352,26 +355,30 @@ if __name__ == "__main__":
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    with open(os.path.join(options.input, 'plots.yml')) as _f:
+    subdir = options.input.split('/')[-2]
+    plotter_p = options.input.split(subdir)[0]
+    plotter_p = "../run2Ulegay_results/ul_2016__ver10/"
+    with open(os.path.join(plotter_p, 'plots.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
+    root = plotConfig["configuration"]["root"]
     
     systematics = plotConfig["systematics"]
     with open(os.path.join(options.output, "systematics.json"), 'w') as _f:
         json.dump(systematics, _f, indent=4)
     logger.info( f'found systematics saved in : {options.output}/systematics.json' )
     # use the sys we get from the histogram 
-    found_systematics = get_listofsystematics(os.path.join(options.input, 'results/'))
+    found_systematics = get_listofsystematics(options.input) 
+            
     print( found_systematics )
     
     ignore_systematics = []#['jer2', 'unclustEn', 'jer4', 'jer3', 'L1PreFiring', 'jer0', 'jer5', 'jer1', 'jmr', 'jms', 'HLTZvtx_2016postVFP', 'HLTZvtx_2016', 'HLTZvtx_2016preVFP']
 
     files = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
     if options.merge:
-
         if not os.path.isdir(os.path.join(options.output, f'summed_{s}processes')):
             os.makedirs(os.path.join(options.output, f'summed_{s}processes'))
-
-            files = get_mergedBKG_processes(inputs=files, Cfg=plotConfig, inDir= os.path.join(options.input, 'results/'), outDir=options.output, era =options.era, normalize=options.normalize)
+            
+            files = get_mergedBKG_processes(inputs=files, Cfg=plotConfig, inDir= options.input, outDir=options.output, era =options.era, normalize=options.normalize)
         else:
             logger.info(f'{options.output}/summed_{s}processes/ already exist and not empty!\n'
             '\tScale and hadd steps will be skipped \n'
@@ -392,7 +399,7 @@ if __name__ == "__main__":
         if options.merge: 
             _tf = ROOT.TFile.Open(proc)
         else:
-            _tf = ROOT.TFile.Open(os.path.join(os.path.dirname(options.input), plotConfig["configuration"]["root"], proc))
+            _tf = ROOT.TFile.Open(os.path.join(os.path.dirname(options.input), proc))
         
         logger.info(f'working on {_tf}')
         for plot in plots:
@@ -416,15 +423,19 @@ if __name__ == "__main__":
                 if syst in ignore_systematics:
                     continue
                 
+                cms_syst = syst#H.CMSNamingConvention(syst, options.era)
+                
                 up = _tf.Get(plot + "__" + syst + "up")
                 if not (up and up.InheritsFrom("TH1")):
-                    logger.error(f"\tCould not find up variation for systematic {syst}, using nominal")
-                    continue
+                    logger.error(f"\tCould not find up variation for systematic {syst} == {cms_syst}, using nominal")
+                    up = nominal
                 down = _tf.Get(plot + "__" + syst + "down")
                 if not (down and down.InheritsFrom("TH1")):
-                    logger.error(f"\tCould not find down variation for systematic {syst}, using nominal")
+                    logger.error(f"\tCould not find down variation for systematic {syst} == {cms_syst}, using nominal")
+                    down=nominal
+                if up == down == nominal:
+                    print("Neither up nor down found, skipping!")
                     continue
-                
-                cms_syst = H.CMSNamingConvention(syst, '2016')
+
                 drawSystematic(nominal, up, down, plot, options.era, cms_syst, proc.split('/')[-1].split(".root")[0], plots[plot], options.output)
         _tf.Close()
