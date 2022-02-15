@@ -1,16 +1,13 @@
-import os, os.path
-import sys
-import yaml
+import os, os.path, sys
 
 from bamboo import treefunctions as op
-from bamboo.plots import SummedPlot
+from bamboo.plots import SummedPlot, DerivedPlot, CutFlowReport
 from bamboo.plots import EquidistantBinning as EqBin
 from bamboo.plots import VariableBinning as VarBin
 from bamboo.analysismodules import NanoAODHistoModule, HistogramsModule
 
 zabPath = os.path.dirname(__file__)
-if zabPath not in sys.path:
-    sys.path.append(zabPath)
+if zabPath not in sys.path: sys.path.append(zabPath)
 
 import utils as utils
 logger = utils.ZAlogger(__name__)
@@ -18,17 +15,15 @@ logger = utils.ZAlogger(__name__)
 import ControlPLots as cp
 import HistogramTools as HT
 from ZAtollbb import NanoHtoZABase
+from bambooToOls import Plot, SaveCutFlowReports
+
 
 class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
     def __init__(self, args):
         super(ZA_BTagEfficiencies, self).__init__(args)
     
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):
-
-        from bambooToOls import Plot
-        from bamboo.plots import CutFlowReport
-
-        noSel, puWeightsFile, PUWeight, categories, isDY_reweight, WorkingPoints, BoostedTopologiesWP, legacy_btagging_wpdiscr_cuts, deepBFlavScaleFactor, deepB_AK4ScaleFactor, deepB_AK8ScaleFactor, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, CleanJets_fromPileup, electrons, muons, MET, corrMET, PuppiMET, elRecoSF_highpt, elRecoSF_lowpt, isULegacy = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
+        noSel, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
         
         year = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
@@ -40,7 +35,6 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         binScaling = 1
         plots = []
 
-        
         eoy_btagging_wpdiscr_cuts = {
                 "resolved": {
                     "DeepCSV":{ # era: (loose, medium, tight)
@@ -63,7 +57,6 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     }
                 }
 
-        
         legacy_btagging_wpdiscr_cuts = {
                 "resolved": {
                     "DeepCSV":{ # era: (loose, medium, tight)
@@ -89,14 +82,14 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     }
                 }
         
-        discriminatorcuts_lib = (legacy_btagging_wpdiscr_cuts if isULegacy else (eoy_btagging_wpdiscr_cuts))  
         
+        discriminatorcuts_lib = legacy_btagging_wpdiscr_cuts
         processes_dic = { "gg_fusion":{ 
                                         "resolved": op.AND(op.rng_len(AK4jets) == 2, op.rng_len(AK8jets) == 0),
                                         "boosted" : op.AND(op.rng_len(AK8jets) == 1, op.rng_len(AK4jets) == 0) },
                           "bb_associatedProduction":{
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 3, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK4jets) >= 0, op.rng_len(AK8jets) >= 1) }
+                                        "boosted" : op.AND(op.rng_len(AK4jets) >= 1, op.rng_len(AK8jets) >= 1) }
                         }
 
         for process, njetscut in processes_dic.items():
@@ -274,18 +267,15 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         # run plotIt as defined in HistogramsModule - this will also ensure that self.plotList is present
         super(ZA_BTagEfficiencies, self).postProcess(taskList, config, workdir, resultsdir)
 
-        from bamboo.plots import CutFlowReport, DerivedPlot, Plot
-        import bambooToOls
-        import json 
+        from bamboo.analysisutils import loadPlotIt
 
         # save generated-events for each samples--- > mainly needed for the DNN
         plotList_cutflowreport = [ ap for ap in self.plotList if isinstance(ap, CutFlowReport) ]
-        bambooToOls.SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
+        SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
 
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
-        from bamboo.analysisutils import loadPlotIt
         #p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=self.args.eras, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
         p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
         
