@@ -1,55 +1,34 @@
-import sys
-import os
 from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
 from bamboo.root import gbl
 from bamboo import treefunctions as op
-from bambooToOls import Plot
-
-zabPath = os.path.dirname(__file__)
-if zabPath not in sys.path:
-    sys.path.append(zabPath)
 
 import utils
-class makeYieldPlots:
-    def __init__(self):
-        self.calls = 0
-        self.plots = []
-    def addYields(self, cut, sel, name, title):
-        """
-            Make Yield plot and use it also in the latex yield table
-            sel     = refine selection
-            name    = name of the PDF to be produced
-            title   = title that will be used in the LateX yield table
-        """
-        self.plots.append(Plot.make1D("Yield_"+name,   
-                        cut,
-                        sel,
-                        EqB(2, 0., 2.),
-                        title = title + " Yield",
-                        plotopts = {"for-yields":True, "yields-title":title, 'yields-table-order':self.calls}))
-        self.calls += 1
-    def returnPlots(self):
-        return self.plots
+import corrections as corr
+import ControlPLots as cp
+from bambooToOls import Plot
 
-
-def makerhoPlots(selections, bjets, leptons, ellipses, ellipse_params, suffix, cut, WP, uname, process):
+def makerhoPlots(selections, bjets, leptons, ellipses, ellipse_params, reg, cut, WP, uname, doblinded, process):
     plots = []
-
+    plotOptions = utils.getOpts(uname, **{"log-y": True})
+    if doblinded:
+        plotOptions["blinded-range"] = [0., 1.5]
+    
     for key, sel in selections.items():
         tagger = key.replace(WP, "")
         bjets_ = bjets[key.replace(WP, "")][WP]
         
-        bb_p4= ((bjets_[0].p4+bjets_[1].p4) if suffix=="resolved" else( bjets_[0].p4))
-        bb_M = bb_p4.M()
+        bb_p4  = (bjets_[0].p4+bjets_[1].p4) if reg=="resolved" else(bjets_[0].p4)
+        bb_M   = bb_p4.M()
         llbb_M = (leptons[0].p4 +leptons[1].p4+bb_p4).M()
+        
         for j, line in enumerate(ellipse_params, 0): 
             MH = str(line[-1]).replace('.', 'p')
             MA = str(line[-2]).replace('.', 'p')
-            plots.append(Plot.make1D(f"rho_steps_{suffix}_histo_{uname}_hZA_lljj_{tagger}_btag{WP}_{cut}_{process}_MH_{MH}_MA_{MA}", 
+            plots.append(Plot.make1D(f"rho_steps_{uname}_{reg}_{tagger}{WP}_{cut}_{process}_MH_{MH}_MA_{MA}",
                             ellipses.at(op.c_int(j)).radius(bb_M, llbb_M),
                             sel, EqB(6, 0., 3.), title="rho ",
-                            plotopts=utils.getOpts(uname, **{"log-y": True})))
+                            plotopts= plotOptions))
     return plots
 
 def MakeTriggerDecisionPlots(catSel, channel):
@@ -248,51 +227,6 @@ def ptcuteffectOnJetsmultiplicty(TwoLepsel, leptons, jets_noptcut, jet_ptcut, co
             
     return plots
 
-def makeJetPlots(sel, jets, uname, suffix, era, cuts):
-    binScaling=1
-    plots = []
-    maxJet=( 1 if suffix=="boosted" else(2))
-    for i in range(maxJet):
-        if suffix=="boosted":
-            EqBin= EqB(60 // binScaling, 200, 850.)
-        elif suffix=="resolved":
-            jet_ptcut =(30. if "2016" in era else (20.))
-            EqBin= EqB(60 // binScaling, jet_ptcut, 650.)
-        else:
-            raise RuntimeError('ERROR: {0} Unknown suffix '.format(suffix))
-        
-        plots.append(Plot.make1D(f"{uname}_{suffix}_jet{i+1}_pt_{cuts}".format(suffix=suffix, cuts=cuts), jets[i].pt, sel,
-                    EqBin, title=f"{utils.getCounter(i+1)} jet p_{{T}} [GeV]",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
-        plots.append(Plot.make1D(f"{uname}_{suffix}_jet{i+1}_eta_{cuts}".format(suffix=suffix, cuts=cuts), jets[i].eta, sel,
-                    EqB(50 // binScaling, -2.4, 2.4), title=f"{utils.getCounter(i+1)} jet eta",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
-        plots.append(Plot.make1D(f"{uname}_{suffix}_jet{i+1}_phi_{cuts}".format(suffix=suffix, cuts=cuts), jets[i].phi, sel,
-                    EqB(50 // binScaling, -3.1416, 3.1416), title=f"{utils.getCounter(i+1)} jet #phi", plotopts=utils.getOpts(uname, **{"log-y": False})))
-    return plots
-
-puIDSFLib = {
-        f"{year}_{wp}" : {
-            f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_',
-                "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
-            for eom in ("eff", "mistag") for mcsf in ("mc", "sf")
-        }
-    for year in ("2016", "2017", "2018") for wp in "LMT"
-    }
-
-def makePUIDSF(jets, year=None, wp=None, wpToCut=None):
-    import bamboo.scalefactors
-    sfwpyr = puIDSFLib[f"{year}_{wp}"]
-    sf_eff = bamboo.scalefactors.get_scalefactor("lepton", "eff_sf"   , sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
-    sf_mis = bamboo.scalefactors.get_scalefactor("lepton", "mistag_sf", sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
-    eff_mc = bamboo.scalefactors.get_scalefactor("lepton", "eff_mc"   , sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
-    mis_mc = bamboo.scalefactors.get_scalefactor("lepton", "mistag_mc", sfLib=sfwpyr, paramDefs=bamboo.scalefactors.binningVariables_nano)
-    jets_m50 = op.select(jets, lambda j : j.pt < 50.)
-    wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
-    return op.rng_product(jets_m50, lambda j : op.switch(j.genJet.isValid,
-        op.switch(wpToCut[wp](j), sf_eff(j), wFail(sf_eff(j), eff_mc(j))),
-        op.switch(wpToCut[wp](j), sf_mis(j), wFail(sf_mis(j), mis_mc(j)))
-        ))
 
 def perCatPlots_sameVar(uName, categories, variable, binning, saveSeparate=True, combPrefix=None, nDim=1, **kwargs):
     plotFun = getattr(Plot, "make{0:d}D".format(nDim))
@@ -302,6 +236,7 @@ def perCatPlots_sameVar(uName, categories, variable, binning, saveSeparate=True,
         return catPlots + [ combPlot ]
     else:
         return [ combPlot ]
+
 
 def leptonPlots_candVar(flavour, uName, categories, varFun, binning, saveSeparate=False, saveIntermediate=True, saveTotal=False, combPrefix=None, **kwargs):
     allPlots = []
@@ -318,6 +253,7 @@ def leptonPlots_candVar(flavour, uName, categories, varFun, binning, saveSeparat
     if saveTotal:
         toSave.append(SummedPlot(("_".join((combPrefix, flavour, uName)) if combPrefix is not None else "_".join((uName, flavour))), allPlots))
     return toSave
+
 
 def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
     plots = []
@@ -348,7 +284,7 @@ def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
         for puWP, puSel in jet_puID_wp.items():
             w_noKin = None
             if isMC:
-                w_noKin = makePUIDSF(jets_noKin, year=year, wp=puWP, wpToCut=jet_puID_wp)
+                w_noKin = corr.makePUIDSF(jets_noKin, year=year, wp=puWP, wpToCut=jet_puID_wp)
             
             OsLepplus_allJets_noKinematics = dict((catName, catSel.refine(f"OsLeptonsPlusJets_withonly_jId{jet_id}_puId{puWP}_cuts_{catName}", weight=w_noKin))
                 for catName, (cand, catSel) in osllSelCand.items())
@@ -359,7 +295,7 @@ def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
                 #ak4jets_corr = op.select(jets_kin[kinNm], lambda j : op.OR(j.pt < 50, puSel(j)))
                 
                 if isMC:
-                    w_pu = makePUIDSF(ak4jets_corr, year=year, wp=puWP, wpToCut=jet_puID_wp)
+                    w_pu = corr.makePUIDSF(ak4jets_corr, year=year, wp=puWP, wpToCut=jet_puID_wp)
                 
                 ## selections
                 OsLepplus_allJets = dict((catName, catSel.refine(f"OsLepplus_allJets_jId{jet_id}_puId{puWP}_{kinNm}_Eta2p4_{catName}", weight=w_pu))
@@ -401,8 +337,9 @@ def choosebest_jetid_puid(t, muons, electrons, osllSelCand, year, sample, isMC):
                             EqB(50 // binScaling, 0., 450.), saveSeparate=True, combPrefix="OsLepplus_%s_aka4Jets"%suffix)
                     kinematic_cuts = suffix + 'jId_'+ jet_id+'_puId'+puWP+'_'+kinNm+ '_Eta2p4'
                     for catName, lepjSel in sel.items(): 
-                        plots +=makeJetPlots(lepjSel, ak4jets_corr, catName, 'resolved', year, kinematic_cuts)
+                        plots += cp.makeJetPlots(lepjSel, ak4jets_corr, catName, 'resolved', year, kinematic_cuts)
     return plots
+
 
 def varsCutsPlotsforLeptons(lepton, sel, uname):
    plots = []

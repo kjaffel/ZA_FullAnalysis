@@ -3,7 +3,7 @@ from bamboo import treefunctions as op
 
 def METFilter(flags, era, isMC):
     # from https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
-    # to be applied on data and mc
+    # to be applied on both data and mc
     cuts=[
             flags.goodVertices,
             flags.globalSuperTightHalo2016Filter,
@@ -11,14 +11,11 @@ def METFilter(flags, era, isMC):
             flags.HBHENoiseIsoFilter,
             flags.EcalDeadCellTriggerPrimitiveFilter,
             flags.BadPFMuonFilter,
+            flags.BadPFMuonDzFilter,
+            flags.eeBadScFilter,
             ]
     if era == '2017' or era =='2018':
         cuts.append(flags.ecalBadCalibFilter)
-        # Not needed for MiniAODv2
-        #cuts.append(flags.BadPFMuonDzFilter)
-    else:
-        cuts.append(flags.eeBadScFilter)
-
     return cuts
 
 class METcorrection(object):
@@ -173,8 +170,6 @@ class ULMETXYCorrection(object):
                 if "UL2016H" in sample:
                     METxcorr = -(0.0868828*pv.npvs +-0.703489)
                     METycorr = -(0.0888774*pv.npvs +0.902632)
-                #if(runera==yUL2016Flate) METxcorr = -(0.134616*pv.npvs +-0.89965)
-                #if(runera==yUL2016Flate) METycorr = -(0.0397736*pv.npvs +1.0385)
     
         corrMETx=rawMET.pt*op.cos(rawMET.phi) + METxcorr
         corrMETy=rawMET.pt*op.sin(rawMET.phi) + METycorr
