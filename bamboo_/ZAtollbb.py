@@ -191,16 +191,19 @@ class NanoHtoZABase(NanoAODModule):
                 "backend": be,
                 "uName": sample
                 }
-        configureJets(tree._Jet, "AK4PFchs", **cmJMEArgs)
-        configureJets(tree._FatJet, "AK8PFPuppi", mcYearForFatJets=(era if "VFP" not in era else "2016"), **cmJMEArgs)
-    
-        if self.doMETT1Smear:
-            if isMC:
+
+        # just apply to data
+        if isMC:
+            configureJets(tree._Jet, "AK4PFchs", **cmJMEArgs)
+            configureJets(tree._FatJet, "AK8PFPuppi", mcYearForFatJets=(era if "VFP" not in era else "2016"), **cmJMEArgs)
+            
+            if self.doMETT1Smear: 
                 configureType1MET(getattr(tree, f"_{metName}T1Smear"), isT1Smear=True, **cmJMEArgs)
-            del cmJMEArgs["uName"]
-            configureType1MET(getattr(tree, f"_{metName}T1"), enableSystematics=((lambda v : not v.startswith("jer")) if isMC else None), uName=f"{sample}NoSmear", **cmJMEArgs)
-        else:
-            configureType1MET(getattr(tree, f"_{metName}"), **cmJMEArgs)
+            else:
+                configureType1MET(getattr(tree, f"_{metName}"), **cmJMEArgs)
+        
+        #del cmJMEArgs["uName"]
+        #configureType1MET(getattr(tree, f"_{metName}T1"), enableSystematics=((lambda v : not v.startswith("jer")) if isMC else None), uName=f"{sample}NoSmear", **cmJMEArgs)
         
         #############################################################
         # triggers path 
@@ -689,6 +692,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         plots = []
         selections_for_cutflowreport = []
+        plotsToSum_twoTagCount = defaultdict(list)
 
         addIncludePath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "include"))
         loadHeader("BTagEffEvaluator.h")
@@ -1141,7 +1145,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                             DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
                                             DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA]
                                              
-                                            plots.append(Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output ZA', plotopts=plotOptions))
+                                            if region == 'boosted' and process_ == 'bbH' and channel in ['ElEl', 'MuMu']:
+                                                plots_ToSum[(channel, region, tag_plus_wp, process, mass_to_str(mH), mass_to_str(mA))].append(Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output ZA', plotopts=plotOptions))
+                                            else:
+                                                plots.append(Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output ZA', plotopts=plotOptions))
+                                            
                                             #plots.append(Plot.make2D(f"mbb_vs_DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}",
                                             #            (jj_p4.M(), DNN_Output[2]), sel,
                                             #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
@@ -1150,10 +1158,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                             #            (lljj_p4.M(), DNN_Output[2]), sel,
                                             #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
                                             #            title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
-                                           # #OutmaxIDx =op.rng_max_element_index(DNN_Output)
-                                           # trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{region}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
-                                           # plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{region}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
-                                           #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
+
+                                            ##OutmaxIDx =op.rng_max_element_index(DNN_Output)
+                                            #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{region}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
+                                            #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{region}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
+                                            #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                         #  TTbar Esttimation  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1206,6 +1215,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         if self.doYields:
             plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
             plots.extend(yield_object.returnPlots())
+        
+        for pkey, t2plots in plots_ToSum.items():
+            channel, region, tag_plus_wp, process, mH, mA = pkey
+            plots.append(SummedPlot(f"DNNOutput_ZAnode_OSSFLep_{region}_{tag_plus_wp}_METCut_{process}_MH_{mH}_MA_{mA}", t2plots))
         
         return plots
 
