@@ -58,9 +58,9 @@ def get_options():
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
         help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
     b.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
-        help='Wether to submit on slurm and name for the save (must have specified --split)')
+        help='Wether to submit jons to slurm (must have specified --split)')
     b.add_argument('-resubmit','--resubmit', action='store', required=False, default='', type=str,
-        help='Wether to resubmit failed jobs given a specific path containing the jobs that succeded')
+        help='Wether to resubmit failed jobs given the name you give during submission ( must giev the same output)')
     b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
         help='Debug mode of the slurm submission, does everything except submit the jobs')
     #=========================================================================
@@ -179,6 +179,7 @@ def main():
     from split_training import DictSplit
     from concatenate_csv import ConcatenateCSV
     from threadGPU import utilizationGPU
+    from input_plots import InputPlots
     import parameters
 
     logging.info("="*94)
@@ -204,10 +205,14 @@ def main():
     #############################################################################################
     # Splitting into sub-dicts and slurm submission #
     #############################################################################################
-    if opt.submit != '':
+    if opt.submit != '' or opt.resubmit != '':
         if opt.split != 0:
-            DictSplit(opt.split, opt.submit, opt.resubmit)
-            logging.info('Splitting jobs done')
+            if opt.resubmit != '': 
+                slurm_dir = os.path.join(opt.outputs, 'slurm/output')
+                DictSplit(opt.split, opt.resubmit, slurm_dir)
+            elif opt.submit != '':
+                DictSplit(opt.split, opt.submit, '')
+        logging.info('Splitting jobs done')
         
         p =''
         for proc in opt.process:
@@ -227,10 +232,10 @@ def main():
 
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
-            if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit', args=args, debug=opt.debug)
-            else:
-                submit_on_slurm(name=opt.submit, args=args, debug=opt.debug)
+            submit_on_slurm(name=opt.submit, args=args, debug=opt.debug)
+        elif opt.resubmit:
+            logging.info('Resubmission of failed jobs with args "%s"'%args)
+            submit_on_slurm(name=opt.resubmit+'_resubmit', args=args, debug=opt.debug)
         sys.exit()
 
     #############################################################################################
@@ -249,7 +254,7 @@ def main():
         # can't encode characters in position 39-188: ordinal not in range(128) in NeuralNet.py", line 298
         os.system('export PYTHONIOENCODING=utf8')
         instance = HyperModel(reportNm)
-        instance.HyperReport(workdir=opt.outputs, eval_criterion=parameters.eval_criterion, plotscan=False)
+        instance.HyperReport(workdir=opt.outputs, eval_criterion=parameters.eval_criterion, plotscan=True)
 
     #############################################################################################
     # Output of given files from given model #
@@ -289,6 +294,7 @@ def main():
             train_all = pd.read_pickle(parameters.train_cache)
         except Exception as ex:
             raise RuntimeError(f'{ex} when trying to read_pickle({parameters.train_cache}).')
+        
         if not os.path.exists(parameters.test_cache):
             raise RuntimeError(f'File not found: {parameters.test_cache}')
         try:        
@@ -471,6 +477,8 @@ def main():
         train_all[list_inputs+list_outputs] = train_all[list_inputs+list_outputs].astype('float32')
         test_all[list_inputs+list_outputs]  = test_all[list_inputs+list_outputs].astype('float32')
         
+        if  opt.scan!='':
+            InputPlots(train_all, list_inputs, opt.outputs, force=True)
         # Preprocessing #
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer
@@ -478,14 +486,12 @@ def main():
             MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
             
         logging.info('Data saved to cache')
-        if os.path.exists(parameters.train_cache):
-            os.remove(parameters.train_cache)
         train_all.to_pickle(parameters.train_cache)
+        
         logging.info('... Training set saved : %s'%parameters.train_cache)
-        if os.path.exists(parameters.test_cache):
-            os.remove(parameters.test_cache)
         test_all.to_pickle(parameters.test_cache)
-        logging.info('... Test set saved     : %s'%parameters.train_cache)
+        
+        logging.info('... Test set saved     : %s'%parameters.test_cache)
 
 
     logging.info("Sample size to be seen by network : %d"%train_all.shape[0])

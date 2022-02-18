@@ -18,6 +18,9 @@ from tensorflow.keras.regularizers import l1,l2
 from ZAMachineLearning import get_options
 opt = get_options()
 
+def pogEraFormat(era):
+    return "_UL"+era.replace("20", "")
+
 ##################################  Path variables ####################################
 #######################################################################################
 #samples_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2016Results/skimmedTree/ver5/'
@@ -26,9 +29,14 @@ opt = get_options()
 #samples_path_ul2016 = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver2/'
 #samples_path_ul2016 = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver3/'
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver5/results',
-samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver6/results',
-                '2017' :'',
-                '2018' :'', }
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver6/results',
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul2016__ver1/results',
+
+samples_path = {
+    '2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
+    '2017' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
+    '2018' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results'
+    }
 
 main_path  = os.path.abspath(os.path.dirname(__file__))
 path_out   = os.path.abspath(f'/home/ucl/cp3/kjaffel/scratch/{opt.outputs}')
@@ -70,20 +78,21 @@ if N_apply != N_slices/N_models: # Otherwise the same slice can be applied on se
 #==============================================
 # For GPU #
 #==============================================
-#partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
-#QOS = 'cp3-gpu' # cp3 or normal
-#time = '5-00:00:00' # days-hh:mm:ss
-#mem = '60000' # ram in MB
-#tasks = '20' # Number of threads(as a string)
+#partition  = 'cp3-gpu'    # Def, cp3 or cp3-gpu
+#QOS        = 'cp3-gpu'    # cp3 or normal
+#time       = '5-00:00:00' # days-hh:mm:ss
+#mem        = '60000'      # ram in MB
+#tasks      = '20'         # Number of threads(as a string)
+#gpus       = 1
 
 #==============================================
 # For CPU #
 #==============================================
-partition = 'cp3'  # Def, cp3 or cp3-gpu
-QOS = 'cp3' # cp3 or normal
-time = '0-08:00:00' # days-hh:mm:ss
-mem = '6900' # ram in MB
-tasks = '1' # Number of threads(as a string) (not parallel training for classic mode)
+partition = 'cp3'         # Def, cp3 or cp3-gpu
+QOS       = 'cp3'         # cp3 or normal
+time      = '2-24:00:00'  # days-hh:mm:ss
+mem       = '9000'        # ram in MB
+tasks     = '1'           # Number of threads(as a string) (not parallel training for classic mode)
 
 ######################################  Names  ########################################
                         # Model name important only for scans 
@@ -204,7 +213,7 @@ inputs = [
             'isResolved',
             'isBoosted',
             'isggH',
-            'isbbH',
+            'isbbH'
             #'nB_AK4bJets',
             #'nB_AK8bJets',
          ]
@@ -212,7 +221,7 @@ inputs = [
 outputs = [
             '$DY',
             '$TT',
-            '$ZA',
+            '$ZA'
             #'$ggH',
             #'$bbH',
           ] 
@@ -224,6 +233,16 @@ other_variables = [
             'MC_weight',
         ]
 
+# Input plots options #
+node_colors = {
+        'DY'     : '#600070',
+        'TT'     : '#89cff0',
+        'ZA'     : '#ce7e00',
+    }
+
+
+#######################################################################################
+#######################################################################################
 operations = [inp.split('@')[1] if '@' in inp else None  for inp  in  inputs]
 check_op   = [(o is not None)*1 for o in operations]
 
@@ -233,17 +252,22 @@ if check_op != sorted(check_op,reverse=True):
 mask_op = [len(inp.split('@'))==2 for inp  in  inputs]
 inputs  = [inp.split('@')[0] for inp  in  inputs]
 
+#######################################################################################
+#######################################################################################
 TTree   = []
 process_nodes = []
 for proc in opt.process:
     if opt.resolved:
-        TTree.extend([f"LepPlusJetsSel_{proc}_resolved_{channel.lower()}_deepcsvm" for channel in channels])
+        TTree.extend([f"LepPlusJetsSel_{proc}_resolved_{channel.lower()}_deepflavourm" for channel in channels])
     if opt.boosted:
         TTree.extend([f"LepPlusJetsSel_{proc}_boosted_{channel.lower()}_deepcsvm" for channel in channels])
     if 'ggH' in opt.process: process_nodes = ["GluGluToHToZATo2L2B"]
     if 'bbH' in opt.process: process_nodes += ["HToZATo2L2B"]
+
+#######################################################################################
+#######################################################################################
 if not opt.report:
-    # allowd to save whenever ZA args are passed
+    # allow to save whenever ZA args are passed
     with open(f'{path_out}/list_catagories.ob', 'wb') as fp:
         pickle.dump(TTree, fp)
 else:
@@ -252,6 +276,9 @@ else:
         TTree = pickle.load(fp)
 print ( ' TTree      :', TTree )  
 
+#######################################################################################
+#######################################################################################
+subnodes = {"DY": ["DYJetsToLL"], "TT": ["TT", "ST"], "ZA":process_nodes} 
 samples_dict_run2UL = collections.defaultdict(dict)
 for era in eras:
     samples_dict_run2UL[era] = {}
@@ -259,16 +286,20 @@ for era in eras:
         samples_dict_run2UL[era][f"combined_{node}_nodes"] = []
         for i_f, fn in enumerate(glob.glob(os.path.join(samples_path[era],'*.root'))):
             smp   = fn.split('/')[-1]
-            subnodes = {"DY": ["DYJetsToLL"], "TT": ["TT", "ST"], "ZA":process_nodes} 
-            if '__skeleton__' in smp:
-                continue
+
+            if '__skeleton__' in smp: continue
+            if not pogEraFormat(era) in smp: continue 
+            # this will prevent from mixing samples when the path given to the skims is the same for the 3 yeras
+            
             for node_ in subnodes[node]:
-                if smp.startswith(node_):
-                    samples_dict_run2UL[era][f"combined_{node}_nodes"].append(f"{smp}")
+                if not smp.startswith(node_): continue
+                samples_dict_run2UL[era][f"combined_{node}_nodes"].append(smp)
 
 sampleList_full = [f"{samples_path[era]}/{smp}" for era in eras for node in nodes for smp in samples_dict_run2UL[era][f"combined_{node}_nodes"]]
-#print( " List of samples : ", samples_dict_run2UL )
+print( " List of samples : ", samples_dict_run2UL )
 
+#######################################################################################
+#######################################################################################
 xsec_dict             = dict()
 event_weight_sum_dict = dict()
 for era in eras:
@@ -288,6 +319,8 @@ for era in eras:
     with open(sumWjson,'r') as handle:
         event_weight_sum_dict[era] = json.load(handle)
 
+print (xsec_dict)
+print(event_weight_sum_dict)
 #######################################  dtype operation ##############################
                 # root_numpy does not like some operators very much #
 #######################################################################################
