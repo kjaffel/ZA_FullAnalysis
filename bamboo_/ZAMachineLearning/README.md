@@ -4,7 +4,7 @@ This code is reabsed on the top of **Florian Bury**[ code for HH-> bbWW -Analysi
 ## Getting Started with Installation and setup:
 This software is intended to work on Ingrid/Manneback and all scripts are **python3**. It has been used to make hyperparameter scans with Talos and learning on Keras.
 
-### Prerequisites:
+### Technical Prerequisites:
 - You can load the needed modules:
 ```
 module load root/6.12.04-sl7_gcc73 boost/1.66.0_sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 python/python36_sl7_gcc73 slurm/slurm_utils 
@@ -74,7 +74,8 @@ Most of the tweaks is done in ``parameters.py``;
     - cut : For data importation
     - weights : What branch to use for sampling weights in the learning
     - inputs : List of branches to be used as training variables
-    - outputs : List of branches to be used as training targets. **Note :** for branches that are not in tree but will be added later (eg tag) : use $string ($ will be removed after)
+    - outputs : List of branches to be used as training targets.
+    - **Note :** for branches that are not in tree but will be added later (eg tag) : use $string ($ will be removed after)
     - other_variables : Other variables you want to keep in the tree but not use as inputs not targets
 - make_dtype : This is because we use root_numpy to produce the root files and it does not like ``.``, ``(``, ``)``, ``-`` neither ``*``
 
@@ -86,13 +87,11 @@ python ZAMachineLearning.py -v (args) --scan name_of_scan -o output_dir --debug
     - ``-p/--process``: It can be a list or str ``ggH`` for gg-fusion and ``bbH`` for b-associated production. If the latest is True, this mean that 1NN is set per process.
     - ``--resolved``  : include catagories with at least 1 AK4 b-tagged jet in the final state when parsing root files.
     - ``--boosted``   : include catagories with at least 1 AK8 b-tagged fatjet in the final state when parsing root files.
-- *Note* : All the hyperparameter combinations will be run sequentially, this might take time ... 
-- *Tip*  : Use one combination only (only lists with one item) and small number of epochs to check everything works.
+- **Note:** All the hyperparameter combinations will be run sequentially, this might take time ... 
+- **Tip :** 
+    1- Use one combination only (lists with one item) and small number of epochs to check everything works.
 
-The products a the scripts are :
-- csv file : Contains the parameters in the scan, loss, acc and error
-- zip file : Contains model architecture+weights, results in the csv, plus other details
-- *Tip* : You can either unzip the ``.zip`` and load the json and h5 files with the classic method ([here](https://machinelearningmastery.com/save-load-keras-deep-learning-models/)). Or you can use the ``Restore`` method of Talos on the zip archive directly (but you need to submit the preprocessing layer specifically, see code in ``NeuralNet.py``).
+    2- Have a look at the ``inputs.pdf`` distributions in ``output_dir``.
 
 ### Slurm Submission:
 To submit on the cluster try:
@@ -101,8 +100,25 @@ python ZAMachineLearning.py -v (args) --submit name_of_jobs --split 1 -o output_
 ```
 - ``--submit``: Requires a string as name for the output dir (saved in ``slurm``) 
 - ``--split`` : Requires the number of parameters used for each job (almost always 1)
-- *Note* : If using ``--split N``, N! combinations will be used (might be reduncancies between different jobs).
+
+- **Note:** If using ``--split N``, N! combinations will be used (might be reduncancies between different jobs).
 - The split ``.pkl`` files will be saved in ``split/`` it is important that they remain there until the jobs have finished running. After that they can be removed.
+
+The products of the scripts are :
+- **csv files:** Contains the parameters in the scan, loss, acc and error.
+- **zip files:** Contains model architecture+weights, results in the csv, plus other details.
+
+- You can either unzip the ``.zip`` and load the json and h5 files with the classic method ([here](https://machinelearningmastery.com/save-load-keras-deep-learning-models/)). Or you can use the ``Restore`` method of Talos on the zip archive directly (but you need to submit the preprocessing layer specifically, see code in ``NeuralNet.py``).
+
+### Dealing with (failed) batch jobs/ Resubmission:
+If some jobs failed, they can be resubmitted with the command: 
+```python
+python ZAMachineLearning.py (args) --resubmit name_of_jobs --split 1 -o output_dir
+```
+The script will check what hyperparameters have been processed and which ones are missing, the corresponding jobs will be in a new directory and need to be moved back to the initial one before the csv concatenation step.
+- ``name_of_jobs`` will have already additional suffix ``_resubmit``
+- **Warning:** The hyperparameter dict in ``parameters.py`` must not change in the meantime (especially number of epochs)!
+Otherwise the parameters in the csv will change. Still the slurm parameters and keras callbacks can change at resubmission.
 
 ### The Best Model:
 Now that all the ``.zip`` and ``.csv`` files produced in the ``output_dir/slurm/output/`` the challenge will be to find the best model among them.
@@ -121,27 +137,17 @@ If other files have to be processed, one can use ``--key`` but still these sampl
 ### Plotting:
 To produce the test plots:
 ```python
-python MakeHist.py --model output_dir/model/ --verbose
-# subdir = all_combined_dict_???_isbest_model/ need to be found in the given path 
+python MakeHist.py --model output_dir/model/ -v 
+# subdir = {name_of_jobs}_???_isbest_model/ need to be found in the given path 
 ```
 ```python
-python PlotMassPlane.py --model output_dir/model/all_combined_dict_???_isbest_model.zip
+python PlotMassPlane.py --model output_dir/model/{name_of_jobs}_???_isbest_model.zip
 ```
-*FIXME : work on combination*
 - ``-p``/``--process``: ggH or bbH 
 - ``--era``: 2016 , 2017 or 2018 
 - ``--resolved``: boolean flag default ``False``
 - ``--boosted``: boolean flag  default ``False``
 - ``--channel``: elel or mumu 
-### Dealing with (failed) batch jobs/ Resubmission:
-If some jobs failed, they can be resubmitted with the command: 
-```python
-python ZAMachineLearning.py (args) --submit name_of_jobs --split 1 --resubmit /slurm/name_of_jobs/output/
-```
-The script will check what hyperparameters have been processed and which ones are missing, the corresponding jobs will be in a new directory and need to be moved back to the initial one before the csv concatenation step.
-
-- *Warning* : The hyperparameter dict in ``parameters.py`` must not change in the meantime !(especially number of epochs)
-Otherwise the parameters in the csv will have changed. But the slurm parameters and keras callbacks can change at resubmission.
 
 ## Preprocessing and Training/Test Split:
 What has not been dealt with in the previous sections is how the data preparation are handled.
@@ -149,11 +155,11 @@ What has not been dealt with in the previous sections is how the data preparatio
 ### Data split :
 Depending on the ratios in ``parameters.py``, a boolean mask is generated for each dataset : ``False -> test set`` and ``True -> training set``.
 
-The mask is generated as a ``.npy`` object based on the suffix in ``parameters.py``.
+The mask is generated as a ``.npy`` object based on the suffix in ``parameters.py``. 
+The point of the mask is that for each hyperparameter the training and test data will be the same and not randomized at each trial.
 
-- *Note* : If they do not exist, they will be generated and saved. If they exist they will just be loaded.
-- *Warning* : If the data changes, the code will exit with an error because the masks do not fit anymore (either delete them or change suffix).
-- *Tip* : The point of the mask is that for each hyperparameter the training and test data will be the same and not randomized at each trial.
+- **Note:** If they do not exist, they will be generated and saved. If they exist they will just be loaded unless you specifiy ``--nocache``.
+- **Warning:** If the data are changed, the code will exit with an error because the masks do not fit anymore (either delete them or regenerate them using ``--nocache``).
 
 ### Preprocessing :
 Preprocessing is very important in machine learning to give all the features of the training the same importance. We are using here the [Standard Scaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html), the point is to apply ``z -> z-mean/std``. Where mean and std are the mean and standard deviation of the *training* data.
@@ -178,7 +184,7 @@ learning_weight = event_weight * Xsec / event_weight_sum
 ```
 Where these values come from the ``.json`` files in ``parameters.py``.
 
-- *Warning* : this is only valid for backgrounds, for signal the Xsec is not given so better keep only the event weight.
+- **Warning:** this is only valid for backgrounds, for signal the Xsec is not given so better keep only the event weight.
 
 On the other side, it is possible that there is less signal statistics than background. To alleviates that, the sum of learning weights is equalized between signal and background.
 ```
@@ -191,6 +197,7 @@ In case there is too much data in the training (rare in case of HEP) to put them
 
 ## Cache
 The importation from root files can be slow and if the training data is not too big it can be cached.
+
 ## Troubleshooting:
 - Debugging: stepping through Python script using gdb.
 ``bash
