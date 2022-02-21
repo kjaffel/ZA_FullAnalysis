@@ -369,7 +369,7 @@ class NanoHtoZABase(NanoAODModule):
             fileName = os.path.join(f"/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_}/electron.json.gz")
             systName = "highpt_ele_reco" if wp == "RecoAbove20" else "lowpt_ele_reco"
                     
-            reco_sf = get_correction(fileName, "UL-Electron-ID-SF", params={"pt": lambda el: pt_thresh[wp], 'eta': lambda el: el.eta + el.deltaEtaSC, "year": era.replace("-", ""), "WorkingPoint": wp },
+            reco_sf = get_correction(fileName, "UL-Electron-ID-SF", params={"pt": pt_thresh[wp], 'eta': lambda el: el.eta + el.deltaEtaSC, "year": era.replace("-", ""), "WorkingPoint": wp },
                     systParam="ValType", systNomName="sf",
                     systVariations={f"{systName}up": "sfup", f"{systName}down": "sfdown"},
                     defineOnFirstUse=True, sel=noSel)
