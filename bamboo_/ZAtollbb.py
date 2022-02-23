@@ -53,7 +53,7 @@ class NanoHtoZABase(NanoAODModule):
         self.doYields         = self.args.yields
         self.doSkim           = self.args.skim
         
-        self.doPass_bTagEventWeight = True
+        self.doPass_bTagEventWeight = False
         self.CleanJets_fromPileup   = False
         self.doDY_reweighting       = False
         self.doSplit_DYWeights      = False
@@ -360,27 +360,20 @@ class NanoHtoZABase(NanoAODModule):
                                                                           op.AND(op.abs(ele.dxy) < 0.05, op.abs(ele.dz) < 0.2) ))) 
         
         def scalefactor(wp):
-            pt_thresh = { "RecoAbove20" : lambda el: op.max(el.pt, 20.) ,
-                          #"RecoBelow20" : lambda el: op.min(el.pt, np.nextafter(20., -np.inf, dtype="float32")) }
-                          #"RecoBelow20" : lambda el: op.min(el.pt, 19.999998) }
-                          "RecoBelow20" : lambda el: op.min(el.pt, op.c_float(np.nextafter(20., -np.inf, dtype="float32"))) }
+            pt_thresh = { "full"         : (lambda el: el.pt ), 
+                         # "RecoAbove20"  : (lambda el: op.max(el.pt, 20.)),
+                         # "RecoBelow20"  : (lambda el: op.min(el.pt, np.nextafter(20., -np.inf, dtype="float32")) ),
+                         # "RecoBelow20"  : (lambda el: op.min(el.pt, 19.999998092651367) ), 
+                         # "RecoBelow20"  : (lambda el: op.min(el.pt, op.c_float(np.nextafter(20., -np.inf, dtype="float32"))) )
+                        }
             
-            era_ = era.replace("-", "")+'_UL'
-            fileName = os.path.join(f"/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_}/electron.json.gz")
             systName = "highpt_ele_reco" if wp == "RecoAbove20" else "lowpt_ele_reco"
-                    
-            reco_sf = get_correction(fileName, "UL-Electron-ID-SF", params={"pt": pt_thresh[wp], 'eta': lambda el: el.eta + el.deltaEtaSC, "year": era.replace("-", ""), "WorkingPoint": wp },
-                    systParam="ValType", systNomName="sf",
-                    systVariations={f"{systName}up": "sfup", f"{systName}down": "sfdown"},
-                    defineOnFirstUse=True, sel=noSel)
-            
-            return reco_sf 
-        
+            return corr.getScaleFactor(era, noSel, "electron_reco", systName, pt_=pt_thresh['full'], wp=wp, defineOnFirstUse=False) 
+             
         def elRecoSF(el):
             return op.switch( el.pt < 20. , scalefactor('RecoBelow20')(el), scalefactor('RecoAbove20')(el))
         
-        #elRecoSF     = corr.getScaleFactor(era, noSel, "electron_reco", "highpt_ele_reco", wp="Medium", defineOnFirstUse=True)
-        elMediumIDSF = corr.getScaleFactor(era, noSel, "electron_ID", "elid_medium", wp="Medium", defineOnFirstUse=True)
+        elMediumIDSF = corr.getScaleFactor(era, noSel, "electron_ID", "elid_medium", pt_=lambda el: el.pt, wp="Medium", defineOnFirstUse=True)
         #elTriggerSF = corr.getScaleFactor(era, noSel, "electron_trigger", "ele_trigger", defineOnFirstUse=True)
         
         ###############################################
@@ -727,9 +720,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work__1/keras_tf_onnx_models/prob_model.onnx"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ML-Tools/keras_tf_onnx_models/prob_model_work__1.onnx"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/keras_tf_onnx_models/prob_model_work_nanov9__1.onnx"
-            #ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/keras_tf_onnx_models/all_combined_dict_241_model.onnx"
-            ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/ext1/keras_tf_onnx_models/all_combined_dict_216_model.pb"
-            
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/keras_tf_onnx_models/all_combined_dict_241_model.onnx"
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/ext1/keras_tf_onnx_models/all_combined_dict_216_model.pb"
+            ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__5/keras_tf_onnx_models/all_combined_dict_432_model.pb"
+
             if ZAmodel_path.split('/')[-1].endswith('.onnx'):
                 onnx__version = True
             elif ZAmodel_path.split('/')[-1].endswith('.pb'):
@@ -803,7 +797,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = True
         
         make_FinalSelControlPlots           = False 
-        make_PlotsforBJetERcorrComparaison  = True
+        make_PlotsforBJetERcorrComparaison  = False
         make_recoVerticesPlots              = False
         
         make_zoomplotsANDptcuteffect = False
@@ -1259,10 +1253,19 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             plots.append(CutFlowReport("Yields", selections_for_cutflowreport))
             plots.extend(yield_object.returnPlots())
         
-        for pkey, t2plots in plots_ToSum.items():
-            channel, region, tag_plus_wp, process, mH, mA = pkey
-            plots.append(SummedPlot(f"DNNOutput_ZAnode_OSSFLep_{region}_{tag_plus_wp}_METCut_{process}_MH_{mH}_MA_{mA}", t2plots))
-        
+        for k, tup in signal_grid.items():
+            for parameters in tup:
+                m_H = parameters[0]
+                m_A = parameters[1]
+                
+                for pkey, t2plots in plots_ToSum.items():
+                    channel, region, tag_plus_wp, process, mH, mA = pkey
+                    if not (m_H == mH and m_A == mA):
+                        continue
+                    if process == 'gg_fusion':
+                        plots.append(SummedPlot(f"DNNOutput_ZAnode_OSSFLep_{region}_{tag_plus_wp}_METCut_gg_fusion_MH_{mH}_MA_{mA}", t2plots))
+                    else:
+                        plots.append(SummedPlot(f"DNNOutput_ZAnode_OSSFLep_{region}_{tag_plus_wp}_METCut_bb_associatedProduction_MH_{mH}_MA_{mA}", t2plots))
         return plots
 
     def postProcess(self, taskList, config=None, workdir=None, resultsdir=None):

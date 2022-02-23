@@ -86,7 +86,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         discriminatorcuts_lib = legacy_btagging_wpdiscr_cuts
         processes_dic = { "gg_fusion":{ 
                                         "resolved": op.AND(op.rng_len(AK4jets) == 2, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK8jets) == 1, op.rng_len(AK4jets) == 0) },
+                                        "boosted" : op.AND(op.rng_len(AK8jets) == 1, op.rng_len(AK4jets) >= 0) },
                           "bb_associatedProduction":{
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 3, op.rng_len(AK8jets) == 0),
                                         "boosted" : op.AND(op.rng_len(AK4jets) >= 1, op.rng_len(AK8jets) >= 1) }
