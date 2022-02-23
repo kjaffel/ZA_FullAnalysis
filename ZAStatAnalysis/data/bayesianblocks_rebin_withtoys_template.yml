@@ -54,15 +54,15 @@ groups:
     legend: 'Data'
   DY:
     legend: 'Drell-Yan'
-    legend-order: 4
+    legend-order: 6
     fill-color: "#0000FF"
   ttbar:
     legend: 't#bar{t}'
-    legend-order: 3
+    legend-order: 5
     fill-color: "#00ffc7"
   ST:
     legend: 'Single Top'
-    legend-order: 2
+    legend-order: 4
     fill-color: "#9890f0"
   ZZ:
     legend: ZZ

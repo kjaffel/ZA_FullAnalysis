@@ -12,6 +12,7 @@ configuration:
   no-lumi-rescaling: true
   blinded-range-fill-color: '#FDFBFB' #"16" #"#29556270"
   blinded-range-fill-style: 4050 #3004
+  sort-by-yields: True
   yields-table-align: v
   book-keeping-file: 'plots.root'
 files:
@@ -21,11 +22,11 @@ groups:
     legend: 'Data'
   DY:
     legend: 'Drell-Yan'
-    legend-order: 4
+    legend-order: 3
     fill-color: "#0000FF"
   ttbar:
     legend: 'ttbar'
-    legend-order: 3
+    legend-order: 4
     fill-color: "#00ffc7"
   SingleTop:
     legend: 'Single Top'
