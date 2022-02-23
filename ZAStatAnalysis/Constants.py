@@ -118,10 +118,10 @@ def getZACrossSectionUncertainties():
     return 0.01, 0.01
 
 def getLuminosity(era):
-    if era== '2016-preVFP':
-        lumi == 19667.812849099 #pb
+    if era == '2016-preVFP':
+        lumi = 19667.812849099  #pb
     elif era == '2016-postVFP':
-        lumi == 16977.701784453 #pb
+        lumi = 16977.701784453  #pb
     elif era == '2016':
         lumi = 35921.875594646  #pb
     elif era == '2017':

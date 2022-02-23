@@ -1,9 +1,11 @@
 #! /bin/env python
 # https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
+# https://cms-analysis.github.io/CombineHarvester/python-interface.html#py-filtering
 import os, os.path, sys, stat, argparse, getpass, json
 import subprocess
 import shutil
 import json
+import random
 import glob
 import ROOT
 ROOT.gROOT.SetBatch()
@@ -63,26 +65,37 @@ def required_params(method):
 def get_hist_regex(r):
     return '^%s(__.*(up|down))?$' % r
 
-def get_signal_parameters(f):
+def get_signal_parameters(f, isNew=False, isOld=False):
     # HToZATo2L2B_MH-200_MA-50.root
-    split_filename = f.replace('.root','').replace('HToZATo2L2B_','')
-    split_filename = split_filename.split('_')
-    MH = split_filename[0].split('-')[1]
-    MA = split_filename[1].split('-')[1]
-    return int(MH), int(MA)
+    if isOld:
+        split_filename = f.replace('.root','').replace('HToZATo2L2B_','')
+        split_filename = split_filename.split('_')
+        MH = split_filename[0].split('-')[1]
+        MA = split_filename[1].split('-')[1]
+    else:
+        split_filename = f.replace('.root','').split('To2L2B_')[-1]
+        MH = split_filename.split('_')[1].replace('p00', '')
+        MA = split_filename.split('_')[3].replace('p00', '')
+    if 'p' in MH: mH = MH
+    else: mH = int(MH)
+    if 'p' in MA: mA = MA
+    else: mA = int(MA)
+    return mH, mA
 
 
 signal_grid = [
-        #part0 : 21 signal samples 
-        ( 200, 50), ( 200, 100), ( 300, 100),
+        #part0 : 21 signal samples
+        ( 200, 50), ( 200, 100), ( 200, 125), 
         ( 250, 50), ( 250, 100),
-        ( 300, 50), ( 300, 200),
-        ( 500, 50), ( 500, 200), ( 500, 400),
-        ( 650, 50),
-        ( 800, 50), ( 800, 200), ( 800, 400), ( 800, 700),
-        (1000, 50), (1000, 200), (1000, 500), 
-        (2000, 1000),
-        (3000, 2000) 
+        ( 300, 50), ( 300, 100), ( 300, 200),
+        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
+        ( 510, 130),            
+        ( 650, 50), ( 609.21, 253.68),
+        ( 750, 610),
+        ( 800, 50),              ( 800, 200), ( 800, 400),                          ( 800, 700),
+        (1000, 50),              (1000, 200),                           (1000, 500), 
+        #(2000, 1000),
+        #(3000, 2000) 
         ]
 extra_signals = [
         ]
@@ -95,9 +108,15 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
     parameters = []
     for f in glob.glob(os.path.join(options.input, '*.root')):
         split_filename = f.split('/')[-1]
-        if not split_filename.startswith('HToZATo2L2B_'):
+        isNew = False
+        isOld = False
+        if not (split_filename.startswith('HToZATo2L2B_') 
+                or split_filename.startswith('AToZHTo2L2B_') 
+                or split_filename.startswith('GluGluToHToZATo2L2B_')):
             continue
-        mH, mA = get_signal_parameters(split_filename)
+        if '_tb_' in split_filename: isNew = True
+        else: isOld = True
+        mH, mA = get_signal_parameters(split_filename, isNew, isOld)
         if (mH, mA) in signal_grid:
             parameters.append( (mH, mA) )
     
@@ -135,7 +154,7 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  parameters             = parameters, 
                  productions            = ['gg_fusion'],# 'bb_associatedProduction'], 
                  regions                = ['resolved'],# 'boosted'], 
-                 flavors                = ['MuMu', 'ElEl'], 
+                 flavors                = ['MuMu', 'ElEl'],#, 'MuEl'], 
                  ellipses               = ellipses, 
                  mode                   = mode,  
                  output                 = output, 
@@ -150,7 +169,7 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  submit_to_slurm        = submit_to_slurm)
 
     # Create helper script to run limits
-    output = os.path.join(output, method+("-"+H.get_method_group(method) if method !="fit" else ""), mode)
+    output = os.path.join(output, method+('-'+H.get_method_group(method) if method !="fit" else ""), mode)
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
@@ -219,12 +238,12 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
             'SingleTop': ['^ST_*'],
             'DY'       : ['^DYJetsToLL_0J*', '^DYJetsToLL_1J*', '^DYJetsToLL_2J*', '^DYToLL_*'],
             # Others Backgrounds
-            'WPlusJets': ['^WJetsToLNu*'],
-            'ttV'      : ['^TT(WJets|Z)To*'],
-            'VV'       : ['^(ZZ|WW|WZ)To*'],
-            'VVV'      : ['^(ZZZ|WWW|WZZ|WWZ)*'],
-            #'Wgamma'  : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
-            'SMHiggs'  : ['^ggZH_HToBB_ZToNuNu*', '^HZJ_HToWW*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToLL*', '^ttHJet*']
+            #'WPlusJets': ['^WJetsToLNu*'],
+            #'ttV'      : ['^TT(WJets|Z)To*'],
+            #'VV'       : ['^(ZZ|WW|WZ)To*'],
+            #'VVV'      : ['^(ZZZ|WWW|WZZ|WWZ)*'],
+            #'Wgamma'   : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
+            #'SMHiggs'  : ['^ggZH_HToBB_ZToNuNu*', '^HZJ_HToWW*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToLL*', '^ttHJet*']
             }
     # Shape depending on the signal hypothesis
     for p in parameters:
@@ -233,9 +252,12 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         
         formatted_p = format_parameters(p)
         formatted_e = format_ellipse(p, ellipses)
+        formatted_mH = "{:.2f}".format(mH)
+        formatted_mA = "{:.2f}".format(mA)
         
         suffix = formatted_p.replace('MH_', 'MH-').replace('MA_','MA-')
-        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(mH,mA), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(mH, mA), '^GluGluToHToZATo2L2B_MH-%s_MA-%s*'%(mH, mA)]
+        histfactory_to_combine_processes['HToZATo2L2B_MH-%s_MA-%s'%(mH,mA), p] = ['^HToZATo2L2B_MH-%s_MA-%s*'%(mH, mA), 
+                                                                                  '^GluGluToHToZATo2L2B_MH_%s_MA_%s_'%(formatted_mH, formatted_mA)]
         
         if mode == "mjj_and_mlljj":
             histfactory_to_combine_categories[('mjj', p)]   = get_hist_regex('jj_M_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
@@ -259,6 +281,13 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
     if signal_strength:
         H.scaleZAToSMCrossSection = True
     H.splitTTbarUncertBinByBin = False
+    
+    flav_categories = []
+    for prod in productions:
+        for reg in regions:
+            for flavor in flavors:
+                cat = '{}_{}_{}'.format(prod, reg, flavor)
+                flav_categories.append(cat)
 
     file, systematics = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
                                       categories_map      = histfactory_to_combine_categories, 
@@ -268,19 +297,10 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                                       method              = method, 
                                       luminosity          = luminosity, 
                                       mode                = mode,
-                                      flavors             = flavors, 
-                                      regions             = regions, 
-                                      productions         = productions, 
+                                      flav_categories     = flav_categories,
                                       era                 = era, 
                                       unblind             = unblind,
                                       normalize           = normalize)
-    flav_categories = []
-    for prod in productions:
-        for reg in regions:
-            for flavor in flavors:
-                cat = '{}_{}_{}'.format(prod, reg, flavor)
-                flav_categories.append(cat)
-
     #print ( "\tsystematics : %s       :" %systematics )
     for i, p in enumerate(parameters):
         mH = p[0]
@@ -319,14 +339,15 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                 #'Wgamma',
                 #'SMHiggs'
                 ]
-        # FIXME 
+        
         for cat in flav_categories:
+            # FIXME 
             processes = []
-            cb.AddProcesses(['*'], [analysis_name], ['13TeV_%s'%era], [cat], bkg_processes, categories_with_parameters, False)
+            cb.AddProcesses(['*'], [analysis_name], ['13TeV_%s'%era], [cat], bkg_processes, categories_with_parameters, signal=False)
             processes += bkg_processes
         
         sig_process = 'HToZATo2L2B'
-        cb.AddProcesses([mass], [analysis_name], ['13TeV_%s'%era], flav_categories, [sig_process], categories_with_parameters, True)
+        cb.AddProcesses([mass], [analysis_name], ['13TeV_%s'%era], flav_categories, [sig_process], categories_with_parameters, signal=True)
         processes  += [sig_process]
         logger.info( "Processes       : %s" %processes)
         
@@ -357,9 +378,9 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                             print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, cat, process))
                         for s in systematics[cat][category_with_parameters][process]:
                             s = str(s)
-                            if H.ignoreSystematic(cat, process, s):
-                                print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
-                                continue
+                            #if H.ignoreSystematic(cat, process, s):
+                            #    print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
+                            #    continue
                             cb.cp().channel([cat]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
 
         # Import shapes from ROOT file
@@ -384,12 +405,124 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         output_dir     = os.path.join(output, method+("-"+H.get_method_group(method) if method !="fit" else ""), mode, 'MH-%s_MA-%s'%(p[0],p[1]))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        def createRunCombineScript(mass, output_dir, output_prefix):
+        def createRunCombineScript(mass, output_dir, output_prefix, flavor):
             # Write small script to compute the limit
             datacard = os.path.join(output_dir, output_prefix + '.dat')
             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
+            create = False
+
+            if method == 'goodness_of_fit' and 'ElEl_MuMu' in flavor:
+                create = True
+                proc = 'ggH' if 'gg_fusion' in flavor else 'bbH'
+                region = 'resolved' if 'resolved' in flavor else 'boosted'
+                label_left  = '{}-{} (ee+$\mu\mu$)'.format(proc, region)
+                label_right = '%s $fb^{-1}$ (13TeV)'%(round(Constants.getLuminosity(era)/1000., 2))
+                script ="""#!/bin/bash
+
+#SBATCH --job-name=Goodnessoffit
+#SBATCH --time=1:59:00
+#SBATCH --mem-per-cpu=1500
+#SBATCH --partition=cp3
+#SBATCH --qos=cp3
+#SBATCH --ntasks=1
+#SBATCH -p debug -n 1
+#SBATCH --array=0-104
+
+######################
+# Begin work section #
+######################
+# Print this sub-job's task ID
+echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
+
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+
+{slurm}combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=saturated --toysFreq
+{slurm}combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=saturated -t 500 -s {seed} -n Toys --toysFreq
+combineTool.py -M CollectGoodnessOfFit --input higgsCombineTest.GoodnessOfFit.mH125.root higgsCombineToys.GoodnessOfFit.mH125.{seed}.root -m 125.0 -o gof__{fNm}.json 
+plotGof.py gof__{fNm}.json --statistic saturated --mass 125.0 -o gof_{fNm} --title-right="{label_right}" --title-left="{label_left}"
+popd
+""".format( workspace_root = workspace_file,
+            datacard       = os.path.basename(datacard), 
+            fNm            = flavor,
+            seed           = random.randrange(100, 1000, 3),
+            label_left     = label_left,
+            label_right    = label_right,
+            mass           = mass,
+            slurm          = 'srun ' if submit_to_slurm else '', 
+            dir            = os.path.dirname(os.path.abspath(datacard)) )
+
+
+            if method == 'pvalue' and 'ElEl_MuMu' in flavor:
+                create = True
+                script ="""#!/bin/bash -l
+#SBATCH --job-name=pvalue
+#SBATCH --time=1:59:00
+#SBATCH --mem-per-cpu=1500
+#SBATCH --partition=cp3
+#SBATCH --qos=cp3
+#SBATCH --ntasks=1
+#SBATCH -p debug -n 1
+#SBATCH --array=0-104
+
+# Print this sub-job's task ID
+echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
+
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}{SLURM_ARRAY_TASK_ID}.root
+fi
+# Computing Significances with toys
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 1 -m {mass} {verbose} &> {name}__toys1.log
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 2 -m {mass} {verbose} &> {name}__toys2.log
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 3 -m {mass} {verbose} &> {name}__toys3.log
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 4 -m {mass} {verbose} &> {name}__toys4.log
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 5 -m {mass} {verbose} &> {name}__toys5.log
+
+if [ -f merged.root ]; then
+    rm merged.root
+    echo "merged.root is removed, to be created again !"
+fi
+#hadd merged.root higgsCombineTest.HybridNew.mH125.1.root higgsCombineTest.HybridNew.mH125.2.root higgsCombineTest.HybridNew.mH125.3.root higgsCombineTest.HybridNew.mH125.4.root higgsCombineTest.HybridNew.mH125.5.root 
+
+# Observed significance with toys
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=merged.root --grid=higgsCombineTest.significance_obs.mH{mass}.root --pvalue -m {mass} {verbose} &> {name}__significance_obs.log
+
+# Expected significance, assuming some signal
+#{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=merged.root --grid=higgsCombineTest.significance_exp_plus_s.mH{mass}.root --pvalue --expectedFromGrid=0.84 -m {mass} {verbose} &> {name}__significance_exp_plus_s.log
+
+{c}echo "Observed significance"
+{c}combine {method} {workspace_root}.root -m {mass}
+
+echo "Expected significance"
+combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} -m {mass} --toysFreq &> expected__significance_expectSignal{expectSignal}.log
+
+{c}echo "Observed p-value" 
+{c}combine {method} {workspace_root}.root --pvalue -m {mass}
+
+echo "Expected p-value" 
+combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} --pvalue -m {mass} --toysFreq &> expected__pvalue_expectSignal{expectSignal}.log
+popd
+""".format( workspace_root = workspace_file.replace('.root', ''), 
+            datacard       = os.path.basename(datacard), 
+            mass           = mass,
+            name           = 'sig__toysFreq__{}'.format(output_prefix),
+            slurm          = 'srun ' if submit_to_slurm else '', 
+            seed           = random.randrange(100, 1000, 3),
+            method         = H.get_combine_method(method), 
+            dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')),
+            c              = '' if unblind else '#',
+            verbose        = '--verbose 2' if verbose else '',
+            dir            = os.path.dirname(os.path.abspath(datacard)),
+            expectSignal   = expectSignal, 
+            SLURM_ARRAY_TASK_ID = '${SLURM_ARRAY_TASK_ID}' if submit_to_slurm else '')
             
             if method == 'hybridnew':
+                create = True
                 script = """#! /bin/bash
 pushd {dir}
 # If workspace does not exist, create it once
@@ -413,6 +546,7 @@ popd
             dir            = os.path.dirname(os.path.abspath(datacard)) )
             
             elif method == 'asymptotic':
+                create = True
                 script = """#! /bin/bash
 pushd {dir}
 # If workspace does not exist, create it once
@@ -432,17 +566,20 @@ popd
             #dataset       = '--bypassFrequentistFit' , 
             #dataset       = '--noFitAsimov --newExpected 0', 
             dataset        = '--noFitAsimov',
-            blind          = ('' if unblind else '--run blind') )
+            blind          = ('' if unblind else '--run blind') 
+            )
             
             elif method =='fit':
+                create = True
                 script = """#! /bin/bash
+
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-combine {method} -m {mass} --saveWithUncertainties --ignoreCovWarning -n {name} {workspace_root} {dataset} {expectSignal} --plots &> {name}.log
+combine {method} -m {mass} {dataset} --saveWithUncertainties --ignoreCovWarning -n {name} {workspace_root} --plots &> {name}.log
 popd
 """.format( workspace_root = workspace_file, 
             datacard       = os.path.basename(datacard), 
@@ -450,33 +587,35 @@ popd
             mass           = mass, 
             method         = H.get_combine_method(method), 
             dir            = os.path.dirname(os.path.abspath(datacard)), 
+            dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')),
+            # for PAG closure checks : https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsPAGPreapprovalChecks
+            #expectSignal   = '--expectSignal {}'.format(expectSignal)  
             )
             
             elif method =='impacts':
+                create = True
                 script = """#! /bin/bash
+
+#SBATCH --time=1:59:00
+#SBATCH --mem-per-cpu=1500
+#SBATCH --partition=cp3
+#SBATCH --qos=cp3
+
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
-{slurmConfiguration}
 # Run combined
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --doInitialFit --robustFit 1 &> {name}.log
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --robustFit 1 --doFits --parallel 30 &> {name}.log
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}.log
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --doInitialFit --robustFit 1 &> {name}_doInitialFit.log
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --robustFit 1 --doFits --parallel 30 &> {name}_robustFit.log
+{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}_impacts.log
 {slurm}plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} &> {name}.log
 popd
-""".format( workspace_root     = workspace_file, 
-            slurm              = 'srun ' if submit_to_slurm else '',
-            slurmConfiguration = """SBATCH --job-name=impacts__{}
-SBATCH --array=0-206
-SBATCH --time=24:00:00
-SBATCH --ntasks=1
-SBATCH --mem-per-cpu=1500
-SBATCH -p debug -n 1
-""".format( 'expectSignal%s_%sdataset'%( expectSignal, dataset)) if submit_to_slurm else '',
+""".format( workspace_root = workspace_file, 
+            slurm          = 'srun ' if submit_to_slurm else '',
             name           = output_prefix,
-            fNm            = 'expectSignal{}_{}dataset'.format( expectSignal, dataset),
+            fNm            = '{}_expectSignal{}_{}dataset'.format( flavor, expectSignal, dataset),
             datacard       = os.path.basename(datacard), 
             mass           = mass,
             method         = H.get_combine_method(method), 
@@ -486,6 +625,7 @@ SBATCH -p debug -n 1
             
             
             elif method =='generatetoys':
+                create = True
                 t  = '--toysNoSystematics' if stat_only else '--toysFrequentist'
                 script = """#! /bin/bash
 pushd {dir}
@@ -503,25 +643,43 @@ popd
             expectSignal   = '--expectSignal {}'.format(expectSignal),
             systematics    = t, 
             name           = output_prefix,
-            fNm            = '_{}_expectSignal{}_{}'.format(t.replace('--',''), expectSignal, output_prefix),
-            )
+            fNm            = '_{}_expectSignal{}_{}'.format(t.replace('--',''), expectSignal, output_prefix))
+
+
+            elif method == 'signal_strength':
+                create = True
+                script = """#! /bin/bash
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+combine {method} {workspace_root} -n .part0.snapshot -t -1 -m 125 --algo grid --points 30 --saveWorkspace
+combine -M MultiDimFit  higgsCombine.part0.snapshot.MultiDimFit.mH125.root -n .part0.freezeAll -m 125 --algo grid --points 30 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit
+python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.part0.snapshot.MultiDimFit.mH125.root --others 'higgsCombine.part0.freezeAll.MultiDimFit.mH125.root:FreezeAll:2' -o freeze_second_attempt --breakdown theory,Stat &> {name}.log
+""".format( dir            = os.path.dirname(os.path.abspath(datacard)),
+            method         = H.get_combine_method(method), 
+            workspace_root = workspace_file,
+            datacard       = os.path.basename(datacard), 
+            mass           = mass,
+            name           = output_prefix )
             
-            
-            script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
-            print( method, script_file)
-            with open(script_file, 'w') as f:
-                f.write(script)
-    
-            st = os.stat(script_file)
-            os.chmod(script_file, st.st_mode | stat.S_IEXEC)
-            
+            if create:
+                script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
+                print( method, script_file)
+                with open(script_file, 'w') as f:
+                    f.write(script)
+        
+                st = os.stat(script_file)
+                os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+                
 
         # Write card
-        def writeCard(c, mass, output_dir, output_prefix, script=True):
+        def writeCard(c, mass, output_dir, output_prefix, flavor, script=True):
             datacard = os.path.join(output_dir, output_prefix + '.dat')
             c.cp().mass([mass, "*"]).WriteDatacard(datacard, os.path.join(output_dir, output_prefix + '_shapes.root'))
             if script:
-                createRunCombineScript(mass, output_dir, output_prefix)
+                createRunCombineScript(mass, output_dir, output_prefix, flavor)
         
         
         for cat in flav_categories:
@@ -535,18 +693,23 @@ pushd {dir}
 # Create pre/post-fit shapes for all the categories
 for CAT in {categories}; do
     text2workspace.py {prefix}_${{CAT}}.dat -m {mass} -o {prefix}_${{CAT}}_combine_workspace.root
-    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o fit_shapes_${{CAT}}_{fit_what}.root -f fitDiagnostics{prefix}_${{CAT}}.root:{fit_what} -m {mass} --postfit --sampling --covariance --total-shapes --print
-    $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_{fit_what}.root -o plotIt_{flavor}_{fit_what} --signal-process HToZATo2L2B -n {name}
+    
+    fit_what=fit_s
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o fit_shapes_${{CAT}}_${{fit_what}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+    $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_${{fit_what}}.root -o plotIt_{flavor}_${{fit_what}} --signal-process HToZATo2L2B -n {name}
+    
+    fit_what=fit_b
+    PostFitShapesFromWorkspace -w {prefix}_${{CAT}}_combine_workspace.root -d {prefix}_${{CAT}}.dat -o fit_shapes_${{CAT}}_${{fit_what}}.root -f fitDiagnostics{prefix}_${{CAT}}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+    $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_${{fit_what}}.root -o plotIt_{flavor}_${{fit_what}} --signal-process HToZATo2L2B -n {name}
+
 done
 popd
-""".format(prefix     = output_prefix + '_' + cat, 
-           flavor     = cat, 
-           mass       = 125, 
-           parameter  = 'MH-%s_MA-%s'%(mH,mA), 
-           categories = ' '.join([x[1] for x in categories_with_parameters]), 
-           dir        = os.path.abspath(output_dir),
-           name       = get_Nm_for_runmode(mode), 
-           fit_what   = 'fit_b' if expectSignal==0 else 'fit_s')
+""".format(prefix         = output_prefix + '_' + cat, 
+           flavor         = cat, 
+           mass           = 125, 
+           categories     = ' '.join([x[1] for x in categories_with_parameters]), 
+           dir            = os.path.abspath(output_dir),
+           name           = get_Nm_for_runmode(mode))
 
                 script_file = os.path.join(output_dir, output_prefix + '_' + cat + ('_do_postfit.sh'))
                 with open(script_file, 'w') as f:
@@ -561,7 +724,10 @@ popd
         for flavor in flav_categories:
             for i, cat in enumerate(categories_with_parameters):
                 cat_output_prefix = output_prefix + '_%s_%s' % (flavor, cat[1])
-                writeCard(cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, i + 1 == len(categories_with_parameters))
+                cb.PrintObs() 
+                print('--------------------------------------------------------------------------------------------------------')
+                # cb_shallow_copy = cb.cp():
+                writeCard( cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, flavor, i + 1 == len(categories_with_parameters))
             
         if merge_cards_by_cat:
             mergeable_regions = ['resolved', 'boosted']
@@ -575,9 +741,10 @@ popd
                #         args      = ['combineCards.py'] + datacards
                #         merged_datacard_name = output_prefix + '_'+ prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
                #         merged_datacard      = os.path.join(output_dir, merged_datacard_name + '.dat')
+               #         flavor               = prod +'_'+ '_'.join(mergeable_regions) + '_'+ '_'.join(mergeable_flavors)
                #         with open(merged_datacard, 'w') as f:
                #             subprocess.check_call(args, cwd=output_dir, stdout=f)
-               #         createRunCombineScript(mass, output_dir, merged_datacard_name)
+               #         createRunCombineScript(mass, output_dir, merged_datacard_name, flavor)
 
                 for reg in regions:
                     for i, cat in enumerate(categories_with_parameters):
@@ -591,7 +758,7 @@ popd
                             with open(merged_datacard, 'w') as f:
                                 subprocess.check_call(args, cwd=output_dir, stdout=f)
 
-                            createRunCombineScript(mass, output_dir, merged_datacard_name)
+                            createRunCombineScript(mass, output_dir, merged_datacard_name, prod +'_' + reg + '_'+ '_'.join(mergeable_flavors))
 
 
 if __name__ == '__main__':
@@ -619,7 +786,8 @@ if __name__ == '__main__':
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
-    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys'],        
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, 
+                                                choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit'],        
                                                 help='Analysis method')
     parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
                                                 help='Unblind analysis :: use real data instead of fake pseudo-data')
@@ -629,7 +797,7 @@ if __name__ == '__main__':
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
     parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
                                                 help='scale signal rate')
-    parser.add_argument('--submit',             action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
+    parser.add_argument('--slurm',              action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
                                                 help='slurm submission for long pull and impacts jobs')
     parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
                                                 help='normalize the inputs histograms')
@@ -643,7 +811,11 @@ if __name__ == '__main__':
     options = parser.parse_args()
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
-    shutil.copyfile(os.path.join(options.input.split(options.input.split('/')[-2])[0], 'plots.yml'), os.path.join(options.output, 'plots.yml'))
+    try:
+        shutil.copyfile(os.path.join(options.input.split(options.input.split('/')[-2])[0], 'plots.yml'), os.path.join(options.output, 'plots.yml'))
+    except Exception as ex:
+    #except shutil.SameFileError:
+        pass
     
     prepare_DataCards(grid_data          = signal_grid + extra_signals, 
                       dataset            = options.dataset, 

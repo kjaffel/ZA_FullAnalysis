@@ -232,7 +232,7 @@ for the_mH in mH_list:
     
     # Create an axes instance
     ax = fig.add_subplot(111)
-    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ fb')
+    ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
     ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
     if options.rescale_to_za_br:
         ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ fb')
