@@ -9,32 +9,40 @@ from bambooToOls import Plot
 def makeControlPlotsForZpic(sel, leptons, suffix, uname, reg ):
     plots = []
     binScaling=1
-    for i in range(2):
-        lepptcut_forcomb = ( 25. if i == 0 else ( 10. if leptons[1].pt > 10 else( 15. if leptons[1].pt > 15. else (0.))))
-        leptonptCut = (25. if i == 0 else( 10. if uname[-1]=='u' else( 15. if uname[-1]=='l' else(lepptcut_forcomb)))) 
-        plots.append(Plot.make1D(f"{uname}_lep{i+1}_pt_%s_%s"%(suffix, reg), leptons[i].pt, sel,
-                EqB(60 // binScaling, leptonptCut, 530.), title=f"{utils.getCounter(i+1)} Lepton pT [GeV]" ,
-                plotopts=utils.getOpts(uname)))
-        plots.append(Plot.make1D(f"{uname}_lep{i+1}_eta_%s_%s"%(suffix, reg), leptons[i].eta, sel,
-                EqB(50 // binScaling, -2.5, 2.5), title=f"{utils.getCounter(i+1)} Lepton eta",
-                plotopts=utils.getOpts(uname)))
-        plots.append(Plot.make1D(f"{uname}_lep{i+1}_phi_%s_%s"%(suffix, reg), leptons[i].phi, sel,
-                EqB(50 // binScaling, -3.1416, 3.1416), title=f"{utils.getCounter(i+1)} Lepton #phi",
-                plotopts=utils.getOpts(uname))) 
     
-    plots.append(Plot.make1D(f"{uname}_llpT_%s_%s"%(suffix, reg), (leptons[0].p4 + leptons[1].p4).Pt(), sel, 
-            EqB(60, 0., 450.), title= "dilepton P_{T} [GeV]", 
-            plotopts=utils.getOpts(uname)))
-    plots.append(Plot.make1D(f"{uname}_llphi_%s_%s"%(suffix, reg), (leptons[0].p4 + leptons[1].p4).Phi(), sel, 
-            EqB(50 // binScaling, -3.1416, 3.1416), title= "dilepton #phi ", 
-            plotopts=utils.getOpts(uname)))
-    plots.append(Plot.make1D(f"{uname}_lleta_%s_%s"%(suffix, reg), (leptons[0].p4 + leptons[1].p4).Eta(), sel, 
-            EqB(50 // binScaling, -2.5, 2.5), title= "dilepton eta", 
-            plotopts=utils.getOpts(uname)))
-    if uname not in ["MuEl", "ElMu"]:    
-        plots.append(Plot.make1D(f"{uname}_mll_%s_%s"%(suffix, reg), op.invariant_mass(leptons[0].p4, leptons[1].p4), sel, 
-                EqB(60, 70., 110.), title= "mll [GeV]", 
-                plotopts=utils.getOpts(uname)))
+    ptcut = {'ElEl': {'l1': 25., 'l2': 15. },
+             'MuMu': {'l1': 25., 'l2': 10. },
+             'ElMu': {'l1': 25., 'l2': 10. },
+             'MuEl': {'l1': 25., 'l2': 15. }
+            }
+    
+    ll_p4 = leptons[0].p4 + leptons[1].p4
+    for i in range(2):
+        plots += [ Plot.make1D(f"{uname}_{suffix}_lep{i+1}_{nm}_{reg}", var, sel, binning, 
+            title=f"{utils.getCounter(i+1)} lepton {title}", plotopts=utils.getOpts(uname))
+            for nm, (var, binning, title) in {
+                "pt" : (leptons[i].pt,  EqB(60 // binScaling, ptcut[uname][f'l{i+1}'], 650.), "P_{T} (GeV)"),
+                "eta": (leptons[i].eta, EqB(50 // binScaling, -2.5, 2.5), "#eta"),
+                "phi": (leptons[i].phi, EqB(50 // binScaling, -3.1416, 3.1416), "#phi")
+                }.items() 
+            ]
+        
+    plots += [ Plot.make1D(f"{uname}_{suffix}_ll_{nm}_{reg}", var, sel, binning,
+        title=f"dilepton {title}", plotopts=utils.getOpts(uname))
+        for nm, (var, binning, title) in {
+            "pt" : (ll_p4.Pt() , EqB(60 // binScaling, 0., 650.), "P_{T} (GeV)"),
+            "eta": (ll_p4.Eta(), EqB(50 // binScaling, -3., 3.), "#eta"),
+            "phi": (ll_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
+            }.items()
+        ]
+    
+    if not uname in ["MuEl", "ElMu"]:    
+        plots += [ Plot.make1D(f"{uname}_{suffix}_ll_{nm}_{reg}", var, sel, binning,
+            title=f"dilepton {title}", plotopts=utils.getOpts(uname))
+            for nm, (var, binning, title) in {
+                "mass" : (ll_p4.M() , EqB(60 // binScaling, 70., 110.), "m_{ll} (GeV)"),
+            }.items()
+        ]
     return plots
         
 
@@ -121,7 +129,7 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, c
                 for nm, (var, binning, title) in {
                     "PT" : (jj_p4.Pt() , EqB(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
                     "Phi": (jj_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
-                    "Eta": (jj_p4.Eta(), EqB(50 // binScaling, -3., 3.), "Eta")
+                    "Eta": (jj_p4.Eta(), EqB(50 // binScaling, -3., 3.), "#eta")
                     }.items()
                 ]
         
@@ -160,7 +168,7 @@ def makeJetPlots(sel, jets, uname, suffix, era):
                 plotopts=utils.getOpts(uname))
             for nm, (jVar, binning, title) in {
                 "pT" : (lambda j : j.pt, eqBin_pt, "p_{T} [GeV]"),
-                "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.4, 2.4), "eta"),
+                "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.4, 2.4), "#eta"),
                 "phi": (lambda j : j.phi, EqB(50 // binScaling, -3.1416, 3.1416), "#phi")
                 }.items() ]
     return plots
@@ -213,7 +221,7 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process):
                         plotopts=utils.getOpts(uname))
                 for nm, (jVar, binning, title) in {
                     "pT" : (lambda j : j.pt,  EqB(60 // binScaling, jet_ptcut, 850.), "pt [GeV]"),
-                    "pT" : (lambda j : j.mass,EqB(50 // binScaling, 0., 600.), "Mass [GeV]"),
+                    "mass" : (lambda j : j.mass,EqB(50 // binScaling, 0., 600.), "Mass [GeV]"),
                     "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.5, 2.5), "eta"),
                     "phi": (lambda j : j.phi, EqB(50 // binScaling, -3.1416, 3.1416), "phi")
                     }.items() ]
@@ -376,4 +384,34 @@ def MakePuppiMETPlots(PuppiMET, sel, uname):
                         PuppiMET.phi, sel,
                         EqB(60 // binScaling, -3.1416, 3.1416), title="PuppiMET #phi",
                         plotopts=utils.getOpts(uname, **{"log-y": False})))
+    return plots
+
+def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, wp, uname, suffix, cut, process):
+    plots = []
+    binScaling=1
+    
+    stop  = 2 if suffix =='resolved' else 1
+    ptcut = 20. if suffix =='resolved' else 200.
+
+    for key, sel in selections.items():
+        tagger = key.replace(wp, "")
+        bjets_ = bjets[tagger][wp]
+        bb_p4 = ((bjets_[0].p4 + bjets_[1].p4) if suffix =="resolved" else( bjets_[0].p4))
+
+        for i in range(stop): 
+            plots += [ Plot.make1D(f"{uname}_{suffix}{cut}_{nm}{i+1}_{key}_{process}",
+                llbbVar, sel, binning, title=f"{utils.getCounter(i+1)} b-Jet {title}", plotopts=utils.getOpts(uname))
+                for nm, (llbbVar, binning, title) in {
+                    "pT"   : (bjets_[i].pt, EqB(60, ptcut, 450.), "pt (GeV)"),
+                    #"mass" : (bjets_[i].mass, EqB(60, ptcut, 200.), "mass (GeV)"),
+                }.items()
+            ]
+        plots += [ Plot.make1D(f"{uname}_{suffix}{cut}_{nm}_{key}_{process}",
+            llbbVar, sel, binning, title=title, plotopts=utils.getOpts(uname))
+            for nm, (llbbVar, binning, title) in {
+                "mbb"   : (bb_p4.M(), EqB(60, 0., 1000.), "m_{bb} (GeV)"),
+                "mllbb" : ((leptons[0].p4 + leptons[1].p4 + bb_p4).M(), EqB(60, ptcut, 1000.), "m_{llbb} (GeV)"),
+                "ptbb"  : (bb_p4.Pt(), EqB(60, ptcut, 450.), "pt_{bb} (GeV)"),
+                }.items()
+            ]
     return plots

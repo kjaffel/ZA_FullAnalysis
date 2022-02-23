@@ -6,6 +6,7 @@ import numpy as np
 import HistogramTools as HT
 
 from bamboo.plots import Plot, SummedPlot
+from bamboo.root import gbl
 from bamboo.root import gbl as ROOT
 from bamboo import treefunctions as op
 from bamboo import scalefactors
@@ -16,8 +17,6 @@ def ZAlogger(name):
     stream = logging.StreamHandler()
     stream.setLevel(LOG_LEVEL)
     logger = logging.getLogger(f'{name}')
-    logger.setLevel(LOG_LEVEL)
-    logger.addHandler(stream)
     try:
         import colorlog
         from colorlog import ColoredFormatter
@@ -33,12 +32,14 @@ def ZAlogger(name):
                                 'CRITICAL': 'red',
                             },
                         secondary_log_colors={},
-                        style='%'
-                        )
+                        style='%' )
         stream.setFormatter(formatter)
     except ImportError:
         print(" You can add colours to the output of Python logging module via : https://pypi.org/project/colorlog/")
         pass
+    if not logger.hasHandlers():
+        logger.setLevel(LOG_LEVEL)
+        logger.addHandler(stream)
     return logger
 
 def getOpts(name, **kwargs):
@@ -114,8 +115,15 @@ def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
         plotsToAdd.append(plotType(thisName, catVar, catSel, binning, **kwargs))
     return plotsToAdd + [SummedPlot(f"{newCat}_{name}", plotsToAdd, **kwargs)]
 
-def declareHessianPDFCalculator():
-    from bamboo.root import gbl
+
+@ROOT.Numba.Declare(['RVec<float>'], 'float')
+def computeHessianPDFUncertainty(weights):
+    if len(weights) < 2:
+        return 0.
+    weights = np.asarray(weights)
+    return np.sqrt(np.sum((weights[1:] - weights[0])**2))
+
+def not_in_use_declareHessianPDFCalculator():
     if not hasattr(gbl, "computeHessianPDFUncertainty"):
         gbl.gInterpreter.Declare("""
                                  float computeHessianPDFUncertainty(const ROOT::VecOps::RVec<float>& weights) {
@@ -147,24 +155,21 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True,
         noSel = noSel.refine("psFSR", weight=psFSRSyst)
     
     if PDFs:
-        pdf_mc = sampleCfg.get("pdf_mc", False)
         nPdfVars = (0, 101) if pdf_mc else (1, 103)
-        if pdf_mode == "full" and sampleCfg.get("pdf_full", False):
+        if pdf_mode == "full" and sampleCfg['type']== 'mc':
             logger.info("Adding full PDF systematics")
             pdfVars = { f"pdf{i}": tree.LHEPdfWeight[i] for i in range(*nPdfVars) }
+        
         elif pdf_mode == "simple":
             logger.info("Adding simplified PDF systematics")
-            if pdf_mc:
+            if sampleCfg['type']== 'mc':
                 pdfSigma = op.rng_stddev(tree.LHEPdfWeight)
             else:
-                declareHessianPDFCalculator()
-                sigmaCalc = op.extMethod("computeHessianPDFUncertainty", returnType="float")
+                logger.info("Signal sample has Hessian PDF variations: NNPDF31_nnlo_as_0118_mc_hessian_pdfas")
+                sigmaCalc = op.extMethod("Numba::computeHessianPDFUncertainty", returnType="float")
                 pdfSigma = sigmaCalc(tree.LHEPdfWeight)
+            
             pdfVars = { "pdfup": tree.LHEPdfWeight[0] + pdfSigma, "pdfdown": tree.LHEPdfWeight[0] - pdfSigma }
-        if pdf_mc:
-            logger.info("This sample has MC PDF variations")
-        else:
-            logger.info("This sample has Hessian PDF variations")
         noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
     return noSel
 
