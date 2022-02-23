@@ -59,15 +59,16 @@ cd ${CMSSW_BASE}/src
 
 scram b -j7
 ```
-###  Prepare Shape Cards:
+##  Prepare Shape Cards:
 **Warning:** make sure that the inputs root file are normalized !
 ```bash
 cms_env
 cd ${CMSSW_BASE}/src
 cmsenv
-./prepareShapesAndCards.py --era -i -o --dataset --mode --method 
+./prepareShapesAndCards.py --era -i -o --dataset --mode --method --expectSignal
 ```
 - ``-i``/``--input`` : path to inputs prefit histograms
+- **``--normalize``: normalize the inputs histograms if the given ``--inputs`` above are not !**
 - ``-o``/``--output``: path to where you want to save the datacards 
 - ``-p``/``--parameters``: take a list of float ntuples ``[(MH, MA)]``, by default will do all signal mass points that can be found in ``inputs/results/*.root``
 - ``-v``/``--verbose``: for more printout when debugging
@@ -78,11 +79,11 @@ cmsenv
 - ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
 - ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit, impacts, generatetoys]``
 - ``--unblind``: if set to False``--run blind`` options will be added to combine commands otherwise real_data will be used instead. 
-- **``--normalize``: normalize inputs histograms if the given ``--inputs`` are not !**
 - ``--scale``: scale signal rate; the signale is usualy normalized to 1pb, this flag will scale signal process to ``BR * cross-section``.
+
 ## Collect Limits:
 ```python
-python collectLimits.py -i output_path_of_previous_step/
+python collectLimits.py -i output_path_of_previous_step/ --method 
 ```
 - ``-i``/``--inputs`` : path to (ROOT) combine output file, the combined limits will be saved by default in ``args.inputs/jsons/*.json``.
 - ``--method``: ``asymptotic or hybridnew`` required to collect the limits from ``higgsCombinexxxx_.AsymptoticLimits.mH125.root`` if the method is asymptotic for instance.
@@ -103,12 +104,24 @@ python ZAlimits.py -p path_to/jsons/ --era
     - If you are running on ingrid-ui1, you need to run on a worker node with a more recent CPU``srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash``
     - Needs python3 environment, you can use LCG [here](https://github.com/kjaffel/ZA_FullAnalysis#environment-setup-always-).
 ```python
-python optimizeBinning.py --inputs bla/ --output test/ --rebin standalone
+python optimizeBinning.py -i -o --rebin 
 ```
-- ``-r``/``--rebin``:
-- ``-n``/``--normalized``: 
-- ``-e``/``--events``:
-- ``-u``/``--uncertainty``:
+- ``-i``/``--inputs``:
+- ``-o``/``--outputs``:
+- ``--era``: 
+- ``--uncertainty``:
+- ``--events``:
+- ``-p0/--prior``: 
+- --onlypost
+- --plotit
+- --logy 
+- --sys
+- --mode
+- --toys
+- --scale 
+- --submit 
+- ``--rebin``:
+- ``--normalized``: 
 ## Trouble-Shooting:
 - If you ever face Segfault in CombineHarvester::WriteDatacard(string, string) in Python[ issue-239](https://github.com/cms-analysis/CombineHarvester/issues/239) you can try with [PR-240](https://github.com/cms-analysis/CombineHarvester/pull/240), simply do:
 ```bash
