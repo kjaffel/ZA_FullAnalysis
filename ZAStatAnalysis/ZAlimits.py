@@ -1,13 +1,18 @@
 #! /bin/env python
 import os, sys, argparse
 import copy
+import glob
 import json
+
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-from packaging import version
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
+import matplotlib.transforms as transforms
 
+from packaging import version
 if version.parse(mpl.__version__) >= version.parse('2.0.0'):
     # Override some of matplotlib 2 new style
     mpl.rcParams['grid.color']            = 'k'
@@ -25,13 +30,10 @@ if version.parse(mpl.__version__) >= version.parse('2.0.0'):
     mpl.rcParams['lines.dotted_pattern']  = [1, 3]
     mpl.rcParams['lines.scale_dashes']    = False
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
-import matplotlib.transforms as transforms
 import Constants as Constants
 sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/utils')
 import CMSStyle as CMSStyle
+
 
 parser = argparse.ArgumentParser(description='Draw 95%CL Limits')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
@@ -49,6 +51,111 @@ parser.add_argument('--mA', action='store', type=float, dest='mA', default=300, 
 parser.add_argument('--no-boxes', action='store_true', dest='no_boxes', help='Do a regular limit plot instead of a boxed one')
 
 options = parser.parse_args()
+
+
+def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
+    
+    name = 'all_combined_MH-500_MA-300'
+    CMSStyle.changeFont()
+    fig = plt.figure(1, figsize=(8, 8), dpi=300)
+    fig.tight_layout()
+    ax = fig.add_subplot(111)
+    fig.subplots_adjust(left=0.17)
+
+    limits = {}
+    for cat in catagories:
+        for flav in flavors:
+            js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}.json'.format(cat, flav))
+            if not os.path.isfile(js_path):
+                continue
+            with open(js_path) as f:
+                limits['{}_{}'.format(cat, flav)] = json.load(f)
+    
+    for i, (k, params) in enumerate(limits.items()):
+        
+        if i == 0:
+            y_ = np.arange(1, 4, 1)
+        else:
+            i += 3 
+            y_ = np.arange(y_[-1]+0.5, y_[-1]+i, 1)
+            y_ = y_[:3]
+
+        for l in params:
+        
+            m_H = l['parameters'][0]
+            m_A = l['parameters'][1]
+            
+            if not (str(m_H) == str(mH) and str(m_A) == str(mA)):
+                continue
+            expected       = l['limits']['expected']*1000
+            observed       = l['limits']['observed']*1000
+            one_sigma_up   = l['limits']['one_sigma'][1]*1000
+            one_sigma_down = l['limits']['one_sigma'][0]*1000
+            two_sigma_up   = l['limits']['two_sigma'][1]*1000
+            two_sigma_down = l['limits']['two_sigma'][0]*1000
+        
+            exp_plus_1sigma  = expected + one_sigma_up 
+            exp_minus_1sigma = expected - one_sigma_down
+            exp_plus_2sigma  = expected + two_sigma_up
+            exp_minus_2sigma = expected - two_sigma_down
+            
+            print( l )
+            print( y_ , k  )
+            ax.fill_betweenx(y_, [exp_minus_2sigma]*3, [exp_plus_2sigma]*3,
+                                    facecolor   ='#FFF04D', 
+                                    lw          =0, 
+                                    label       ='95% expected', 
+                                    interpolate =True)
+            ax.fill_betweenx(y_, [exp_minus_1sigma]*3, [exp_plus_1sigma]*3,
+                                    facecolor   ='#00B140', 
+                                    lw          =0, 
+                                    label       ='68% expected', 
+                                    interpolate =True)
+            expected_line = ax.plot([expected]*3, y_, 
+                                    ls             ='dashed', 
+                                    solid_capstyle ='round', 
+                                    color          ='black', 
+                                    ms             =6, 
+                                    marker         ='', 
+                                    lw             =1.5, 
+                                    label          ="Expected")[0]
+        
+        xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(mH), Constants.mass_to_str(mA), 'ggH', 'HToZA')
+        xsc_x_br = float(xsc) *float(br_HeavytoZlight)* float(br_lighttobb) *0.066 *1000
+        print( 'heyyyyyyyyyyyyyyyyyyyyy', [xsc_x_br, xsc_x_br], [0., y_[-1]] )
+        theory_line = ax.plot([xsc_x_br, xsc_x_br], [0., y_[-1]], 
+                                ls             ='solid', 
+                                solid_capstyle ='round', 
+                                color          ='red', 
+                                ms             =6, 
+                                marker         ='', 
+                                lw             =1.5, 
+                                label          ="Theory")[0]
+    
+    ax.set_xlabel(r'95% CLs limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
+    
+    ax.set_xscale('log')
+    ax.set_xlim(4, 6000)
+    ax.set_ylim(0, 20)
+    ax.axes.yaxis.label.set_size(8.)
+    ax.axes.yaxis.set_ticklabels(['', 'ggH-resolved\n ee', 'ggH-resolved\n'+r'$\mu\mu$',  'ggH-resolved\n'+r'$\mu\mu$ + ee'])
+
+    plt.title('CMS Preliminary', fontsize=14., loc='left', style='italic', weight="bold")
+    plt.title(r'%.2f $fb^{-1}$ (13TeV)'%(Constants.getLuminosity(options.era)/1000.), fontsize=14., loc='right', style='italic', weight="bold")
+        
+    one_sigma_patch = mpatches.Patch(color='#FFF04D', label='68% expected')
+    two_sigma_patch = mpatches.Patch(color='#00B140', label='95% expected')
+    handles = [theory_line, expected_line, one_sigma_patch, two_sigma_patch]
+
+    ax.legend(loc='best', handles= handles, labels=['Theory', 'Expected', '68% expected', '95% expected'], fontsize='medium', frameon=False)
+    outDir = os.path.dirname(jsonpath)
+    fig.savefig(os.path.join(outDir, name+'.png'))
+    fig.savefig(os.path.join(outDir, name+'.pdf'))
+    
+    print( 'file saved in : ', os.path.join(outDir, name+'.png'))
+    plt.close(fig)
+    plt.gcf().clear()
+
 
 parameters = ['mH', 'mA']
 signal_grid = [
@@ -129,10 +236,15 @@ colors = {
     'ElEl_MuMu': 'black',
     }
     
-#flavors = ['MuMu', 'ElEl']#, 'ElEl_MuMu']
-flavors = ['ElEl_MuMu']
+flavors = ['MuMu', 'ElEl', 'ElEl_MuMu']
+#flavors = ['ElEl_MuMu']
+
+catagories = ['ggH_resolved']#, 'ggH_boosted', 'bbH_resolved', 'bbH_boosted']
 
 output_dir = options.jsonpath
+
+PlotMultipleUpperLimits(500, 300, flavors, catagories, options.jsonpath)
+
 for the_mH in mH_list:
     parameter_values = {
         "mH": the_mH,
@@ -144,8 +256,6 @@ for the_mH in mH_list:
     
     for flav in flavors:
         limits = flavors_limits.setdefault(flav, {})
-        #with open(os.path.join(options.jsonpath, 'all_limits_{}.json'.format(flav))) as f:
-        #with open(os.path.join(options.jsonpath, 'combinedlimits_{}.json'.format(flav))) as f:
         with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav))) as f:
             limits_ = json.load(f)
             
@@ -203,8 +313,9 @@ for the_mH in mH_list:
             exp_plus_2sigma  = limits[point]['two_sigma'][1]*1000
             exp_minus_2sigma = limits[point]['two_sigma'][0]*1000
             
-            br = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(point[0]), Constants.mass_to_str(point[1]), 'ggH', 'HToZA')
+            xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(point[0]), Constants.mass_to_str(point[1]), 'ggH', 'HToZA')
             if options.rescale_to_za_br:
+                br = br_HeavytoZlight * br_lighttobb
                 exp_plus_1sigma  *= br
                 exp_minus_1sigma *= br
                 exp_plus_2sigma  *= br
@@ -226,8 +337,8 @@ for the_mH in mH_list:
         data['one_sigma'] = np.asarray(data['one_sigma'])
         data['two_sigma'] = np.asarray(data['two_sigma'])
     
-    CMSStyle.changeFont()
     # Create a figure instance
+    CMSStyle.changeFont()
     fig = plt.figure(1, figsize=(7, 7), dpi=300)
     
     # Create an axes instance

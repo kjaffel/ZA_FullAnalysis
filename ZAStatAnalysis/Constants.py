@@ -107,7 +107,7 @@ def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
         arrs = np.concatenate((fullsim_nlo, benchmarks_nlo))
         xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNms['bbH']['nlo'], arrs)
     br      = br_HeavytoZlight *  br_lighttobb
-    return br
+    return xsc, xsc_err, br_HeavytoZlight, br_lighttobb
 
 def getZACrossSectionUncertainties():
     # FIXME
@@ -138,4 +138,3 @@ def getLuminosityUncertainty(era):
     elif era == '2018':
         uncer= 1.025
     return uncer
-

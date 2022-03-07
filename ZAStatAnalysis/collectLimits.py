@@ -137,11 +137,10 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
                 root     =  f.split('/')[-1]
                 mH, mA   =  string_to_mass(f.split('/')[-2])
                 mode     =  f.split('/')[-3]
-                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}'.format(prod, reg, flavor)):
+                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_dnn'.format(prod, reg, flavor)):
                     continue
                 point_limits = getLimitsFromFile(f, options.method)
                 print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
-                #print ("point_limits: ", point_limits)
             
                 if point_limits['expected'] == 0:
                     print("Warning: expected is 0, skipping point")
@@ -151,7 +150,7 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
                     'limits'    : point_limits
                     })
 
-limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), 'jsons', mode)
+limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), 'jsons', 'dnn')
 if not os.path.exists(limits_out):
     os.makedirs(limits_out)
 for k, v in limits.items():

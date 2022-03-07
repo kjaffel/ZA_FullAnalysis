@@ -102,11 +102,16 @@ def get_listofsystematics(directory, flavor):
         F.Close()
     return systematics
 
+
 def zeroNegativeBins(h):
     for i in range(1, h.GetNbinsX() + 1):
         if h.GetBinContent(i) < 0.:
             h.SetBinContent(i, 0.)
             h.SetBinError(i, 0.)
+
+def EraFromPOG(era):
+    return '_UL'+era.replace('20','')
+
 
 def get_method_group(method):
     if method == 'fit':
@@ -140,7 +145,35 @@ def get_combine_method(method):
     elif method == 'pvalue':
         return '-M Significance'
 
-def getnormalisationScale(inDir=None, method=None, seperate=False):
+
+def get_Observed_HIG_18_012(m):
+    obs = { 'MH_1000_MA_200': 21.4, # fb
+            'MH_1000_MA_500': 8.20,
+            'MH_200_MA_50'  : 157, 
+            'MH_200_MA_100' : 161,
+            'MH_250_MA_50'  : 89.1, 
+            'MH_250_MA_100' : 82.3,
+            'MH_300_MA_50'  : 43.4,
+            'MH_300_MA_100' : 97.1,
+            'MH_300_MA_200' : 94.9,
+            'MH_500_MA_50'  : 37.9, 
+            'MH_500_MA_100' : 16.2, 
+            'MH_500_MA_200' : 32.0,
+            'MH_500_MA_300' : 46.9,
+            'MH_500_MA_400' : 74.8,
+            'MH_650_MA_50'  : 71.9,
+            'MH_800_MA_50'  : 95.6,
+            'MH_800_MA_100' : 20.8,
+            'MH_800_MA_200' : 27.5,
+            'MH_800_MA_400' : 8.96,
+            'MH_800_MA_700' : 27.0, }
+    if m in obs.keys():
+        return obs[m]/1000. # pb 
+    else:
+        return None
+
+
+def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
     """
     dict_seperateInfos = {"Configurations": {}
                 smp_signal : [era, lumi, xsc , generated-events, br],
@@ -152,7 +185,9 @@ def getnormalisationScale(inDir=None, method=None, seperate=False):
     
     subdir = inDir.split('/')[-2]
     plotter_p = inDir.split(subdir)[0]
-
+    for x in ['bayesian_rebin_on_S', 'bayesian_rebin_on_B', 'bayesian_rebin_on_hybride']:
+        if x in plotter_p:
+            plotter_p = plotter_p.replace(x,'')
     yaml_file  = os.path.join(plotter_p, 'plots.yml')
     try:
         with open(yaml_file, 'r') as inf:
@@ -161,30 +196,36 @@ def getnormalisationScale(inDir=None, method=None, seperate=False):
         logger.error('failed reading file : %s '%exc)
     
     for proc_path in glob.glob(os.path.join(inDir, "*.root")): 
-        process = proc_path.split('/')[-1]
+        smp = proc_path.split('/')[-1]
         
-        if process.startswith('__skeleton__'):
+        if smp.startswith('__skeleton__'):
             continue
+        if not EraFromPOG(era) in smp:
+            continue
+
+        smpScale = None
+        smpCfg   = config["files"][smp]
+        lumi     = config["configuration"]["luminosity"][smpCfg["era"]]
+        dict_seperateInfos["configuration"] = config["configuration"]["luminosity"]
         
-        for smp, smpCfg in config["files"].items():
-            if smp == process:
-                lumi = config["configuration"]["luminosity"][smpCfg["era"]]
-                dict_seperateInfos["configuration"] = config["configuration"]["luminosity"]
-                
-                if smpCfg.get("type") == "mc":
-                    smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
-                    dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], None]
-                
-                elif smpCfg.get("type") == "signal":
-                    smpScale = lumi / smpCfg["generated-events"]
-                    if method == "fit":
-                        smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
-                    dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
-                
-                elif smpCfg.get("type") == "data":
-                    smpScale = 1
-                    dict_seperateInfos[smp] = [smpCfg["era"], None, None, None, None]
-                dict_scale[smp] =  smpScale
+        if smpCfg.get("type") == "mc":
+            smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
+            dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], None]
+        
+        elif smpCfg.get("type") == "signal":
+            m = smp.split('To2L2B_')[1].split('_tb_')[0].replace('p00','')
+            
+            smpScale = lumi / smpCfg["generated-events"]
+            if method in ["fit", 'pvalue']:
+                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]* 0.066 # BR Z -> ll ( ee, \mu\mu )
+            
+            dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
+        
+        elif smpCfg.get("type") == "data":
+            smpScale = 1
+            dict_seperateInfos[smp] = [smpCfg["era"], None, None, None, None]
+
+        dict_scale[smp] =  smpScale
     return dict_seperateInfos if seperate else dict_scale
 
 def ignoreSystematic(flavor, process, s):
@@ -243,9 +284,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
       2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. The name of the histogram is the name of the background.
     """
     
+    scalefactors = getnormalisationScale(input, method, era, seperate=False)
     logger.info("Categories                                : %s"%flav_categories )
-    
-    scalefactors = getnormalisationScale(input, method, seperate=False)
     logger.info("scalefactors                              : %s"%scalefactors )
 
     # FIXME some systematics doesn't go in all falvors catgories !
@@ -263,8 +303,9 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     hash.update(output_filename)
     hash.update(str(luminosity))
 
-    files = [os.path.join(input, f) for f in os.listdir(input) if f.endswith('.root')]
-
+    all_files = [os.path.join(input, f) for f in os.listdir(input) if f.endswith('.root')]
+    files = [ f for f in all_files if EraFromPOG(era) in f.split('/')[-1]]
+    
     # Gather a list of inputs files for each process.
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
@@ -306,11 +347,12 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     for cat in flav_categories:
         flavor = cat.split('_')[-1]
         reg    = cat.split('_')[-2]
-        prod   = cat.split('_')[0]+'_' + cat.split('_')[1] 
+        prod   = cat.split('_')[0]+'_' + cat.split('_')[1]
+        taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
-            histogram_name = histogram_name.format(flavor=flavor, reg=reg, prod=prod)
+            histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, prod=prod)
             if type(category) is tuple:
                 hash.update(category[0])
             else:
