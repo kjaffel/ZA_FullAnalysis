@@ -423,6 +423,7 @@ def main():
         data_dict['ZA']['learning_weight'] = pd.Series(weight_ZA)
         #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
+        
         # Data splitting #
         mask_DY = GenerateMask(data_dict['DY'].shape[0],parameters.suffix+'_DY')
         mask_TT = GenerateMask(data_dict['TT'].shape[0],parameters.suffix+'_TT')
@@ -477,11 +478,31 @@ def main():
         train_all[list_inputs+list_outputs] = train_all[list_inputs+list_outputs].astype('float32')
         test_all[list_inputs+list_outputs]  = test_all[list_inputs+list_outputs].astype('float32')
         
-        if  opt.scan!='':
-            InputPlots(train_all, list_inputs, opt.outputs, force=True)
+        #if opt.scan!='':
+        #    InputPlots(train_all, list_inputs, opt.outputs, force=True)
+        
+        df_isBoosted  = train_all[train_all['isBoosted']==1]
+        df_isResolved = train_all[train_all['isResolved']==1]
+        df_isggH      = train_all[train_all['isggH']==1]
+        df_isbbH      = train_all[train_all['isbbH']==1]
+        
+        print ( 'isBoosted  :', df_isBoosted)
+        print ( 'isResolved :', df_isResolved)
+        print ( 'isggH : ', df_isggH)
+        print ( 'isbbH : ', df_isbbH)
+        
+        if opt.resolved and opt.boosted:
+            N = train_all.shape[0]
+            df_isBoosted['learning_weight'] *= N/df_isBoosted['learning_weight'].sum() 
+            df_isResolved['learning_weight'] *= N/df_isResolved['learning_weight'].sum() 
+        
+        print ( 'isBoosted  :', df_isBoosted)
+        print ( 'isResolved :', df_isResolved)
+        
         # Preprocessing #
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer
+        
         if opt.scan!='': # If we don't scan we don't need to scale the data
             MakeScaler(train_all, list_inputs, TTree, generator=False, batch=100000, list_samples=None, additional_columns={})
             
