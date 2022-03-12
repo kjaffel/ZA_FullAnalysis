@@ -15,14 +15,21 @@ fake = Factory.create()
 # 2- finish xsc uncer checks for mc and signal !! 
 
 def get_era_and_luminosity(smp=None, run=None, isdata=False):
-    preVFPruns  = ["B", "C", "D", "E", "F"]
+    preVFPruns  = ["B", "C", "D", "E"]
     postVFPruns = ["G", "H"]
+    
     if isdata:
         prefix = '-preVFP' if any(x in run for x in preVFPruns) else('-postVFP')
+        
+        if run =="F":
+            prefix = '-preVFP' if "HIPM" in smp else '-postVFP'
+
         lumi   = 19667.812849099 if prefix=='-preVFP' else( 16977.701784453)
+        
         if 'UL2016'in smp: return f'2016{prefix}', lumi, 0.012
         elif 'UL2017'in smp: return '2017', 41529.152060112, 0.023
         elif 'UL2018'in smp: return '2018', 59740.565201546, 0.025
+    
     else:
         if 'RunIISummer20UL16NanoAODAPV' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-preVFP', 19667.812849099, 0.012
         elif 'RunIISummer20UL16NanoAOD' in smp or 'RunIISummer19UL16NanoAOD' in smp: return '2016-postVFP', 16977.701784453, 0.012
@@ -31,7 +38,7 @@ def get_era_and_luminosity(smp=None, run=None, isdata=False):
 
 def mass_to_str(m):
     return str(m).replace('.','p')
-
+    
 def get_list_ofsystematics(eras):
     sys =[
         '# total on the jets energy resolution',
@@ -50,24 +57,29 @@ def get_list_ofsystematics(eras):
         '# on the jets energy scale ',
         'jesTotal']
     for era in eras.keys():
-        sys += [
-        '  # splited by source',
-            f'   #{era}',
-            f'jesAbsolute_{era}',
-            f'jesBBEC1_{era}',
-            f'jesEC2_{era}',
-            f'jesHF_{era}',
-            f'jesRelativeSample_{era}',
-        '# on pu and HLTZvtx uncorrelated per year',
-            f'pileup',
-        ]
+        era = era.split('-')[0]
+        
         if era == '2017':
-            sys += [f'HLTZvtx']
-        if era != '2018':
             sys += [
-            '# L1 pre-firing event correction weight',
-            'L1PreFiring',
-        ]
+                '# on pu HLTZvtx',
+                    f'HLTZvtx'
+            ]
+        if not f'jesAbsolute_{era}' in sys:
+            sys += [
+                f'   #{era}',
+                f'pileup_{era}',
+            '  # splited by source, uncorrelated per year',
+                f'jesAbsolute_{era}',
+                f'jesBBEC1_{era}',
+                f'jesEC2_{era}',
+                f'jesHF_{era}',
+                f'jesRelativeSample_{era}',
+            ]
+            if era != '2018':
+                sys += [
+                '# L1 pre-firing event correction weight',
+                f'L1PreFiring_{era}',
+            ]
 
     sys += [
         '# leptons ID, ISO and RCO SFs ',
@@ -77,10 +89,9 @@ def get_list_ofsystematics(eras):
         'lowpt_ele_reco',
         'highpt_ele_reco',
         '# on the trigger',
-        'HHMoriond17_eleltrig',
-        'HHMoriond17_mumutrig',
-        'HHMoriond17_elmutrig',
-        'HHMoriond17_mueltrig',
+        'elel_trigSF',
+        'muel_trigSF',
+        'mumu_trigSF',
         '# sys from theory  ',
         'qcdScale',
         'qcdMuF',
@@ -176,7 +187,7 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
         return 'das:{}'.format(smp), []
 
 def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
-    return f"{process}-{comp} -- M{H}-{mass_to_str(m_heavy)}_M{l}-{mass_to_str(m_light)}_tb-{mass_to_str(tb)}"
+    return  f"{process}, (M{H}, M{l}) = (%d, %d) GeV"%(float(m_heavy),float(m_light))
 
 def get_xsc_br_fromSushi(smpNm, arr):
     for lis in arr:
@@ -276,7 +287,8 @@ if __name__ == "__main__":
                      'F':[277772, 278808],
                      },
                 '2016-postVFP':
-                    {'G':[278820, 280385],
+                    {'F':[277772, 278808],
+                     'G':[278820, 280385],
                      'H':[280919, 284044] },
                 '2017':
                     {'B':[297046, 299329],
@@ -316,7 +328,8 @@ if __name__ == "__main__":
                 issignal = False
                 smp   = smp.split()[0]
                 smpNm = smp.split('/')[1]
-                
+               
+                print( 'working on :', smp )
                 if "HToZATo2L2B" in smp or "AToZHTo2L2B" in smp : 
                     issignal = True
                     mode     = ('AToZH' if smpNm.startswith('AToZH') else 'HToZA')
@@ -342,6 +355,8 @@ if __name__ == "__main__":
                     VFP = f"_UL{year}"
 
                 if issignal:
+                    br_Ztoll = 0.067264
+
                     benchmarks = loadSushiInfos(len(smpNm),f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
                     fullsim    = loadSushiInfos(len(smpNm),f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
                     all_       = loadSushiInfos(len(smpNm),f"{base}/list_all_{process}_lo_{mode}_datasetnames.txt")
@@ -349,10 +364,10 @@ if __name__ == "__main__":
                     arrs = np.concatenate((benchmarks, fullsim, all_))
                     H, l, mHeavy, mlight, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, arrs)
                     Nm      = smpNm.replace('-','_')+VFP
-                    br      = br_HeavytoZlight *  br_lighttobb
+                    br      = br_HeavytoZlight *  br_lighttobb * br_Ztoll
                     leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
                     search  = smpNm
-                    details = f'{H} -> Z{l} : {br_HeavytoZlight} * {l} -> bb : {br_lighttobb}'
+                    details = f'{H} -> Z{l} ({br_HeavytoZlight}) * {l} -> bb ({br_lighttobb}) * Z -> ee+ mumu ({br_Ztoll})'
                 elif isdata:
                     Nm = f'{smpNm}_UL{era_}{run}{VFP}'
                     run_range = run2_ranges[era][run]
