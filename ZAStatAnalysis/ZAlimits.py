@@ -21,7 +21,7 @@ if version.parse(mpl.__version__) >= version.parse('2.0.0'):
     mpl.rcParams['figure.figsize']        = [8.0, 6.0]
     mpl.rcParams['figure.dpi']            = 80
     mpl.rcParams['savefig.dpi']           = 100
-    mpl.rcParams['font.size']             = 12
+    mpl.rcParams['font.size']             = 12 #8
     mpl.rcParams['legend.fontsize']       = 'large'
     mpl.rcParams['figure.titlesize']      = 'medium'
     mpl.rcParams['lines.linewidth']       = 1.0
@@ -61,30 +61,49 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
     fig.tight_layout()
     ax = fig.add_subplot(111)
     fig.subplots_adjust(left=0.17)
+    
+    channels   = {'ElEl'     : 'ee',
+                  'MuMu'     : r'$\mu\mu$',
+                  'ElElMuMu': r'$\mu\mu$ + ee' }
+    eras= []
+    yaxis = []
+    yaxis_set_ticklabels = []
 
     limits = {}
-    for cat in catagories:
-        for flav in flavors:
-            js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}.json'.format(cat, flav))
-            if not os.path.isfile(js_path):
-                continue
-            with open(js_path) as f:
-                limits['{}_{}'.format(cat, flav)] = json.load(f)
+    for era in [2016, 2017, 2018]:
+        for cat in catagories:
+            for flav in flavors:
+                js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, era))
+                if not os.path.isfile(js_path):
+                    continue
+                with open(js_path) as f:
+                    limits['{}_{}_{}'.format(cat, flav.replace('_', ''), era)] = json.load(f)
     
-    for i, (k, params) in enumerate(limits.items()):
+    for i, (k, params) in enumerate(sorted(limits.items())):
         
+        process = k.split('_')[0]
+        region  = k.split('_')[1]
+        flav    = k.split('_')[2]
+        era     = k.split('_')[-1]
+        
+        ticklabel = 'UL%s\n'%era.replace('20','') + '%s-%s\n'%(process, region)+'%s'%channels[flav]
+        yaxis_set_ticklabels.append(ticklabel)
         if i == 0:
-            y_ = np.arange(1, 4, 1)
+            y_ = np.arange(0., 3., 1)
         else:
             i += 3 
             y_ = np.arange(y_[-1]+0.5, y_[-1]+i, 1)
             y_ = y_[:3]
+        yaxis.append(y_[1])
 
         for l in params:
         
             m_H = l['parameters'][0]
             m_A = l['parameters'][1]
             
+            era = k.split('_')[-1]
+            if not era in eras:
+                eras.append(era)
             if not (str(m_H) == str(mH) and str(m_A) == str(mA)):
                 continue
             expected       = l['limits']['expected']*1000
@@ -120,34 +139,37 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
                                     lw             =1.5, 
                                     label          ="Expected")[0]
         
-        xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(mH), Constants.mass_to_str(mA), 'ggH', 'HToZA')
+        xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(mH), Constants.mass_to_str(mA), process, 'HToZA')
         xsc_x_br = float(xsc) *float(br_HeavytoZlight)* float(br_lighttobb) *0.066 *1000
-        print( 'heyyyyyyyyyyyyyyyyyyyyy', [xsc_x_br, xsc_x_br], [0., y_[-1]] )
         theory_line = ax.plot([xsc_x_br, xsc_x_br], [0., y_[-1]], 
                                 ls             ='solid', 
                                 solid_capstyle ='round', 
-                                color          ='red', 
+                                color          ='red' if process=='ggH' else 'blue', 
                                 ms             =6, 
                                 marker         ='', 
                                 lw             =1.5, 
-                                label          ="Theory")[0]
+                                label          ="{} theory".format(process))[0]
     
     ax.set_xlabel(r'95% CLs limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
-    
+    yaxis_set_ticklabels.append('')
     ax.set_xscale('log')
     ax.set_xlim(4, 6000)
-    ax.set_ylim(0, 20)
     ax.axes.yaxis.label.set_size(8.)
-    ax.axes.yaxis.set_ticklabels(['', 'ggH-resolved\n ee', 'ggH-resolved\n'+r'$\mu\mu$',  'ggH-resolved\n'+r'$\mu\mu$ + ee'])
+    #ax.axes.yaxis.set_ticklabels(yaxis_set_ticklabels)
+    plt.yticks(yaxis, yaxis_set_ticklabels)
+
+    lumi = 0.
+    for era in eras:
+        lumi += Constants.getLuminosity(era)/1000.
 
     plt.title('CMS Preliminary', fontsize=14., loc='left', style='italic', weight="bold")
-    plt.title(r'%.2f $fb^{-1}$ (13TeV)'%(Constants.getLuminosity(options.era)/1000.), fontsize=14., loc='right', style='italic', weight="bold")
+    plt.title(r'%.2f $fb^{-1}$ (13TeV)'%(lumi), fontsize=14., loc='right', style='italic', weight="bold")
         
-    one_sigma_patch = mpatches.Patch(color='#FFF04D', label='68% expected')
-    two_sigma_patch = mpatches.Patch(color='#00B140', label='95% expected')
+    one_sigma_patch = mpatches.Patch(color='#00B140', label='68% expected')
+    two_sigma_patch = mpatches.Patch(color='#FFF04D', label='95% expected')
     handles = [theory_line, expected_line, one_sigma_patch, two_sigma_patch]
 
-    ax.legend(loc='best', handles= handles, labels=['Theory', 'Expected', '68% expected', '95% expected'], fontsize='medium', frameon=False)
+    ax.legend(loc='best', handles= handles, labels=['Theory prediction', 'Expected', '68% Expected', '95% Expected'], fontsize='medium', frameon=False)
     outDir = os.path.dirname(jsonpath)
     fig.savefig(os.path.join(outDir, name+'.png'))
     fig.savefig(os.path.join(outDir, name+'.pdf'))
@@ -235,6 +257,10 @@ colors = {
     'MuEl'     : '#a02c4d',
     'ElEl_MuMu': 'black',
     }
+channels = {
+    'ElEl'     : 'ee',
+    'MuMu'     : '$\mu\mu$',
+    'ElEl_MuMu': '$\mu\mu$ + ee' }
     
 flavors = ['MuMu', 'ElEl', 'ElEl_MuMu']
 #flavors = ['ElEl_MuMu']
@@ -243,7 +269,7 @@ catagories = ['ggH_resolved']#, 'ggH_boosted', 'bbH_resolved', 'bbH_boosted']
 
 output_dir = options.jsonpath
 
-PlotMultipleUpperLimits(500, 300, flavors, catagories, options.jsonpath)
+#PlotMultipleUpperLimits(500, 300, flavors, catagories, options.jsonpath)
 
 for the_mH in mH_list:
     parameter_values = {
@@ -256,10 +282,10 @@ for the_mH in mH_list:
     
     for flav in flavors:
         limits = flavors_limits.setdefault(flav, {})
-        with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav))) as f:
+        with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}_UL{}.json'.format(flav, options.era))) as f:
             limits_ = json.load(f)
             
-            print('working on ::', os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}.json'.format(flav)))
+            print('working on ::', os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}_UL{}.json'.format(flav, options.era)))
             for l in limits_:
                 limits[tuple(l['parameters'])] = l['limits']
     
@@ -306,7 +332,7 @@ for the_mH in mH_list:
     
             # from pb to fb 
             expected.append(limits[point]['expected']*1000)
-            observed.append(limits[point].get('observed', 0)*1000)
+            observed.append(limits[point]['observed']*1000)
     
             exp_plus_1sigma  = limits[point]['one_sigma'][1]*1000
             exp_minus_1sigma = limits[point]['one_sigma'][0]*1000
@@ -355,23 +381,28 @@ for the_mH in mH_list:
     print ( 'observed  : %s' %data['observed'])
     print ( 'one_sigma : %s' %data['one_sigma'])
     print ( 'two_sigma : %s' %data['two_sigma'])
+    
+    expected_lines = {}
     for f in flavors:
         color = colors[f]
         data = flavors_data[f] 
         data['x'] = np.array(data['x'], dtype=float)
         
-        # Plot 2 sigma
-        ax.fill_between(data['x'], data['expected'] - data['two_sigma'][0], data['expected'] + data['two_sigma'][1], facecolor='#FFCC29', lw=0, label='2 std. deviation', interpolate=True) 
-        # Plot 1 sigma
-        ax.fill_between(data['x'], data['expected'] - data['one_sigma'][0], data['expected'] + data['one_sigma'][1], facecolor='#00A859', lw=0, label='1 std. deviation', interpolate=True)
+        if f == "ElEl_MuMu":
+            # Plot 2 sigma
+            ax.fill_between(data['x'], data['expected'] - data['two_sigma'][0], data['expected'] + data['two_sigma'][1], facecolor='#FFCC29', lw=0, label=r'$\pm$ 2 $\sigma$ expected', interpolate=True) 
+            # Plot 1 sigma
+            ax.fill_between(data['x'], data['expected'] - data['one_sigma'][0], data['expected'] + data['one_sigma'][1], facecolor='#00A859', lw=0, label=r'$\pm$ 1 $\sigma$ expected', interpolate=True)
         # Plot expected limit
         expected_line = ax.plot(data['x'], data['expected'], ls='dashed', solid_capstyle='round', color=color, ms=6, marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected {}".format(f))[0]
+        expected_lines[channels[f]] = expected_line 
+        
         # And observed
         if options.unblind:
             observed_markers = ax.plot(data['x'], data['observed'], ls='solid', marker='o' if show_markers[options.scan] else '', color=color, mec=color, lw=1.5, markersize=6, alpha=0.8, label="Observed {}".format(f))
     
-    one_sigma_patch = mpatches.Patch(color='#00A859', label='1 std. deviation')
-    two_sigma_patch = mpatches.Patch(color='#FFCC29', label='2 std. deviation')
+    one_sigma_patch = mpatches.Patch(color='#00A859', label=r'$\pm$ 1 $\sigma$ expected')
+    two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'$\pm$ 2 $\sigma$ expected')
     
     # Set x axis range
     # if not options.log:
@@ -462,13 +493,15 @@ for the_mH in mH_list:
         ax.set_ylim(**axes_log_y_limits[options.scan])
         #ax.set_ylim(0,1)    #When using the signal rate enhanced by 1000
     
+    tb = 1.5 
     if options.scan == "mA":
-        ax.text(0.06, 0.82, r"$m_H = {:d}$ GeV, 2HDM Type-II, cos($\beta-\alpha$) = {:.2f}".format(int(the_mH), float(cba)), transform=ax.transAxes, ha='left', va='baseline')
+        ax.text(0.06, 0.8, r"$m_H = {:d}$ GeV, 2HDM Type-II, tan$\beta$= {}, cos($\beta-\alpha$) = {:.2f}".format(int(the_mH), tb, float(cba)), transform=ax.transAxes, ha='left', va='baseline')
     ax.minorticks_on()
     
     # Legends
-    handles = [expected_line, one_sigma_patch, two_sigma_patch]
-    labels = ['Expected 95% upper limit', '1 std. deviation', '2 std. deviation']
+    
+    handles = [l for l in expected_lines.values()] + [one_sigma_patch, two_sigma_patch]
+    labels  = [r'Expected 95% upper limit ({})'.format(k) for k in  expected_lines.keys()] + [r'$\pm$ 1 $\sigma$ expected', r'$\pm$ 2 $\sigma$ expected']
     
     if options.unblind:
         handles = observed_markers + handles
@@ -584,12 +617,18 @@ for the_mH in mH_list:
     if not options.no_latex:
         with open('%s/%s.tex' % (output_dir, plot_name), 'w') as f:
             f.write(R'\begin{tabular}{@{}ccccc@{}} \toprule' + '\n')
-            f.write('${}$'.format(parameter_legend[options.scan]) + R' & Observed (fb) & Expected (fb) & 1 Standard deviation (fb) & 2 Standard deviations (fb) \\ \midrule' + '\n')
+            f.write(R'\hline' + '\n')
+            f.write(R'\\' + '\n')
+            f.write('${}$'.format(parameter_legend[options.scan]) + R' & Observed (fb) & Expected (fb) & $\mp$ 1 Standard deviation (fb) & $\mp$ 2 Standard deviation (fb) \\ \midrule' + '\n')
+            f.write(R'\\' + '\n')
+            f.write(R'\hline' + '\n')
+            f.write(R'\\' + '\n')
     
             for index in range(len(data['x'])):
                 fmt = R"%.1f & " + ("$%.2e}$" if options.unblind else "%s") + R" & $%.2e}$ & $-%.2e}$ / $+%.2e}$ & $-%.2e}$ / $+%.2e}$ \\"
                 f.write( (fmt % (data['x'][index], data['observed'][index] if options.unblind else '-', data['expected'][index], data['one_sigma'][0][index], data['one_sigma'][1][index], data['two_sigma'][0][index], data['two_sigma'][1][index]) + '\n').replace('e+0', R'\,.\,10^{') )
-    
+                f.write(R'\\' + '\n')
+            f.write(R'\hline' + '\n')
             f.write(R'\bottomrule' + '\n')
             f.write(R'\end{tabular}' + '\n')
         print('LaTeX table saved as %r' % ('%s/%s.tex' % (output_dir, plot_name)))
