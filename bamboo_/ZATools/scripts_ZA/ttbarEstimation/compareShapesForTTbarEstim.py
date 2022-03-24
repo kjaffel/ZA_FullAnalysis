@@ -14,7 +14,7 @@ sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/
 import Constants as Constants
 
 
-def getSingleTop(histos_Nms, path, lumi):
+def getSingleTop(histos_Nms, xAxis, path, lumi, channel):
     
     rf = {
         "bb_M"     :ROOT.TH1F("bb_M"     , "", 40, 10, 1000),
@@ -41,6 +41,8 @@ def getSingleTop(histos_Nms, path, lumi):
         for var, histNm in histos_Nms.items():
             singletop_hists[var] = f.Get(histNm)
             singletop_hists[var].SetDirectory(0)
+            rf[var].GetXaxis().SetTitle(f"{xAxis[var]}")
+            rf[var].GetYaxis().SetTitle("Events")
             rf[var].Add(singletop_hists[var])
    
     for hist in rf.values():
@@ -50,7 +52,7 @@ def getSingleTop(histos_Nms, path, lumi):
     return list_histos
 
 
-def addHistos(histos_Nms, path, lumi, ttbar_from_data):
+def addHistos(histos_Nms, xAxis, path, lumi, channel, ttbar_from_data):
     
     rf = {
         "bb_M"     :ROOT.TH1F("bb_M"     , "", 40, 10, 1000),
@@ -70,7 +72,7 @@ def addHistos(histos_Nms, path, lumi, ttbar_from_data):
     if not ttbar_from_data:
         Newhistos_Nms = {}
         for var, nm in histos_Nms.items():
-            Newhistos_Nms[var] = nm.replace('MuEl_','MuMu_')
+            Newhistos_Nms[var] = nm.replace('MuEl_',f'{channel}_')
     else: 
         Newhistos_Nms = histos_Nms
 
@@ -90,6 +92,8 @@ def addHistos(histos_Nms, path, lumi, ttbar_from_data):
         for var, histNm in Newhistos_Nms.items():
             ttbar_hists[var] = f.Get(histNm)
             ttbar_hists[var].SetDirectory(0)
+            rf[var].GetXaxis().SetTitle(f"{xAxis[var]}")
+            rf[var].GetYaxis().SetTitle("Events")
             rf[var].Add(ttbar_hists[var])
    
     for hist in rf.values():
@@ -100,24 +104,36 @@ def addHistos(histos_Nms, path, lumi, ttbar_from_data):
     return list_histos
 
 
-def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
+def TTbarEstim_FormMuonEG(path, subtractSingleTop, era, channel):
     suffix = 'resolved'
     tagger = 'DeepFlavour'
     wp     = 'M'
     met    = 'METCut'
     process= 'gg_fusion'
+    channel = 'ElEl' if channel =='elel' else 'MuMu'
     
     do_ratio= False
     lumi = Constants.getLuminosity(era)
     
     varToPlots = ['bb_M', 'llbb_M', 'll_M', 'bjet1_pt', 'bjet2_pt', 'bb_DR', 'lep1_pt', 'lep2_pt', 'bb_pt']
+    
+    xAxis      = {'bb_M': 'm_{bb} (GeV)', 
+                  'llbb_M': 'm_{llbb} (GeV)',
+                  'll_M'  : 'm_{ll} (GeV)',
+                  'bjet1_pt': 'leading bjet p_{T} (GeV)',
+                  'bjet2_pt': 'subleading bjet p_{T} (GeV)',
+                  'bb_DR' : '\DeltaR(bjet1, bjet2)',
+                  'lep1_pt': 'leading lepton p_{T} (GeV)',
+                  'lep2_pt': 'subleading lepton p_{T} (GeV)',
+                  'bb_pt': 'di-bjets p_{T} (GeV)',}
+
     histos_Nms = {}
     for var in varToPlots:
         histos_Nms[var] = f"MuEl_{var}_{suffix}_{tagger}{wp}_{met}_{process}"
     
-    list_histos_data      = addHistos(histos_Nms, path, lumi, ttbar_from_data=True)
-    list_histos_ttbarMC   = addHistos(histos_Nms, path, lumi, ttbar_from_data=False) 
-    list_histos_singleTop = getSingleTop(histos_Nms, path, lumi)
+    list_histos_data      = addHistos(histos_Nms, xAxis, path, lumi, channel, ttbar_from_data=True)
+    list_histos_ttbarMC   = addHistos(histos_Nms, xAxis, path, lumi, channel, ttbar_from_data=False) 
+    list_histos_singleTop = getSingleTop(histos_Nms, xAxis, path, lumi, channel)
 
     c1 = []
     c2 = []
@@ -138,14 +154,14 @@ def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
 
         c1.append(TCanvas("c1", "c1", 800, 800))
         c1[i].SetTitle(f"; Events; {var}")
+        c1[i].SetTopMargin(0.1)
+        c1[i].SetBottomMargin(0.1)
+        c1[i].SetLeftMargin(0.15)
+        c1[i].SetRightMargin(0.1)
         #c1[i].SetTitleOffset(1.2)
         #c1[i].SetTitleSize(0.045)
 
         pad1.append(TPad("pad1", "pad1", 0, 0.3, 1, 0.9))
-        pad1[i].SetTopMargin(0.1)
-        pad1[i].SetBottomMargin(0.15)
-        pad1[i].SetLeftMargin(0.15)
-        pad1[i].SetRightMargin(0.1)
         
         list_histos_data[i].SetStats(0)
         list_histos_data[i].SetMarkerColor(ROOT.kBlack)
@@ -158,11 +174,11 @@ def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
         if subtractSingleTop:
             list_histos_data[i].Add(list_histos_singleTop[i], -1)
             norm_data = list_histos_data[i].Integral()
+        list_histos_ttbarMC[i].GetXaxis().SetTitle(f"{var}")
+        list_histos_ttbarMC[i].GetYaxis().SetTitle("Events")
         list_histos_data[i].Scale(1/norm_data)
         list_histos_data[i].Draw()
         list_histos_ttbarMC[i].Scale(1/norm_ttbar)
-        list_histos_ttbarMC[i].GetXaxis().SetTitle(f"{var}")
-        list_histos_ttbarMC[i].GetYaxis().SetTitle("Events")
         list_histos_ttbarMC[i].GetXaxis().SetTitleOffset(1.2)
         list_histos_ttbarMC[i].GetYaxis().SetTitleOffset(1.2)
         list_histos_ttbarMC[i].GetXaxis().SetTitleSize(0.045)
@@ -174,8 +190,9 @@ def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
         legend[i].SetTextSize(0.025)
         legend[i].SetBorderSize(0)
         legend[i].Draw()
+        lepflav = '$\mu\mu$' if channel == 'MuMu' else 'ee'
         legend[i].AddEntry(list_histos_data[i], "data ($\mu e$ channel)")
-        legend[i].AddEntry(list_histos_ttbarMC[i], "ttbar ($\mu\mu$ channel)")
+        legend[i].AddEntry(list_histos_ttbarMC[i], f"ttbar ( {lepflav} channel)")
         legend[i].Draw("*L")
 
         t = c1[i].GetTopMargin()
@@ -195,7 +212,7 @@ def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
         lumi_txt[i].SetTextSize(0.03)
         lumi_txt[i].Draw("same")
 
-        cms_txt.append(latex.DrawLatex(0.12, 1-t+lumiTextOffset*t, "CMS Preliminary"))
+        cms_txt.append(latex.DrawLatex(0.14, 1-t+lumiTextOffset*t, "CMS Preliminary"))
         cms_txt[i].SetNDC()
         cms_txt[i].SetTextFont(40)
         cms_txt[i].SetTextSize(0.03)
@@ -249,18 +266,21 @@ def TTbarEstim_FormMuonEG(path, subtractSingleTop, era):
         output_dir = os.path.join(os.getcwd(), f"plots_ul{era}")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        noST_output_dir = os.path.join(output_dir, "no_SingleTop")
+        if not os.path.exists(noST_output_dir):
+            os.makedirs(noST_output_dir)
         if not subtractSingleTop:
-            c1[i].SaveAs(f"plots_ul{era}/{sfx}.png")
-            c1[i].SaveAs(f"plots_ul{era}/{sfx}.pdf")
+            c1[i].SaveAs(f"plots_ul{era}/{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.png")
+            c1[i].SaveAs(f"plots_ul{era}/{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.pdf")
         elif subtractSingleTop:
-            c1[i].SaveAs(f"plots_ul{era}/noST_{sfx}.png")
-            c1[i].SaveAs(f"plots_ul{era}/noST_{sfx}.pdf")
+            c1[i].SaveAs(f"plots_ul{era}/no_SingleTop/noST_{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.png")
+            c1[i].SaveAs(f"plots_ul{era}/no_SingleTop/noST_{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.pdf")
             
         c2.append(TCanvas("c2","c2",800,800))
         c2[i].cd()
         list_histos_singleTop[i].Draw("")
-        c2[i].SaveAs(f"plots_ul{era}/noST_{sfx}.png")
-        c2[i].SaveAs(f"plots_ul{era}/noST_{sfx}.pdf")
+        c2[i].SaveAs(f"plots_ul{era}/no_SingleTop/noST_{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.png")
+        c2[i].SaveAs(f"plots_ul{era}/no_SingleTop/noST_{channel}_{sfx}_{suffix}_{tagger}{wp}_{met}_{process}.pdf")
         print( "========="*10)
 
 
@@ -272,8 +292,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--run', help='To specifiy which run ', required=True)
     parser.add_argument('-i', '--inputs', help='To specifiy the path to the histograms ', required=True)
+    parser.add_argument('--channel', help='Which leptons flavour you want to compare emu data to', type=str, choices= ['elel', 'mumu'], required=True)
     parser.add_argument('--minusST', help='substract single top ', action='store_true', default=False)
 
     args = parser.parse_args()
     
-    TTbarEstim_FormMuonEG(path= args.inputs, subtractSingleTop= args.minusST, era= args.run)
+    TTbarEstim_FormMuonEG(path= args.inputs, subtractSingleTop= args.minusST, era= args.run, channel= args.channel)
