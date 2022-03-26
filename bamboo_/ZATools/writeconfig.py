@@ -117,14 +117,14 @@ def get_mcNmConvention_and_group(smpNm):
     shortnames = {'DYJetsToLL_0J'   : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_1J'   : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
                   'DYJetsToLL_2J'   : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
-                  'TTHadronic'            : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  7],
-                  'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  6],
-                  'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  5],
-                  'ST_tW_top_5f'          : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  4],
-                  'ST_tW_antitop_5f'      : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  4],
-                  'ST_tchannel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  4],
-                  'ST_tchannel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  4],
-                  'ST_schannel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  4],
+                  'TTHadronic'            : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  4],
+                  'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  5],
+                  'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  7],
+                  'ST_tW_top_5f'          : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  6],
+                  'ST_tW_antitop_5f'      : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  6],
+                  'ST_tchannel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  6],
+                  'ST_tchannel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  6],
+                  'ST_schannel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  6],
                   'ZZTo2L2Nu'   : ['ZZ', 0.5644, 0.0002688, 'ZZ',   '#ff4800',  3],
                   'ZZTo2L2Q'    : ['ZZ', 3.222, 0.004901,   'ZZ',   '#ff4800',  3],
                   'ZZTo4L'      : ['ZZ', 1.256, 0.002271,   'ZZ',   '#ff4800',  3],
@@ -181,6 +181,10 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
                 das_tomerge.append('das:{}'.format(smp))
                 das_toignore.append(path)
     das_tomerge = pd.unique(das_tomerge).tolist()
+
+    # these versions of das path need to stay sperate as they have different run range 
+    if era == '2016-preVFP' and 'B' in run:
+        return 'das:{}'.format(smp), [] 
     if das_tomerge:
         return das_tomerge, das_toignore
     else:
@@ -192,9 +196,9 @@ def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
 def get_xsc_br_fromSushi(smpNm, arr):
     for lis in arr:
         if not smpNm == lis[0]: continue
-        if 'HToZATo2L2B' in smpNm: 
-            l = 'A'
-            H = 'H'
+        if 'To2L2B' in smpNm: 
+            l = 'A' if 'HToZA' in smpNm else 'H'
+            H = 'H' if 'HToZA' in smpNm else 'A'
             mHeavy  = lis[1]
             mlight  = lis[2]
             tb      = lis[3]
@@ -211,7 +215,7 @@ def lumi_block(inf):
             smp = smp.split()[0]
             run = smp.split('/')[2].split('-')[0][-1]
             smpNm = smp.split('/')[1]
-            isdata = True if smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon'] else(False)
+            isdata = True if smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron'] else(False)
             era, lumi, uncer = get_era_and_luminosity(smp, run, isdata)
             if era not in eras.keys(): 
                 eras[era] = {}
@@ -223,7 +227,7 @@ def get_label(eras):
     # I am not gonna do more then this split : 2016 pre/-postVFP, 2017, 2018 
     #                                        or all combined : run2
     if len(eras.keys())==2 and ('2016-' in x for x in eras.keys() ):
-        suffix = 'pre/-postVFP 2016'
+        suffix = 'pre-/postVFP 2016'
     else:
         if len(eras.keys()) == 1 :
             suffix = era
@@ -236,13 +240,13 @@ def get_label(eras):
     plot_label = f'{suffix} ULegacy'
     return plot_label 
 
-def loadSushiInfos(len_, fileName):
+def loadSushiInfos(len_, H, l, fileName):
     in_dtypes = [
             ("DatasetName",  f'U{len_}'),
             ("Sushi_xsc@NLO[pb]", float),
             ("Sushi_xsc_err[pb]", float),
-            ("BR(H -> ZA )", float),
-            ("BR(A  -> bb)", float),
+            (f"BR({H} -> Z{l} )", float),
+            (f"BR({l}  -> bb)", float),
             ("Ymb,H[GeV]", float),
             ("Ymb,A[GeV]", float),
             ("Partialwidth(H ->bb)[GeV]", float),
@@ -261,8 +265,8 @@ def loadSushiInfos(len_, fileName):
         pars[:,:3], ## mH,mA,tb 
         arr["Sushi_xscNLOpb"][:,None],
         arr["Sushi_xsc_errpb"][:,None],
-        arr["BRH__ZA_"][:,None],
-        arr["BRA___bb"][:,None]
+        arr[f"BR{H}__Z{l}_"][:,None],
+        arr[f"BR{l}___bb"][:,None]
         ))
 
 if __name__ == "__main__":
@@ -278,30 +282,32 @@ if __name__ == "__main__":
                      '2017':'https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
                      '2018':'https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt', }
     
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVDataReprocessingUL2018#Datasets_for_Eras_2018A_B_C_D
     run2_ranges = {
                 '2016-preVFP':
-                    {'B':[272007, 275376],
-                     'C':[275657, 276283],
+                    {'B_ver1':[272760, 273017],
+                     'B_ver2':[273150, 275376],
+                     'C':[275656, 276283],
                      'D':[276315, 276811],
                      'E':[276831, 277420],
-                     'F':[277772, 278808],
+                     'F':[277932, 278807],
                      },
                 '2016-postVFP':
-                    {'F':[277772, 278808],
+                    {'F':[278769, 278808],
                      'G':[278820, 280385],
-                     'H':[280919, 284044] },
+                     'H':[281613, 284044] },
                 '2017':
-                    {'B':[297046, 299329],
+                    {'B':[297047, 299329],
                      'C':[299368, 302029],
-                     'D':[302030, 303434],
-                     'E':[303824, 304826],
-                     'F':[305040, 306462],
+                     'D':[302030, 302663],
+                     'E':[303824, 304797],
+                     'F':[305040, 306460],
                      },
                 '2018':
-                    {'A':[315252, 316995],
+                    {'A':[315257, 316995],
                      'B':[317080, 319310],
                      'C':[319337, 320065],
-                     'D':[320673, 325175] }}
+                     'D':[320500, 325175] }}
     
     eras = lumi_block(options.das)
     print( eras)
@@ -332,10 +338,10 @@ if __name__ == "__main__":
                 print( 'working on :', smp )
                 if "HToZATo2L2B" in smp or "AToZHTo2L2B" in smp : 
                     issignal = True
-                    mode     = ('AToZH' if smpNm.startswith('AToZH') else 'HToZA')
+                    mode     = 'AToZH' if 'AToZH' in smpNm else 'HToZA'
                     comp     = 'nlo' if 'amcatnlo' in smp else 'lo'
-                    process  = 'ggH' if smpNm.startswith('GluGlu') else('bbH')
-                elif smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']: 
+                    process  = 'ggH' if smpNm.startswith('GluGluTo') else('bbH')
+                elif smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']: 
                     isdata   = True
                 else: 
                     isMC     = True
@@ -346,6 +352,8 @@ if __name__ == "__main__":
                 if isdata:
                     run = smp.split('/')[2].split('-')[0][-1]
                 era, lumi, uncer = get_era_and_luminosity(smp, run, isdata)
+                if era == '2016-preVFP' and run =='B':
+                    run = 'B_ver1' if '2016B-ver1' in smp else 'B_ver2'
                 year = era.replace('20', '')
                 if  'VFP' in era :
                     era_ = era.split('-')[0]
@@ -356,15 +364,20 @@ if __name__ == "__main__":
 
                 if issignal:
                     br_Ztoll = 0.067264
-
-                    benchmarks = loadSushiInfos(len(smpNm),f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
-                    fullsim    = loadSushiInfos(len(smpNm),f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
-                    all_       = loadSushiInfos(len(smpNm),f"{base}/list_all_{process}_lo_{mode}_datasetnames.txt")
                     
-                    arrs = np.concatenate((benchmarks, fullsim, all_))
+                    if mode == "HToZA":
+                        benchmarks = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
+                        fullsim    = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
+                        all_       = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_all_{process}_lo_{mode}_datasetnames.txt")
+                        
+                        arrs = np.concatenate((benchmarks, fullsim, all_))
+                    
+                    elif mode == "AToZH":
+                        arrs = loadSushiInfos(len(smpNm),'A', 'H', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
+                        
                     H, l, mHeavy, mlight, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, arrs)
                     Nm      = smpNm.replace('-','_')+VFP
-                    br      = br_HeavytoZlight *  br_lighttobb * br_Ztoll
+                    br      = br_HeavytoZlight * br_lighttobb * br_Ztoll
                     leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
                     search  = smpNm
                     details = f'{H} -> Z{l} ({br_HeavytoZlight}) * {l} -> bb ({br_lighttobb}) * Z -> ee+ mumu ({br_Ztoll})'
