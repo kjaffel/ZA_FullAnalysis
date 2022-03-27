@@ -9,7 +9,7 @@ logger = utils.ZAlogger(__name__)
 
 
 def getSignalSamples(era, signal):
-    dasgoCmd = ['dasgoclient', '-query', f'/{signal}*/RunIISummer20UL{era}*AODv9*/NANOAODSIM']
+    dasgoCmd     = ['dasgoclient', '-query', f'/{signal}*/RunIISummer20UL{era}*AODv9*/NANOAODSIM']
     dasgoCmd_APV = ['dasgoclient', '-query', f'/{signal}*/RunIISummer20UL{era}*AODAPVv9*/NANOAODSIM']
     try:
         logger.info("running: {}".format(" ".join(dasgoCmd)))
@@ -33,7 +33,8 @@ def checklocalfiles(era, list):
                 logger.error("Failed to run {0}".format(" ".join(localgoCmd)))
             
             files = glob.glob(os.path.join('/storage/data/cms/'+ os.path.dirname(ls_files[0]), '*.root'))
-            if not files:
+            print( len(files),  len(ls_files) , not files or len(files) != len(ls_files))
+            if not files or len(files) != len(ls_files):
                 outf.write(f"{dbLoc.decode('utf-8')}\n")
             #try:
             #    rf = gbl.TFile.Open(('/storage/data/cms/',ls_files[0]), "READ")
