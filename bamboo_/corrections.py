@@ -397,10 +397,10 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
         print( scalesfactorsULegacyLIB['DeepCSV']["softdrop_subjets"][era] ) 
         measurementType= {'heavy':{"B": "lt", "C": "lt"},
                           'light': {"UDSG": "incl"} }
-        getters={'Pt': lambda subjet: subjet.pt, 'Eta':  lambda subjet : subjet.eta}#, 'JetFlavour': lambda subjet : op.static_cast("BTagEntry::JetFlavor",
-                                    #op.multiSwitch((subjet.nBHadrons>0,op.c_int(0)), # b -> flav = 5 -> btv = 0
-                                    #               (subjet.nCHadrons>0,op.c_int(1)), # c -> flav = 4 -> btv = 1
-                                    #                op.c_int(2)))},                  # light -> flav = 0 -> btv =2 
+        getters={'Pt': lambda subjet: subjet.pt, 'Eta':  lambda subjet : subjet.eta,'JetFlavour': lambda subjet : op.static_cast("BTagEntry::JetFlavor",
+                                    op.multiSwitch((subjet.nBHadrons>0,op.c_int(0)), # b -> flav = 5 -> btv = 0
+                                                   (subjet.nCHadrons>0,op.c_int(1)), # c -> flav = 4 -> btv = 1
+                                                    op.c_int(2)))},                  # light -> flav = 0 -> btv =2 
         return BtagSF('DeepCSV', scalesfactorsULegacyLIB['DeepCSV']["softdrop_subjets"][era], 
                         wp= getOperatingPoint(wp), sysType="central", otherSysTypes= ["up", "down"],
                         measurementType= measurementType[flav], jesTranslate=transl_flav( era, wp, tagger='subjetdeepcsv', flav=flav),
