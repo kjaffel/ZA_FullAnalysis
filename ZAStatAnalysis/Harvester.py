@@ -32,8 +32,8 @@ def CMSNamingConvention(origName, era=None):
         "btagSF_fixWP_subjetdeepcsvM_heavy":"CMS_btag_heavy_%s"%era,
         "btagSF_fixWP_deepcsvM_light":"CMS_btag_light_%s"%era,
         "btagSF_fixWP_deepcsvM_heavy":"CMS_btag_heavy_%s"%era,
-        "btagSF_fixWP_deepflavourM_light":"CMS_btag_light_%s"%era,
-        "btagSF_fixWP_deepflavourM_heavy":"CMS_btag_heavy_%s"%era,
+        "btagSF_fixWP_deepJetM_light":"CMS_btag_light_%s"%era,
+        "btagSF_fixWP_deepJetM_heavy":"CMS_btag_heavy_%s"%era,
         "L1Prefiring": "CMS_L1PreFiring_%s"%era,
         "unclustEn": "CMS_UnclusteredEn_%s"%era,
         'elid_medium':"CMS_eff_elid_%s"%era,
@@ -217,7 +217,7 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
             
             smpScale = lumi / smpCfg["generated-events"]
             if method in ["fit", 'pvalue']:
-                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]* 0.066 # BR Z -> ll ( ee, \mu\mu )
+                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]#* 0.066 # BR Z -> ll ( ee, \mu\mu )
             
             dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
         
@@ -228,13 +228,21 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
         dict_scale[smp] =  smpScale
     return dict_seperateInfos if seperate else dict_scale
 
-def ignoreSystematic(flavor, process, s):
-# If some systematics cause problems you as follow they will be ignored 
-    if s == 'FSR':
+def ignoreSystematic(flavor=None, process=None, s=None):
+        # If some systematics cause problems , put them here they will be ignored in the combine fit
+   # if s == 'FSR':
+   #     return True
+   # if s == 'ISR':
+   #     return True
+   # if s == 'pdf':
+   #     return True
+        # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
+    if '_2016postVFP' in s:
         return True
-    if s == 'ISR':
+    if '_2016preVFP' in s:
         return True
-    return False
+    else:
+        return False
 
 def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, destination=None, luminosity=None, normalize=False):
     """
@@ -242,7 +250,7 @@ def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, dest
     is created by cloning the input histogram
     Parameters:
         production      gg-fusion , bb-assocaited production 
-        flavor          elel , mumu 
+        flavor          elel , mumu, muel 
         process         MH-{}_MA-{}
         histogram       Pointer to TH1 to merge
         destination     Destination histogram
@@ -327,7 +335,7 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         else:
             hash.update(process)
         map(hash.update, process_files)
-
+    
     # Use a TT file as reference to extract the list of histograms
     ref_file = processes_files['ttbar'][0]
     print("Extract histogram names from {}".format(ref_file))
@@ -475,7 +483,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     for systematic in systematics[cat]:
                         if 'postVFP' in smp and 'preVFP' in systematic: continue
                         if 'preVFP' in smp and 'postVFP' in systematic: continue
-
+                        if ignoreSystematic(s= systematic):
+                            continue
                         cms_systematic = CMSNamingConvention(systematic, era)
                         
                         has_both = True

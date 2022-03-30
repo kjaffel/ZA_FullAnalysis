@@ -13,6 +13,7 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from math import sqrt
 from datetime import datetime
+from collections import defaultdict
 
 import numpy as np
 import Harvester as H
@@ -153,8 +154,9 @@ def prepare_DataCards(grid_data= None, dataset= None, expectSignal= None, era= N
                  method                 = method, 
                  parameters             = parameters, 
                  productions            = ['gg_fusion'],# 'bb_associatedProduction'], 
-                 regions                = ['resolved'],# 'boosted'], 
-                 flavors                = ['MuMu', 'ElEl'],#, 'MuEl'], 
+                 regions                = ['resolved'], #'boosted'], 
+                 flavors                = ['MuMu', 'ElEl', 'MuEl'], 
+                 #flavors                = ['MuMu','MuEl'], 
                  ellipses               = ellipses, 
                  mode                   = mode,  
                  output                 = output, 
@@ -271,11 +273,11 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
         elif mode == "ellipse":
             histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_{flavor}_{reg}_DeepCSVM__METCut_NobJetER_{prod}_MH_%sp0_MA_%sp0'%(mH, mA))
         elif mode == "dnn": 
-            histfactory_to_combine_categories[('dnn_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_ZAnode_{flavor}_{reg}_DeepCSVM_METCut_{prod}_MH_%s_MA_%s'%(mH, mA))
+            histfactory_to_combine_categories[('dnn_MH_{}_MA_{}'.format(mH, mA), p)] = get_hist_regex('DNNOutput_ZAnode_{flavor}_{reg}_{taggerWP}_METCut_{prod}_MH_%s_MA_%s'%(mH, mA))
     logger.info('Histfactory_to_combine_categories         : %s '%histfactory_to_combine_categories )
     
     if unblind:
-        histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^EGamma*']
+        histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^SingleElectron*', '^EGamma*']
     
     H.splitJECBySources = False
     if signal_strength:
@@ -378,9 +380,9 @@ def prepareShapes(input=None, dataset=None, expectSignal=None, era=None, method=
                             print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, cat, process))
                         for s in systematics[cat][category_with_parameters][process]:
                             s = str(s)
-                            #if H.ignoreSystematic(cat, process, s):
-                            #    print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
-                            #    continue
+                            if H.ignoreSystematic(cat, process, s):
+                                print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
+                                continue
                             cb.cp().channel([cat]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
 
         # Import shapes from ROOT file
@@ -731,7 +733,7 @@ popd
             
         if merge_cards_by_cat:
             mergeable_regions = ['resolved', 'boosted']
-            mergeable_flavors = ['ElEl', 'MuMu']
+            mergeable_flavors = flavors 
             for prod in productions:
                # for i, cat in enumerate(categories_with_parameters):
                #     if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
@@ -764,19 +766,18 @@ popd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
     parser.add_argument('-i', '--input',        action='store', dest='input', type=str, required=True, default=None, 
-                                                help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following \n'
-                                                     'steps: 1/- final selection ( 2l+bjets pass btagging discr cut + met + corrections + etc... ) \n'
-                                                     '       2/- do skim  \n'
-                                                     '       3/- DNN trained using these skimmed trees \n'
+                                                help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following\n'
+                                                     'steps: 1/- final selection ( 2l+bjets pass btagging discr cut + met + corrections + etc... )\n'
+                                                     '       2/- do skim\n'
+                                                     '       3/- DNN trained using these skimmed trees\n'
                                                      '       4/- run bamboo to produce your dnn outputs(prefit plots) with all systematics variations using the model you get from training.\n')
     parser.add_argument('-o', '--output',       action='store', dest='output', required=True, default=None,        
                                                 help='Output directory')
     parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
                                                 help='Do not consider systematic uncertainties')
-            
     parser.add_argument('-v', '--verbose',      action='store_true', required=False, default=False, 
                                                 help='For debugging purposes , you may consider this argument !')
-    parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018'],
+    parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018', 'fullrun2'],
                                                 help='You need to pass your era')
     parser.add_argument('--parameters',         nargs='+', metavar='MH,MA', dest='parameters', type=parameter_type, default=['all'],               
                                                 help='Parameters list. Use `all` as an alias for all parameters')
@@ -811,28 +812,77 @@ if __name__ == '__main__':
     options = parser.parse_args()
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
-    try:
-        shutil.copyfile(os.path.join(options.input.split(options.input.split('/')[-2])[0], 'plots.yml'), os.path.join(options.output, 'plots.yml'))
-    except Exception as ex:
-    #except shutil.SameFileError:
-        pass
-    
-    prepare_DataCards(grid_data          = signal_grid + extra_signals, 
-                      dataset            = options.dataset, 
-                      expectSignal       = options.expectSignal, 
-                      era                = options.era, 
-                      parameters         = options.parameters, 
-                      mode               = options.mode.lower(), 
-                      input              = options.input, 
-                      ellipses_mumu_file = options.ellipses_mumu_file, 
-                      output             = options.output, 
-                      method             = options.method, 
-                      node               = options.node, 
-                      unblind            = options.unblind, 
-                      signal_strength    = options.signal_strength, 
-                      stat_only          = options.stat_only, 
-                      verbose            = options.verbose, 
-                      merge_cards_by_cat = True, 
-                      scale              = options.scale, 
-                      normalize          = options.normalize, 
-                      submit_to_slurm    = options.submit_to_slurm)
+   
+
+    if options.era == "fullrun2":
+        
+        to_combine = defaultdict()
+        outDir = os.path.join(options.output, 'bayesian_rebin_on_S', options.method, options.mode)
+        
+        for j, cat in enumerate(['gg_fusion_resolved_MuMu_ElEl_MuEl', 'gg_fusion_resolved_MuMu', 'gg_fusion_resolved_ElEl']):
+            cat = cat + '_{}'.format(options.mode)
+            for year in [16, 17, 18]:
+                
+                list_path = glob.glob(os.path.join(options.input+ '/work__UL{}'.format(year), 'bayesian_rebin_on_S', options.method, options.mode, '*', '*.dat'))
+                
+                for p in list_path:
+                    cardNm = p.split('/')[-1]
+                    masses = p.split('/')[-2]
+                    pOut    = os.path.join(options.output, 'bayesian_rebin_on_S', options.method, options.mode, masses)
+                    cardOut = '> {}/{}'.format(pOut, cardNm)
+                    if not cat in to_combine.keys():
+                        to_combine[cat] = {}
+                    if not masses in to_combine[cat].keys():
+                        to_combine[cat][masses]= ['combineCards.py', ]
+                    if not os.path.isdir(pOut):
+                        os.makedirs(pOut)
+                    
+                    if cat in cardNm: 
+                        to_combine[cat][masses].append('UL{}={}'.format(year, p))
+                    
+            for m, cmd in to_combine[cat].items():
+                c_in  = cmd[1].split('/')[-1]
+                c_out = '{}/{}/{}'.format(outDir, m, c_in)
+                if len(cmd) !=4:
+                    logger.error("You have nasty cards playing around , this can not happened")
+                    logger.error("running: {}".format(" ".join(cmd)))
+                
+                sh1_in = cmd[1].split('=')[-1].replace('.dat', '_run_fit.sh')
+                shutil.copy(sh1_in, os.path.join(outDir, m))
+                Constants.overwrite_path(os.path.join(outDir, m, sh1_in.split('/')[-1]))
+                if j!=0:
+                    sh2_in = cmd[1].split('=')[-1].split('_'+ options.mode)[0] +'_do_postfit.sh'
+                    shutil.copy(sh2_in, os.path.join(outDir, m))
+                    Constants.overwrite_path(os.path.join(outDir, m, sh2_in.split('/')[-1]))
+                try:
+                    with open(c_out, "w") as outfile:
+                        subprocess.call(cmd, stdout=outfile)
+                except subprocess.CalledProcessError:
+                    logger.error("Failed to run {0}".format(" ".join(cmd)))
+    else:
+        
+        try:
+            shutil.copyfile(os.path.join(options.input.split(options.input.split('/')[-2])[0], 'plots.yml'), os.path.join(options.output, 'plots.yml'))
+        except Exception as ex:
+        #except shutil.SameFileError:
+            pass
+        
+        prepare_DataCards(grid_data          = signal_grid + extra_signals, 
+                          dataset            = options.dataset, 
+                          expectSignal       = options.expectSignal, 
+                          era                = options.era, 
+                          parameters         = options.parameters, 
+                          mode               = options.mode.lower(), 
+                          input              = options.input, 
+                          ellipses_mumu_file = options.ellipses_mumu_file, 
+                          output             = options.output, 
+                          method             = options.method, 
+                          node               = options.node, 
+                          unblind            = options.unblind, 
+                          signal_strength    = options.signal_strength, 
+                          stat_only          = options.stat_only, 
+                          verbose            = options.verbose, 
+                          merge_cards_by_cat = True, 
+                          scale              = options.scale, 
+                          normalize          = options.normalize, 
+                          submit_to_slurm    = options.submit_to_slurm)

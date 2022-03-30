@@ -109,6 +109,17 @@ def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
     br      = br_HeavytoZlight *  br_lighttobb
     return xsc, xsc_err, br_HeavytoZlight, br_lighttobb
 
+
+def overwrite_path(f):
+    with open(f, 'r') as file :
+        filedata = file.read()
+
+    filedata = filedata.replace('UL16', 'fullrun2')
+    
+    with open(f, 'w') as file:
+        file.write(filedata)
+    return f
+
 def getZACrossSectionUncertainties():
     # FIXME
     # Not implemented yet for interpretation
@@ -118,6 +129,7 @@ def getZACrossSectionUncertainties():
     return 0.01, 0.01
 
 def getLuminosity(era):
+    era = str(era)
     if era == '2016-preVFP':
         lumi = 19667.812849099  #pb
     elif era == '2016-postVFP':
@@ -126,15 +138,20 @@ def getLuminosity(era):
         lumi = 35921.875594646  #pb
     elif era == '2017':
         lumi = 41529.152060112  #pb
-    elif era == "2018":
+    elif era == '2018':
         lumi = 59740.565201546  #pb
+    elif era == 'fullrun2':
+        lumi = 173837.107489856
     return lumi
 
 def getLuminosityUncertainty(era):
+    era = str(era)
     if era == '2016':
         uncer = 1.025 
     elif era == '2017':
         uncer = 1.023
     elif era == '2018':
         uncer= 1.025
+    elif era == 'fullrun2':
+        uncer = 1.073
     return uncer
