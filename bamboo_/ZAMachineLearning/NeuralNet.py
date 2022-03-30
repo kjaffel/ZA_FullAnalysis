@@ -142,10 +142,10 @@ class HyperModel:
                 name += '_crossval%d'%model_idx
             self.name_model = name+'_'+self.task.replace('.pkl','')
         
-        print (self.x_train)
-        print (self.x_train.shape)
-        print (self.y_train)
-        print (self.y_train.shape)
+        #print (self.x_train)
+        #print (self.x_train.shape)
+        #print (self.y_train)
+        #print (self.y_train.shape)
 
         # Define scan object #
         self.h = Scan(x=self.x_train,                       # Training inputs 
@@ -166,7 +166,7 @@ class HyperModel:
                       repetition=parameters.repetition,     # Wether a set of parameters is to be trained several times
                       path_model = parameters.path_model,   # Where to save the model
                       custom_objects=self.custom_objects)   # Custom object : custom layer
-        print( self.h)
+        #print( self.h)
         if not generator:
             # Use the save information in DF #
             self.h_with_eval = Autom8(scan_object = self.h,     # the scan object

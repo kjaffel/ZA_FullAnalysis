@@ -69,8 +69,9 @@ def main():
                     Template(tpl = 'tpl-tempalte/TH1_ZA_template.yml.tpl',class_name = 'Plot_TH1'),
                     Template(tpl = 'tpl-tempalte/TH2_ZA_template.yml.tpl',class_name = 'Plot_TH2'),
                     Template(tpl = 'tpl-tempalte/TH1Multi_ZA_template.yml.tpl',class_name = 'Plot_Multi_TH1'),
-                    Template(tpl = 'tpl-tempalte/TH1Ratio_ZA_template.yml.tpl',class_name = 'Plot_Ratio_TH1'), ] 
-    rocs     = [
+                    Template(tpl = 'tpl-tempalte/TH1Ratio_ZA_template.yml.tpl',class_name = 'Plot_Ratio_TH1'), 
+                    ] 
+    rocs     = [    # FIXME : cause errors
                     #ROC(tpl        = 'tpl-tempalte/ROC_ZA_template.yml.tpl',
                     #    class_name = 'Plot_ROC',
                     #    def_name   = 'MakeROCPlot',
@@ -91,10 +92,11 @@ def main():
                         class_name = 'Plot_Multi_ROC',
                         def_name   = 'MakeMultiROCPlot',
                         plot_name  = 'ROC_ZA_mH_200_mA_100'),
-                    ROC(tpl        = 'tpl-tempalte/ROCMulti_mH_250_mA_50.yml.tpl',
+                    ROC(tpl        = 'tpl-tempalte/ROCMulti_mH_500_mA_300.yml.tpl',
                         class_name = 'Plot_Multi_ROC',
                         def_name   = 'MakeMultiROCPlot',
-                        plot_name  = 'ROC_ZA_mH_250_mA_50'), ]
+                        plot_name  = 'ROC_ZA_mH_500_mA_300'), 
+                    ]
     #///////////////      TO BE MODIFIED BY USER       ////////////////
     # Make the output dir #
     OUTPUT_PATH = os.path.join(opt.model,'plots')
@@ -105,7 +107,6 @@ def main():
     for obj in list_plots:
         logging.info('Starting Plotting from %s subdir'%obj.name)
         files = sorted(glob.glob(obj.path+'/*.root'))
-
         if len(files) == 0:
             logging.error('Could not find %s at %s'%(obj.name,obj.path))
        # Instantiate all the ROCs #

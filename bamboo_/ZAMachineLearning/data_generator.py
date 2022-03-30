@@ -274,7 +274,7 @@ class DataGenerator(tf.keras.utils.Sequence):
             stop.append(ind[1]+1) # Python stop and start 
 
         # Import data #
-        data_ = LoopOverTrees(input_dir                 = self.input_dir,
+        data  = LoopOverTrees(input_dir                 = self.input_dir,
                               list_sample               = samples,
                               variables                 = self.variables,
                               weight                    = self.weight,

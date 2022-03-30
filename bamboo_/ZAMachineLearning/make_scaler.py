@@ -48,13 +48,27 @@ def MakeScaler(data=None, list_inputs=[], TTree=[], generator=False, batch=5000,
                     tree = ttree.Get(parameters.tree_name)
                     N = tree.GetEntries()
                     Ntot += N
-                    file_handle.Close()
                     logging.debug("Opening file %s (%d entries)"%(f,N))
                     # Loop over batches #
                     for i in range(0, N, batch):
-                        array = Tree2Pandas(ttree, variables=list_inputs, era=None, weight=None, cut=None, xsec=None, event_weight_sum=None, luminosity=None, paramFun=None, tree_name=parameters.tree_name, t=key, start=i, stop=i+batch, additional_columns=additional_columns)[[inp.replace('$','') for inp in list_inputs]].astype(np.float32).values
+                        array = Tree2Pandas(ttree, 
+                                            variables = list_inputs, 
+                                            era                 = None,
+                                            weight              = None, 
+                                            cut                 = None, 
+                                            xsec                = None, 
+                                            event_weight_sum    = None, 
+                                            luminosity          = None, 
+                                            paramFun            = None, 
+                                            tree_name           = parameters.tree_name, 
+                                            t                   = key, 
+                                            start               = i, 
+                                            stop                = i+batch, 
+                                            additional_columns  = additional_columns)[[inp.replace('$','') for inp in list_inputs]].astype(np.float32).values
                         mean += np.sum(array,axis=0)
-                        std += np.sum(np.square(array-mean),axis=0)
+                        std  += np.sum(np.square(array-mean),axis=0)
+                file_handle.Close()
+            
             mean /= Ntot
             std = np.sqrt(std/Ntot)
             
@@ -81,14 +95,19 @@ def MakeScaler(data=None, list_inputs=[], TTree=[], generator=False, batch=5000,
         with open(parameters.scaler_path, 'rb') as handle:
             scaler = pickle.load(handle)
         logging.info(f'{parameters.scaler_path} has been imported')
+    
     # Test the scaler #
     if data is not None:
         try:
+            scaler = preprocessing.StandardScaler().fit(data[list_inputs])
             y = scaler.transform(data[list_inputs])
+            
             # Compute mean and var for inputs not in onehot encoding #
             mean_scale = np.mean(y[:,[not m for m in parameters.mask_op]])
-            var_scale  = np.var(y[:,[not m for m in parameters.mask_op]])
+            var_scale  = np.var( y[:,[not m for m in parameters.mask_op]])
+            std_scale  = np.std( y[:,[not m for m in parameters.mask_op]])
+            
             if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.1: # Check that scaling is correct to 1%
-                logging.warning(f"Something is wrong with : {parameters.scaler_path} (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
+                logging.warning(f"Something is wrong with : {parameters.scaler_path} (mean = %0.6f, var = %0.6f, std = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale, std_scale))
         except ValueError:
             logging.warning(f"Problem with : {parameters.scaler_path} you imported, has the data changed since it was generated !")

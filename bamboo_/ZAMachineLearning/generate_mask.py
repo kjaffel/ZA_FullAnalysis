@@ -17,10 +17,10 @@ def GenerateMask(N,name):
         np.random.shuffle(mask)                                     
         # Save #
         np.save(path_mask,mask)                                 
-        logging.info('Mask not found at %s -> Has been generated'%path_mask)
+        logging.info('Mask %s saved at : %s -> Has been generated'%( 'mask_'+name, parameters.path_out))
     else:                                                        
         mask = np.load(path_mask, allow_pickle=True)     
-        logging.info('Mask found at %s'%path_mask)
+        logging.info('Mask found at : %s'%path_mask)
     return mask
 
 def GenerateSampleMasks(list_samples,name):

@@ -20,7 +20,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 sys.path.append(os.path.abspath('..'))
 import Operations
 from talos import Restore
-from tdrstyle import setTDRStyle
+sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
+import HistogramTools as HT
 
 class MassPlane:
     def __init__(self,pdf_path,x_bins,x_min,x_max,y_bins,y_min,y_max,inputs_order,additional_inputs={},plot_DY=False,plot_TT=False,plot_ZA=False,projection=False):
@@ -44,12 +45,13 @@ class MassPlane:
     def produce_grid(self):
         self.X,self.Y = np.meshgrid(np.linspace(self.x_min,self.x_max,self.x_bins),np.linspace(self.y_min,self.y_max,self.y_bins))
         bool_upper = np.greater_equal(self.Y,self.X)
+
         self.X = self.X[bool_upper]
         self.Y = self.Y[bool_upper]
-        self.x = self.X.reshape(-1,)  # mjj
-        self.y = self.Y.reshape(-1,)  # mlljj
-        # X, Y are 2D arrays, x,y are vectors of points
 
+        self.x = self.X.reshape(-1,)  # mbb
+        self.y = self.Y.reshape(-1,)  # mllbb
+        # X, Y are 2D arrays, x,y are vectors of points
     @staticmethod
     def load_model(path_model):
         success = False
@@ -64,13 +66,14 @@ class MassPlane:
 
     def prepareInputs(self,mH,mA):
         N = self.x.shape[0]
-        inputs = {'mH'              : np.ones(N)*mH,
-                  'mA'              : np.ones(N)*mA,
+        inputs = {
+                  '$mH'             : np.ones(N)*mH,
+                  '$mA'             : np.ones(N)*mA,
                   'bb_M'            : self.x,
                   'llbb_M'          : self.y,
                   'bb_M_squared'    : np.power(self.x,2),
                   'llbb_M_squared'  : np.power(self.y,2),
-                  'bb_M_x_llbb_M'   : np.multiply(self.x,self.y), }
+                  'bb_M_x_llbb_M'   : np.multiply(self.x,self.y) }
         inputs.update({inpName:np.ones(N)*inpVal for inpName,inpVal in self.additional_inputs.items()})
 
         if set(self.inputs_order) != set(inputs.keys()):
@@ -84,9 +87,12 @@ class MassPlane:
         path_model = args[0]
         mH = round(args[1],3)
         mA = round(args[2],3)
-        #print ("Producing plot for MH = %.2f GeV, MA = %.2f"%(mH,mA))
+        
+        print( 'working on:', mH, mA , type( mH), type(mA))
+        print('given array for prediction:', self.prepareInputs(mH,mA) ) 
+        
         model  = self.load_model(path_model)
-        output = model.predict(self.prepareInputs(mH,mA),batch_size=8192)
+        output = model.predict(self.prepareInputs(mH,mA), batch_size=8192, verbose=1)
         if output.max() > 1.0:
             raise RuntimeError(f'Output max is {output.max()}, this should not happen')
         if output.min() < 0.0:
@@ -94,15 +100,20 @@ class MassPlane:
 
         N = self.x.shape[0]
         graph_list = []
+        
+        #np.set_printoptions(threshold=np.inf)
+
+        def mass_to_str(m):
+            return ('%.2f'%m).replace('.00', '')
 
         if self.plot_DY:
             g_DY = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,0],dtype='double'))
             g_DY.SetNpx(self.x_bins)
             g_DY.SetNpy(self.y_bins)
             g_DY.SetName(("MassPlane_DY_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
-            g_DY.GetHistogram().SetTitle("P(DY) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
-            g_DY.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
-            g_DY.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
+            g_DY.GetHistogram().SetTitle("P(DY) for mass point (M_{H}, M_{A})= (%s, %s )GeV"%(mass_to_str(mH), mass_to_str(mA)))
+            g_DY.GetHistogram().GetXaxis().SetTitle("m_{bb} (GeV)")
+            g_DY.GetHistogram().GetYaxis().SetTitle("m_{llbb} (GeV)")
             g_DY.GetHistogram().GetZaxis().SetTitle("DNN output")
             g_DY.GetHistogram().GetZaxis().SetRangeUser(0.,1.)
             g_DY.GetHistogram().SetContour(100)
@@ -114,14 +125,15 @@ class MassPlane:
             g_DY.GetZaxis().SetTitleSize(0.045)
             graph_list.append(g_DY)
 
+
         if self.plot_TT:
             g_TT = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,1],dtype='double'))
             g_TT.SetNpx(self.x_bins)
             g_TT.SetNpy(self.y_bins)
-            g_TT.GetHistogram().SetTitle("P(t#bar{t}) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
+            g_TT.GetHistogram().SetTitle("P(t#bar{t}) for mass point (M_{H}, M_{A})= (%s, %s )GeV"%(mass_to_str(mH), mass_to_str(mA)))
             g_TT.SetName(("MassPlane_TT_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
-            g_TT.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
-            g_TT.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
+            g_TT.GetHistogram().GetXaxis().SetTitle("m_{bb} (GeV)")
+            g_TT.GetHistogram().GetYaxis().SetTitle("m_{llbb} (GeV)")
             g_TT.GetHistogram().GetZaxis().SetTitle("DNN output")
             g_TT.GetHistogram().GetZaxis().SetRangeUser(0.,1.)
             g_TT.GetHistogram().SetContour(100)
@@ -137,10 +149,10 @@ class MassPlane:
             g_ZA = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,2],dtype='double'))
             g_ZA.SetNpx(self.x_bins)
             g_ZA.SetNpy(self.y_bins)
-            g_ZA.GetHistogram().SetTitle("P(H#rightarrowZA) for mass point M_{H} = %.2f GeV, M_{A} = %.2f GeV"%(mH,mA))
+            g_ZA.GetHistogram().SetTitle("P(H #rightarrow ZA #rightarrow llbb) for mass point (M_{H}, M_{A})= (%s, %s )GeV"%(mass_to_str(mH), mass_to_str(mA)))
             g_ZA.SetName(("MassPlane_ZA_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
-            g_ZA.GetHistogram().GetXaxis().SetTitle("M_{jj} [GeV]")
-            g_ZA.GetHistogram().GetYaxis().SetTitle("M_{lljj} [GeV]")
+            g_ZA.GetHistogram().GetXaxis().SetTitle("m_{bb} (GeV)")
+            g_ZA.GetHistogram().GetYaxis().SetTitle("m_{llbb} (GeV)")
             g_ZA.GetHistogram().GetZaxis().SetTitle("DNN output")
             g_ZA.GetHistogram().GetZaxis().SetRangeUser(0.,1.)
             g_ZA.GetHistogram().SetContour(100)
@@ -230,23 +242,33 @@ class MassPlane:
             hys.append(hy)
         return hys 
 
-
     def plotOnCanvas(self, graph_list):
         path_out = os.path.dirname(self.pdf_path)
         if not os.path.isdir(path_out):
             os.makedirs(path_out)
         root_path = self.pdf_path.replace('.pdf','.root')
         outFile   = ROOT.TFile(root_path,"RECREATE")
-        C = ROOT.TCanvas("C","C",800,600)
+        
+        style = HT.setTDRStyle()
+        style.SetPadRightMargin(0.15)
+        style.SetPadTopMargin(0.15)
+        style.SetLabelSize(0.03, "XYZ")
+        style.SetPaintTextFormat(".3f")
+       
+        #title = hist.GetTitle()
+        #C = ROOT.TCanvas(HT.randomString(), title, 800, 600)
+        C = ROOT.TCanvas("C","C", 800,600)
         #C.SetLogz()
         C.Print(self.pdf_path+"[")
         for g in graph_list:
             print ("Plotting %s"%g.GetName())
             g.Draw("colz")
-            g_copy = g.Clone()
-            contours = np.array([0.90,0.95,0.99])
-            g_copy.GetHistogram().SetContour(contours.shape[0],contours)
-            g_copy.Draw("cont2 same")
+            #g.GetYaxis().SetTitleOffset(1.5)
+            #if self.doContour:
+                #g_copy = g.Clone()
+                #contours = np.array([0.90,0.95,0.99])
+                #g_copy.GetHistogram().SetContour(contours.shape[0],contours)
+                #g_copy.Draw("cont2 same")
             g.Write()
             C.Print(self.pdf_path,"Title:"+g.GetName())
             if self.projection:
@@ -321,9 +343,9 @@ if __name__ == "__main__":
     parser.add_argument('--era', action='store', required=True, type=int, choices=[2016, 2017, 2018],
                     help='predict model for different eras')
     #=====================================================================================================
-    parser.add_argument('--DY', action='store_true', required=False, default=True,
+    parser.add_argument('--DY', action='store_true', required=False, default=False,
                    help='Wether to plot the DY output')
-    parser.add_argument('--TT', action='store_true', required=False, default=True,
+    parser.add_argument('--TT', action='store_true', required=False, default=False,
                    help='Wether to plot the TT output')
     parser.add_argument('--ZA', action='store_true', required=False, default=True,
                    help='Wether to plot the ZA output')
@@ -339,25 +361,26 @@ if __name__ == "__main__":
     #===================================================================================================== 
     args = parser.parse_args()
 
-    inputs_order = ['pdgid','era','bb_M','llbb_M','bb_M_squared','llbb_M_squared','bb_M_x_llbb_M','mA','mH', 'isResolved', 'isBoosted', 'isggH', 'isbbH']
+    inputs_order = ['l1_pdgId@op_pdgid','$era@op_era','bb_M','llbb_M','bb_M_squared','llbb_M_squared','bb_M_x_llbb_M','$mA','$mH', 'isResolved', 'isBoosted', 'isggH', 'isbbH']
     inputs = {
         'isResolved' : args.resolved,
-        'isBoosted'  : args.resolved,
-        'isggH'      : True if 'ggH' in args.process else (False),
-        'isbbH'      : True if 'bbH' in args.process else (False),
-        'era'        : float(args.era),
-        'pdgid'      : int(11) if args.channel=='elel' else int(13),
+        'isBoosted'  : args.boosted,
+        'isggH'      : True if 'ggH' in args.process else False,
+        'isbbH'      : True if 'bbH' in args.process else False,
+        '$era@op_era'            : float(args.era),
+        'l1_pdgId@op_pdgid'      : int(11) if args.channel=='elel' else int(13),
         }
     
+    print( inputs, 'heloooooooooooooooooooooooooooooooooo' )
     region = 'resolved' if args.resolved else ('boosted')
     pdf_path  = os.path.join(f'{args.model.split("all_combined")[0]}','plots',f'massplane_{os.path.basename(args.model).split(".")[0]}_{args.process}_{region}_{args.channel}_{args.era}.pdf')
     inst = MassPlane(pdf_path           = pdf_path,
                      x_bins             = 500,
                      x_min              = 0.,
-                     x_max              = 1500.,
+                     x_max              = 1000.,
                      y_bins             = 500,
                      y_min              = 0.,
-                     y_max              = 1500.,
+                     y_max              = 1000.,
                      plot_DY            = args.DY,
                      plot_TT            = args.TT,
                      plot_ZA            = args.ZA,
@@ -372,7 +395,7 @@ if __name__ == "__main__":
         #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
         #    d = json.load(f)
         #    masspoints = [(mH, mA,) for mA, mH in d]
-        masspoints = [(200, 100), ( 300, 50), ( 300, 100), ( 300, 200)]
+        masspoints = [(200, 100), ( 300, 50), ( 300, 100), ( 300, 200), (500, 300), (800, 700)]
         pbar = enlighten.Counter(total=len(masspoints), desc='Progress', unit='mass points')
         if not args.jobs:
             inst.load_model(args.model)

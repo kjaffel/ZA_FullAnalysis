@@ -20,13 +20,9 @@ from scipy import interp
 from sklearn import metrics
 from matplotlib.pyplot import cm
 
-# ROOT STYLE #
 import tdrstyle
 
-# FORMULAS #
 gROOT.LoadMacro("formulas.C")
-
-# PYPLOT STYLE #
 SMALL_SIZE  = 14
 MEDIUM_SIZE = 20
 BIGGER_SIZE = 22
@@ -37,11 +33,8 @@ plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-
-#################################################################################################
-#####################################     Plot_TH1      #########################################
 class Plot_TH1:
     def __init__(self,filepath,filename,tree,variable,cut,name,bins,xmin,xmax,title,xlabel,ylabel,weight=None,logx=False,logy=False,option='hist'):
         self.filepath = filepath
@@ -124,8 +117,6 @@ class Plot_TH1:
 
         return canvas,self.filename
 
-#################################################################################################
-####################################      Plot_TH2       ########################################
 class Plot_TH2:
     def __init__(self,filepath,filename,tree,variablex,variabley,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,weight=None,zlabel='',option='colz',normalizeX=False,normalizeY=False,logx=False,logy=False,logz=False):
         self.filepath = filepath
@@ -242,8 +233,6 @@ class Plot_TH2:
 
         return canvas,self.filename
 
-#################################################################################################
-##############################      Plot_Ratio_TH1      #########################################
 class Plot_Ratio_TH1:
     def __init__(self,filepath,filename,tree,variable1,variable2,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2,weight=None,logx=False,logy=False,option='hist'):
         self.filepath = filepath
@@ -389,8 +378,6 @@ class Plot_Ratio_TH1:
 
         return canvas,self.filename
 
-#################################################################################################
-####################################    Plot_Multi_TH1    #######################################
 class Plot_Multi_TH1:
     def __init__(self,filepath,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,option='hist',logx=False,logy=False,legend_pos=[0.5,0.5,0.9,0.85],stack=False,norm=False):
         self.filepath = filepath
@@ -563,8 +550,6 @@ class Plot_Multi_TH1:
 
         return canvas,self.filename
             
-#################################################################################################
-####################################      Plot_ROC       ########################################
 class Plot_ROC:
     def __init__(self,tree,variable,title,selector,weight=None,cut=''):
         self.tree        = tree                         # Name of the tree to be taken from root file
@@ -573,8 +558,8 @@ class Plot_ROC:
         self.weight      = None                         # Weight to be used in the ROC curve
         self.cut         = cut                          # Potential cut before applying the ROC
         self.title       = title                        # Title of the ROC (to be included in legend !)
-        #self.xlabel      = xlabel                       # Title of x axis
-        #self.ylabel      = ylabel                       # Title of y axis
+       #self.xlabel      = xlabel                       # Title of x axis
+       #self.ylabel      = ylabel                       # Title of y axis
         self.selector    = selector                     # Dict to give the target (=value) as a function of string inside filename (=key)
         self.output      = np.empty((0,1))              # Will contain the outputs (aka the variable from files)
         self.target      = np.empty((0,1))              # Will contin the targets
@@ -614,9 +599,6 @@ class Plot_ROC:
         self.fpr, self.tpr, threshold = metrics.roc_curve(self.target, self.output, sample_weight=self.weight)
         self.roc_auc = metrics.auc(self.fpr, self.tpr)
 
-
-#################################################################################################
-#################################      Plot_Multi_ROC       #####################################
 class Plot_Multi_ROC:
     def __init__(self,tree,classes,labels,prob_branches,colors,title,selector,weight=None,cut=''):
         self.tree = tree                                  # Name of the tree
@@ -682,9 +664,6 @@ class Plot_Multi_ROC:
                 fpr = np.sort(self.fpr[n])
                 self.roc_auc[n] = metrics.auc(fpr, self.tpr[n]) 
             
-
-#################################################################################################
-#####################################   ProcessYAML   ############################################
 class ProcessYAML():
     def __init__(self, yaml_path, template):
         self.template    = template
@@ -732,8 +711,6 @@ class ProcessYAML():
                 else: # Not a string -> replace
                     self.config[name][key] = value
 
-#################################################################################################
-###############################      Function definitions      ################################## 
 def LoopPlotOnCanvas(pdf_name,list_histo):
     #c = TCanvas('c','c')
     canvas = TCanvas('c','c',600,600)
@@ -766,15 +743,15 @@ def MakeROCPlot(list_obj,name,title=None):
 
     # Loop over plot objects #
     for i,obj in enumerate(list_obj):
-        ax.plot(obj.tpr, obj.fpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
+        ax.plot(obj.fpr, obj.tpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
         ax.grid(True)
-    plt.legend(loc = 'upper left')
+    plt.legend(loc = 'lower right')
     plt.yscale('symlog',linthreshy=0.001)
     #plt.plot([0, 1], [0, 1],'k--')
     plt.xlim([0, 1])
     plt.ylim([0.001, 1])
-    plt.xlabel("Correct identification rate")
-    plt.ylabel("Misidentification rate")
+    plt.xlabel("Misidentification rate")
+    plt.ylabel("Correct identification rate")
     if title is not None:
         plt.suptitle(title)
 
@@ -799,16 +776,16 @@ def MakeMultiROCPlot(list_obj,name,title=None):
             #label = lab
             label += ('\n AUC = %0.5f'%obj.roc_auc[key])
             # Plot #
-            ax.plot(obj.tpr[key], obj.fpr[key], color=col, label=label, linestyle=linestyle)
+            ax.plot(obj.fpr[key], obj.tpr[key], color=col, label=label, linestyle=linestyle)
             ax.grid(True)
 
-    plt.legend(loc = 'upper left')#,prop={'family': 'monospace'})
+    plt.legend(loc = 'lower right')#,prop={'family': 'monospace'})
     #plt.yscale('symlog',linthreshy=0.0001)
     plt.plot([0, 1], [0, 1],'k--')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
-    plt.xlabel(r'Correct identification rate')
-    plt.ylabel(r'Misidentification rate')
+    plt.xlabel(r'Misidentification rate')
+    plt.ylabel(r'Correct identification rate')
 
     fig.savefig(name+'_ROC.png')#,bbox_inches='tight')
     logging.info('ROC curved saved as %s_ROC.png'%name)
@@ -839,13 +816,14 @@ def MakeMultiROCPlot(list_obj,name,title=None):
     misclass = 1 - accuracy
 
     # Normalize #
+    print( cm , cm[0].shape[0] )
     cmx = cm/np.tile(cm.sum(axis=0),cm[0].shape[0]).reshape(*cm.shape)
     cmy = cm/np.repeat(cm.sum(axis=1),cm[0].shape[0]).reshape(*cm.shape)
 
     # Cmap #
     cmapx = plt.get_cmap('Blues')
     cmapy = plt.get_cmap('Reds')
-    cmap = plt.get_cmap('Greens')
+    cmap  = plt.get_cmap('Greens')
 
     for cmi,cmap,label in zip([cm,cmx,cmy],[cmap,cmapx,cmapy],['plain','normedx','normedy']):
         # Plot CM #

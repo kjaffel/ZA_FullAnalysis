@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 from root_numpy import array2root
 
+import parameters
 from NeuralNet import HyperModel
 from import_tree import Tree2Pandas
 from generate_mask import GenerateSliceIndices, GenerateSliceMask
 from data_generator import DataGenerator
-import parameters
 
 
 class ProduceOutput:

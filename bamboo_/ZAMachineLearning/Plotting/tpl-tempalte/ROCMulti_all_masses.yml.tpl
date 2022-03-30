@@ -13,9 +13,9 @@ ROC_multiclass:
     - P($t\bar{t}$ | x,$\theta$)
     - P($H\rightarrow ZA$ | x,$\theta$)
   colors:
-    - navy
-    - darkred
-    - green
+    - purple
+    - orange
+    - red
   weight : event_weight
   title : Multi classification
   cut : '1'

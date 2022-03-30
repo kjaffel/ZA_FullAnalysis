@@ -499,6 +499,8 @@ def main():
         print ( 'isBoosted  :', df_isBoosted)
         print ( 'isResolved :', df_isResolved)
         
+        print ( 'learning_weight boosted  :', df_isBoosted['learning_weight'].sum())
+        print ( 'learning_weight resolved :', df_isResolved['learning_weight'].sum())
         # Preprocessing #
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer

@@ -31,11 +31,13 @@ def pogEraFormat(era):
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver5/results',
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov8/ul2016__ver6/results',
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul2016__ver1/results',
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver2/results',
 
 samples_path = {
-    '2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
-    '2017' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
-    '2018' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results'
+    '2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results',
+    '2017' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results',
+    '2018' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results'
     }
 
 main_path  = os.path.abspath(os.path.dirname(__file__))
@@ -78,22 +80,23 @@ if N_apply != N_slices/N_models: # Otherwise the same slice can be applied on se
 #==============================================
 # For GPU #
 #==============================================
-#partition  = 'cp3-gpu'    # Def, cp3 or cp3-gpu
-#QOS        = 'cp3-gpu'    # cp3 or normal
-#time       = '5-00:00:00' # days-hh:mm:ss
-#mem        = '60000'      # ram in MB
-#tasks      = '20'         # Number of threads(as a string)
-#gpus       = 1
-
+if opt.GPU:
+    partition  = 'gpu'        # Def, cp3 or cp3-gpu
+    QOS        = 'normal'     # cp3 or normal
+    time       = '0-12:00:00' # days-hh:mm:ss
+    mem        = '60'         # ram in GB
+    tasks      = '20'         # Number of threads(as a string)
+    gpus       = 1            # TeslaV100 or 1 
 #==============================================
 # For CPU #
 #==============================================
-partition = 'cp3'         # Def, cp3 or cp3-gpu
-QOS       = 'cp3'         # cp3 or normal
-time      = '2-24:00:00'  # days-hh:mm:ss
-mem       = '9000'        # ram in MB
-tasks     = '1'           # Number of threads(as a string) (not parallel training for classic mode)
-
+else:
+    partition = 'cp3'         # Def, cp3 or cp3-gpu
+    QOS       = 'cp3'         # cp3 or normal
+    time      = '2-59:00:00'  # days-hh:mm:ss
+    mem       = '9000'        # ram in MB
+    tasks     = '1'           # Number of threads(as a string) (not parallel training for classic mode)
+    
 ######################################  Names  ########################################
                         # Model name important only for scans 
 #######################################################################################
@@ -296,7 +299,7 @@ for era in eras:
                 samples_dict_run2UL[era][f"combined_{node}_nodes"].append(smp)
 
 sampleList_full = [f"{samples_path[era]}/{smp}" for era in eras for node in nodes for smp in samples_dict_run2UL[era][f"combined_{node}_nodes"]]
-print( " List of samples : ", samples_dict_run2UL )
+#print( " List of samples : ", samples_dict_run2UL )
 
 #######################################################################################
 #######################################################################################

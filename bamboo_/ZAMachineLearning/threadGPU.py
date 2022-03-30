@@ -118,6 +118,4 @@ class utilizationGPU(Thread):
         logging.info(s)
     
     def stopLoop(self):
-        self.running = False
-
-    
+        self.running = False    

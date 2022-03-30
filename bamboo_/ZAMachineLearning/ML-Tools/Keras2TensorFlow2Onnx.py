@@ -4,12 +4,12 @@ import json
 import glob 
 import argparse
 
-sys.path.append(os.path.abspath('../..'))
-import utils as utils
-logger = utils.ZAlogger(__name__)
-#import logging
-#logging.basicConfig(level=logging.INFO)
-#logger = logging.getLogger(__name__)
+#sys.path.append(os.path.abspath('../..'))
+#import utils as utils
+#logger = utils.ZAlogger(__name__)
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json
@@ -51,8 +51,8 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
     if path_to_all is not None:
         outdir = os.path.join(path_to_all,'keras_tf_onnx_models/')
         
-        path_to_json =  glob.glob(os.path.join(path_to_all, 'model/*', '*.json'))[0]
-        path_to_h5   =  glob.glob(os.path.join(path_to_all, 'model/*', '*_model.h5'))[0]
+        path_to_json =  glob.glob(os.path.join(path_to_all, 'model/', '*_isbest_model/', '*_model.json'))[0]
+        path_to_h5   =  glob.glob(os.path.join(path_to_all, 'model/', '*_isbest_model/', '*_model.h5'))[0]
     
     os.makedirs(outdir,exist_ok=True)
     print( path_to_json, path_to_h5, outdir)
@@ -79,7 +79,7 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
                                "cms_env\n"
                                "source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh\n"
                                "python -m venv $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100 # only the 1st time\n"
-                               "source $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100/bamboovenv100/bin/activate\n")
+                               "source $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100/bin/activate\n")
 
             onnx_model  = keras2onnx.convert_keras(keras_model, keras_model.name)
             keras2onnx.save_model(onnx_model, os.path.join(outdir, suffix+".onnx"))
@@ -143,24 +143,25 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', '-p', required=True, type=str, help='path where I can get the dir / model/*_isbest_model/*.json && *.h5')
+    parser.add_argument('--path', '-p', required=True, type=str, help='path where I can get : model/*_isbest_model/*_model.json && *_model.h5')
     parser.add_argument('--outdir','-o', dest='outdir', required=False, default='./keras_tf_onnx_models', help='The directory to place the output files - default("./keras_tf_onnx_models")')
     parser.add_argument('--job', required=True, type=str, choices=['k2tf', 'k2onnx'], help='What do you want: Keras -> TF or Keras -> ONNX')
    
     # If needed you can still pass .json and .h5 files instead of the full path  with --path ! 
     parser.add_argument('--json',required=False, type=str,help='The json model file you wish to convert to .pb')
     parser.add_argument('--h5',required=False, type=str,help='The h5 model model weights file you wish to convert to .pb **do not use _full.h5**')
-    parser.add_argument('--prefix',dest='prefix', required=False, default='k2tf', help='The prefix for the output aliasing - default("k2tf")')
     parser.add_argument('--name', required=False, default='best_model', help='The name of the resulting output graph will be given ad {name}.pb for TF and {name}.onnx for ONNX- default("best_model.pb and best_model.onnx")')
     args = parser.parse_args()
 
     if args.path is None and args.json is None and args.h5 is None:
         print(' sorry this is not gonna work , either provid --json and --h5 or --path/ to model/*_isbest_model ')
+   
 
+    # http://alexlenail.me/NN-SVG/index.html
     KerasToTensorflowModel(path_to_all      = args.path, 
                            job              = args.job,
                            path_to_json     = args.json,
                            path_to_h5       = args.h5,
-                           prefix           = args.prefix,
+                           prefix           = 'k2TF' if args.job == 'k2tf' else 'k2onnx',
                            name             = args.name,
                            outdir           = args.outdir)

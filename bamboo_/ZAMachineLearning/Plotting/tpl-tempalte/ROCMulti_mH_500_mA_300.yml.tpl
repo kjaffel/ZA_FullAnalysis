@@ -18,7 +18,7 @@ ROC_mH_500_mA_300:
     - green
   weight : event_weight
   title : Mass points $M_{H}=500 \ GeV$ and $M_{A}=300 \ GeV$
-  cut : 'mH==500 & mA==300'
+  cut : 'mH==500 & mA==300 & isBoosted'
   selector :
     'TT' : 'TT'
     'DY' : 'DY'
