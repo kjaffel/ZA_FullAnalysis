@@ -49,7 +49,7 @@ def getHistos(Cfg=None, path=None, prefix=None, lumi=None):
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
             print( lumi , xsc, genevt )
-            sf = lumi * xsc / (genevt) 
+            sf =  lumi* xsc / (genevt) 
             smpScale[smp] = sf
 
         f = ROOT.TFile.Open(filename)
@@ -75,14 +75,15 @@ def getHistos(Cfg=None, path=None, prefix=None, lumi=None):
             new_histo = cloneTH2(old_histos[samples[0]][j])
         else:
             new_histo = cloneTH1(old_histos[samples[0]][j])
+
         for i, (smp, histos) in enumerate(old_histos.items()):
             if "corrmet_pt" in histos[j].GetName() and "MuEl" in histos[j].GetName() and "HighMET" in histos[j].GetName():
                 print (" histo name: ", histos[j].GetName(), "   # entries: ", histos[j].GetEntries())
             new_histo.Add(histos[j], 1)
             if not prefix.startswith('MuonEG'):
                 new_histo.Scale(smpScale[smp])
-            else:
-                new_histo.Scale(1.)
+            #else:
+            #    new_histo.Scale(lumi)
             new_histo.SetDirectory(0)
         new_histos.append(new_histo)
 
@@ -102,9 +103,9 @@ def getHistos(Cfg=None, path=None, prefix=None, lumi=None):
 
     #for h in new_histos:
     #    if prefix.startswith('MuonEG'):
-    #        h.Scale(1./lumi)
-        #else:
-        #    h.Scale(smpScale[i])
+    #        h.Scale(lumi)
+    #    else:
+    #       h.Scale(smpScale[i])
     return new_histos
 
 
@@ -115,7 +116,7 @@ def get_HighMETttbarFromData(plotConfig, path, year, era, substract_ST):
     #lumi = Constants.getLuminosityForEraForRun(year, era)
     
     histos_data      = getHistos(plotConfig, path, f"MuonEG_UL{year}", lumi)
-    histos_SingleTop = getHistos(plotConfig, path, "ST", lumi)
+    histos_SingleTop = getHistos(plotConfig, path, "ST_", lumi)
 
     if len(histos_data) != len(histos_SingleTop):
         print ("Something went wrong: different number of histograms in data and MC!")
@@ -157,9 +158,7 @@ def get_HighMETttbarFromData(plotConfig, path, year, era, substract_ST):
 
     print( f"After SingleTop substraction :")    
     for h in histos_data:
-        if "boosted" in h.GetName():
-            continue
-        if not "HighMET" in str(h_data.GetName()):
+        if not ("HighMET" in str(h.GetName()) and "corr" in str(h.GetName()) ):
             continue
         print( f"working on : {h.GetName()}")    
         print( f"- Integral from MuonEG data  - SingleTop mc  = {h.Integral()}")
@@ -238,9 +237,9 @@ def get_ttbarFromData(plotConfig, path, year, era):
     # In PlotIt, these histograms will be normalized with the lumi. Since this is data,
     # we don't want any normalization by lumi. To avoid this, we "normalize" all the plots
     # by 1/lumi here.
-    #for h in estimated_ttbar:
-    #    h.Scale(1/lumi)
-    #    h.SetDirectory(0)
+    for h in estimated_ttbar:
+        h.Scale(1/lumi)
+        h.SetDirectory(0)
 
     print( f"After SingleTop substraction :")    
     for h in estimated_ttbar:
