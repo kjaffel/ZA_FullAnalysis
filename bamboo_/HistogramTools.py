@@ -312,7 +312,7 @@ class RatioPalette:
 def setTDRStyle():
   tdrStyle =  ROOT.TStyle(randomString(), "Style for P-TDR")
 
-   #for the canvas:
+#for the canvas:
   tdrStyle.SetCanvasBorderMode(0)
   tdrStyle.SetCanvasColor(ROOT.kWhite)
   tdrStyle.SetCanvasDefH(600) #Height of canvas
@@ -388,14 +388,13 @@ def setTDRStyle():
   tdrStyle.SetPadRightMargin(0.02)
 
 # For the Global title:
-
-  tdrStyle.SetOptTitle(0)
-  tdrStyle.SetTitleFont(42)
-  tdrStyle.SetTitleColor(1)
-  tdrStyle.SetTitleTextColor(1)
-  tdrStyle.SetTitleFillColor(10)
-  tdrStyle.SetTitleFontSize(0.05)
-  # tdrStyle.SetTitleH(0) # Set the height of the title box
+#  tdrStyle.SetOptTitle(0)
+#  tdrStyle.SetTitleFont(42)
+#  tdrStyle.SetTitleColor(1)
+#  tdrStyle.SetTitleTextColor(1)
+#  tdrStyle.SetTitleFillColor(10)
+#  tdrStyle.SetTitleFontSize(0.05)
+#  # tdrStyle.SetTitleH(0) # Set the height of the title box
   # tdrStyle.SetTitleW(0) # Set the width of the title box
   # tdrStyle.SetTitleX(0) # Set the position of the title box
   # tdrStyle.SetTitleY(0.985) # Set the position of the title box
@@ -403,7 +402,6 @@ def setTDRStyle():
   # tdrStyle.SetTitleBorderSize(2)
 
 # For the axis titles:
-
   tdrStyle.SetTitleColor(1, "XYZ")
   tdrStyle.SetTitleFont(42, "XYZ")
   tdrStyle.SetTitleSize(0.06, "XYZ")
@@ -414,14 +412,12 @@ def setTDRStyle():
   # tdrStyle.SetTitleOffset(1.1, "Y") # Another way to set the Offset
 
 # For the axis labels:
-
   tdrStyle.SetLabelColor(1, "XYZ")
   tdrStyle.SetLabelFont(42, "XYZ")
   tdrStyle.SetLabelOffset(0.007, "XYZ")
   tdrStyle.SetLabelSize(0.03, "XYZ")
 
 # For the axis:
-
   tdrStyle.SetAxisColor(1, "XYZ")
   tdrStyle.SetStripDecimals(True)
   tdrStyle.SetTickLength(0.03, "XYZ")

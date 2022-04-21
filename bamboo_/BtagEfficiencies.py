@@ -23,9 +23,13 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         super(ZA_BTagEfficiencies, self).__init__(args)
     
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):
-        noSel, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
+        noSel, plots, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
         
-        year = sampleCfg.get("era") if sampleCfg else None
+        def getIDX(wp = None):
+            return (0 if wp=="L" else ( 1 if wp=="M" else 2))
+        
+        era = sampleCfg.get("era") if sampleCfg else None
+        year= era.split('-')[0] 
         isMC = self.isMC(sample)
         
         ZOOM_PT_ETA_BINS      = True
@@ -82,14 +86,36 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     }
                 }
         
+        all_binning = { "resolved": {
+                                '2016':  ( VarBin([20., 30., 50., 70., 100., 140., 200., 300.,  450., 1000.]) , VarBin([0.0, 0.5, 1., 1.5, 2.0, 2.5]) ),
+                                '2017':  ( VarBin([30., 50., 70., 100., 140., 200., 300.,  450., 1000.])      , VarBin([0.0, 0.5, 1., 1.5, 2.0, 2.5]) ),
+                                '2018':  ( VarBin([30., 50., 70., 100., 140., 200., 300.,  450., 1000.])      , VarBin([0.0, 0.5, 1., 1.5, 2.0, 2.5]) ) },
+                       #"boosted": ( VarBin([200., 250., 300., 350., 450., 500., 600., 800., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) ) }
+                        "boosted": ( VarBin([200., 250., 450., 600., 1000.])                         , VarBin([0.0, 0.5, 1., 1.5, 2.0, 2.5]) ) }
+        
+        pt_cuts  = {"resolved": {
+                                "2016": {"pt_i": 20., "pt_f": 200.}, 
+                                "2017": {"pt_i": 30., "pt_f": 200.},
+                                "2018": {"pt_i": 30., "pt_f": 200.} }, 
+                    "boosted" : {"pt_i": 200., "pt_f": 800.}
+                }
         
         discriminatorcuts_lib = legacy_btagging_wpdiscr_cuts
+        
         processes_dic = { "gg_fusion":{ 
-                                        "resolved": op.AND(op.rng_len(AK4jets) == 2, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK8jets) == 1, op.rng_len(AK4jets) >= 0) },
+                                        "resolved": op.AND(op.rng_len(AK4jets) >= 2, op.rng_len(AK8jets) == 0),
+                                        "boosted" : op.AND(op.rng_len(AK8jets) == 1) },
                           "bb_associatedProduction":{
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 3, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK4jets) >= 1, op.rng_len(AK8jets) >= 1) }
+                                        "boosted" : op.AND(op.rng_len(AK8jets) >= 1, op.rng_len(AK4jets) >= 1) }
+                        }
+        
+        jets_length = { "gg_fusion": {
+                                    "resolved":2,
+                                    "boosted" :1},
+                        "bb_associatedProduction":{
+                                    "resolved":3,
+                                    "boosted" :1}
                         }
 
         for process, njetscut in processes_dic.items():
@@ -106,29 +132,33 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         
             for reg, lljj_selections_percat in lljj_selections_perreg.items():
     
-                # Nbr of subjettiness cut to be studied 
-                jets = (AK4jets if reg=="resolved" else (AK8jets))
+                if reg=='resolved':
+                    binning = all_binning["resolved"][year]
+                    firstpt = pt_cuts["resolved"][year]["pt_i"]
+                    lastpt  = pt_cuts["resolved"][year]["pt_f"]
+                    
+                    jets = AK4jets
+                else:
+                    binning = all_binning["boosted"]
+                    firstpt = pt_cuts["boosted"]["pt_i"]
+                    lastpt  = pt_cuts["boosted"]["pt_f"]
+                    
+                    jets = AK8jets
+
+                ZOOM_BINS = (EqBin(20//binScaling, firstpt, lastpt) , VarBin([0.0, 0.8, 1.4442, 1.566, 2.0, 2.5])) 
                 
-                jets_length = { "gg_fusion": {
-                                        "resolved":2,
-                                        "boosted" :1},
-                                "bb_associatedProduction":{
-                                        "resolved":3,
-                                        "boosted" :1}
-                                }
                 if isMC:
                     bFlavJets = op.select(jets, lambda j: j.hadronFlavour == 5)
                     cFlavJets = op.select(jets, lambda j: j.hadronFlavour == 4)
                     lFlavJets = op.select(jets, lambda j: j.hadronFlavour == 0)
     
-                if reg == "resolved":
-                    JetPairs      = op.combine(jets, N=2)
-                    bJetPairs     = op.combine(bFlavJets, N=2)
-                    cJetPairs     = op.combine(cFlavJets, N=2)
-                    lightJetPairs = op.combine(lFlavJets, N=2)
+                if plot_deltaR:
+                    if reg == "resolved":
+                        JetPairs      = op.combine(jets, N=2)
+                        bJetPairs     = op.combine(bFlavJets, N=2)
+                        cJetPairs     = op.combine(cFlavJets, N=2)
+                        lightJetPairs = op.combine(lFlavJets, N=2)
                 
-
-                    if plot_deltaR:
                         minJetDR      = op.rng_min(JetPairs, lambda pair: op.deltaR(pair[0].p4, pair[1].p4))
                         minBJetDR     = op.rng_min(bJetPairs, lambda pair: op.deltaR(pair[0].p4, pair[1].p4))
                         minBJetDR     = op.rng_min(cJetPairs, lambda pair: op.deltaR(pair[0].p4, pair[1].p4))
@@ -143,23 +173,9 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
     
                 for flav, flavJets in zip(['b', 'c', 'light'], [bFlavJets, cFlavJets, lFlavJets]):
                     # b tagging efficiencies as a function of flavour/pt/|eta|
-                    if reg=='resolved':
-                        if year=='2016':
-                            binning = ( VarBin([20., 30., 50., 70., 100., 140., 200., 300.,  600., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) )
-                            firstpt = 20.
-                            lastpt  = 200.
-                        else:
-                            binning = ( VarBin([30., 50., 70., 100., 140., 200., 300.,  600., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) )
-                            firstpt = 30.
-                            lastpt  = 200.
-                    else: 
-                        binning = ( VarBin([200., 250., 300., 350., 450., 500., 600., 800., 1000.]) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5]) )
-                        firstpt = 200.
-                        lastpt  = 800.
-    
+                        
                     pt  = op.map(flavJets, lambda j: j.pt)
-                    eta = op.map(flavJets, lambda j: j.eta)
-                    ZOOM_BINS = (EqBin(20//binScaling, firstpt, lastpt) , VarBin([-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5])) 
+                    eta = op.map(flavJets, lambda j: op.abs(j.eta))
                     
                     plots.append(Plot.make2D(f"2mu_2j_jet_pt_eta_{flav}flav_{reg}_{process}", (pt, eta), lljj_selections_percat['mumu'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet", xTitle="p_{T} [GeV]",yTitle="#eta"))
                     plots.append(Plot.make2D(f"2el_2j_jet_pt_eta_{flav}flav_{reg}_{process}", (pt, eta), lljj_selections_percat['elel'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet", xTitle="p_{T} [GeV]",yTitle="#eta"))
@@ -185,29 +201,48 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     if reg == "resolved":
                         OperatingPoints.append( "T" )
                     
+
                     for tagger in discriminatorcuts_lib[reg].keys(): 
-                        for (wp, deepThr) in zip( OperatingPoints, discriminatorcuts_lib[reg][tagger][year]):
+                        for (wp, deepThr) in zip( OperatingPoints, discriminatorcuts_lib[reg][tagger][era]):
                             
-                            selJets = ( op.select(flavJets, lambda j: j.btagDeepFlavB >= deepThr) if tagger=='DeepFlavour' else (op.select(flavJets, lambda j: j.btagDeepB >= deepThr )))
-        
+                            selJets_dict = {
+                                    "gg_fusion": {
+                                        "resolved": {
+                                                "DeepFlavour": lambda j: j.btagDeepFlavB >= deepThr,
+                                                "DeepCSV"    : lambda j: j.btagDeepB >= deepThr },
+                                        "boosted" : { 
+                                                "DeepCSV"    : lambda j: op.OR(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr)},
+                                            },
+
+                                    "bb_associatedProduction": {
+                                        "resolved": {
+                                                "DeepFlavour": lambda j: j.btagDeepFlavB >= deepThr,
+                                                "DeepCSV"    : lambda j: j.btagDeepB >= deepThr },
+                                        "boosted" : {
+                                                #"DeepCSV"   : lambda j: op.OR(j.btagDeepFlavB >= discriminatorcuts_lib["boosted"]["DeepFlavour"][era][getIDX(wp)], j.btagDeepB >= deepThr) 
+                                                "DeepCSV"    : lambda j: op.OR(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr),
+                                                } 
+                                            }
+                                }
+
+                            selJets = op.select(flavJets, selJets_dict[process][reg][tagger]) 
                             pt  = op.map(selJets, lambda j: j.pt)
                             eta = op.map(selJets, lambda j: j.eta)
                             
                             discr  = f"btagDeepFlavB_{wp}" if tagger=='DeepFlavour' else f"btagDeepB_{wp}"
-                            tagger = tagger.lower()
 
-                            plots.append(Plot.make2D(f"2mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['mumu'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                            plots.append(Plot.make2D(f"2el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['elel'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                            #plots.append(Plot.make2D(f"1el1mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['elmu'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                            plots.append(Plot.make2D(f"1mu1el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['muel'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                            plots.append(SummedPlot(f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}", plots[-3:-2:1]))
+                            plots.append(Plot.make2D(f"2mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['mumu'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                            plots.append(Plot.make2D(f"2el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['elel'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                            #plots.append(Plot.make2D(f"1el1mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['elmu'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                            plots.append(Plot.make2D(f"1mu1el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}", (pt, eta), lljj_selections_percat['muel'], binning, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                            plots.append(SummedPlot(f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}", plots[-3:-2:1]))
                             
                             if ZOOM_PT_ETA_BINS:
-                                plots.append(Plot.make2D(f"2mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['mumu'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                                plots.append(Plot.make2D(f"2el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['elel'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                                #plots.append(Plot.make2D(f"1el1mu_2j_jet_pt_eta_{flav}_{reg}_{tagger}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['elmu'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                                plots.append(Plot.make2D(f"1mu1el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['muel'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
-                                plots.append(SummedPlot(f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{tagger}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", plots[-3:-2:1]))
+                                plots.append(Plot.make2D(f"2mu_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['mumu'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                                plots.append(Plot.make2D(f"2el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['elel'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                                #plots.append(Plot.make2D(f"1el1mu_2j_jet_pt_eta_{flav}_{reg}_{tagger.lower()}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['elmu'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                                plots.append(Plot.make2D(f"1mu1el_2j_jet_pt_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", (pt, eta), lljj_selections_percat['muel'], ZOOM_BINS, title=f"{proc} efficiency {flav} hadronFlavour Jet {discr}", xTitle="p_{T} [GeV]",yTitle="#eta"))
+                                plots.append(SummedPlot(f"pair_lept_2j_jet_pt_vs_eta_{flav}flav_{reg}_{tagger.lower()}_wp{wp}_{process}_ZOOM_PT_ETA_BINS", plots[-3:-2:1]))
     
                 # look at specific slice in pt/|eta|
                 if plot_deltaR:

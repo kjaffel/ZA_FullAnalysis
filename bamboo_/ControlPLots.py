@@ -1,3 +1,4 @@
+import collections
 from bamboo import treefunctions as op
 from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
@@ -40,7 +41,7 @@ def makeControlPlotsForZpic(sel, leptons, suffix, uname, reg ):
         plots += [ Plot.make1D(f"{uname}_{suffix}_ll_{nm}_{reg}", var, sel, binning,
             title=f"dilepton {title}", plotopts=utils.getOpts(uname))
             for nm, (var, binning, title) in {
-                "mass" : (ll_p4.M() , EqB(60 // binScaling, 70., 110.), "m_{ll} (GeV)"),
+                "mass" : (ll_p4.M() , EqB(60 // binScaling, 70., 120.), "m_{ll} (GeV)"),
             }.items()
         ]
     return plots
@@ -78,36 +79,55 @@ def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, suffix):
     binScaling =1
     plots =[]
     
-    jj_p4 = (jets[0].p4 if suffix=="boosted" else(jets[0].p4+jets[1].p4))
+    if suffix == "resolved":
+        jj_p4 = (jets[0].p4+jets[1].p4)
+    elif suffix == "boosted":
+        jj_p4 = jets[0].p4
+    elif suffix == "inclusive": 
+        jj_p4 = op.switch(op.AND(op.rng_len(jets['boosted']) >= 1, jets['boosted'][0].p4.M() < 50.), jets['boosted'][0].p4, (jets['resolved'][0].p4+jets['resolved'][1].p4) )
+    
+    lljj_p4 = dilepton[0].p4 +dilepton[1].p4+jj_p4
+    eqBIns_M = ( EqB(60 // binScaling, 120., 1200.) if suffix == "boosted" else(EqB(60 // binScaling, 150., 1200.)))
 
-    if suffix== "resolved":
+    if suffix in ["resolved", "inclusive"]:
         plots += [ Plot.make1D("{0}_{1}_jj{nm}".format(uname, suffix, nm=nm), var, sel, binning,
             title=f"di-jets {title}", plotopts=utils.getOpts(uname))
             for nm, (var, binning, title) in {
-                "PT" : (jj_p4.Pt() , EqB(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
+                "PT" : (jj_p4.Pt(), EqB(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
                 "Phi": (jj_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
                 "Eta": (jj_p4.Eta(), EqB(50 // binScaling, -3., 3.), "Eta")
                 }.items()
             ]
-    # masses: mjj , mlljj, TH1D && TH2D  in boosted and resolved region:
-    plots.append(Plot.make1D("{0}_{1}_mjj".format(uname, suffix),
+
+    plots.append(Plot.make1D(f"{uname}_{suffix}_mjj",
                 jj_p4.M(), sel,
-                EqB(60 // binScaling, 0., 650.), 
-                title="mjj [GeV]", plotopts=utils.getOpts(uname)))
-    
-    eqBIns_M = ( EqB(60 // binScaling, 120., 1200.) if suffix == "boosted" else(EqB(60 // binScaling, 150., 1200.)))
-    plots.append(Plot.make1D("{0}_{1}_mlljj".format(uname, suffix), 
-                (dilepton[0].p4 +dilepton[1].p4+jj_p4).M(), sel, eqBIns_M,
-                title="mlljj [GeV]", plotopts=utils.getOpts(uname)))
-    
-    plots.append(Plot.make2D("{0}_{1}_mlljj_vs_mjj".format(uname, suffix),
-                (jj_p4.M(), (dilepton[0].p4 + dilepton[1].p4 + jj_p4).M()), sel, 
-                (EqB(60 // binScaling, 0., 1200.), EqB(60 // binScaling, 120., 1200.)), 
-                title="mlljj vs mjj invariant mass [Gev]", plotopts=utils.getOpts(uname)))
+                EqB(60 // binScaling, 0., 1200.), 
+                title="mjj (GeV)", plotopts=utils.getOpts(uname)))
+    plots.append(Plot.make1D(f"{uname}_{suffix}_mlljj", 
+                lljj_p4.M(), sel,
+                EqB(60 // binScaling, 0., 1200.), 
+                title="mlljj (GeV)", plotopts=utils.getOpts(uname)))
+
+    if suffix == 'boosted':
+        plots.append(Plot.make1D(f"{uname}_{suffix}_mjj_fatjet_softdropmass",
+                    jets[0].msoftdrop, sel,
+                    EqB(60 // binScaling, 0., 850.),
+                    title="mjj Soft Drop(fatjet) (GeV)",
+                    plotopts = utils.getOpts(uname)))
+        plots.append(Plot.make1D(f"{uname}_{suffix}_mlljj_fatjet_softdropmass",
+                    (jets[0].msoftdrop+ (dilepton[0].p4 +dilepton[1].p4).M()), sel,
+                    eqBIns_M,
+                    title="mlljj Soft Drop(fatjet) (GeV)",
+                    plotopts = utils.getOpts(uname)))
+
+    #plots.append(Plot.make2D("{0}_{1}_mlljj_vs_mjj".format(uname, suffix),
+    #            (jj_p4.M(), (dilepton[0].p4 + dilepton[1].p4 + jj_p4).M()), sel, 
+    #            (EqB(60 // binScaling, 0., 1200.), EqB(60 // binScaling, 120., 1200.)), 
+    #            title="mlljj vs mjj invariant mass [Gev]", plotopts=utils.getOpts(uname)))
     return plots
 
 
-def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, cut, process):
+def makeControlPlotsForFinalSel(selections, plots_ToSum2, bjets, leptons, wp, uname, suffix, cut, process):
     plots =[]
     binScaling=1
     for key, sel in selections.items():
@@ -119,7 +139,8 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, c
             tagger = key.replace(wp, "")
             bjets_ = bjets[tagger][wp]
         
-        jj_p4 = ((bjets_[0].p4+bjets_[1].p4)if suffix=="resolved" else( bjets_[0].p4))
+        bb_p4   = ((bjets_[0].p4+bjets_[1].p4)if suffix=="resolved" else( bjets_[0].p4))
+        llbb_p4 = (leptons[0].p4 +leptons[1].p4+bb_p4)
 
         # make di-bjets Plots 
         # skip boosted catgory because plots are already called in "makeBjetsPlots"
@@ -127,27 +148,45 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, c
             plots += [ Plot.make1D(f"{uname}_{suffix}{cut}_bb{nm}_{key}_{process}",
                 var, sel, binning, title=f"di-bjet {title}", plotopts=utils.getOpts(uname))
                 for nm, (var, binning, title) in {
-                    "PT" : (jj_p4.Pt() , EqB(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
-                    "Phi": (jj_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
-                    "Eta": (jj_p4.Eta(), EqB(50 // binScaling, -3., 3.), "#eta")
+                    "PT" : (bb_p4.Pt() , EqB(50 // binScaling, 0., 650.), "P_{T} (GeV)"),
+                    "Phi": (bb_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
+                    "Eta": (bb_p4.Eta(), EqB(50 // binScaling, -3., 3.), "#eta")
                     }.items()
                 ]
+       
+        if suffix=="boosted":
+            # Corrected soft drop mass with PUPPI"
+            plots.append(Plot.make1D(f"{uname}_boosted{cut}_fatjet_softdropmass_mbb_{key}_{process}",
+                                bjets_[0].msoftdrop, sel,
+                                EqB(60 // binScaling, 0., 850.),
+                                title="mbb (Soft Drop fatjet) (GeV)",
+                                plotopts = utils.getOpts(uname)))
+            plots.append(Plot.make1D(f"{uname}_boosted{cut}_fatjet_softdropmass_mllbb_{key}_{process}",
+                                (bjets_[0].msoftdrop + (leptons[0].p4 +leptons[1].p4).M()), sel,
+                                EqB(60 // binScaling, 120., 1200.),
+                                title="mbb (Soft Drop fatjet) (GeV)",
+                                plotopts = utils.getOpts(uname)))
         
-        llbb_p4 = (leptons[0].p4 +leptons[1].p4+jj_p4)
-        # plots masses: mllbb, mbb, mllbb vs mbb
-        plots.append(Plot.make1D(f"{uname}_{suffix}{cut}_mllbb_{key}_{process}", 
+        plt_m_llbb = Plot.make1D(f"{uname}_{suffix}{cut}_mllbb_{key}_{process}", 
                     llbb_p4.M(), sel,
-                    EqB(60 // binScaling, 120., 1000.), 
-                    title="mllbb [GeV]", plotopts=utils.getOpts(uname)))
-        plots.append(Plot.make1D(f"{uname}_{suffix}{cut}_mbb_{key}_{process}",
-                    jj_p4.M(), sel,
+                    EqB(60 // binScaling, 120., 1400.), 
+                    title="mllbb (GeV)", plotopts=utils.getOpts(uname))
+        plt_m_bb = Plot.make1D(f"{uname}_{suffix}{cut}_mbb_{key}_{process}",
+                    bb_p4.M(), sel,
                     EqB(60 // binScaling, 0., 850.), 
-                    title= "mbb [GeV]", plotopts=utils.getOpts(uname)))
-        plots.append(Plot.make2D(f"{uname}_{suffix}{cut}_mllbb_vs_mbb_{key}_{process}", 
-                    (jj_p4.M(), llbb_p4.M()), sel,
-                    (EqB(60 // binScaling, 0., 1000.), EqB(60 // binScaling, 120., 1000)), 
-                    title="mllbb vs mbb invariant mass [GeV]", plotopts=utils.getOpts(uname)))
-    return plots 
+                    title= "mbb (GeV)", plotopts=utils.getOpts(uname))
+
+        #plots.append(Plot.make2D(f"{uname}_{suffix}{cut}_mllbb_vs_mbb_{key}_{process}", 
+        #            (bb_p4.M(), llbb_p4.M()), sel,
+        #            (EqB(60 // binScaling, 0., 1000.), EqB(60 // binScaling, 120., 1000)), 
+        #            title="mllbb vs mbb invariant mass [GeV]", plotopts=utils.getOpts(uname)))
+        
+        plots += [plt_m_bb, plt_m_llbb]
+        if not uname in ['ElMu', 'MuEl']:
+            plots_ToSum2[(suffix, cut, "mbb", key, process)].append(plt_m_bb)
+            plots_ToSum2[(suffix, cut, "mllbb", key, process)].append(plt_m_llbb)
+
+    return plots, plots_ToSum2 
 
 
 def makeJetPlots(sel, jets, uname, suffix, era):
@@ -155,19 +194,15 @@ def makeJetPlots(sel, jets, uname, suffix, era):
     plots = []
     maxJet=( 1 if suffix=="boosted" else(2))
     for i in range(maxJet):
-        if suffix=="boosted":
-            eqBin_pt = EqB(60 // binScaling, 200, 850.)
-        elif suffix=="resolved":
-            jet_ptcut =(30. if "2016" in era else (20.))
-            eqBin_pt = EqB(60 // binScaling, jet_ptcut, 650.)
-        else:
-            raise RuntimeError('ERROR: {0} Unknown suffix '.format(suffix))
+        
+        eqBin = {'resolved': EqB(60 // binScaling, 20., 650.),
+                 'boosted' : EqB(60 // binScaling, 200, 850.) }
         
         plots += [ Plot.make1D(f"{uname}_{suffix}_jet{i+1}_{nm}",
                 jVar(jets[i]), sel, binning, title=f"{utils.getCounter(i+1)} jet {title}",
                 plotopts=utils.getOpts(uname))
             for nm, (jVar, binning, title) in {
-                "pT" : (lambda j : j.pt, eqBin_pt, "p_{T} [GeV]"),
+                "pT" : (lambda j : j.pt, eqBin[suffix], "p_{T} [GeV]"),
                 "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.4, 2.4), "#eta"),
                 "phi": (lambda j : j.phi, EqB(50 // binScaling, -3.1416, 3.1416), "#phi")
                 }.items() ]
@@ -192,15 +227,12 @@ def makedeltaRPlots(sel, jets, leptons, uname, suffix):
 
 
 def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process):
-    binScaling=1
-    plots = []
+    binScaling =1
+    maxJet = 1 if suffix=="boosted" else 2
+    plots  = []
     
-    if suffix == "resolved":
-        jet_ptcut = (30. if "2016" in era else (20.))
-    elif suffix =="boosted":
-        jet_ptcut = 200.
-    else:
-        raise RuntimeError('ERROR: {0} Unknown suffix '.format(suffix))
+    jet_ptcut = {'resolved': 20.,
+                 'boosted' : 200.}
     
     for key, sel in selections.items():
         if 'DeepDoubleBvL' in key:
@@ -209,7 +241,6 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process):
         else:
             tagger = key.replace(wp, "")
             bjets_ = bjets[tagger][wp]
-        maxJet = (1 if suffix=="boosted" else(2))
         
         plots.append(Plot.make1D(f"{uname}_{suffix}_{key}_{cut}_{process}_Jet_mulmtiplicity", op.rng_len(bjets_), sel,
                     EqB(7, 0., 7.), title="Jet mulmtiplicity",
@@ -220,31 +251,11 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process):
                         jVar(bjets_[i]), sel, binning, title=f"{utils.getCounter(i+1)} bJet {title}",
                         plotopts=utils.getOpts(uname))
                 for nm, (jVar, binning, title) in {
-                    "pT" : (lambda j : j.pt,  EqB(60 // binScaling, jet_ptcut, 850.), "pt [GeV]"),
-                    "mass" : (lambda j : j.mass,EqB(50 // binScaling, 0., 600.), "Mass [GeV]"),
-                    "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.5, 2.5), "eta"),
-                    "phi": (lambda j : j.phi, EqB(50 // binScaling, -3.1416, 3.1416), "phi")
+                    "pT" : (lambda j : j.pt,  EqB(60 // binScaling, jet_ptcut[suffix], 850.), "pt [GeV]"),
+                    #"mass" : (lambda j : j.mass,EqB(50 // binScaling, 0., 600.), "Mass [GeV]"),
+                    "eta": (lambda j : j.eta, EqB(50 // binScaling, -2.5, 2.5), "#eta"),
+                    "phi": (lambda j : j.phi, EqB(50 // binScaling, -3.1416, 3.1416), "#phi")
                     }.items() ]
-    return plots
-
-
-def makeExtraFatJetBOostedPlots(selections, bjets, wp, uname, suffix, process):
-    binScaling=1
-    plots = []
-    for key, sel in selections.items():
-        tagger = key.replace(wp, "")
-        bjets_ = bjets[tagger][wp]
-        plots.append(Plot.make1D(f"{uname}_{key}_{suffix}_{process}_boosted_fatjet_mass",
-                            bjets_[0].mass, sel,
-                            EqB(60 // binScaling, 0., 850.),
-                            title="fatjet mass",
-                            plotopts = utils.getOpts(uname)))
-        # Corrected soft drop mass with PUPPI"
-        plots.append(Plot.make1D(f"{uname}_{key}_{suffix}_{process}_boosted_fatjet_softdropmass",
-                            bjets_[0].msoftdrop, sel,
-                            EqB(60 // binScaling, 0., 850.),
-                            title="M_{Soft Drop}(fatjet) [GeV]",
-                            plotopts = utils.getOpts(uname)))
     return plots
 
 
@@ -256,7 +267,6 @@ def makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, suffix):
                         EqB(60 // binScaling, 0., 450.),
                         title="fatjet mass",
                         plotopts = utils.getOpts(uname)))
-    # Corrected soft drop mass with PUPPI"
     plots.append(Plot.make1D("{}_boosted_fatjet_softdropmass{}".format(uname, suffix),
                         fatjet[0].msoftdrop, lepPlusJetssel,
                         EqB(60 // binScaling, 0., 450.),
@@ -266,6 +276,8 @@ def makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, suffix):
 
 
 def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettinesscut, uname):
+   # https://arxiv.org/pdf/1011.2268.pdf
+   
     binScaling=1
     plots = []
    # plots.extend(makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, "0p75"))
@@ -280,7 +292,6 @@ def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettiness
    #                     EqB(60 // binScaling, 0., 650.),
    #                     title= " subJet2 p_{T} [GeV]",
    #                     plotopts = utils.getOpts(uname)))
-   # https://arxiv.org/pdf/1011.2268.pdf
     TwoLep_AtLeast1FatJetBoosted_notau21cut = lepSel.refine("OnboOstedeJet_{}Sel_NosubjettinessCut".format(uname), cut=[ op.rng_len(fatjet_Nosubjettinesscut) > 0 ])    
     plots.extend(makeBoOstedInvariantMass( uname, fatjet_Nosubjettinesscut, TwoLep_AtLeast1FatJetBoosted_notau21cut, "NosubjettinessCut"))
     
@@ -313,30 +324,38 @@ def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, fatjet_Nosubjettiness
     return plots
 
 
-def makeHistosForTTbarEstimation(selections, ll, bjets, wp, uname, suffix, met):
+def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname, region, suffix, process):
     plots=[]
+    binScaling = 1
     for key, sel in selections.items():
-        tagger = key.replace(wp, "")
-        bjets_ = safeget(bjets, tagger, wp)
-        bb = bjets[key.replace(wp, "")][wp]
-        plots += [ Plot.make1D(f"{nm}_{uname}_hZA_{suffix}_lljj_{tagger}_btag{wp}_mll_and_{met}",
+        tagger  = key.replace(wp, "")
+        bb      = bjets[tagger][wp]
+        bb_p4   = bb[0].p4 + bb[1].p4
+        ll_p4   = ll[0].p4 + ll[1].p4
+        llbb_p4 = ll_p4 + bb_p4
+        
+        plots += [ Plot.make1D(f"{uname}_{nm}_{region}_{tagger}{wp}_{suffix}_{process}",
             llbbVar, sel, binning, title=title, plotopts=utils.getOpts(uname))
             for nm, (llbbVar, binning, title) in {
-                "jj_M"   : (op.invariant_mass(bb[0].p4+bb[1].p4), EqB(40, 10., 1000.), "Mjj [GeV]"),
-                "lljj_M" : ((ll[0].p4+ll[1].p4+bb[0].p4+bb[1].p4).M(), EqB(50, 100., 1500.), "Mlljj [GeV]"),
-                "ll_M"   : (op.invariant_mass(ll[0].p4+ll[1].p4), EqB(60, 70., 120.), "Mll [GeV]"),
-                "jj_DR"  : (op.deltaR(bb[0].p4, bb[1].p4), EqB(50, 0., 6.), "jj deltaR"),
-                "jj_pt"  : ((bjets_[0].p4 + bjets_[1].p4).Pt(), EqB(50, 0., 450.), "dijets p_{T} [GeV]"),
-                "jet1_pt": (bb[0].pt, EqB( 50, 20., 500.), "jet1 p_{T} [GeV]"),
-                "jet2_pt": (bb[1].pt, EqB( 50, 20., 300.), "jet2 p_{T} [GeV]"),
-                "lep1_pt": (ll[0].pt, EqB( 50, 20., 400.), "Leading Lepton p_{T} [GeV]"),
-                "lep2_pt": (ll[1].pt, EqB(50, 10., 200.), "Sub-leading Lepton p_{T} [GeV]"),
+                "bb_M"     : (bb_p4.M(),   EqB(50, 10., 1000.), "m_{bb} (GeV)"),
+                "llbb_M"   : (llbb_p4.M(), EqB(50, 100., 1500.), "m_{llbb} (GeV)"),
+                "ll_M"     : (ll_p4.M(),   EqB(50, 70., 120.), "m_{ll} (GeV)"),
+                "bb_DR"    : (op.deltaR(bb[0].p4, bb[1].p4), EqB(50, 0., 6.), "#delta R(bjet1, bjet2)"),
+                "bb_pt"    : (bb_p4.Pt(), EqB(50, 0., 650.), "di-bjets p_{T} (GeV)"),
+                "bjet1_pt" : (bb[0].pt, EqB(50, 20., 650.), "Leading bjet p_{T} (GeV)"),
+                "bjet2_pt" : (bb[1].pt, EqB(50, 20., 650.), "Sub-leading bjet p_{T} (GeV)"),
+                "bjet1_eta": (bb[0].eta, EqB(50 // binScaling, -2.4, 2.4), "Leading bjet #eta (GeV)"),
+                "bjet2_eta": (bb[1].eta, EqB(50 // binScaling, -2.4, 2.4), "Sub-leading bjet #eta (GeV)"),
+                "lep1_pt"  : (ll[0].pt, EqB( 50, 0., 650.), "Leading lepton p_{T} (GeV)"),
+                "lep2_pt"  : (ll[0].pt, EqB( 50, 0., 650.), "Leading lepton p_{T} (GeV)"),
+                "met_pt"   : (met.pt, EqB(50, 0., 650), "MET p_{T} (GeV)"),
+                "corrmet_pt": (corrmet.pt, EqB(50, 0., 650), "xy-corrMET p_{T} (GeV)"),
                 }.items()
             ]
     return plots 
 
 
-def MakeMETPlots(selections, corrmet, met, uname, suffix, process):
+def MakeMETPlots(selections, lepton, corrmet, met, uname, suffix, process):
     plots = []
     binScaling=1
     for key, sel in selections.items():
@@ -386,32 +405,30 @@ def MakePuppiMETPlots(PuppiMET, sel, uname):
                         plotopts=utils.getOpts(uname, **{"log-y": False})))
     return plots
 
+
 def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, wp, uname, suffix, cut, process):
     plots = []
     binScaling=1
     
-    stop  = 2 if suffix =='resolved' else 1
-    ptcut = 20. if suffix =='resolved' else 200.
-
     for key, sel in selections.items():
         tagger = key.replace(wp, "")
         bjets_ = bjets[tagger][wp]
         bb_p4 = ((bjets_[0].p4 + bjets_[1].p4) if suffix =="resolved" else( bjets_[0].p4))
 
-        for i in range(stop): 
+        for i in range(2): 
             plots += [ Plot.make1D(f"{uname}_{suffix}{cut}_{nm}{i+1}_{key}_{process}",
                 llbbVar, sel, binning, title=f"{utils.getCounter(i+1)} b-Jet {title}", plotopts=utils.getOpts(uname))
                 for nm, (llbbVar, binning, title) in {
-                    "pT"   : (bjets_[i].pt, EqB(60, ptcut, 450.), "pt (GeV)"),
-                    #"mass" : (bjets_[i].mass, EqB(60, ptcut, 200.), "mass (GeV)"),
+                    "pT"   : (bjets_[i].pt, EqB(60, 20., 650.), "pt (GeV)"),
+                    "mass" : (bjets_[i].mass, EqB(60, 0., 1000.), "mass (GeV)"),
                 }.items()
             ]
         plots += [ Plot.make1D(f"{uname}_{suffix}{cut}_{nm}_{key}_{process}",
             llbbVar, sel, binning, title=title, plotopts=utils.getOpts(uname))
             for nm, (llbbVar, binning, title) in {
                 "mbb"   : (bb_p4.M(), EqB(60, 0., 1000.), "m_{bb} (GeV)"),
-                "mllbb" : ((leptons[0].p4 + leptons[1].p4 + bb_p4).M(), EqB(60, ptcut, 1000.), "m_{llbb} (GeV)"),
-                "ptbb"  : (bb_p4.Pt(), EqB(60, ptcut, 450.), "pt_{bb} (GeV)"),
+                "mllbb" : ((leptons[0].p4 + leptons[1].p4 + bb_p4).M(), EqB(60, 0., 1000.), "m_{llbb} (GeV)"),
+                "ptbb"  : (bb_p4.Pt(), EqB(60, 0., 450.), "pt_{bb} (GeV)"),
                 }.items()
             ]
     return plots

@@ -404,3 +404,18 @@ def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
             plotopts=utils.getOpts(uname, **{"log-y": True})))
     
     return plots
+
+
+
+def DYgenLevelPlots(t, noSel, sample):
+    # it will crash if evaluated when there are no two leptons in the matrix element
+    plots = []
+    if sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"]:
+        genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
+        gen_ptll_nlo    = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
+        
+        forceDefine(gen_ptll_nlo, noSel)
+        
+        plots.append(Plots_gen(gen_ptll_nlo, noSel, "noSel"))
+        plots.append(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
+    return plots

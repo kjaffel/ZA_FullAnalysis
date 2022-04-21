@@ -13,7 +13,7 @@ def localize_myRun2UlegacyAnalysis(aPath, version="FullRun2ULegacy"):
 def localize_trigger(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies", aPath)
 def localize_run2Ultrigger(aPath):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies/run2UlegacyHLT", aPath)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/HLTefficiencies/run2ULegacyHLT", aPath)
 def localize_PileupJetID(aPath):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/PileupFullRunII/PileupJetID", aPath)
 def localize_eChargeMisIDRates(aPath):
@@ -60,7 +60,22 @@ all_run2_Ulegacyscalefactors = {
                     
                         )),
        "hlt_Summer19UL2016_106X" : { "HLT_Mu50-TkMu50": localize_run2Ultrigger("UL2016/HLT_Mu50_TkMu50_highpT_Run2016_UL_cp3format.json"),},
+       
+       "HLT_UL17_ee"   : { "HLT_eeSF": localize_run2Ultrigger("UL2017/TriggerSF_2017_UL_ee.json")},
+       "HLT_UL17_emu"  : { "HLT_emuSF": localize_run2Ultrigger("UL2017/TriggerSF_2017_UL_emu.json")},
+       "HLT_UL17_mumu" : { "HLT_mumuSF": localize_run2Ultrigger("UL2017/TriggerSF_2017_UL_mumu.json")},
 
+       "HLT_UL18_ee"   : { "HLT_eeSF": localize_run2Ultrigger("UL2018/TriggerSF_2018_UL_ee.json")},
+       "HLT_UL18_emu"  : { "HLT_emuSF": localize_run2Ultrigger("UL2018/TriggerSF_2018_UL_emu.json")},
+       "HLT_UL18_mumu" : { "HLT_mumuSF": localize_run2Ultrigger("UL2018/TriggerSF_2018_UL_mumu.json")},
+       
+       "HLT_UL16preVFP_ee"   : { "HLT_eeSF": localize_run2Ultrigger("UL2016/TriggerSF_2016preVFP_UL_ee.json")},
+       "HLT_UL16preVFP_emu"  : { "HLT_emuSF": localize_run2Ultrigger("UL2016/TriggerSF_2016preVFP_UL_emu.json")},
+       "HLT_UL16preVFP_mumu" : { "HLT_mumuSF": localize_run2Ultrigger("UL2016/TriggerSF_2016preVFP_UL_mumu.json")},
+       
+       "HLT_UL16postVFP_ee"  : { "HLT_eeSF": localize_run2Ultrigger("UL2016/TriggerSF_2016postVFP_UL_ee.json")},
+       "HLT_UL16postVFP_emu" : { "HLT_emuSF": localize_run2Ultrigger("UL2016/TriggerSF_2016postVFP_UL_emu.json")},
+       "HLT_UL16postVFP_mumu": { "HLT_mumuSF": localize_run2Ultrigger("UL2016/TriggerSF_2016postVFP_UL_mumu.json")},
        ############################################
        # 2017 ULegacy:
        ############################################
@@ -205,23 +220,19 @@ all_scalefactors = {
        "mutrig_2016_94X" : tuple(localize_trigger("{trig}_PtEtaBins_2016Run{eras}.json".format(trig=trig, eras=eras)) 
 								  for trig in ("IsoMu24_OR_IsoTkMu24","Mu50_OR_TkMu50" ) for eras in ("BtoF", "GtoH")),
     #-------- double muon trigger ------------ 
-       "doubleEleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
+       "doubleEleLeg_HHMoriond17_2016": tuple(localize_trigger("{wp}.json".format(wp=wp)) 
                                             for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg")),
-
        "doubleMuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
                                             for wp in ("Muon_DoubleIsoMu17Mu8_IsoMu17leg", "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg", "Muon_DoubleIsoMu17Mu8_IsoMu17leg", 
                                                 "Muon_DoubleIsoMu17TkMu8_IsoMu8legORTkMu8leg")),
-
-       "mueleLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp))
-                                        for wp in ("Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg")),
-
-       "elemuLeg_HHMoriond17_2016" : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
-                                        for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg")),
-      
-       "JetId_InHighPileup_2016_94X" : dict((k, localize_PileupJetID(v)) for k, v in chain(
-                                        dict(("puid_{wp}".format(wp=wp), 
-                                            ("puID_SFs_2016{wp}.json".format(wp=wp))) 
-                                            for wp in ("L", "M", "T")).items() 
+       "mueleLeg_HHMoriond17_2016"    : tuple(localize_trigger("{wp}.json".format(wp=wp))
+                                            for wp in ("Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg", "Electron_IsoEle23Leg", "Electron_IsoEle12Leg")),
+       "elemuLeg_HHMoriond17_2016"    : tuple(localize_trigger("{wp}.json".format(wp=wp)) 
+                                            for wp in ("Electron_IsoEle23Leg", "Electron_IsoEle12Leg", "Muon_XPathIsoMu23leg", "Muon_XPathIsoMu8leg")),
+       "JetId_InHighPileup_2016_94X"  : dict((k, localize_PileupJetID(v)) for k, v in chain(
+                                            dict(("puid_{wp}".format(wp=wp), 
+                                                ("puID_SFs_2016{wp}.json".format(wp=wp))) 
+                                                for wp in ("L", "M", "T")).items() 
                                         )),
         
       #####################################

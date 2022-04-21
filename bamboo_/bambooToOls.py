@@ -2,12 +2,13 @@ import os
 import sys
 import collections
 import json
-import logging
-logger = logging.getLogger("ZAInfos Plotter")
+
+import utils as utils
+logger = utils.ZAlogger(__name__)
 
 import bamboo.plots
 class Plot(bamboo.plots.Plot):
-    def produceResults(self, bareResults, fbe):
+    def produceResults(self, bareResults, fbe, key=None):
         if any("__qcdScale" in h.GetName() for h in bareResults):
             hNom = next(h for h in bareResults if "__" not in h.GetName())
             prefix = f"{hNom.GetName()}__qcdScale"
@@ -19,7 +20,7 @@ class Plot(bamboo.plots.Plot):
             else: ## make an envelope from maximum deviations
                 import numpy as np
                 vars_cont = np.array([ [ hv.GetBinContent(i) for i in range(hv.GetNcells()) ] for hv in hVar_qcdScale ])
-                hVar_up = hNom.Clone(f"{prefix}up")
+                hVar_up   = hNom.Clone(f"{prefix}up")
                 hVar_down = hNom.Clone(f"{prefix}down")
                 from itertools import count
                 for i,vl,vh in zip(count(), np.amin(vars_cont, axis=0), np.amax(vars_cont, axis=0)):

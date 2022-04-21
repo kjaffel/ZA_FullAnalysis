@@ -50,11 +50,22 @@ class BTagEffEvaluator {
             if (pT >= hist->GetXaxis()->GetXmax())
                 pT = hist->GetXaxis()->GetBinLowEdge(hist->GetXaxis()->GetLast());
             float effM = flavEffsM.at(flavour)->GetBinContent(flavEffsM.at(flavour)->FindBin(pT, eta));
-            if ( effM < 0. || effM > 1. ) {
-                std::cout<< effM << " found in the eff map, will be skipped "<< SFM <<  " is used instead !" <<std::endl;
-                return SFM;
-            } else if (bTag <= _thresholds.at(0)) {
-                return (1 - SFM * effM) / (1 - effM);
+            float effM_new = effM;
+
+            if ( effM_new < 0 || effM_new > 1. ){
+                int i = 1;
+                //while( effM_new < 0 || effM_new > 1. ){
+                int binx = hist->GetXaxis()->FindBin(pT); 
+                std::cout<< "bin :" << binx << "->" << effM_new << " found in "<< flavour << " hadron jet flvaour eff map, correspond to (pt, eta) = (" << pT << ","<< eta << ")" <<std::endl; 
+                pT   = hist->GetXaxis()->GetBinLowEdge(binx-i);
+                
+                float effM_new = flavEffsM.at(flavour)->GetBinContent(flavEffsM.at(flavour)->FindBin(pT, eta));
+                std::cout<< " we take take value :"<< effM_new << " from previous bin (pt, eta) = (" << pT << ","<< eta << ")" <<std::endl;
+                //    ++i;
+                //}
+            }
+            if (bTag <= _thresholds.at(0)) {
+                return (1 - SFM * effM_new) / (1 - effM_new);
             } else {
                 return SFM;
             }

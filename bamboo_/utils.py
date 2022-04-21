@@ -13,6 +13,8 @@ from bamboo import scalefactors
 
 def ZAlogger(name):
     import logging
+    #numba_logger = logging.getLogger('numba')
+    #numba_logger.setLevel(logging.WARNING)
     LOG_LEVEL = logging.DEBUG
     stream = logging.StreamHandler()
     stream.setLevel(LOG_LEVEL)
@@ -56,6 +58,8 @@ def getOpts(name, **kwargs):
         label = "e^{#pm}#mu^{#pm}"+" combined"
     elif "lept" in uname:
         label = "1 lepton pair (e/#mu)"
+    elif "ossf" in uname:
+        label = "e^{+}e^{-} + #mu^{+}#mu^{-}"+"channel"
     if "2j" in uname:
         label += ", #geq 2 jets"
     if "2b" in uname:

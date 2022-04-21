@@ -11,11 +11,15 @@ def METFilter(flags, era, isMC):
             flags.HBHENoiseIsoFilter,
             flags.EcalDeadCellTriggerPrimitiveFilter,
             flags.BadPFMuonFilter,
-            flags.BadPFMuonDzFilter,
+            #flags.BadPFMuonDzFilter,
             flags.eeBadScFilter,
             ]
     if era == '2017' or era =='2018':
         cuts.append(flags.ecalBadCalibFilter)
+    if '2016' in era:
+        cuts.append(flags.BadPFMuonDzFilter)
+    if era == '2018':
+        cuts.append(flags.BadPFMuonDzFilter)
     return cuts
 
 class METcorrection(object):

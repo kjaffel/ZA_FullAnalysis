@@ -7,22 +7,14 @@ def freeze(d):
         return tuple(freeze(value) for value in d)
     return d
 
-def safeget(dct, *keys):
-    for key in keys:
-        try:
-            dct = dct[key]
-        except KeyError:
-            return None
-    return dct
-
 def key_for_value(d):
     """Return a key in neseted dic `d` having a sub-key ."""
     for k, v in d.items():
         if k == "350-850" or k == "350-840":
             return k
 
-def getBoOstedWeight(era, tagger, wp, fatjet):
-    if era == '2016':
+def get_BoostedEventWeight(era, tagger, wp, fatjet):
+    if "2016" in era:
         DeepDoubleBvL= {
                 "350-850":{  
                     # var: (loose, medium1, medium2, tight1, tight2)
@@ -39,7 +31,7 @@ def getBoOstedWeight(era, tagger, wp, fatjet):
                     "nominal": (1.03, 1.01, 0.95, 0.90)
                     }
                 }
-    elif era =='2017':
+    elif "2017" in era:
         DeepDoubleBvL= {
                 "250-350":{
                     # var: (loose, medium1, medium2, tight1, tight2)
@@ -66,7 +58,7 @@ def getBoOstedWeight(era, tagger, wp, fatjet):
                     "nominal": (0.95, 0.9,  0.8,  0.72)
                     }
                 }
-    else:
+    elif "2018" in era:
         DeepDoubleBvL= {
                 "250-350":{
                     # var: (loose, medium1, medium2, tight1, tight2)
@@ -99,47 +91,37 @@ def getBoOstedWeight(era, tagger, wp, fatjet):
     pTrange = key_for_value(dic)
     pTmax = float(key_for_value(dic).split('-')[-1])    
 
-    if op.in_range(250., fatjet[0].pt, 350.) and era != '2016':
-        nominal = dic["250-350"]["nominal"][idx]
-        up = nominal + dic["250-350"]["up"][idx] 
-        down = nominal - dic["250-350"]["down"][idx]     
+    if era in ["2017", "2018"]:
+        if op.in_range(250., fatjet[0].pt, 350.):
+            nominal = dic["250-350"]["nominal"][idx]
+            up = nominal + dic["250-350"]["up"][idx] 
+            down = nominal - dic["250-350"]["down"][idx]
+    elif "2016" in era:
+        if op.in_range(350., fatjet[0].pt, pTmax):
+            nominal = dic[pTrange]["nominal"][idx] 
+            up = nominal + dic[pTrange]["up"][idx]
+            down = nominal - dic[pTrange]["down"][idx]
+    return op.systematic(op.c_float(nominal), name="{0}{1}".format(tagger, wp), up=op.c_float(up), down=op.c_float(down)) 
+
+def get_DeepDoubleXDeepBoostedJet(AK8Jets, discr, BoostedTopologiesWP_):
+    # DeepDoubleX (mass-decorrelated) discriminator for H(Z)->bb vs QCD
+    cleaned_AK8JetsbtagDDBvL = op.sort(AK8Jets, lambda j: -j.btagDDBvL)
+    # DeepDoubleX discriminator (no mass-decorrelation) for H(Z)->bb vs QCD
+    cleaned_AK8JetsbtagDDBvL_noMD = op.sort(AK8Jets, lambda j: -j.btagDDBvL_noMD)
+    # Mass-decorrelated DeepBoostedJet tagger H->bb vs QCD discriminator
+    cleaned_AK8JetsdeepTagMD_HbbvsQCD = op.sort(AK8Jets, lambda j: -j.deepTagMD_HbbvsQCD)
+    # Mass-decorrelated DeepBoostedJet tagger Z/H->bb vs QCD discriminator
+    cleaned_AK8JetsdeepTagMD_ZHbbvsQCD = op.sort(AK8Jets, lambda j: -j.deepTagMD_ZHbbvsQCD)
     
-    elif op.in_range(350., fatjet[0].pt, pTmax):
-        nominal = dic[pTrange]["nominal"][idx] 
-        up = nominal + dic[pTrange]["up"][idx]
-        down = nominal - dic[pTrange]["down"][idx]
-        
-    wgt = op.systematic(op.c_float(nominal), name="{0}{1}".format(tagger, wp), up=op.c_float(up), down=op.c_float(down))
+    DeepDoubleXDeepBoostedJet ={}
+    for wp, discr_cut  in BoostedTopologiesWP_.items():           
+        if discr == 'btagDDBvL':
+            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsbtagDDBvL, lambda j : j.btagDDBvL >= discr_cut)
+        elif discr == 'btagDDBvL_noMD':
+            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsbtagDDBvL_noMD, lambda j : j.btagDDBvL_noMD >= discr_cut)
+        elif discr == 'deepTagMD_HbbvsQCD':
+            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsdeepTagMD_HbbvsQCD, lambda j : j.deepTagMD_HbbvsQCD >= discr_cut)
+        elif discr == 'deepTagMD_ZHbbvsQCD':
+            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsdeepTagMD_ZHbbvsQCD, lambda j : j.deepTagMD_ZHbbvsQCD >= discr_cut)
 
-    return wgt 
-
-def addBoOstedTagger(AK8jets, BoostedTopologiesWP):
-
-    # DoubleB and DeepDoubleBvL 13 TeV data
-    cleaned_AK8JetsByDDBvL = op.sort(AK8jets, lambda j: -j.btagDDBvL)
-    
-    bjetsBoOsted = {}
-    for tagger  in BoostedTopologiesWP.keys():
-        
-        bJets_AK8_DeepDoubleBvL ={}
-        bJets_AK8_DoubleB ={}
-        for wp in sorted(safeget(BoostedTopologiesWP, tagger).keys()):           
-            # FIXME not found in nanoAOD !!! 
-            if tagger== 'DoubleB':
-                bJets_AK8_DoubleB[wp] = None 
-                #op.select(?, lambda j : j.? >= BoostedTopologiesWP['DoubleB'][wp])
-                bjetsBoOsted[tagger]=bJets_AK8_DoubleB
-                
-            #DeepDoubleX discriminator (no mass-decorrelation) for H(Z)->bb vs QCD 
-            if tagger == 'DeepDoubleBvL':
-                #bJets_AK8_DeepDoubleBvL[wp] = op.select(cleaned_AK8JetsByDDBvL,
-                #                                            lambda j : op.AND(j.subJet1.btagDDBvL >= BoostedTopologiesWP['DeepDoubleBvL'][wp],
-                #                                                              j.subJet2.btagDDBvL >= BoostedTopologiesWP['DeepDoubleBvL'][wp]))
-                bJets_AK8_DeepDoubleBvL[wp] = op.select(cleaned_AK8JetsByDDBvL, lambda j : j.btagDDBvL >= BoostedTopologiesWP['DeepDoubleBvL'][wp])
-                bjetsBoOsted[tagger] = bJets_AK8_DeepDoubleBvL
-        
-    return bjetsBoOsted
-
-
-
-
+    return DeepDoubleXDeepBoostedJet

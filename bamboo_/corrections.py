@@ -17,6 +17,8 @@ from bambooToOls import Plot
 from scalefactorslib import all_scalefactors, all_run2_Ulegacyscalefactors
 
 #https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
+#https://indico.cern.ch/event/1096988/contributions/4615134/attachments/2346047/4000529/Nov21_btaggingSFjsons.pdf
+#https://gitlab.cern.ch/vanderli/btv-json-sf/-/blob/master/convert_subjetSF.py
 eoy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
                             "2016":(0.2217, 0.6321, 0.8953), 
@@ -82,8 +84,8 @@ scalesfactorsULegacyLIB = {
                 "2018": "2018UL/Btag/wp_deepCSV_106XUL18_v2__prelegacyformat.csv"}.items() },
         "softdrop_subjets": {
             year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-               {"2016-preVFP" :"2016UL/subjet_deepCSV_106XUL16preVFP_v1.csv",
-                "2016-postVFP":"2016UL/subjet_deepCSV_106XUL16postVFP_v1.csv",
+               {"2016-preVFP" :"2016UL/Btag/subjet_deepCSV_106XUL16preVFP_v1.csv",
+                "2016-postVFP":"2016UL/Btag/subjet_deepCSV_106XUL16postVFP_v1.csv",
                 "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , 
                 "2018": "2018UL/Btag/subjet_deepCSV_106XUL18_v1.csv"}.items() }, }
     }
@@ -111,16 +113,19 @@ leptonSFLib = {
 def pogEraFormat(era):
     return era.replace("-", "") + "_UL"
 
+def getIDX(wp):
+    return (0 if wp=="loose" else ( 1 if wp=="medium" else 2))
 
 def getYearFromEra(era):
     if '2016' in era: return '16'
     elif '2017' in era: return '17'
     elif '2018' in era: return '18'
 
-
 def localizePOGSF(era, POG, fileName):
     return os.path.join("/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration", "POG", POG, pogEraFormat(era), fileName)
 
+def localize_btv_json_files( era, data, fileName):
+    return os.path.join("/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/scripts_ToExtractSFs/", data, 'UL'+era.replace('-',''), fileName)
 
 def getLeptonSF(era, correctionSet,):
     if "muon_trigger" in correctionSet:
@@ -192,9 +197,17 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER, isSignal, defineOnFir
                     systVariations[f"{var}{d}"] = f"{d}_{varBTV}"
 
     method = "incl" if flav == 0 else heavy_method
-    prefix = "" if tagger =='deepJet'and flav ==5 and dobJetER and isSignal else "no"
-
-    return get_correction(localizePOGSF(era, "BTV", "btagging.json.gz"), f"{tagger}_{method}", params=params[f"{prefix}Jet_bRegCorr"],
+    prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
+    
+    if tagger == 'deepCSV_subjet':
+        path_localizePOGSF = localize_btv_json_files(era, 'btv-json-sf/data', 'subjet_tagging.json')
+        correction = tagger
+        params[f"{prefix}Jet_bRegCorr"].update({'method':method }) 
+    else:
+        path_localizePOGSF = localizePOGSF(era, "BTV", "btagging.json.gz")
+        correction = f"{tagger}_{method}"
+    
+    return get_correction(path_localizePOGSF, correction, params=params[f"{prefix}Jet_bRegCorr"],
                           systParam="systematic", systNomName="central",
                           systVariations=systVariations, defineOnFirstUse=defineOnFirstUse, sel=sel)
 
@@ -336,8 +349,27 @@ def transl_flav( era, wp, tagger=None, flav=None):
 def getOperatingPoint(wp):
     return ("Loose" if wp == 'L' else ("Medium" if wp == 'M' else "Tight"))
 
+    
+from functools import lru_cache
+#@lru_cache()
+def call_BTagCalibration(flav, noSel, era, wp):
+    measurementType= {'heavy': {"B": "lt", "C": "lt"},
+                      'light': {"UDSG": "incl"} 
+                          }
+    getters={'Pt'   : lambda subjet : subjet.pt, 
+            'Eta'   : lambda subjet : subjet.eta,
+            'Discri': lambda subjet : subjet.btagDeepB,
+            'JetFlavour': lambda subjet : op.static_cast("BTagEntry::JetFlavor",
+                                op.multiSwitch((subjet.nBHadrons>0,op.c_int(0)),  # b -> flav = 5 -> btv = 0
+                                                (subjet.nCHadrons>0,op.c_int(1)),  # c -> flav = 4 -> btv = 1
+                                                op.c_int(2))) }                   # light -> flav = 0 -> btv =2 
+    return BtagSF('deepcsvSubjet', scalesfactorsULegacyLIB['DeepCSV']["softdrop_subjets"][era], 
+                    wp= getOperatingPoint(wp), sysType="central", otherSysTypes= ["up", "down"],
+                    measurementType= measurementType[flav], jesTranslate=transl_flav( era, wp, tagger=f'subjetdeepcsv', flav=flav),
+                    getters= getters, sel= noSel, uName= f'btagSF_subjetdeepcsv_fixWP_{flav}')
 
-def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, dobJetER, isSignal):
+
+def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal):
     
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
 
@@ -359,7 +391,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     bTagEff_file = os.path.join(base_path, path_Effmaps[era])
     
     jets = {'resolved': cleaned_AK4JetsByDeepFlav,
-            'boosted' : cleaned_AK8JetsByDeepB, }
+            'boosted' : cleaned_AK8JetsByDeepB }
     
     def get_bTagSF(tagger, flav):
         return get_bTagSF_fixWP(tagger, wp, flav, era.replace('-',''), noSel, dobJetER, isSignal, syst_prefix=f"btagSF_{tagger}_fixWP_", defineOnFirstUse=False)
@@ -367,121 +399,110 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     bTagSF = { tagger: lambda j: op.multiSwitch( (j.hadronFlavour == 5, get_bTagSF(tagger, 5)(j)),
                                                  (j.hadronFlavour == 4, get_bTagSF(tagger, 4)(j)),
                                                   get_bTagSF(tagger, 0)(j))
-                    for tagger in ['deepCSV', 'deepJet']}
+                    for tagger in ['deepJet', 'deepCSV']}
+    
+    def subjet_bTagSF(subJet):
+        return op.multiSwitch( (subJet.nBHadrons >0, get_bTagSF('deepCSV_subjet', 5)(subJet)), 
+                               (subJet.nCHadrons >0, get_bTagSF('deepCSV_subjet', 4)(subJet)),
+                               get_bTagSF('deepCSV_subjet', 0)(subJet))
     
     
     def get_bTagEff(j, reg, tagger, wp, process):
-        systName = f"btagEff_{tagger}_fixWP_"
-        prefix = '' if reg =='resolved' and dobJetER and isSignal else 'no'
-        
-        params = {
-                'Jet_bRegCorr'  : {"pt": lambda j: j.pt*j.bRegCorr, "eta": lambda j: j.eta}, #"jetFlavor": lambda j: j.hadronFlavour, "workingPoint": wp
-                'noJet_bRegCorr': {"pt": lambda j: j.pt, "eta": lambda j: j.eta}, #"jetFlavor": lambda j: j.hadronFlavour, "workingPoint": wp
+        prefix   = '' if reg =='resolved' and dobJetER and isSignal else 'no'
+        params   = {
+                'Jet_bRegCorr'  : {"pt": lambda j: j.pt*j.bRegCorr, "eta": lambda j: j.eta}, 
+                'noJet_bRegCorr': {"pt": lambda j: j.pt, "eta": lambda j: j.eta}, 
                 }
-
         correctionSet = { "b": f"pair_lept_2j_jet_pt_vs_eta_bflav_{reg}_{tagger}_wp{wp}_{process}__mc_eff",
                           "c": f"pair_lept_2j_jet_pt_vs_eta_cflav_{reg}_{tagger}_wp{wp}_{process}__mc_eff",
                           "light": f"pair_lept_2j_jet_pt_vs_eta_lightflav_{reg}_{tagger}_wp{wp}_{process}__mc_eff" }
         
-        return op.multiSwitch( (j.hadronFlavour == 5, get_correction(bTagEff_file, correctionSet['b'], params=params[f'{prefix}Jet_bRegCorr'], 
-                                                        systParam="ValType", systNomName="sf", 
-                                                        systVariations={"beffup": "sfup", "beffdown": "sfdown"}, sel= noSel )(j)),
-                               (j.hadronFlavour == 4, get_correction(bTagEff_file, correctionSet['c'], params=params['noJet_bRegCorr'], 
-                                                        systParam="ValType", systNomName="sf",
-                                                        systVariations={"ceffup": "sfup", "ceffdown": "sfdown"}, sel= noSel)(j)),
-                                get_correction(bTagEff_file, correctionSet['light'], params=params['noJet_bRegCorr'], 
-                                                        systParam="ValType", systNomName="sf",
-                                                        systVariations={"lighteffup": "sfup", "lighteffdown": "sfdown"}, sel= noSel)(j))
-    
-    def softdrop_SF(flav):
-        print( scalesfactorsULegacyLIB['DeepCSV']["softdrop_subjets"][era] ) 
-        measurementType= {'heavy':{"B": "lt", "C": "lt"},
-                          'light': {"UDSG": "incl"} }
-        getters={'Pt': lambda subjet: subjet.pt, 'Eta':  lambda subjet : subjet.eta,'JetFlavour': lambda subjet : op.static_cast("BTagEntry::JetFlavor",
-                                    op.multiSwitch((subjet.nBHadrons>0,op.c_int(0)), # b -> flav = 5 -> btv = 0
-                                                   (subjet.nCHadrons>0,op.c_int(1)), # c -> flav = 4 -> btv = 1
-                                                    op.c_int(2)))},                  # light -> flav = 0 -> btv =2 
-        return BtagSF('DeepCSV', scalesfactorsULegacyLIB['DeepCSV']["softdrop_subjets"][era], 
-                        wp= getOperatingPoint(wp), sysType="central", otherSysTypes= ["up", "down"],
-                        measurementType= measurementType[flav], jesTranslate=transl_flav( era, wp, tagger='subjetdeepcsv', flav=flav),
-                        getters= getters, sel= noSel, uName= f'btagSF_subjetdeepcsv_fixWP_{flav}')
-                                
-    
-    def subjetbTag_SF(subjet):
-        return op.multiSwitch( (subjet.nBHadrons >0, softdrop_SF('heavy')(subjet)),
-                               (subjet.nCHadrons >0, softdrop_SF('heavy')(subjet)),
-                                softdrop_SF('light')(subjet))
+        def call_get_correction(flav):
+            return get_correction(bTagEff_file, correctionSet[flav], params=params[f'{prefix}Jet_bRegCorr'],
+                                systParam="ValType", systNomName="sf",
+                                systVariations={f"{flav}effup": "sfup", f"{flav}effdown": "sfdown"}, sel= noSel )
 
+        if reg == 'resolved':
+            return op.multiSwitch( (j.hadronFlavour == 5, call_get_correction('b')(j)),
+                                   (j.hadronFlavour == 4, call_get_correction('c')(j)),
+                                       call_get_correction('light')(j) )
+        else:
+            return op.multiSwitch( (j.nBHadrons > 0 , call_get_correction('b')(j)),
+                                   (j.nCHadrons > 0 , call_get_correction('c')(j)),
+                                       call_get_correction('light')(j) )
+    
 
-    def Evaluate(j, reg , process):
+    def Evaluate(j, reg , process, tagger):
         ## if pass btag wp return SF else return (1-SF x eff )/(1 - eff)
+        tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
         if reg =='resolved':
-            return op.switch(j.btagDeepFlavB >= legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], 
-                                bTagSF['deepJet'](j), 
-                                wFail( bTagSF['deepJet'](j), get_bTagEff( j, reg, 'deepflavour', wp, process) )
-                                )
-        else:   
-            return op.switch( op.OR(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], 
-                                    j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx]), 
-                                op.product(subjetbTag_SF(j.subJet1), subjetbTag_SF(j.subJet2)),
-                                wFail( op.product(subjetbTag_SF(j.subJet1), subjetbTag_SF(j.subJet2)), get_bTagEff( j, reg, 'deepcsv', wp, process) )
-                                )
-
-    for process in ['gg_fusion', 'bb_associatedProduction']:
-        for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
+            return op.switch(j.btagDeepFlavB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx], 
+                                bTagSF[tagger](j), 
+                                wFail( bTagSF[tagger](j), get_bTagEff( j, reg, tagger_.lower(), wp, process) ) )
+        else:
+            if doCorrect == 'fatjet':
+                return op.switch(j.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx], 
+                                    bTagSF[tagger](j), 
+                                    wFail( bTagSF[tagger](j), get_bTagEff( j, reg, tagger_.lower(), wp, process) ) )
+            elif doCorrect == 'subjets':
+                return op.switch(j.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx], 
+                                subjet_bTagSF(j),
+                                wFail( subjet_bTagSF(j), get_bTagEff( j, reg, tagger_.lower(), wp, process) ) )
+    
+    sf = None
+    for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
+        for process in ['gg_fusion', 'bb_associatedProduction']:
             
-            bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg , process))
-            run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger}{wp}'.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV'): 
-                                                         op.rng_product(bTag_SF) }
-    
+            tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
+            
+            if reg == 'resolved':
+                bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
+            else:
+                if doCorrect == 'fatjet':
+                    bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
+                elif doCorrect == 'subjets':
+                    bTag_SF = op.map(jets[reg], lambda j: op.product( Evaluate(j.subJet1, reg, process, tagger), Evaluate(j.subJet2, reg, process, tagger) ))
+            
+            sf = op.rng_product(bTag_SF)
+            run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': sf}
+
     return run2_bTagEventWeight_PerWP
+        
+        # ///  not in use anymore ///
+        #for fl in ['heavy', 'light']:
+        #    flav = 5 if fl == 'heavy' else 0
+        #    for tagger in ['deepCSV', 'deepJet']:
+        #        bTagSF[fl][tagger] = get_bTagSF_fixWP(tagger, 'M', flav, era.replace('-',''), noSel, use_nominal_jet_pt=False, heavy_method="comb",
+        #                                            syst_prefix=f"btagSF_{tagger}_fixWP_", decorr_eras=True, full_scheme=False, full_scheme_mapping=None)
+        #def getbtagSF_flavor(j, tagger):
+        #    return op.multiSwitch((j.hadronFlavour == 5, bTagSF['heavy'][tagger](j)), 
+        #                          (j.hadronFlavour == 4, bTagSF['heavy'][tagger](j)), 
+        #                            bTagSF['light'][tagger](j))
+                                    
+        #if os.path.exists(bTagEff_file):
+        #    bTagEff_deepflavour = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepflavour", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], process))
+        #    bTagEff_deepcsvAk4  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepcsv", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
+        #    bTagEff_deepcsvAk8  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "boosted", "deepcsv", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
+        #else:
+        #    raise RuntimeError(f"{bTagEff_file} : efficiencies maps not found !")
 
+        #bTagSF_DeepFlavourPerJet = op.map(cleaned_AK4JetsByDeepFlav, lambda j: bTagEff_deepflavour.evaluate(j.hadronFlavour, j.btagDeepFlavB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'deepJet') ) )
+        #
+        #bTagSF_DeepCSVPerJet     = op.map(cleaned_AK8JetsByDeepB, lambda j: bTagEff_deepcsvAk4.evaluate(j.hadronFlavour, j.btagDeepB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'deepCSV') ) )
+        #bTagSF_DeepCSVPerSubJet  = op.map(cleaned_AK8JetsByDeepB, lambda j: op.product(bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor", 
+        #                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
+        #                                                                                                                        (j.nCHadrons >0, op.c_int(4)), 
+        #                                                                                                                        op.c_int(0)) ), 
+        #                                                                                                            j.subJet1.btagDeepB, j.subJet1.pt, op.abs(j.subJet1.eta), getbtagSF_flavor(j, 'deepCSV') ), 
+        #                                                                                bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor",
+        #                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
+        #                                                                                                                        (j.nCHadrons >0, op.c_int(4)), 
+        #                                                                                                                            op.c_int(0)) ), 
+        #                                                                                                            j.subJet2.btagDeepB, j.subJet2.pt, op.abs(j.subJet2.eta), getbtagSF_flavor(j, 'deepCSV') )  
+        #                                                                                )
+        #                                                                            )
 
-
-        #method   = "incl" if flav == 0 else "comb"
-        #systName = f"btagSF_{tagger}_fixWP_" + ("light" if flav == 0 else "heavy")
-        #params   = { "pt": lambda j: j.pt, "abseta": lambda j: op.abs(j.eta), "working_point": wp, "flavor": flav }
-        #sf = get_correction(localizePOGSF(era.replace('-',''), "BTV", "btagging.json.gz"), f"{tagger}_{method}", params=params,
-        #                        systParam="systematic", systNomName="central",
-        #                        systVariations={f"{systName}up": "up", f"{systName}down": "down"},
-        #                        defineOnFirstUse=True, sel=noSel)
-
-    #for fl in ['heavy', 'light']:
-    #    flav = 5 if fl == 'heavy' else 0
-    #    for tagger in ['deepCSV', 'deepJet']:
-    #        bTagSF[fl][tagger] = get_bTagSF_fixWP(tagger, 'M', flav, era.replace('-',''), noSel, use_nominal_jet_pt=False, heavy_method="comb",
-    #                                            syst_prefix=f"btagSF_{tagger}_fixWP_", decorr_eras=True, full_scheme=False, full_scheme_mapping=None)
-    #def getbtagSF_flavor(j, tagger):
-    #    return op.multiSwitch((j.hadronFlavour == 5, bTagSF['heavy'][tagger](j)), 
-    #                          (j.hadronFlavour == 4, bTagSF['heavy'][tagger](j)), 
-    #                            bTagSF['light'][tagger](j))
-                                  
-            #if os.path.exists(bTagEff_file):
-            #    bTagEff_deepflavour = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepflavour", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][idx], process))
-            #    bTagEff_deepcsvAk4  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "resolved", "deepcsv", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
-            #    bTagEff_deepcsvAk8  = op.define("BTagEffEvaluator", 'const auto <<name>> = BTagEffEvaluator("%s", "%s", "boosted", "deepcsv", {%s}, "%s");'%(bTagEff_file, wp, legacy_btagging_wpdiscr_cuts['DeepCSV'][era][idx], process))
-            #else:
-            #    raise RuntimeError(f"{bTagEff_file} : efficiencies maps not found !")
-    
-            #bTagSF_DeepFlavourPerJet = op.map(cleaned_AK4JetsByDeepFlav, lambda j: bTagEff_deepflavour.evaluate(j.hadronFlavour, j.btagDeepFlavB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'deepJet') ) )
-            #
-            #bTagSF_DeepCSVPerJet     = op.map(cleaned_AK8JetsByDeepB, lambda j: bTagEff_deepcsvAk4.evaluate(j.hadronFlavour, j.btagDeepB, j.pt, op.abs(j.eta), getbtagSF_flavor(j, 'deepCSV') ) )
-            #bTagSF_DeepCSVPerSubJet  = op.map(cleaned_AK8JetsByDeepB, lambda j: op.product(bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor", 
-            #                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
-            #                                                                                                                        (j.nCHadrons >0, op.c_int(4)), 
-            #                                                                                                                        op.c_int(0)) ), 
-            #                                                                                                            j.subJet1.btagDeepB, j.subJet1.pt, op.abs(j.subJet1.eta), getbtagSF_flavor(j, 'deepCSV') ), 
-            #                                                                                bTagEff_deepcsvAk8.evaluate( op.static_cast("BTagEntry::JetFlavor",
-            #                                                                                                            op.multiSwitch((j.nBHadrons >0, op.c_int(5)), 
-            #                                                                                                                        (j.nCHadrons >0, op.c_int(4)), 
-            #                                                                                                                            op.c_int(0)) ), 
-            #                                                                                                            j.subJet2.btagDeepB, j.subJet2.pt, op.abs(j.subJet2.eta), getbtagSF_flavor(j, 'deepCSV') )  
-            #                                                                                )
-            #                                                                            )
-    
-
-
-
+        
 def Top_reweighting(t, noSel, sampleCfg, isMC):
     # https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf
     # TODO for 2016 there's diffrents SFs and in all cases you should produce your own following
@@ -522,41 +543,96 @@ def Top_reweighting(t, noSel, sampleCfg, isMC):
     return Sel_with_top_reWgt, plots
 
 
-def DY_reweighting(t, noSel, sample):
-    # it will crash if evaluated when there are no two leptons in the matrix element
-    plots = []
-    if sample in ["DYJetsToLL_0J", "DYJetsToLL_1J", "DYJetsToLL_2J"]:
-        genLeptons_hard = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<7)), op.in_range(10, op.abs(gp.pdgId), 17)))
-        gen_ptll_nlo    = (genLeptons_hard[0].p4+genLeptons_hard[1].p4).Pt()
+
+def DrellYanreweighting(noSel, j, tagger, era, doSysts):
+    
+    def get_DYweight(era, k, var):
+        era_ = '2016' if 'VFP' in era else era
+        DYWeights = { ">=2b-medium & >=4j": {'2016': [0.868, 0.141], '2017': [1.453, 0.081], '2018':[1.329, 0.140]},
+                      ">=2b-medium & ==3j": {'2016': [0.779, 0.066], '2017': [1.054, 0.036], '2018':[1.012, 0.046]},
+                      ">=2b-medium & ==2j": {'2016': [0.754, 0.080], '2017': [0.884, 0.033], '2018':[0.822, 0.021]},
+                      "==1b-medium & >=2b-loose & >=4j": {'2016': [1.062, 0.058], '2017': [1.361, 0.035], '2018':[1.444, 0.043]},
+                      "==1b-medium & >=2b-loose & ==3j": {'2016': [0.864, 0.104], '2017': [1.091, 0.066], '2018':[1.049, 0.023]},
+                      "==1b-medium & >=2b-loose & ==2j": {'2016': [0.785, 0.028], '2017': [0.904, 0.013], '2018':[0.886, 0.009]},
+                      "==1b-medium & ==1b-loose & >=4j": {'2016': [1.098, 0.049], '2017': [1.432, 0.032], '2018':[1.493, 0.046]},
+                      "==1b-medium & ==1b-loose & ==3j": {'2016': [0.960, 0.032], '2017': [1.145, 0.030], '2018':[1.110, 0.025]},
+                      "==1b-medium & ==1b-loose & ==2j": {'2016': [0.894, 0.011], '2017': [0.979, 0.006], '2018':[0.941, 0.006]},
+                      "==0b-medium & >=2b-loose & >=4j": {'2016': [1.031, 0.021], '2017': [1.296, 0.034], '2018':[1.424, 0.025]},
+                      "==0b-medium & >=2b-loose & ==3j": {'2016': [0.853, 0.056], '2017': [1.053, 0.023], '2018':[1.082, 0.025]},
+                      "==0b-medium & >=2b-loose & ==2j": {'2016': [0.800, 0.007], '2017': [0.950, 0.020], '2018':[0.927, 0.018]},
+                    }
+
+        if var == 'nom': 
+            return op.c_float(DYWeights[k][era_][0])
+        elif var == 'up':
+            up = DYWeights[k][era_][0]+DYWeights[k][era_][1]
+            return op.c_float(up)
+        else:
+            down = DYWeights[k][era_][0]-DYWeights[k][era_][1]
+            return op.c_float(down)
+
+    def rng_len(jet, wp):
+
+        lambda_f = {'DeepFlavour': lambda j: j.btagDeepFlavB >= legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][getIDX(wp)],
+                    'DeepCSV'    : lambda j: op.OR(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)],
+                                                   j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)])
+                    }
         
-        forceDefine(gen_ptll_nlo, noSel)
-        
-        plots.append(Plots_gen(gen_ptll_nlo, noSel, "noSel"))
-        plots.append(Plot.make1D("nGenLeptons_hard", op.rng_len(genLeptons_hard), noSel, EqB(5, 0., 5.),  title="nbr genLeptons_hard [GeV]")) 
-    return plots
+        cleaned_jets = op.select(jet, lambda_f[tagger] ) 
+        return op.rng_len(cleaned_jets)
+
+    def switchjetlen(j, var):
+        default = 1 if var=='nom' else 0
+        return op.multiSwitch( (op.AND( rng_len(j, 'medium') >= 2 , op.rng_len(j) >=4), get_DYweight(era, ">=2b-medium & >=4j", var)), 
+                               (op.AND( rng_len(j, 'medium') >= 2 , op.rng_len(j) ==3), get_DYweight(era, ">=2b-medium & ==3j", var)),
+                               (op.AND( rng_len(j, 'medium') >= 2 , op.rng_len(j) ==2), get_DYweight(era, ">=2b-medium & ==2j", var)),
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') >= 2, op.rng_len(j) >=4), get_DYweight(era, "==1b-medium & >=2b-loose & >=4j", var)), 
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') >= 2, op.rng_len(j) ==3), get_DYweight(era, "==1b-medium & >=2b-loose & ==3j", var)),
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') >= 2, op.rng_len(j) ==2), get_DYweight(era, "==1b-medium & >=2b-loose & ==2j", var)),
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') == 1, op.rng_len(j) >=4), get_DYweight(era, "==1b-medium & ==1b-loose & >=4j", var)),
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') == 1, op.rng_len(j) ==3), get_DYweight(era, "==1b-medium & ==1b-loose & ==3j", var)),
+                               (op.AND( rng_len(j, 'medium') == 1 , rng_len(j, 'loose') == 1, op.rng_len(j) ==2), get_DYweight(era, "==1b-medium & ==1b-loose & ==2j", var)),
+                               (op.AND( rng_len(j, 'medium') == 0 , rng_len(j, 'loose') >= 2, op.rng_len(j) >=4), get_DYweight(era, "==0b-medium & >=2b-loose & >=4j", var)),
+                               (op.AND( rng_len(j, 'medium') == 0 , rng_len(j, 'loose') >= 2, op.rng_len(j) ==3), get_DYweight(era, "==0b-medium & >=2b-loose & ==3j", var)),
+                               (op.AND( rng_len(j, 'medium') == 0 , rng_len(j, 'loose') >= 2, op.rng_len(j) ==2), get_DYweight(era, "==0b-medium & >=2b-loose & ==2j", var)),
+                               op.c_float(default) )
+    
+    if doSysts:
+        DYWeight = op.systematic(switchjetlen(j, var='nom'), name="DYReWeight", up=switchjetlen(j, var='up'), down=switchjetlen(j, var='down'))
+    else:
+        DYWeight = switchjetlen(j, var='nom')
+    return noSel.refine( 'DY_reweighting', weight=(DYWeight))
 
 
 
-puIDSFLib = {
+Old_puIDSFLib = {
         f"{year}_{wp}" : {
-            f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_',
+            f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/PileupFullRunII/',
                 "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf") }
+        for year in ("2016", "2017", "2018") for wp in "LMT"
+    }
+puIDSFLib = {
+        f"{year}_{wp}" : {
+            f"{eos}_{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/PileupFullRunII/',
+                "fromflorian", f"PUID_{eos}_h2_{eom}_{mcsf}{year}_{wp}.json")
+            for eom in ("eff", "mistag") for mcsf in ("mc", "sf") for eos in ("EFF", "SF")}
         for year in ("2016", "2017", "2018") for wp in "LMT"
     }
 
 def makePUIDSF(jets, year=None, wp=None, wpToCut=None):
     sfwpyr = puIDSFLib[f"{year}_{wp}"]
-    sf_eff = scalefactors.get_scalefactor("lepton", "eff_sf"   , sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
-    sf_mis = scalefactors.get_scalefactor("lepton", "mistag_sf", sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
-    eff_mc = scalefactors.get_scalefactor("lepton", "eff_mc"   , sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
-    mis_mc = scalefactors.get_scalefactor("lepton", "mistag_mc", sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
+    sf_eff = scalefactors.get_scalefactor("lepton", "SF_eff_sf"   , sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
+    sf_mis = scalefactors.get_scalefactor("lepton", "SF_mistag_sf", sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
+    eff_mc = scalefactors.get_scalefactor("lepton", "EFF_eff_mc"   , sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
+    mis_mc = scalefactors.get_scalefactor("lepton", "EFF_mistag_mc", sfLib=sfwpyr, paramDefs=scalefactors.binningVariables_nano)
     jets_m50 = op.select(jets, lambda j : j.pt < 50.)
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
     return op.rng_product(jets_m50, lambda j : op.switch(j.genJet.isValid,
-        op.switch(wpToCut[wp](j), sf_eff(j), wFail(sf_eff(j), eff_mc(j))),
-        op.switch(wpToCut[wp](j), sf_mis(j), wFail(sf_mis(j), mis_mc(j)))
+        op.switch(wpToCut(j), sf_eff(j), wFail(sf_eff(j), eff_mc(j))),
+        op.switch(wpToCut(j), sf_mis(j), wFail(sf_mis(j), mis_mc(j)))
         ))
+
 
 def BtagSFMethod_deprectaed( channel, sample, wp, OP, isULegacy, noSel):
     
