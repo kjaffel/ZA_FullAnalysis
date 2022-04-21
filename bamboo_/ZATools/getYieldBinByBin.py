@@ -42,12 +42,6 @@ def swapdict(dic):
             newdic[ch][k] = v[ch]
     return newdic
 
-def get_histogramStats():
-
-
-
-    return stat, error
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Bin by Bin factory yields')
     parser.add_argument('-i', '--input', help='desired root files you want to check their yields', required=True)

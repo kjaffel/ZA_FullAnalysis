@@ -114,17 +114,18 @@ def get_mcNmConvention_and_group(smpNm):
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/HowToGenXSecAnalyzer
     """
-    shortnames = {'DYJetsToLL_0J'   : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
-                  'DYJetsToLL_1J'   : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
-                  'DYJetsToLL_2J'   : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
-                  'TTHadronic'            : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  4],
-                  'TTToSemiLeptonic'      : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  5],
-                  'TTTo2L2Nu'             : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  7],
-                  'ST_tW_top_5f'          : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  6],
-                  'ST_tW_antitop_5f'      : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  6],
-                  'ST_tchannel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  6],
-                  'ST_tchannel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  6],
-                  'ST_schannel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  6],
+    shortnames = {'DYJetsToLL_M-10to50': ['DY', 18610.0,    0., 'Drell-Yan', '#0000FF',    8],
+                  'DYJetsToLL_0J'      : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
+                  'DYJetsToLL_1J'      : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
+                  'DYJetsToLL_2J'      : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
+                  'TTHadronic'             : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  4],
+                  'TTToSemiLeptonic'       : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  5],
+                  'TTTo2L2Nu'              : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  7],
+                  'ST_tW_top_5f'           : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  6],
+                  'ST_tW_antitop_5f'       : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  6],
+                  'ST_t-channel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  6],
+                  'ST_t-channel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  6],
+                  'ST_s-channel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  6],
                   'ZZTo2L2Nu'   : ['ZZ', 0.5644, 0.0002688, 'ZZ',   '#ff4800',  3],
                   'ZZTo2L2Q'    : ['ZZ', 3.222, 0.004901,   'ZZ',   '#ff4800',  3],
                   'ZZTo4L'      : ['ZZ', 1.256, 0.002271,   'ZZ',   '#ff4800',  3],
@@ -151,7 +152,7 @@ def get_mcNmConvention_and_group(smpNm):
                   'TTZToLLNuNu_M10' : ['others', 0.2529,    0.,     'others',   '#ff8d58',  1],
                   }
     for Nm, val in shortnames.items():
-        if smpNm.replace('-','').startswith(Nm):
+        if smpNm.startswith(Nm):
             return Nm , val[0], val[1], val[2], val[3], val[4], val[5] # name, xsc, uncer, legend, fill_color, order_of_group_in_plotit
 
 def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=False):
