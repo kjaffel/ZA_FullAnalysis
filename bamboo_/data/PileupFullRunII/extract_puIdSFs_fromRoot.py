@@ -1,5 +1,5 @@
 #! /bin/env python
-
+import json
 import math
 import argparse
 import ROOT
@@ -12,11 +12,9 @@ parser.add_argument('file', help='ROOT file containing muons  scale factors')
 parser.add_argument('-s', '--suffix', help='Suffix to append at the end of the output filename', required=True)
 
 args = parser.parse_args()
-
 IGNORE_LAST_PT_BIN = False
 
 f = ROOT.TFile.Open(args.file)
-print (f)
 for key in f.GetListOfKeys():
     wp = key.GetName()
 
@@ -57,9 +55,7 @@ for key in f.GetListOfKeys():
             eta_data['values'].append(pt_data)
 
         json_content_data.append(eta_data)
-
   
     filename = 'puId_%s_%s.json' % (wp, args.suffix)
     with open(filename, 'w') as j:
-        import json
         json.dump(json_content, j, indent=2)
