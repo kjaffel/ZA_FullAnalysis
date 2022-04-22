@@ -16,24 +16,29 @@ def cloneTH1(hist):
     cloneHist = ROOT.TH1F(str(hist.GetName()) + "_clone", hist.GetTitle(), hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     return cloneHist
 
+def getHistTemplate(path, gr, prefix, reg):
+    filename = glob.glob(os.path.join(path, '*.root'))[0]
+    f = ROOT.TFile.Open(filename)
+    hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
+    histo.SetDirectory(0)
+    f.Close()
+    return histo
 
-def subtractMinorBackgrounds(h_data, h_mc):
+def subtractMinorBackgrounds(h_data, h_mc, lumi):
     h_data.Add(h_mc, -1)
     h_data.SetDirectory(0)
     return h_data
 
-
-def getHisto(path, Cfg, reg, prefix, list_BinEdges, bin, w, isData=False, splitDY=False, forDataSubstr=False):
+def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
     _files = set()
     gr = "data" if isData else ("mc")
-    DLdataset = {"ElEl":"DoubleEGamma", "MuMu": "DoubleMuon" }
-    SLdataset = {"ElEl":"SingleElectron", "MuMu": "SingleMuon" }
-
-    if not splitDY:
-        histo = ROOT.TH1F(prefix +f"_{gr}","", 60, 0., 650.)
-    else:
-        histo = ROOT.TH1F(prefix +f"_{gr}","", 60, list_BinEdges[bin], list_BinEdges[bin+1])
     
+    DLdataset = {"ElEl":"DoubleEG", "MuMu": "DoubleMuon" }
+    SLdataset = {"ElEl":"SingleElectron", "MuMu": "SingleMuon" }
+    
+    histo = getHistTemplate(path, gr, prefix, reg)
+
     for i, filename in enumerate(glob.glob(os.path.join(path, '*.root'))):
         split_filename = filename.split('/')
         smp = str(split_filename[-1])
@@ -61,27 +66,26 @@ def getHisto(path, Cfg, reg, prefix, list_BinEdges, bin, w, isData=False, splitD
         
         year   = Cfg['files'][smp]["era"]
         lumi   = Cfg["configuration"]["luminosity"][year]
-        sf     = 1. #lumi
+        sf     = lumi
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
-            #print( lumi , xsc, genevt )
-            #sf *= xsc / (genevt)
+            print( lumi, xsc, genevt )
+            sf *= xsc / (genevt)
 
         f = ROOT.TFile.Open(filename)
         _files.add(f)
-        for cat in ['ElEl', 'MuMu']: 
+        for cat in ['MuMu', 'ElEl']: 
             if isData:
                 if not ((smp.startswith(DLdataset[cat]) or smp.startswith(SLdataset[cat]))): 
-                    #print( smp, smp.startswith(DLdataset[cat]), smp.startswith(SLdataset[cat]), smp.startswith(DLdataset[cat]) or smp.startswith(SLdataset[cat]) )
                     continue
             print( 'working on :', cat , smp)
-            if splitDY: varToPlots_histo = f.Get(f"{cat}_{reg}_DYweight{w}_{prefix}")
-            else: varToPlots_histo = f.Get(f"{cat}_{reg}_{prefix}")
+            varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}")
             
             histo.Add(varToPlots_histo, 1)
             histo.SetDirectory(0)
-            histo.Scale(sf)
+            #if not isData:
+            #    histo.Scale(sf)
 
         f.Close()
     print( 'all done..........................' )
@@ -89,16 +93,17 @@ def getHisto(path, Cfg, reg, prefix, list_BinEdges, bin, w, isData=False, splitD
 
 
 
-def DYEstimation(plotCfg, files_path, year, splitDY):
-    compareshape = False
+def DYEstimation(plotCfg, files_path, year, n , splitDYweight, compareshape):
     lumi = Constants.getLuminosity(year)
 
-    if splitDY :
-        BinEdges = {'mjj'  : [0., 50, 100., 200, 450., 650.],
-                    'mlljj': [100., 200., 450.,650., 1200.] } 
+    if splitDYweight :
+        BinEdges = {'resolved': {'mjj': [0., 50, 100., 200, 450., 650.], 'mlljj': [100., 200., 450., 650., 1200.] },
+                    'boosted' : {'mjj': [], 'mlljj': [] }
+                    }
     else:
-        BinEdges = {'mjj'  : [0., 650.],
-                    'mlljj': [100., 1200.] } 
+        BinEdges = {'resolved': {'mjj' : [0., 650.], 'mlljj': [120., 650.] },
+                    'boosted' : {'mjj' : [0., 150.], 'mlljj': [200., 650.] }
+                    }
     
     outDir = os.path.join(os.getcwd(), f"results/ul{year}")
     if not os.path.exists(outDir):
@@ -106,26 +111,27 @@ def DYEstimation(plotCfg, files_path, year, splitDY):
     
     for reg in ['resolved', 'boosted']:
         for idx, varToPlot in enumerate(['mjj']):#, 'mlljj']):
-            for bin in range(0,len(BinEdges[varToPlot])-1):
+            for bin in range(0,len(BinEdges[reg][varToPlot])-1):
         
-                if splitDY: w = ( bin+2 if varToPlot =='mlljj' else ( bin+1))  
+                if splitDYweight: w = bin  
                 else: w = 'comb'
                 
                 #Drell-Yan +jets mc 
-                histo_mc        = getHisto(files_path, plotCfg, reg, varToPlot, BinEdges[varToPlot], bin , w, isData=False, splitDY=False, forDataSubstr=False)
-                histo_other_mc  = getHisto(files_path, plotCfg, reg, varToPlot, BinEdges[varToPlot], bin , w, isData=False, splitDY=False, forDataSubstr=True)
-                histo_all_data  = getHisto(files_path, plotCfg, reg, varToPlot, BinEdges[varToPlot], bin , w, isData=True, splitDY=False, forDataSubstr=False)
+                histo_mc        = getHisto(files_path, plotCfg, reg, varToPlot, isData=False, forDataSubstr=False)
+                histo_other_mc  = getHisto(files_path, plotCfg, reg, varToPlot, isData=False, forDataSubstr=True)
+                histo_all_data  = getHisto(files_path, plotCfg, reg, varToPlot, isData=True, forDataSubstr=False)
             
                 histo_data = histo_all_data 
-                #histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
+                #histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc, lumi)
                 
-                print ("Getting Drell-Yan weight from :", BinEdges[varToPlot][bin], "to",BinEdges[varToPlot][bin+1], "GeV") 
-                print ( "- Integrals ** ", ", region:", reg, ", varToPlot: ", varToPlot)
-                print ( "- Data:", histo_data.Integral())
-                print ( "- MC  :", histo_mc.Integral())
+                print ("Getting Drell-Yan weight from polynomial fit order ", n, "from bin ",BinEdges[reg][varToPlot][bin], "to",BinEdges[reg][varToPlot][bin+1], "GeV") 
+                print ( "Integrals ** ", ", region:", reg, ", distribution: ", varToPlot)
+                print ( "- Data     :", histo_data.Integral())
+                print ( "- MC       :", histo_mc.Integral())
+                print ( "- other mc :", histo_other_mc.Integral())
                 print ( "====================================================================================")
                 
-                w_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}.root", "recreate")
+                w_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}.root", "recreate")
                 histo_mc.SetDirectory(0)
                 histo_data.SetDirectory(0)
                 
@@ -133,7 +139,7 @@ def DYEstimation(plotCfg, files_path, year, splitDY):
                 histo_data.Write()
                 w_file.Close()
         
-                ratio_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}.root")
+                ratio_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}.root")
                 c1 = ROOT.TCanvas("c1", "c1", 800, 800)
         
                 histo_mc   = ratio_file.Get("%s_mc"%varToPlot)
@@ -158,8 +164,8 @@ def DYEstimation(plotCfg, files_path, year, splitDY):
                     histo_mc.Draw()
                     histo_data.Draw("same")
                     
-                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}.pdf", "pdf")
-                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}.png", "png")
+                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}.pdf", "pdf")
+                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}.png", "png")
                
                     del c1
                 #create histo of ratio data/MC
@@ -192,40 +198,43 @@ def DYEstimation(plotCfg, files_path, year, splitDY):
                 ratio.GetXaxis().SetLabelFont(43)
                 ratio.GetXaxis().SetLabelSize(15)
 
-                fit_func = ROOT.TF1("pol6", "pol6")
+                b0 = BinEdges[reg][varToPlot][bin]
+                b1 = BinEdges[reg][varToPlot][bin+1]
+                fit_func = ROOT.TF1(f"pol{n}", f"pol{n}", b0, b1)
                 fit_func.SetParameter(1, 0.0000005)
-                ratio.Fit(fit_func)
+                ratio.Fit(fit_func, "R")
 
                 line = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1, ratio.GetXaxis().GetXmax(), 1)
                 line.SetLineColor(ROOT.kBlack)
                 line.Draw("")
                 
-                add_ratio = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}_DataMc_ratio.root", "recreate")
+                add_ratio = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}_DataMc_ratio.root", "recreate")
                 ratio.SetDirectory(0)
                 ratio.Write()
                 add_ratio.Close()
 
                 ratio.Draw()
-                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}_DataMC_ratio.pdf", "pdf")
-                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_{reg}_{varToPlot}_DataMC_ratio.png", "png")
+                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}_DataMC_ratio.pdf", "pdf")
+                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{n}_{reg}_{varToPlot}_DataMC_ratio.png", "png")
         
                 ratio_file.Close()
 
 if __name__ == "__main__":
     ROOT.gROOT.SetBatch(True)
     
-    #files_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.15.05/results'
-    #files_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.7/results'
-    #files_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.9/results'
-    #files_path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2017Results/controlPlots2017v.8/ver20.05.28/results'
-    
+    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.15.05/results'
+    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.7/results'
+    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.9/results'
+    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2017Results/controlPlots2017v.8/ver20.05.28/results'
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver19/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
-    files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
-
-    year = 2018
+    #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
+    files_path   = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results'
+    
+    year = 2017
    
     with open(os.path.join(files_path.replace('/results',''), 'plots.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
-
-    DYEstimation(plotConfig, files_path, year, splitDY=False)
+    
+    for polfit in [8]:#[5, 6, 7, 8]:
+        DYEstimation(plotConfig, files_path, year, polfit, splitDYweight=False, compareshape=False)
