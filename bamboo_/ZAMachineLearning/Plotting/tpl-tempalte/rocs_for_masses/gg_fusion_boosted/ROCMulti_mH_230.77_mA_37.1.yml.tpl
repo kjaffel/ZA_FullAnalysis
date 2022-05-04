@@ -1,4 +1,4 @@
-ROC_mH_1000_mA_50:
+ROC_mH_230.77_mA_37.1:
   tree: tree
   classes:
     - DY
@@ -17,8 +17,8 @@ ROC_mH_1000_mA_50:
     - darkred
     - green
   weight : event_weight
-  title : Mass points $M_{H}=1000 \ GeV$ and $M_{A}=50 \ GeV$
-  cut : 'mH==1000 & mA==50'
+  title : ( $M_H$, $M_A$)= ( 230.77, 37.1) GeV
+  cut : 'mH==230 & mA==37 & isggH & isBoosted'
   selector :
     'TT' : 'TT'
     'DY' : 'DY'

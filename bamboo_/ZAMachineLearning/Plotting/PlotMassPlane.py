@@ -24,7 +24,7 @@ sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
 import HistogramTools as HT
 
 class MassPlane:
-    def __init__(self,pdf_path,x_bins,x_min,x_max,y_bins,y_min,y_max,inputs_order,additional_inputs={},plot_DY=False,plot_TT=False,plot_ZA=False,projection=False):
+    def __init__(self,pdf_path,x_bins,x_min,x_max,y_bins,y_min,y_max,inputs_order,region, process, additional_inputs={},plot_DY=False,plot_TT=False,plot_ZA=False,projection=False):
         self.pdf_path           = pdf_path
         self.x_bins             = x_bins
         self.x_min              = x_min
@@ -34,6 +34,8 @@ class MassPlane:
         self.y_max              = y_max
         self.model              = None
         self.inputs_order       = inputs_order
+        self.region             = region 
+        self.process            = process
         self.additional_inputs  = additional_inputs
         self.plot_DY            = plot_DY
         self.plot_TT            = plot_TT
@@ -149,7 +151,7 @@ class MassPlane:
             g_ZA = ROOT.TGraph2D(N,np.array(self.x,dtype='double'),np.array(self.y,dtype='double'),np.array(output[:,2],dtype='double'))
             g_ZA.SetNpx(self.x_bins)
             g_ZA.SetNpy(self.y_bins)
-            g_ZA.GetHistogram().SetTitle("P(H #rightarrow ZA #rightarrow llbb) for mass point (M_{H}, M_{A})= (%s, %s )GeV"%(mass_to_str(mH), mass_to_str(mA)))
+            g_ZA.GetHistogram().SetTitle("P(%s #rightarrow ZA #rightarrow llbb) %s for mass point (M_{H}, M_{A})= (%s, %s )GeV"%(self.process, self.region, mass_to_str(mH), mass_to_str(mA)))
             g_ZA.SetName(("MassPlane_ZA_mH_%s_mA_%s"%(mH,mA)).replace('.','p'))
             g_ZA.GetHistogram().GetXaxis().SetTitle("m_{bb} (GeV)")
             g_ZA.GetHistogram().GetYaxis().SetTitle("m_{llbb} (GeV)")
@@ -371,7 +373,6 @@ if __name__ == "__main__":
         'l1_pdgId@op_pdgid'      : int(11) if args.channel=='elel' else int(13),
         }
     
-    print( inputs, 'heloooooooooooooooooooooooooooooooooo' )
     region = 'resolved' if args.resolved else ('boosted')
     pdf_path  = os.path.join(f'{args.model.split("all_combined")[0]}','plots',f'massplane_{os.path.basename(args.model).split(".")[0]}_{args.process}_{region}_{args.channel}_{args.era}.pdf')
     inst = MassPlane(pdf_path           = pdf_path,
@@ -381,12 +382,15 @@ if __name__ == "__main__":
                      y_bins             = 500,
                      y_min              = 0.,
                      y_max              = 1000.,
+                     inputs_order       = inputs_order,
+                     region             = region,
+                     process            = args.process,
+                     additional_inputs  = inputs,
                      plot_DY            = args.DY,
                      plot_TT            = args.TT,
                      plot_ZA            = args.ZA,
                      projection         = args.projection,
-                     inputs_order       = inputs_order,
-                     additional_inputs  = inputs)
+                     )
     graph_list = []
     if args.mA and args.mH:
         graph_list.extend(inst.plotMassPoint([args.model,args.mH,args.mA]))
@@ -395,7 +399,7 @@ if __name__ == "__main__":
         #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
         #    d = json.load(f)
         #    masspoints = [(mH, mA,) for mA, mH in d]
-        masspoints = [(200, 100), ( 300, 50), ( 300, 100), ( 300, 200), (500, 300), (800, 700)]
+        masspoints = [(500, 300)]#, ( 300, 50), ( 300, 100), ( 300, 200), (500, 300), (800, 700)]
         pbar = enlighten.Counter(total=len(masspoints), desc='Progress', unit='mass points')
         if not args.jobs:
             inst.load_model(args.model)

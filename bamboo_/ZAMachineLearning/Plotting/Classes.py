@@ -601,22 +601,23 @@ class Plot_ROC:
 
 class Plot_Multi_ROC:
     def __init__(self,tree,classes,labels,prob_branches,colors,title,selector,weight=None,cut=''):
-        self.tree = tree                                  # Name of the tree
-        self.classes = classes                            # eg [0,1,2], just numbering
-        self.labels = labels                              # Labels to display on plot
-        self.colors= colors                               # Pyplot colors for each element
-        self.selector = selector                          # Depending on string name, gives target
-        self.prob_branches = prob_branches                # Branches containign the probabilities
-        self.n_classes = len(classes)                     # number of classes
-        self.weight_name = weight                         # Weight name
-        self.weight = np.empty((0,1))                     # Weight vector 
-        self.title = title                                # title of plot
-        self.prob_per_class = np.empty((0,self.n_classes))# output of network
-        self.scores = np.empty((0,self.n_classes))        # Correct classes
-        self.cut = cut                                    # Potential cut
-        self.lb = LabelBinarizer()                        # eg ['A','B','C']-> labels [0,1,0]...
-        self.lb.fit(self.classes)                         # Carefull ! Alphabetic order !
-            # classes in lb -> lb.classes_
+        self.tree           = tree                                  # Name of the tree
+        self.classes        = classes                               # eg [0,1,2], just numbering
+        self.labels         = labels                                # Labels to display on plot
+        self.colors         = colors                                # Pyplot colors for each element
+        self.selector       = selector                              # Depending on string name, gives target
+        self.prob_branches  = prob_branches                         # Branche contain the probabilities
+        self.n_classes      = len(classes)                          # number of classes
+        self.weight_name    = weight                                # Weight name
+        self.weight         = np.empty((0,1))                       # Weight vector 
+        self.title          = title                                 # title of plot
+        self.prob_per_class = np.empty((0,self.n_classes))          # output of network
+        self.scores         = np.empty((0,self.n_classes))          # Correct classes
+        self.cut            = cut                                   # Potential cut
+        self.lb             = LabelBinarizer()                      # eg ['A','B','C']-> labels [0,1,0]...
+        self.lb.fit(self.classes)                                   # Carefull ! Alphabetic order !
+        
+        # classes in lb -> lb.classes_
         if self.classes != sorted(self.classes):
             raise RuntimeError('The classes need to be sorted alphabetically otherwise LabelBinarizer will give wrong results')
 
@@ -675,11 +676,18 @@ class ProcessYAML():
 
     def Particularize(self,filename=''):
         self.part_template = os.path.join(self.OUTPUT_YAML, self.template.replace('tpl-tempalte/','').replace('.yml.tpl','_') + filename + '.yml')
+        
+        rocs_dir = self.part_template.split('ROCMulti_')[0]
+        if not os.path.exists(rocs_dir):
+            os.makedirs(rocs_dir)
+        
         with open(self.template) as tpl_handle:
             tpl = tpl_handle.read()
+
         with open(self.part_template, 'w') as out_yml:
             out_yml.write(tpl)
         logging.debug('\tParticularized template saved as %s'%self.part_template)
+        
         self._loadYAML()
         logging.debug('\tLoaded the template saved as %s'%self.part_template)
 
@@ -816,7 +824,7 @@ def MakeMultiROCPlot(list_obj,name,title=None):
     misclass = 1 - accuracy
 
     # Normalize #
-    print( cm , cm[0].shape[0] )
+    # print( cm )
     cmx = cm/np.tile(cm.sum(axis=0),cm[0].shape[0]).reshape(*cm.shape)
     cmy = cm/np.repeat(cm.sum(axis=1),cm[0].shape[0]).reshape(*cm.shape)
 
