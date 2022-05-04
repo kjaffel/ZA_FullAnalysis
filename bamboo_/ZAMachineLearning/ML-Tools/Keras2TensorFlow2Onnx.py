@@ -4,12 +4,8 @@ import json
 import glob 
 import argparse
 
-#sys.path.append(os.path.abspath('../..'))
-#import utils as utils
-#logger = utils.ZAlogger(__name__)
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import Utils as utils
+logger = utils.MLlogger(__name__)
 
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json
@@ -21,7 +17,6 @@ sys.path.append(os.path.abspath('..'))
 import Operations
 from preprocessing import PreprocessLayer
 
-print("TensorFlow version is :"+tf.__version__)
 
 def load_graph(frozen_graph_filename):
     with tf.io.gfile.GFile(frozen_graph_filename, "rb") as f:
@@ -71,15 +66,16 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
     if job =='k2onnx':
         try: 
             import keras2onnx
-            print("keras2onnx version is :"+keras2onnx.__version__)
+            logger.info("keras2onnx version is :"+keras2onnx.__version__)
+            logger.info("TensorFlow version is :"+tf.__version__)
             if not (keras2onnx.__version__ =='2.3.0' and tf.__version__=='1.7.0'):
-                logger.warning("This may not work \n"
-                               "TensorFlow version : 2.3.0  and keras2onnx version :1.7.0 using LCG100 defnietly works, so try degrade you version\n"
-                               "simply in clean shell do:\n"
-                               "cms_env\n"
-                               "source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh\n"
-                               "python -m venv $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100 # only the 1st time\n"
-                               "source $HOME/ZA_FullAnalysis/bamboo_/ZAMachineLearning/bamboovenv100/bin/activate\n")
+                logger.info("This may not work !\n"
+                            "TensorFlow version : 2.3.0  and keras2onnx version :1.7.0 using LCG100 defnietly works, so try to degrade your version!\n"
+                            "Simply in clean shell do:\n"
+                               "\tcms_env\n"
+                               "\tsource /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh\n"
+                               "\tpython -m venv ~/bamboodev/bamboovenv100 ## only the 1st time!\n"
+                               "\tsource ~/bamboodev/bamboovenv100/bin/activate\n")
 
             onnx_model  = keras2onnx.convert_keras(keras_model, keras_model.name)
             keras2onnx.save_model(onnx_model, os.path.join(outdir, suffix+".onnx"))

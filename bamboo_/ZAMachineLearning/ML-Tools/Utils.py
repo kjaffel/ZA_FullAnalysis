@@ -14,6 +14,39 @@ import pprint
 from sklearn import preprocessing
 from operator import add
 
+
+def MLlogger(name):
+    import logging
+    LOG_LEVEL = logging.DEBUG
+    stream = logging.StreamHandler()
+    stream.setLevel(LOG_LEVEL)
+    logger = logging.getLogger(f'{name}')
+    try:
+        import colorlog
+        from colorlog import ColoredFormatter
+        formatter = ColoredFormatter(
+                        "%(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s",
+                        datefmt=None,
+                        reset=True,
+                        log_colors={
+                                'DEBUG':    'green',
+                                'INFO':     'cyan',
+                                'WARNING':  'blue',
+                                'ERROR':    'red',
+                                'CRITICAL': 'red',
+                            },
+                        secondary_log_colors={},
+                        style='%' )
+        stream.setFormatter(formatter)
+    except ImportError:
+        print(" You can add colours to the output of Python logging module via : https://pypi.org/project/colorlog/")
+        pass
+    if not logger.hasHandlers():
+        logger.setLevel(LOG_LEVEL)
+        logger.addHandler(stream)
+    return logger
+
+
 def GetEntries(f,cut='',treeName="tree"):
     """ Count the entries in a file, with or without a cut """
     from ROOT import TFile
@@ -281,8 +314,8 @@ def ExtractXsecAndEventWeightSumFromYaml(yaml_path,suffix):
     wgt_dict = {}
     # Load YAML file #
     if yaml_path.split('/')[-1] != 'plots.yml':
-        print("I am not sure this is the yaml file you want to pass, \t
-               It has to be the one you get after running bamboo so that you can get the number of generated-events !")
+        print("""I am not sure this is the yaml file you want to pass, \n
+                 It has to be the one you get after running bamboo so that you can get the number of generated-events !\n""")
     with open(yaml_path, 'r') as stream:
         try:
             data = yaml.safe_load(stream)
