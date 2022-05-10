@@ -71,7 +71,7 @@ def loadHisto(path, name, cache=None):
     try:
         th.SetDirectory(0)
     except AttributeError as e:
-        print(f"Could not load {name} from {path}")
+        print("Could not load {} from {}".format(name, path))
         raise e
     return th
 

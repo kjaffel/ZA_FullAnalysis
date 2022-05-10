@@ -149,7 +149,10 @@ def get_mcNmConvention_and_group(smpNm):
                   'TTWJetsToQQ'     : ['others', 0.405,     0.,     'others',   '#ff8d58',  1],
                   'TTWJetsToLNu'    : ['others', 0.2001,    0.,     'others',   '#ff8d58',  1],
                   'TTZToQQ'         : ['others', 0.5297,    0.,     'others',   '#ff8d58',  1],
-                  'TTZToLLNuNu_M10' : ['others', 0.2529,    0.,     'others',   '#ff8d58',  1],
+                  'TTZToLLNuNu_M-10': ['others', 0.2529,    0.,     'others',   '#ff8d58',  1],
+                  'HZJ_HToWW_M-125' : ['others', 0.04062,   0.,     'others',   '#ff8d58',  1],
+                  'ggZH_HToBB_ZToLL_M-125'  : ['others', 0.00695,   0.,     'others',   '#ff8d58',  1],
+                  'ggZH_HToBB_ZToNuNu_M-125': ['others', 0.00695,   0.,     'others',   '#ff8d58',  1],
                   }
     for Nm, val in shortnames.items():
         if smpNm.startswith(Nm):

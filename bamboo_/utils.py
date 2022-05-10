@@ -89,6 +89,50 @@ def getRunEra(sample):
         raise RuntimeError("Could not find run era from sample {}".format(sample))
     return result.group(1)
 
+
+def getSignalMassPoints(outdir, distributed):
+    if distributed:
+        f = 'plots.yml'
+        k = 'files'
+    else:
+        f = 'config.yml' 
+        k = 'samples'
+    with open(os.path.join(outdir, 'plots.yml')) as _f:
+        plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
+    
+    points = {'gg_fusion': 
+                { 'resolved': { 'HToZA': [], 'AToZH': [] },
+                  'boosted' : { 'HToZA': [], 'AToZH': [] } },
+              'bb_associatedProduction':
+                { 'resolved': {'HToZA': [], 'AToZH': [] },
+                  'boosted' : {'HToZA': [], 'AToZH': [] } },
+            }
+    
+    for f in plotConfig['samples']:
+        key = 'HToZA'
+        region = 'resolved'
+        if not (f.startswith('GluGluTo') or f.startswith('HToZATo2L2B') or f.startswith('AToZHTo2L2B')):
+            continue
+        split_f = f.split('_')
+        
+        if split_f[1] == 'MA': key = 'AToZH'
+        
+        m0 = float(split_f[2].replace('p', '.'))
+        m1 = float(split_f[4].replace('p', '.'))
+        
+        if m0 > 4*m1:
+            region = 'boosted'
+
+        if 'GluGluTo' in f: 
+            if not (m0, m1) in points['gg_fusion'][region][key]:
+                points['gg_fusion'][region][key].append( (m0, m1))
+        else:
+            if not (m0, m1) in points['bb_associatedProduction'][region][key]:
+                points['bb_associatedProduction'][region][key].append( (m0, m1))
+
+    return points 
+
+
 def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
     """ Make a series of plots which will be merged.
     - cateDef can either be e.g.:

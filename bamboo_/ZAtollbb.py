@@ -6,12 +6,13 @@ import argparse
 import json
 import yaml 
 import shutil
-from itertools import chain
-from functools import partial
-from bamboo.scalefactors import get_correction
 import numpy as np 
 
+from itertools import chain
+from functools import partial
+
 from bamboo import treefunctions as op
+from bamboo.scalefactors import get_correction
 from bamboo.analysismodules import NanoAODModule, NanoAODHistoModule, HistogramsModule
 from bamboo.analysisutils import makeMultiPrimaryDatasetTriggerSelection
 from bamboo.analysisutils import configureJets, configureType1MET, configureRochesterCorrection
@@ -23,10 +24,13 @@ if zaPath not in sys.path: sys.path.append(zaPath)
 import logging
 numba_logger = logging.getLogger('numba')
 numba_logger.setLevel(logging.WARNING)
+
 import utils as utils
 logger = utils.ZAlogger(__name__)
+
 import corrections as corr
 import ControlPLots as cp
+
 from EXtraPLots import * 
 from boOstedEvents import get_DeepDoubleXDeepBoostedJet, get_BoostedEventWeight
 
@@ -43,7 +47,7 @@ class NanoHtoZABase(NanoAODModule):
                             "show-ratio"       : True,
                             "sort-by-yields"   : False,
                             "legend-columns"   : 2 }
-
+        
         self.doSysts          = self.args.systematic
         self.doEvaluate       = self.args.DNN_Evaluation
         self.doSplitJER       = self.args.splitJER
@@ -57,11 +61,13 @@ class NanoHtoZABase(NanoAODModule):
         self.doSkim           = self.args.skim
         
         self.doPass_bTagEventWeight = True
-        self.CleanJets_fromPileup   = True
-        self.doDY_reweighting       = True   # tth weights
+        self.CleanJets_fromPileup   = False
+        self.doDY_reweighting       = True   # using poly fit degree 6 on mjj mass  
+        self.dotthDY_reweighting    = True   # tth weights eraly beginning on noSel
         self.doTop_reweighting      = True
         self.doProduceParquet       = False  # df for skim 
-        self.rebin                  = "bayesian" # or uniform (50 bins) : for the DNN template that will be given to combine
+        self.doProduceSummedPlots   = True
+        self.rebin                  = "uniform" # bayesian or uniform (50 bins) : for the DNN template that will be given to combine
         self.reweightDY             = "comb" # or "split"
         self.doCorrect              = "subjets"   # "fatjet" or subjets : when applying btagging SFs 
         self.qcdScaleVarMode        = "separate"  # "separate" : (muR/muF variations)  or combine : (7-point envelope)
@@ -76,19 +82,20 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--splitJES", action="store_true", default= False, help="Run 2 reduced set of JES uncertainty splited by sources")
         parser.add_argument("--hlt", action="store_true", help="Produce HLT efficiencies maps")
         parser.add_argument("--blinded", action="store_true", help="Options to be blind on data if you want to Evaluate the training OR The Ellipses model ")
-        parser.add_argument("--nanoaodversion", default="v8", choices= ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8 == ULegacy) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
+        parser.add_argument("--nanoaodversion", default="v9", choices= ["v9", "v8", "v7", "v5"], help="version NanoAODv2(== v8 == ULegacy) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
         parser.add_argument("--process", required=False, nargs="+", choices= ["ggH", "bbH"], help="signal process that you wanna to look to ")
         parser.add_argument("--doMETT1Smear", action="store_true", default= False, help="do T1 MET smearing")
         parser.add_argument("--dobJetEnergyRegression", action="store_true", default= False, help="apply b jets energy regression to improve the bjets mass resolution")
         parser.add_argument("--skim", action="store_true", default= False, help="make skim instead of plots")
         parser.add_argument("--backend", type=str, default="dataframe", help="Backend to use, 'dataframe' (default) or 'lazy' or 'compile' for debug mode")
-
+    
     def customizeAnalysisCfg(self, config=None):
-        if self.args.distributed == "driver" or not self.args.distributed:
+        if not self.args.distributed:
             os.system('(git log -n 1;git diff .) &> %s/git.log' % self.args.output)
-            #with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
-            #    yaml.dump(config, backupCfg)
+            with open(os.path.join(self.args.output, "config.yml"), "w+") as backupCfg:
+                yaml.dump(config, backupCfg)
 
+    #def prepareTree(self, tree, sample=None, sampleCfg=None, backend=None):
     def prepareTree(self, tree, sample=None, sampleCfg=None):
         era  = sampleCfg.get("era") if sampleCfg else None
         isMC = self.isMC(sample)
@@ -111,10 +118,11 @@ class NanoHtoZABase(NanoAODModule):
         else: nanoJetMETCalc_ = nanoJetMETCalc_METFixEE2017 if era == "2017" else nanoJetMETCalc_var
 
         tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, 
+        #tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, backend=backend,
                                             description=NanoAODDescription.get("v7", year=(era if "VFP" not in era else "2016"), 
                                                                                 isMC=isMC, 
-                                                                                systVariations=[ nanoRochesterCalc, nanoJetMETCalc_, nanoFatJetCalc ]), 
-                                                                                backend=self.args.backend ) 
+                                                                                systVariations=[ nanoRochesterCalc, nanoJetMETCalc_, nanoFatJetCalc ])
+                                                                                ,backend=self.args.backend ) 
         #############################################################
         # Ellipses :
         #############################################################
@@ -224,10 +232,10 @@ class NanoHtoZABase(NanoAODModule):
                                  tree.HLT.Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ ],
                 "DoubleEG"   : [ tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ,
                                  tree.HLT.Ele23_Ele12_CaloIdL_TrackIdL_IsoVL ],  # DZ double electron (loosely isolated)
-                "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL],
+                "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL ],
                 "SingleMuon" : [ tree.HLT.IsoMu24,
                                  tree.HLT.IsoTkMu24,
-                                 #tree.HLT.Mu50,
+                                 tree.HLT.Mu50,
                                 ],
                 "SingleElectron": [tree.HLT.Ele27_WPTight_Gsf],
                 }
@@ -244,9 +252,15 @@ class NanoHtoZABase(NanoAODModule):
                 triggersPerPrimaryDataset["MuonEG"] += [ 
                         ## removed for era H
                         tree.HLT.Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL]
-            #if "2016B" not in sample :
+            
+            if "2016H" in sample:
+                triggersPerPrimaryDataset["DoubleMuon"] += [ 
+                        tree.HLT.TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL, 
+                        tree.HLT.TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ ]
+
+            #if "2016B_ver1" not in sample :
             #    triggersPerPrimaryDataset["SingleMuon"] += [ 
-                        ## removed for era B ver1 && ver2
+                        ## removed for era B ver1
             #            tree.HLT.TkMu50]
 
         elif era == "2017":
@@ -520,12 +534,15 @@ class NanoHtoZABase(NanoAODModule):
         # The AK8 jets are required to have the nsubjettiness parameters tau2/tau1< 0.5 
         # to be consistent with an AK8 jet having two subjets.
         ###############################################
+        tau21 = { '2016': 0.7,
+                  '2017': 0.7,
+                  '2018': 0.65 }
         sorted_AK8jets = op.sort(t.FatJet, lambda j : -j.pt)
         AK8jetsSel = op.select(sorted_AK8jets, 
                                 lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.4, (j.jetId &2), 
                                                   j.subJet1.isValid,
-                                                  j.subJet2.isValid
-                                                  , j.tau2/j.tau1 < 0.7 ))
+                                                  j.subJet2.isValid,
+                                                  j.tau2/j.tau1 < tau21[era_] ))
         AK8jets = op.select(AK8jetsSel, 
                             lambda j : op.AND(
                                             op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.8 )), 
@@ -543,6 +560,7 @@ class NanoHtoZABase(NanoAODModule):
                                                     lambda j : op.AND(
                                                         op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.8 )), 
                                                         op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 ))))
+        
         cleaned_fatjet = op.sort(fatjets_nosubjettinessCut, lambda j: -j.btagDeepB)
 
         ###############################################
@@ -621,7 +639,7 @@ class NanoHtoZABase(NanoAODModule):
         # DY reweighting 
         ########################################################
          
-        if self.doDY_reweighting and isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and not sample.startswith('DYJetsToLL_M-10to50'):
+        if self.dotthDY_reweighting and isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and not sample.startswith('DYJetsToLL_M-10to50'):
             noSel = corr.DrellYanreweighting(noSel, self.cleaned_AK4JetsByDeepFlav, 'DeepFlavour', era, self.doSysts)
         
         ########################################################
@@ -676,7 +694,7 @@ class NanoHtoZABase(NanoAODModule):
                 muel_sf.append(corr.getL1PreFiringWeight(t))
                 elel_sf.append(corr.getL1PreFiringWeight(t))
             if era == '2017':
-                HLTZvtx = op.systematic(op.c_float(0.991), name='HLTZvtx', up=op.c_float(0.001), down=op.c_float(0.001))
+                HLTZvtx = op.systematic(op.c_float(0.991), name='HLTZvtx', up=op.c_float(0.992), down=op.c_float(0.990))
                 elmu_sf.append(HLTZvtx)
                 muel_sf.append(HLTZvtx)
                 elel_sf.append(HLTZvtx)
@@ -690,7 +708,7 @@ class NanoHtoZABase(NanoAODModule):
                     #"ElMu" : (lambda ll : 
                     #  [ elMediumIDSF(ll[0]), elRecoSF(ll[0]),
                     #    muMediumIDSF(ll[1]), muTightIsoSF(ll[1]), 
-                    #    getHLT_scalefactors(ll, era, "ElMu"),
+                    #    getHLT_scalefactors(ll, era, "ElMu"), muTriggerSF(ll[1], era)
                     #    ] + elmu_sf ),
                     "MuEl" : (lambda ll : 
                         [ muMediumIDSF(ll[0]), muTightIsoSF(ll[0]),
@@ -726,7 +744,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         from bamboo.plots import Skim, CutFlowReport
         
         from bambooToOls import Plot
-        from reweightDY import prepareCP_ForDrellYan0Btag, DYReweightingValidationPlots, getDYweightFromPolyfit
+        from reweightDY import prepareCP_ForDrellYan0Btag, ProduceFitPolynomialDYReweighting, getDYweightFromPolyfit
     
         def getIDX(wp = None):
             return (0 if wp=="L" else ( 1 if wp=="M" else 2))
@@ -759,6 +777,26 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         addIncludePath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "include"))
         loadHeader("BTagEffEvaluator.h")
+       
+        run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
+        if self.doPass_bTagEventWeight and isMC:
+            for wp in self.WorkingPoints:
+                idx = getIDX(wp) 
+                systMapping = {
+                        "pileup"  : "pileup", # correlated with "pileup" uncertainty
+                        "isr"     : None,     # uncorrelated, standalone b-tag uncertainty
+                        "fsr"     : None,
+                        "hdamp"   : None,
+                        "qcdscale": None,
+                        "topmass" : None,
+                        "type3"   : None,
+                        "jes"     : None,
+                        "jer0"    : "jer",
+                        "jer1"    : "jer",
+                    }
+                run2_bTagEventWeight_PerWP[wp] = corr.makeBtagSF(self.cleaned_AK4JetsByDeepB, self.cleaned_AK4JetsByDeepFlav, self.cleaned_AK8JetsByDeepB, 
+                                wp, idx, corr.legacy_btagging_wpdiscr_cuts, era, noSel, sample, self.dobJetER, self.doCorrect, isSignal,
+                                defineOnFirstUse=False)#, full_scheme=True, full_scheme_mapping=systMapping)
 
         if self.doEvaluate:
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb'
@@ -770,31 +808,32 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/keras_tf_onnx_models/prob_model_work_nanov9__1.onnx"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/keras_tf_onnx_models/all_combined_dict_241_model.onnx"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__1/ext1/keras_tf_onnx_models/all_combined_dict_216_model.pb"
-            ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__5/keras_tf_onnx_models/all_combined_dict_432_model.pb"
-
-            if ZAmodel_path.split('/')[-1].endswith('.onnx'):
-                onnx__version = True
-            elif ZAmodel_path.split('/')[-1].endswith('.pb'):
-                tf__version   = True
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__5/keras_tf_onnx_models/all_combined_dict_432_model.pb"
+            #ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__15/keras_tf_onnx_models/all_combined_dict_397_model.onnx" 
+            ZAmodel_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work_nanov9__15/keras_tf_onnx_models/all_combined_dict_397_model.pb" 
             
             if not os.path.exists(ZAmodel_path):
                 raise RuntimeError(f'Could not find model: {ZAmodel_path}')
             else:
-                try:
-                    #===============================================================================
-                    # Tensorflow : The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), 
-                    # where each of the two can be a single string, or an iterable of them.
-                    if tf__version:
-                        outputs = 'Identity'
-                        inputs  = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH', 'isResolved', 'isBoosted', 'isggH', 'isbbH']
-                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
-                    #===============================================================================
-                    # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
-                    elif onnx__version:
-                        ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=("out"), nameHint='ONNX_ZAModel')
-                    #===============================================================================
-                except Exception as ex:
-                    raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
+                if ZAmodel_path.split('/')[-1].endswith('.onnx'):
+                    onnx__version = True
+                elif ZAmodel_path.split('/')[-1].endswith('.pb'):
+                    tf__version   = True
+            try:
+                #===============================================================================
+                # Tensorflow : The otherArgs keyword argument should be (inputNodeNames, outputNodeNames), 
+                # where each of the two can be a single string, or an iterable of them.
+                if tf__version:
+                    outputs = 'Identity'
+                    inputs  = ['l1_pdgId', 'era', 'bb_M', 'llbb_M', 'bb_M_squared','llbb_M_squared', 'bb_M_x_llbb_M', 'mA','mH', 'isResolved', 'isBoosted', 'isggH', 'isbbH']
+                    ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
+                #===============================================================================
+                # ONNX : The otherArgs keyword argument should the name of the output node (or a list of those)
+                elif onnx__version:
+                    ZA_mvaEvaluator = op.mvaEvaluator(ZAmodel_path, mvaType='ONNXRuntime',otherArgs=("out"), nameHint='ONNX_ZAModel')
+                #===============================================================================
+            except Exception as ex:
+                raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
 
             bayesian_blocks = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/preapproval__6/rebinned_edges_bayesian_all.json"
             if not os.path.exists(bayesian_blocks):
@@ -876,7 +915,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         # basic distribution for control region
         make_ZpicPlots              = False
-        make_JetsPlusLeptonsPlots   = True
+        make_JetsPlusLeptonsPlots   = False
         make_JetmultiplictyPlots    = False
         make_METPlots               = False
         make_METPuppiPlots          = False
@@ -887,20 +926,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots    = True
+        make_FinalSelControlPlots    = False
         make_DeepDoubleBPlots        = False 
         make_PlotsforCombinedLimits  = False
         
         # plots for the studies
         make_BJetEnRegressionPlots   = False
         make_ttbarEstimationPlots    = False
-        make_DYReweightingPlots      = True
-        make_DY0BtagPlots            = True
+        make_DYReweightingPlots      = False
+        make_DY0BtagPlots            = False
         
         # the follow are mainly for debugging purposes 
         make_tau2tau1RatioPlots      = False
-        make_JetschecksPlots         = False  
-        make_InclusiveZpicPlots      = False
+        make_deltaRPlots             = False 
+        make_InclusivePlots          = False
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
         make_LookInsideJets          = False
@@ -922,17 +961,20 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 yield_object.addYields(catSel,"hasOs%s"%channel,"2 OS lep. (%s) + $m_{ll}$ cut"%optstex)
             selections_for_cutflowreport.append(catSel)
             
-            if make_InclusiveZpicPlots:
+            if make_InclusivePlots:
                 plots += varsCutsPlotsforLeptons(dilepton, catSel, channel)
                 plots.extend(cp.makeControlPlotsForZpic(catSel, dilepton, 'oslepSel', channel, 'inclusive'))
+                
+                inclusiveSel = catSel.refine(f"TwoJet_{channel}_inclusiveSel",cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) >= 0])
+                plots.extend(cp.makeControlPlotsForBasicSel(inclusiveSel,lljj_jets, dilepton, channel, 'inclusive'))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # Jets multiplicty  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if make_JetmultiplictyPlots :
-                for jet, reg in zip ([AK4jets, AK8jets], ["resolved", "boosted"]):
+                for reg, jet in lljj_jets.items():
                     plots.extend(cp.makeJetmultiplictyPlots(catSel, jet, channel,"_NoCutOnJetsLen_" + reg))
-            
+                
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             #                                          Control region 
             #                                   *** This's an Inclusive selection *** 
@@ -948,37 +990,42 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #              resolved : at least 3 AK4 bjets 
             #              boosted  : at least 1 fat bjets && 1 AK4 bjets
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            
             TwoLeptonsTwoJets_Resolved = catSel.refine(f"TwoJet_{channel}Sel_resolved", 
                             cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) == 0])
             
             TwoLeptonsOneJet_Boosted   = catSel.refine(f"OneJet_{channel}Sel_boosted",  
                             cut=[ op.rng_len(AK8jets) >= 1 ])
        
-            inclusiveSel = catSel.refine(f"TwoJet_{channel}_inclusiveSel",cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) >= 0])
-            plots.extend(cp.makeControlPlotsForBasicSel(inclusiveSel,lljj_jets, dilepton, channel, 'inclusive'))
-            
             for reg , sel in {"resolved": TwoLeptonsTwoJets_Resolved, "boosted": TwoLeptonsOneJet_Boosted}.items():
                 if make_DYReweightingPlots:
-                    plots.extend(DYReweightingValidationPlots(lljj_jets[reg], dilepton, sel, channel, reg, self.reweightDY, sampleCfg, isMC, self.doSysts)) 
+                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, self.reweightDY, sampleCfg, era_, isMC, self.doSysts, doWgt=True, doSum=True)
+                    plots.extend(dy_cp)
+                    plots_ToSum2.update(dy_cpToSum)
                 
                 if make_DY0BtagPlots:
-                    plots.extend(prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True)) 
+                    cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=False, doSum=True)
+                    plots_ToSum2.update(cp_0Btag_noDYwgtToSum)
 
-            pr = 'no'
-            lljjSelections = {}
-            DYweight = {'resolved': None, 'boosted': None}
             if self.doDY_reweighting:
-                pr = ''
-                if self.reweightDY == "comb" and isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and channel in ['ElEl','MuMu']:
+                if self.reweightDY == "comb" and isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
                     jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
                                    'boosted' :  AK8jets[0].p4.M() }
                  
-                    DYweight['resolved'] = getDYweightFromPolyfit(jj_mass['resolved'], 6, self.doSysts)['mjj']
-                    DYweight['boosted']  = getDYweightFromPolyfit(jj_mass['boosted'], 6, self.doSysts)['mjj']
+                    DYweight_reso = getDYweightFromPolyfit(era_, 'resolved', jj_mass['resolved'], 5, self.doSysts)['mjj']
+                    DYweight_boo  = getDYweightFromPolyfit(era_, 'boosted', jj_mass['boosted'], 5, self.doSysts)['mjj']
             
-            lljjSelections = { "resolved": TwoLeptonsTwoJets_Resolved.refine(f"TwoJet_{channel}Sel_resolved_{pr}DYweight", weight=(DYweight['resolved'])),
-                               #"boosted": TwoLeptonsOneJet_Boosted.refine(f"TwoJet_{channel}Sel_boosted_{pr}DYweight", weight=(DYweight['boosted'])) }
+                    TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved.refine(f"TwoJet_{channel}Sel_resolved_DYweight", weight=(DYweight_reso))
+                    TwoLeptonsOneJet_Boosted   = TwoLeptonsOneJet_Boosted.refine(f"OneJet_{channel}Sel_boosted_DYweight", weight=(DYweight_boo))
+            
+            lljjSelections = { "resolved": TwoLeptonsTwoJets_Resolved,
                                "boosted" : TwoLeptonsOneJet_Boosted}
+
+            if self.doDY_reweighting:
+                for reg , sel in lljjSelections.items():
+                    cp_0Btag_DYwgt, cp_0Btag_DYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=True, doSum=True)
+                    plots.extend(cp_0Btag_DYwgt)
+                    plots_ToSum2.update(cp_0Btag_DYwgtToSum)
 
             if self.doYields:
                 for reg, sel in lljjSelections.items():
@@ -1004,9 +1051,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             for reg, sel in lljjSelections.items():
                 jet = lljj_jets[reg]
-                if make_JetschecksPlots:
-                    plots.extend(cp.makedeltaRPlots(sel, jet, dilepton, channel, reg))
+                if make_JetmultiplictyPlots:
                     plots.extend(cp.makeJetmultiplictyPlots(sel, jet, channel, reg))
+                
+                if make_deltaRPlots:    
+                    plots.extend(cp.makedeltaRPlots(sel, jet, dilepton, channel, reg))
                 
                 if make_JetsPlusLeptonsPlots:
                     plots.extend(cp.makeJetPlots(sel, jet, channel, reg, era))
@@ -1016,7 +1065,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     plots.extend(cp.makeControlPlotsForZpic(sel, dilepton, 'lepplusjetSel', channel, reg))
             
             if make_tau2tau1RatioPlots:  
-                plots.extend(cp.makeNsubjettinessPLots(lljjSelections["boosted"], AK8jets, catSel, fatjets_nosubjettinessCut, channel))
+                plots.extend(cp.makeNsubjettinessPLots(lljjSelections["boosted"], fatjets_nosubjettinessCut, catSel, channel))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # DeepDoubleB for boosted events (L, M1, M2, T1, T2) 
@@ -1044,8 +1093,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                 for key, selNoMET in _2Lep2bjets_boOsted_NoMETcut.items() }
                             }.items():
                         plots.extend(cp.makeBJetPlots(sel, FatJet_btagged[wp], wp, channel, "boosted", suffix, era, "combined"))
-                        final_cp, plots_ToSum2 = cp.makeControlPlotsForFinalSel(sel, plots_ToSum2, FatJet_btagged[wp], dilepton, wp, channel, "boosted", suffix, "combined")
+                        
+                        final_cp, final_cp_ToSum = cp.makeControlPlotsForFinalSel(sel, FatJet_btagged[wp], dilepton, wp, channel, "boosted", suffix, "combined")
                         plots.extend(final_cp)
+                        plots_ToSum2.update(final_cp_ToSum)
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # DeepCSV for both boosted && resolved , DeepFlavour  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1055,7 +1106,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 idx = getIDX(wp) 
                 OP  = getOperatingPoint(wp) 
                 
-                run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
                 
                 for tagger,bScore in {"DeepCSV": "btagDeepB", "DeepFlavour": "btagDeepFlavB"}.items():
                     jets_by_score = op.sort(bjets_resolved[tagger][wp], partial((lambda j,bSc=None : -getattr(j, bSc)), bSc=bScore))
@@ -1078,21 +1128,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                           "boosted_DeepCSV{}".format(wp)     : bJets_boosted_PassdeepcsvWP }.items():
                         plots.extend(cp.makeJetmultiplictyPlots(catSel, bjet, channel,"_NoCutOnbJetsLen_"+ suffix))
 
-                if self.doPass_bTagEventWeight and isMC:
-                    systMapping = {
-                        "pileup"  : "pileup", # correlated with "pileup" uncertainty
-                        "isr"     : None,     # uncorrelated, standalone b-tag uncertainty
-                        "fsr"     : None,
-                        "hdamp"   : None,
-                        "qcdscale": None,
-                        "topmass" : None,
-                        "type3"   : None,
-                        "jes"     : None,
-                        "jer0"    : "jer",
-                        "jer1"    : "jer",
-                    }
-                    run2_bTagEventWeight_PerWP = corr.makeBtagSF(self.cleaned_AK4JetsByDeepB, self.cleaned_AK4JetsByDeepFlav, self.cleaned_AK8JetsByDeepB, 
-                                wp, idx, corr.legacy_btagging_wpdiscr_cuts, era, noSel, sample, self.dobJetER, self.doCorrect, isSignal)#, full_scheme=True, full_scheme_mapping=systMapping)
     
                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # No MET cut selections
@@ -1101,29 +1136,27 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         "gg_fusion": {
                                     "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsExactlyTwoBjets_NoMETcut_NobTagEventWeight_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_resolved_PassdeepflavourWP) == 2 ],
-                                                                        weight = (run2_bTagEventWeight_PerWP['gg_fusion']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
+                                                                        weight = (run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": {
                                     "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsAtLeast3Bjets_NoMETcut_NobTagEventWeight_DeepFlavour{0}_{1}_Resolved".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_resolved_PassdeepflavourWP) >= 3 ],
-                                                                        weight = (run2_bTagEventWeight_PerWP['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
+                                                                        weight = (run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                             }
     
                 LeptonsPlusBjets_NoMETCut_bTagEventWeight_Boo = {
                         "gg_fusion": {
                                     "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
-                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1 ]#,
-                                                                        #weight = (run2_bTagEventWeight_PerWP['gg_fusion']['boosted']['DeepCSV{}'.format(wp)] if isMC else None) 
-                                                                        #            if self.doPass_bTagEventWeight else None) 
-                                                                        )},
+                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1 ],
+                                                                        weight = None #( run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted']['DeepCSV{}'.format(wp)] if isMC else None) 
+                                                                                    if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": {
                                     "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_with_AtLeast1AK4_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
-                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepflavourWP) >= 1 ]#,
-                                                                        #weight = ( [ run2_bTagEventWeight_PerWP['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)], 
-                                                                                 #    run2_bTagEventWeight_PerWP['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None) 
-                                                                                 #   if self.doPass_bTagEventWeight else None) 
-                                                                                 )},
+                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepflavourWP) >= 1 ],
+                                                                        weight = None # ([ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)], 
+                                                                                      #    run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None) 
+                                                                                    if self.doPass_bTagEventWeight else None) },
                             }
                 
                 
@@ -1158,7 +1191,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                 # make Skimmer
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if self.doSkim:
-                    for process , Selections_per_process in llbbSelections_noMETCut.items():
+                    for process , Selections_per_process in llbbSelections.items():
                         process_ = 'ggH' if process =='gg_fusion' else 'bbH'
                         for reg, Selections_per_taggerWP in Selections_per_process.items():
                             for taggerWP, FinalSel in Selections_per_taggerWP.items():
@@ -1221,80 +1254,97 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                             # Evaluate the training  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if self.doEvaluate:
-                        signal_grid = { 'seen_byDNN': masses_seen,
-                                        'notpassed_to_bayesianblocks': masses_notseen }
+                        
+                        if self.args.distributed: 
+                            #outdir  = self.args.input[0].split('infiles')[0]
+                            outdir   = os.path.abspath(os.path.join(zaPath, 'config' ))
+                        else: outdir = self.args.output
+                        
                         plotOptions = utils.getOpts(channel)
+                        dict_allmasspoints = utils.getSignalMassPoints(outdir, self.args.distributed)
+                        
                         if self.doBlinded:
                             plotOptions["blinded-range"] = [0.6, 1.0] 
 
                         for process, Selections_per_process in llbbSelections.items():
                             for region, selections_per_region in Selections_per_process.items(): 
                                 for tag_plus_wp, sel in selections_per_region.items():
-                                   
+                                    
                                     process_ = 'ggH' if process =='gg_fusion' else 'bbH'
                                     bjets_   = lljj_bJets[region][tag_plus_wp.replace(wp,'')][wp]
                                     jj_p4    = ( (bjets_[0].p4 + bjets_[1].p4) if region=="resolved" else( bjets_[0].p4))
                                     lljj_p4  = ( dilepton[0].p4 + dilepton[1].p4 + jj_p4)
                                     
-                                    bb_M    = jj_p4.M()
-                                    llbb_M  = lljj_p4.M()
-                                    for k, tup in signal_grid.items():
-                                        for parameters in tup: 
-                                            mH = parameters[0]
-                                            mA = parameters[1]
-                                            
-                                            inputsCommon = {'l1_pdgId'        : dilepton[0].pdgId               ,
-                                                            'myera'           : op.c_int(int(era_))             ,
-                                                            'bb_M'            : jj_p4.M()                       ,
-                                                            'llbb_M'          : lljj_p4.M()                     ,
-                                                            'bb_M_squared'    : op.pow(bb_M, 2)                 ,
-                                                            'llbb_M_squared'  : op.pow(llbb_M, 2)               ,
-                                                            'bb_M_x_llbb_M'   : op.product(bb_M, llbb_M)        ,
-                                                            'mA'              : op.c_float(mA)                  ,
-                                                            'mH'              : op.c_float(mH)                  ,  
-                                                            'isResolved'      : op.c_bool(region == 'resolved') ,
-                                                            'isBoosted'       : op.c_bool(region == 'boosted')  ,
-                                                            'isggH'           : op.c_bool(process_ == 'ggH')    ,
-                                                            'isbbH'           : op.c_bool(process_ == 'bbH')    ,
-                                                            }
-                                            
-                                            histNm = f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
-                                            if self.rebin == 'bayesian':
-                                                # I did not optimize the bayesian blocks for these catagories yet !!# FIXME
-                                                look_for = histNm
-                                                if region == 'boosted':
-                                                    look_for = look_for.replace('boosted', 'resolved')
-                                                if process == 'bb_associatedProduction':
-                                                    look_for = look_for.replace('bb_associatedProduction', 'gg_fusion')
-                                                print(f"working on rebinning of {histNm} :: bayesian blocks {bayesian_blocks_binnings['histograms'][look_for][0][0]}") 
-                                                binning = VarBin(bayesian_blocks_binnings['histograms'][look_for][0][0])
-                                            
-                                            elif self.rebin == 'uniform':
-                                                binning = EqB(50, 0., 1.)
-
-                                            DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
-                                            DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA]
-                                             
-                                            if region == 'boosted' and channel in ['ElEl', 'MuMu']:
-                                                pBoosted_allLepFlav = Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output ZA', plotopts=plotOptions)
-                                                plots += [pBoosted_allLepFlav]
-                                                plots_ToSum[(region, tag_plus_wp, process, mass_to_str(mH), mass_to_str(mA))].append(pBoosted_allLepFlav)
-                                            else:
-                                                plots.append(Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output ZA', plotopts=plotOptions))
-                                            
-                                            #plots.append(Plot.make2D(f"mbb_vs_DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}",
-                                            #            (jj_p4.M(), DNN_Output[2]), sel,
-                                            #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
-                                            #            title="mbb mass Input vs DNN Output", plotopts=plotOptions))
-                                            #plots.append(Plot.make2D(f"mbb_vs_DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}",
-                                            #            (lljj_p4.M(), DNN_Output[2]), sel,
-                                            #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
-                                            #            title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
-
-                                            ##OutmaxIDx =op.rng_max_element_index(DNN_Output)
-                                            #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{region}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
-                                            #plots.append(Plot.make1D(f"DNNOutput_trainSel_{node}node_ll{channel}_jj{region}_btaggedDeepcsvM_withmetCut_scan_MA{mA}_MH{mH}", DNN_Output[i], trainSel,
-                                            #    EqB(50, 0., 1.), title='DNN_Output %s'%node, plotopts=plotOptions))
+                                    bb_M     = jj_p4.M()
+                                    llbb_M   = lljj_p4.M()
+                                    
+                                    for mode in [ 'HToZA', 'AToZH']:
+                                        masses_seen_forEvaluation = dict_allmasspoints[process][region][mode]
+                                        
+                                        signal_grid = { 'seen_byDNN'   : masses_seen_forEvaluation,
+                                                        'notseen_byDNN': masses_notseen }
+                                    
+                                        for k, tup in signal_grid.items():
+                                            for parameters in tup: 
+                                                if mode == 'HToZA':
+                                                    nm = 'ZA'
+                                                    mH = parameters[0]
+                                                    mA = parameters[1]
+                                                    histNm = f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
+                                                else:
+                                                    nm = 'ZH'
+                                                    mA = parameters[0]
+                                                    mH = parameters[1]
+                                                    histNm = f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MA_{mass_to_str(mA)}_MH_{mass_to_str(mH)}"
+                                                
+                                                inputsCommon = {'l1_pdgId'        : dilepton[0].pdgId               ,
+                                                                'myera'           : op.c_int(int(era_))             ,
+                                                                'bb_M'            : jj_p4.M()                       ,
+                                                                'llbb_M'          : lljj_p4.M()                     ,
+                                                                'bb_M_squared'    : op.pow(bb_M, 2)                 ,
+                                                                'llbb_M_squared'  : op.pow(llbb_M, 2)               ,
+                                                                'bb_M_x_llbb_M'   : op.product(bb_M, llbb_M)        ,
+                                                                'mA'              : op.c_float(mA)                  ,
+                                                                'mH'              : op.c_float(mH)                  ,  
+                                                                'isResolved'      : op.c_bool(region == 'resolved') ,
+                                                                'isBoosted'       : op.c_bool(region == 'boosted')  ,
+                                                                'isggH'           : op.c_bool(process_ == 'ggH')    ,
+                                                                'isbbH'           : op.c_bool(process_ == 'bbH')    ,
+                                                                }
+                                                
+                                                if self.rebin == 'bayesian':
+                                                    # I did not optimize the bayesian blocks for these catagories yet !!# FIXME
+                                                    look_for = histNm
+                                                    if region == 'boosted':
+                                                        look_for = look_for.replace('boosted', 'resolved')
+                                                    if process == 'bb_associatedProduction':
+                                                        look_for = look_for.replace('bb_associatedProduction', 'gg_fusion')
+                                                    
+                                                    print(f"working on rebinning of {histNm} :: bayesian blocks {bayesian_blocks_binnings['histograms'][look_for][0][0]}") 
+                                                    binning = VarBin(bayesian_blocks_binnings['histograms'][look_for][0][0])
+                                                
+                                                elif self.rebin == 'uniform':
+                                                    binning = EqB(50, 0., 1.)
+    
+                                                DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
+                                                DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA]
+                                                
+                                                pltToSum_OSSFLepFlav = Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output {nm}', plotopts=plotOptions)
+                                                plots += [pltToSum_OSSFLepFlav]
+                                                
+                                                if not channel in ['MuEl', 'ElMu']:
+                                                    plots_ToSum[(histNm.replace(channel, 'OSSF'))].append(pltToSum_OSSFLepFlav)
+                                                
+                                                #plots.append(Plot.make2D(f"mbb_vs_{histNm}",
+                                                #            (jj_p4.M(), DNN_Output[2]), sel,
+                                                #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
+                                                #            title="mbb mass Input vs DNN Output", plotopts=plotOptions))
+                                                #plots.append(Plot.make2D(f"mllbb_vs_{histNm}",
+                                                #            (lljj_p4.M(), DNN_Output[2]), sel,
+                                                #            (EqB(50, 0., 1000.), EqB(50, 0., 1.)),
+                                                #            title="mllbb mass Input vs DNN Output", plotopts=plotOptions))
+                                                #OutmaxIDx =op.rng_max_element_index(DNN_Output)
+                                                #trainSel= sel['DeepCSVM'].refine(f'DNN_On{node}node_llbb_{channel}_{region}selection_withmetcut_MA_{mA}_MH_{mH}',cut=[OutmaxIDx == op.c_int(i)])                
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                         #  TTbar Esttimation  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1330,9 +1380,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                 bjets = lljj_bJets[reg]
                                 
                                 if make_FinalSelControlPlots:
-                                    plots.extend(cp.makeBJetPlots(selDict, bjets, wp, channel, reg, metCutNm_, era, process))
-                                    final_cp, plots_ToSum2 = cp.makeControlPlotsForFinalSel(selDict, plots_ToSum2, bjets, dilepton, wp, channel, reg, metCutNm_, process)
+                                    final_cp, final_cpToSum= cp.makeControlPlotsForFinalSel(selDict, bjets, dilepton, wp, channel, reg, metCutNm_, process, self.doProduceSummedPlots)
+                                    bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, wp, channel, reg, metCutNm_, era, process, self.doProduceSummedPlots)
+                                    
                                     plots.extend(final_cp)
+                                    plots.extend(bjets_cp)
+                                    
+                                    plots_ToSum2.update(final_cpToSum)
+                                    plots_ToSum2.update(bjets_cpToSum)
 
                                 if make_PlotsforCombinedLimits:
                                     plots.extend(makerhoPlots(selDict, bjets, dilepton, self.ellipses, self.ellipse_params, reg, metCutNm_, wp, channel, self.doBlinded, process))
@@ -1351,14 +1406,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             plots.append(CutFlowReport("Yields", selections_for_cutflowreport, recursive=True))
             plots.extend(yield_object.returnPlots())
         
-        for pkey, plt in plots_ToSum.items():
-            region, tag_plus_wp, process, mH, mA = pkey
-            plots.append(SummedPlot(f"DNNOutput_ZAnode_OSSFLep_{region}_{tag_plus_wp}_METCut_{process}_MH_{mH}_MA_{mA}", plt, plotopts=utils.getOpts("ossf")))
-        
-        for pkey, plt in plots_ToSum2.items():
-            suffix, cut, varToPlot, key, process = pkey
-            plots.append(SummedPlot(f"OSSFLep_{suffix}{cut}_{varToPlot}_{key}_{process}", plt, plotopts=utils.getOpts("ossf")))
-
+        for dict_ in [plots_ToSum, plots_ToSum2]:
+            for pkey, plt in dict_.items():
+                plots.append(SummedPlot(pkey, plt, plotopts=utils.getOpts("ossf")))
+            
         return plots
 
     def postProcess(self, taskList, config=None, workdir=None, resultsdir=None):
@@ -1368,7 +1419,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         import json 
         import bambooToOls
         import pandas as pd
+        
+        from bamboo.root import gbl
         from bamboo.plots import CutFlowReport, DerivedPlot, Skim
+        from plotit.plotit import Stack
+        from bamboo.analysisutils import loadPlotIt
 
         # memory usage
         #start= timer()
@@ -1399,8 +1454,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         # save generated-events for each samples--- > mainly needed for the DNN
         plotList_cutflowreport = [ ap for ap in self.plotList if isinstance(ap, CutFlowReport) ]
         #bambooToOls.SaveCutFlowReports(config, plotList_cutflowreport, resultsdir, self.readCounters)
-        
-        from bamboo.root import gbl
         
         prepostVFP_xsec = dict()
         prepostVFP_sumw = dict()
@@ -1438,10 +1491,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
 
-        from bamboo.analysisutils import loadPlotIt
         p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
-        
-        from plotit.plotit import Stack
         
         for plot in plots_2D:
             if ('_2j_jet_pt_eta_') in plot.name  or plot.name.startswith('pair_lept_2j_jet_pt_vs_eta_'):
