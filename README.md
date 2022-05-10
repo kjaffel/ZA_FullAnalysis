@@ -1,4 +1,4 @@
-# H/A ->Z A/H ->llbb : RunII Full Analysis
+# 2HDM H/A ->Z( -> ll) A/H ( -> bb) search: Full ULegcay RunII Analysis
 - Analysis use Bamboo RDataFrame and works with NanoAODv``{5,7,8 and 9}``, check ``.yml`` configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite NanoAOD version. 
 - You can find more about Bamboo in [the UserGuide](https://bamboo-hep.readthedocs.io/en/latest/index.html). Also feel free to report any issue you encounter in [~bamboo](https://mattermost.web.cern.ch/cms-exp/channels/bamboo) channel on the CERN mattermost, or on [Gitlab](https://gitlab.cern.ch/cp3-cms/bamboo/-/issues).
 
@@ -6,13 +6,16 @@
 ```bash
 mkdir bamboodev
 cd bamboodev
+
 # make a virtualenv
-source /cvmfs/sft.cern.ch/lcg/views/LCG_100/x86_64-centos7-gcc10-opt/setup.sh
-python -m venv bamboovenv
+source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc10-opt/setup.sh
+python -m venv bamboovenv101
 source bamboovenv/bin/activate
+
 # clone and install bamboo
 git clone -o upstream https://gitlab.cern.ch/cp3-cms/bamboo.git
 pip install ./bamboo
+
 # clone and install plotIt
 git clone -o upstream https://github.com/cp3-llbb/plotIt.git
 mkdir build-plotit
@@ -20,10 +23,16 @@ cd build-plotit
 cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ../plotIt
 make -j2 install
 cd -
-#To use scalefactors and weights in the new CMS JSON format, the correctionlib package should be installed with
+
+# These last two cmd are needed everytime you upgrade your LCG working version! 
+# To use scalefactors and weights in the new CMS JSON format, the correctionlib package should be installed with
+# you can ignore torch and sphinx pip errors !
 pip install --no-binary=correctionlib correctionlib
+
+# To use the calculators modules for jet and MET corrections and systematic variations
+pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git
 ```
-- In your ``~/.bashrc`` add:
+- Let's make things more simpler, in your ``~/.bashrc`` you can add:
 ```bash
 function cms_env() {
     module --force purge
@@ -36,7 +45,7 @@ function cms_env() {
 alias bamboo_env="source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc10-opt/setup.sh"
 alias bambooenv="source $HOME/bamboodev/bamboovenv101/bin/activate"
 ```
-- In your ``~/.config/bamboorc```add:
+- And, in your ``~/.config/bamboorc`` add:
 ```
 [batch]
 backend = slurm
@@ -44,18 +53,18 @@ backend = slurm
 [slurm]
 sbatch_qos = cp3
 sbatch_partition = cp3
-sbatch_additionalOptions = --licenses=cms_storage:3, --exclude=mb-sky002
+sbatch_additionalOptions = --licenses=cms_storage:3
 sbatch_time = 6:59:00
 sbatch_memPerCPU = 7000
 
 [das]
 sitename = T2_BE_UCL
 storageroot = /storage/data/cms
-checklocalfiles = no
+checklocalfiles = True
 xrootdredirector = xrootd-cms.infn.it
 ```
 ## Environment Setup (Always *):
-- Every time you want to setup your bamboo enviroment, simply do:
+- Every time you want to setup your bamboo enviroment, what you simply need to do:
 ```bash
 cms_env
 voms-proxy-init --voms cms
@@ -82,12 +91,11 @@ cd -
 ```
 ## Test a PR:
 ```
-# open merge request for fat jet varaitions that you want to test
-git fetch upstream merge-requests/150/head:test_fatjet_variations  
-git checkout test_fatjet_variations
+git fetch upstream merge-requests/150/head:test_mr-150 
+git checkout test_mr-150
 pip install --upgrade .
 ```
-## How to run ?
+## How to run ZA full run2 analysis ?
 I do recommend to test locally first with ``--maxFiles=1``,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with ``--distributed=driver``. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
 - ``-s``/``--systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
 - ``-v`` /``--verbose``: give you more print out for debugging. 
@@ -139,44 +147,3 @@ bambooRun --distributed=driver -sel 2Lep2bJets -reg resolved  -cat MuMu -Tag Dee
 bambooRun --distributed=driver -v -s -m BtagEfficiencies.py:ZA_BTagEfficiencies config/mc.yml -o outputdir
 ```
 ## Trouble-Shooting:
-1. Tensorflow issues does not work on ingrid-ui1, you need to run on a worker node with a more recent CPU, e.g. with this:
-```bash
-srun --partition=cp3 --qos=cp3 --time=0-24:00:00 --pty bash
-cms_env
-!voms
-bamboo_env
-bambooenv
-```
-```bash
-Traceback (most recent call last):
-    File "ZAtollbb.py", line 1217, in definePlots
-        ZAmodel = op.mvaEvaluator(ZAmodel_path,mvaType='Tensorflow',otherArgs=(inputs, outputs), nameHint='tf_ZAModel')
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/treefunctions.py", line 916, in mvaEvaluator
-        loadTensorflowC()
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/root.py", line 93, in __call__
-        return self.fun(**kwargs)
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/root.py", line 157, in loadTensorflowC
-        loader(bambooLib="BambooTensorflowC", headers="bambootensorflowc.h", includePath=incPath, dynamicPath=dynPath, libraries="tensorflow")
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/root.py", line 65, in loadDependency
-        loadLibrary(f"lib{lib}")
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/root.py", line 34, in loadLibrary
-        st = gbl.gSystem.Load(libName)
-    cppyy.ll.IllegalInstruction: int TSystem::Load(const char* module, const char* entry = "", bool system = kFALSE) =>
-        IllegalInstruction: illegal instruction in C++; program state was reset
-    
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/bin/bambooRun", line 8, in <module>
-        sys.exit(main())
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/scripts/bambooRun.py", line 62, in main
-        modInst.run()
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/analysismodules.py", line 430, in run
-        self.processTrees(task.inputFiles, output, sampleCfg=task.config, **task.kwargs)
-    File "/home/users/k/j/kjaffel/bamboodev/bamboovenv/lib/python3.8/site-packages/bamboo/analysismodules.py", line 713, in processTrees
-        self.plotList = self.definePlots(tree, noSel, sample=sample, sampleCfg=sampleCfg)
-    File "ZAtollbb.py", line 1224, in definePlots
-        raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
-RuntimeError: -- int TSystem::Load(const char* module, const char* entry = "", bool system = kFALSE) =>
-    IllegalInstruction: illegal instruction in C++; program state was reset -- when op.mvaEvaluator model: /home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work__1/keras_tf_onnx_models/all_combined_dict_343_model.pb.
-```
