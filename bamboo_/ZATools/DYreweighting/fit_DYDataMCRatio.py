@@ -344,7 +344,8 @@ if __name__ == "__main__":
             for reg, wgt_mass in sf.items():
                 for m, wgt_per_bin in wgt_mass.items():
                     for bin, wgt_massplane in wgt_per_bin.items(): # it is just one bin FIXME later
-                        scale_factor[year][reg][m].update({"polyfit7":sf[reg][m][bin]['low_mass']})
+                        if reg == 'resolved':
+                            scale_factor[year][reg][m].update({"polyfit7":sf[reg][m][bin]['low_mass']})
                         scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
                         scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
     #pp.pprint(scale_factor)
