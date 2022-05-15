@@ -34,11 +34,17 @@ def cloneTH1(hist):
     return cloneHist
 
 
+def EraPOGFormat(year):
+    return 'UL'+ str(year).replace('20', '').replace('-','')
+
+
 def getHistTemplate(path, gr, prefix, reg):
     
     filename = glob.glob(os.path.join(path, '*.root'))[0]
+    print( filename )
     f = ROOT.TFile.Open(filename)
-    hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    #hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
     histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     #histo.Reset()
@@ -56,10 +62,11 @@ def subtractMinorBackgrounds(h_data, h_mc, lumi):
     return h_data
 
 
-def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
+def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False):
     _files = set()
     gr = "data" if isData else ("mc")
     
+    requested_flav = ['MuMu', 'ElEl'] if flavour=='LL' else [flavour]
     DLdataset = {"ElEl":"DoubleEG", "MuMu": "DoubleMuon" }
     SLdataset = {"ElEl":"SingleElectron", "MuMu": "SingleMuon" }
 
@@ -72,6 +79,7 @@ def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
         # ignore skeleton
         if smp.startswith('__skeleton__'):
             continue
+        
         # ignore dataset that does not describe DY
         # well better play safe, the histogram will be empty anyway if no events pass 
         #if smp.startswith('MuonEG'):
@@ -94,6 +102,11 @@ def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
         
         year   = Cfg['files'][smp]["era"]
         lumi   = Cfg["configuration"]["luminosity"][year]
+        
+        # ignore same root file for different year if happend the given path is the same !
+        if not EraPOGFormat(year) not in smp:
+            continue
+        
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
@@ -106,10 +119,12 @@ def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
         f = ROOT.TFile.Open(filename)
         _files.add(f)
         print ( 'looking into :', smp)
-        for cat in ['MuMu', 'ElEl']: 
+        for cat in requested_flav:
             
-            varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}")
-            print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
+            #varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") " old version 
+            #print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
+            varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
+            print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
             if not isData:
                 varToPlots_histo.Scale(sf)
             histo.Add(varToPlots_histo, 1)
@@ -121,7 +136,7 @@ def getHisto(path, Cfg, reg, prefix, isData=False, forDataSubstr=False):
 
 
 
-def DYEstimation(plotCfg, files_path, year, n0, n , splitDYweight, compareshape):
+def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, compareshape):
     lumi = Constants.getLuminosity(year)
 
     if splitDYweight :
@@ -132,7 +147,7 @@ def DYEstimation(plotCfg, files_path, year, n0, n , splitDYweight, compareshape)
                     'boosted' : {'mjj' : [0., 150.], 'mlljj': [200., 650.] } }
         
     
-    outDir = os.path.join(os.getcwd(), f"results/ul{year}")
+    outDir = os.path.join(os.getcwd(), f"results/ul{year}/{flavour}")
     if not os.path.exists(outDir):
         os.makedirs(outDir)
     
@@ -150,9 +165,9 @@ def DYEstimation(plotCfg, files_path, year, n0, n , splitDYweight, compareshape)
                 else: w = 'comb'
                 
                 #Drell-Yan +jets mc 
-                histo_mc        = getHisto(files_path, plotCfg, reg, varToPlot, isData=False, forDataSubstr=False)
-                histo_other_mc  = getHisto(files_path, plotCfg, reg, varToPlot, isData=False, forDataSubstr=True)
-                histo_all_data  = getHisto(files_path, plotCfg, reg, varToPlot, isData=True, forDataSubstr=False)
+                histo_mc        = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
+                histo_other_mc  = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
+                histo_all_data  = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
             
                 #histo_data  = histo_all_data 
                 histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc, lumi)
@@ -304,7 +319,7 @@ def DYEstimation(plotCfg, files_path, year, n0, n , splitDYweight, compareshape)
 
 if __name__ == "__main__":
     ROOT.gROOT.SetBatch(True)
-   
+    
     pp = pprint.PrettyPrinter(indent=2)
     
     #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.15.05/results'
@@ -314,44 +329,53 @@ if __name__ == "__main__":
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver19/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
+    # {2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
+    #  2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
+    #  2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
     
     n0 = { 2016: 6, 2017: 7, 2018: 6 }
     scale_factor= collections.defaultdict(list)
     
-    fNm = "DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{foryear}NanoAODv9.json"
-    foryear = ""
-    for year, files_path in {2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
-                             2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
-                             2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
-                             }.items():
-   
-        foryear += str(year).replace('20', '') 
-
-        with open(os.path.join(files_path.replace('/results',''), 'plots.yml')) as _f:
-            plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
+    for flavour in ['LL', 'ElEl', 'MuMu']:
         
-        scale_factor[year] = {'resolved': { 
-                                    'mjj'  : {},
-                                    'mlljj': {} },   
-                            'boosted': {
-                                    'mjj'  : {},
-                                    'mlljj': {} }
+        fNm = "DYJetsTo{flavour}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{foryear}NanoAODv9.json"
+        foryear = ""
+    
+        for year, files_path in {2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
+                                 2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
+                                 2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
+                                }.items():
+   
+            foryear += str(year).replace('20', '') 
+        
+            scale_factor[year] = {'resolved': { 
+                                        'mjj'  : {},
+                                        'mlljj': {} },   
+                                'boosted': {
+                                        'mjj'  : {},
+                                        'mlljj': {} }
                                 }
-
-        for deg in [4, 5, 6, 7, 8]:
-            sf = DYEstimation(plotConfig, files_path, year, n0[year], deg, splitDYweight=False, compareshape=False)
+            if not files_path:
+                continue
+    
+            with open(os.path.join(files_path.replace('/results',''), 'plots.yml')) as _f:
+                plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
             
-            for reg, wgt_mass in sf.items():
-                for m, wgt_per_bin in wgt_mass.items():
-                    for bin, wgt_massplane in wgt_per_bin.items(): # it is just one bin FIXME later
-                        if reg == 'resolved':
-                            scale_factor[year][reg][m].update({"polyfit7":sf[reg][m][bin]['low_mass']})
-                        scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
-                        scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
-    #pp.pprint(scale_factor)
-
-    with open(fNm.format(foryear=foryear), 'w') as _f:
-        b = json.dumps(scale_factor, indent=2, separators=(',', ':'), cls=CustomJSONEncoder)
-        b = b.replace('"##<', "").replace('>##"', "")
-        _f.write(b)
-        print('Drell-Yan reweighting is saved in : ', fNm.format(foryear=foryear))
+                
+                for deg in [4, 5, 6, 7, 8]:
+                    sf = DYEstimation(plotConfig, files_path, flavour, year, n0[year], deg, splitDYweight=False, compareshape=False)
+                    
+                    for reg, wgt_mass in sf.items():
+                        for m, wgt_per_bin in wgt_mass.items():
+                            for bin, wgt_massplane in wgt_per_bin.items(): # it is just one bin FIXME later
+                                if reg == 'resolved':
+                                    scale_factor[year][reg][m].update({"polyfit7":sf[reg][m][bin]['low_mass']})
+                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
+                                scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
+            
+        #pp.pprint(scale_factor)
+        with open(fNm.format(flavour=flavour, foryear=foryear), 'w') as _f:
+            b = json.dumps(scale_factor, indent=2, separators=(',', ':'), cls=CustomJSONEncoder)
+            b = b.replace('"##<', "").replace('>##"', "")
+            _f.write(b)
+            print('Drell-Yan reweighting is saved in : ', fNm.format(flavour=flavour, foryear=foryear))

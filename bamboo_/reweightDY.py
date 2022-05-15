@@ -1,6 +1,7 @@
 import os, os.path, sys
 import math 
 import collections
+import json
 
 from itertools import count
 
@@ -17,6 +18,16 @@ from corrections import legacy_btagging_wpdiscr_cuts, getIDX
 
 
 
+jsf= { 'LL'  : "DYJetsToLL_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
+       'MuMu': "DYJetsToMuMu_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
+       'ElEl': "DYJetsToMuMu_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
+     }
+
+def get_JsonWeights(flav):
+    f   = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", jsf[flav]))
+    params = json.load(f)
+    return params
+
 def make_polynomial(x, parameters):
     def powers_of(x):
         yield x
@@ -31,18 +42,16 @@ def make_gaussian(x, parameters):
     return parameters[0]*op.exp(-0.5* exp_term_of(x)) 
 
 
-def computeDYweight(era, reg, n, mass, name, doSysts):
+def computeDYweight(flav, era, reg, n, mass, name, doSysts):
     lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 }
     fits_rng = {'resolved': [10., 650.], 'boosted': [10., 150.] }
     
-
-    jsf = "DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json"
-    f = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", jsf))
-    params = json.load(f)
-
+    params = get_JsonWeights(flav)
     if reg == 'boosted':
         s   = f"_lowmass{n}"
-        nom = op.switch(mass < fits_rng[reg][1], make_polynomial(mass, params[era][reg][name][f"polyfit{n}"]), op.c_float(params[era][reg][name]['binWgt']))
+        nom = op.switch( mass < fits_rng[reg][1], 
+                            make_polynomial(mass, params[era][reg][name][f"polyfit{n}"]), 
+                        op.c_float(params[era][reg][name]['binWgt']) )
     
     elif reg == 'resolved':
         s   = f"_lowmass{lowmass_fitdeg[era]}_highmass{n}" 
@@ -51,7 +60,7 @@ def computeDYweight(era, reg, n, mass, name, doSysts):
                              , op.c_float(params[era][reg][name]['binWgt']))
     
     #return op.switch(mass < 650., op.define("double", make_polynomial(mass, params[name][f"polyfit{n}"])), op.c_float(1.))
-    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{reg}_{name}_ployfit{s}", up=op.c_float(2*nom), down=op.c_float(nom/2))
+    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{reg}_{flav}_ployfit{s}", up=op.c_float(2*nom), down=op.c_float(nom/2))
     else: return nom 
 
 
@@ -150,11 +159,15 @@ def DYPlusJetsCP(jets, dilepton, sel, uname, reg, n, doWgt=False, doSum=False, d
     return plots, plots_ToSum2
 
 
-def getDYweightFromPolyfit(era, reg, mass, polyfit, doSysts):
+def getDYweightFromPolyfit(channel, era, reg, mass, polyfit, doSysts, doreweightDY):
+    
+    if doreweightDY == "comb": flav = 'LL'
+    else: flav = channel if channel in ['ElEl', 'MuMu'] else ( 'LL')
             
-    DYweight = { "mjj"          : computeDYweight(era, reg, polyfit, mass, 'mjj', doSysts),
-                #"mlljj"        : computeDYweight(era, reg, polyfit, mass, 'mlljj', doSysts),
-                #"mjj_vs_mlljj" : op.product(computeDYweight(era, reg, polyfit, mass, 'mjj', doSysts), computeDYweight(era, reg, polyfit, mass, 'mlljj', doSysts)) 
+    DYweight = { "mjj"          : computeDYweight(flav, era, reg, polyfit, mass, 'mjj', doSysts),
+                #"mlljj"        : computeDYweight(flav, era, reg, polyfit, mass, 'mlljj', doSysts),
+                #"mjj_vs_mlljj" : op.product( computeDYweight(flav, era, reg, polyfit, mass, 'mjj', doSysts), 
+                #                             computeDYweight(flav, era, reg, polyfit, mass, 'mlljj', doSysts)) 
                 }
     return DYweight        
 
@@ -174,7 +187,7 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
         nm += '_DYWeight'
 
     lambda_failbtag = {'DeepFlavour': lambda j: j.btagDeepFlavB < legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][getIDX(wp)],
-                       'DeepCSV'    : lambda j: op.OR(j.subJet1.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)],
+                       'DeepCSV'    : lambda j: op.AND(j.subJet1.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)],
                                                       j.subJet2.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)]) }
 
     for (tagger, lambda_), k in zip( lambda_failbtag.items(), ['resolved', 'boosted']):
@@ -195,7 +208,7 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
     return plots, plots_ToSum2
 
 
-def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, reweightDY, sampleCfg, era, isMC, doSysts, doWgt, doSum):
+def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg, era, isMC, doreweightDY, doSysts, doWgt, doSum):
 
     plots = []
     binScaling = 1
@@ -205,37 +218,39 @@ def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, reweightD
     mlljj  = (dilepton[0].p4 +dilepton[1].p4+jj_p4).M()
     mjj    = jj_p4.M()
         
-    for polyfit in [4, 5, 6, 7, 8]:
-        if reweightDY == "comb":            
-            if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
-                sel = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweightcomb_fitpolynomial{polyfit}_on_mjj", weight=(getDYweightFromPolyfit(era, reg, mjj, polyfit, doSysts)['mjj']))  
+    for deg in [4, 5, 6, 7, 8]:
+        
+        if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
+            sel = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweight{doreweightDY}_fitpolynomial{deg}_on_mjj", 
+                    weight=(getDYweightFromPolyfit(uname, era, reg, mjj, deg, doSysts, doreweightDY)['mjj'])
+                    )  
             
-            plt, pltToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, polyfit, doWgt, doSum)
-            plots += plt
-            plots_ToSum2.update(pltToSum)
+        plt, pltToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, deg, doWgt, doSum)
+        plots += plt
+        plots_ToSum2.update(pltToSum)
+        
+        ## deprecated !! 
+       # if doreweightDY == "split":  # this shit split the the bin not the flavour 
+       #     DY_weight = splitDYweight(mjj, mlljj, withSystematic=doSysts)
+       #     sel       = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweightsplit_fitpolynomial{deg}", weight= DY_weight)
+       #     
+       #     for i in range(len(dywBins_mjj)-1):
+       #         plots.append(Plot.make1D(f"{uname}_{reg}_DYweight{i+1}_mjj",
+       #         mjj, sel,
+       #         EqB(60 // binScaling, dywBins_mjj[i], dywBins_mjj[i+1]),
+       #         title="m_{jj} (GeV)", plotopts=utils.getOpts(uname)))
 
-        if reweightDY == "split": 
-            if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and uname in ['ElEl','MuMu']:
-                DY_weight = splitDYweight(mjj, mlljj, withSystematic=doSysts)
-                sel       = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweightsplit_fitpolynomial{polyfit}", weight= DY_weight)
-            
-            for i in range(len(dywBins_mjj)-1):
-                plots.append(Plot.make1D(f"{uname}_{reg}_DYweight{i+1}_mjj",
-                mjj, sel,
-                EqB(60 // binScaling, dywBins_mjj[i], dywBins_mjj[i+1]),
-                title="m_{jj} (GeV)", plotopts=utils.getOpts(uname)))
-
-            for j in range(len(dywBins_mlljj)-1):
-                plots.append(Plot.make1D(f"{uname}_{reg}_DYweight{i+1}_mjj", 
-                mlljj, sel, 
-                EqB(60 // binScaling, dywBins_mlljj[j+1], dywBins_mlljj[j]),
-                title="m_{lljj} (GeV)", plotopts=utils.getOpts(uname)))
+       #     for j in range(len(dywBins_mlljj)-1):
+       #         plots.append(Plot.make1D(f"{uname}_{reg}_DYweight{i+1}_mjj", 
+       #         mlljj, sel, 
+       #         EqB(60 // binScaling, dywBins_mlljj[j+1], dywBins_mlljj[j]),
+       #         title="m_{lljj} (GeV)", plotopts=utils.getOpts(uname)))
     
-            for i in range(len(dywBins_mjj)-1):
-                for j in range(0,len(dywBins_mlljj)-1):
-                    plots.append(Plot.make2D(f"{uname}_{reg}_DYweight{str(i+1)+str(j+1)}_mlljj_vs_mjj"), 
-                    (mjj, mlljj), sel,
-                    (EqB(60 // binScaling, dywBins_mjj[i], dywBins_mjj[i+1]), EqB(60 // binScaling, dywBins_mlljj[j+1], dywBins_mlljj[j])),
-                    title="mlljj vs mjj invariant mass (GeV)", plotopts=utils.getOpts(uname))
+       #     for i in range(len(dywBins_mjj)-1):
+       #         for j in range(0,len(dywBins_mlljj)-1):
+       #             plots.append(Plot.make2D(f"{uname}_{reg}_DYweight{str(i+1)+str(j+1)}_mlljj_vs_mjj"), 
+       #             (mjj, mlljj), sel,
+       #             (EqB(60 // binScaling, dywBins_mjj[i], dywBins_mjj[i+1]), EqB(60 // binScaling, dywBins_mlljj[j+1], dywBins_mlljj[j])),
+       #             title="mlljj vs mjj invariant mass (GeV)", plotopts=utils.getOpts(uname))
     
     return plots, plots_ToSum2
