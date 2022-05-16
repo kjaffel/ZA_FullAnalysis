@@ -68,7 +68,7 @@ class NanoHtoZABase(NanoAODModule):
         self.doProduceParquet       = False  # df for skim 
         self.doProduceSummedPlots   = True
         self.rebin                  = "uniform" # bayesian or uniform (50 bins) : for the DNN template that will be given to combine
-        self.reweightDY             = "comb" # or "split"
+        self.reweightDY             = "split"     # comb or "split" lepton flavour
         self.doCorrect              = "subjets"   # "fatjet" or subjets : when applying btagging SFs 
         self.qcdScaleVarMode        = "separate"  # "separate" : (muR/muF variations)  or combine : (7-point envelope)
         self.pdfVarMode             = "simple"    # simple  : (event-based envelope) (only if systematics enabled)
@@ -235,7 +235,7 @@ class NanoHtoZABase(NanoAODModule):
                 "MuonEG"     : [ tree.HLT.Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL ],
                 "SingleMuon" : [ tree.HLT.IsoMu24,
                                  tree.HLT.IsoTkMu24,
-                                 tree.HLT.Mu50,
+                                 #tree.HLT.Mu50,
                                 ],
                 "SingleElectron": [tree.HLT.Ele27_WPTight_Gsf],
                 }
@@ -914,8 +914,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         ]
         
         # basic distribution for control region
-        make_ZpicPlots              = False
-        make_JetsPlusLeptonsPlots   = False
+        make_ZpicPlots              = True
+        make_JetsPlusLeptonsPlots   = True
         make_JetmultiplictyPlots    = False
         make_METPlots               = False
         make_METPuppiPlots          = False
@@ -926,15 +926,15 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots    = False
-        make_DeepDoubleBPlots        = False 
+        make_FinalSelControlPlots    = True
+        make_DeepDoubleBPlots        = False
         make_PlotsforCombinedLimits  = False
         
         # plots for the studies
         make_BJetEnRegressionPlots   = False
         make_ttbarEstimationPlots    = False
         make_DYReweightingPlots      = False
-        make_DY0BtagPlots            = False
+        make_DY0BtagPlots            = True
         
         # the follow are mainly for debugging purposes 
         make_tau2tau1RatioPlots      = False
@@ -999,21 +999,24 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
        
             for reg , sel in {"resolved": TwoLeptonsTwoJets_Resolved, "boosted": TwoLeptonsOneJet_Boosted}.items():
                 if make_DYReweightingPlots:
-                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, self.reweightDY, sampleCfg, era_, isMC, self.doSysts, doWgt=True, doSum=True)
+                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era_, isMC, self.reweightDY, self.doSysts, doWgt=True, doSum=True)
                     plots.extend(dy_cp)
                     plots_ToSum2.update(dy_cpToSum)
                 
                 if make_DY0BtagPlots:
                     cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=False, doSum=True)
+                    plots.extend(cp_0Btag_noDYwgt)
                     plots_ToSum2.update(cp_0Btag_noDYwgtToSum)
 
             if self.doDY_reweighting:
-                if self.reweightDY == "comb" and isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
+                if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
                     jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
                                    'boosted' :  AK8jets[0].p4.M() }
-                 
-                    DYweight_reso = getDYweightFromPolyfit(era_, 'resolved', jj_mass['resolved'], 5, self.doSysts)['mjj']
-                    DYweight_boo  = getDYweightFromPolyfit(era_, 'boosted', jj_mass['boosted'], 5, self.doSysts)['mjj']
+
+                    lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 } 
+                    
+                    DYweight_reso = getDYweightFromPolyfit(channel, era_, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
+                    DYweight_boo  = getDYweightFromPolyfit(channel, era_, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
             
                     TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved.refine(f"TwoJet_{channel}Sel_resolved_DYweight", weight=(DYweight_reso))
                     TwoLeptonsOneJet_Boosted   = TwoLeptonsOneJet_Boosted.refine(f"OneJet_{channel}Sel_boosted_DYweight", weight=(DYweight_boo))
@@ -1290,12 +1293,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                     nm = 'ZA'
                                                     mH = parameters[0]
                                                     mA = parameters[1]
-                                                    histNm = f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
+                                                    histNm = f"DNNOutput_{nm}node_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
                                                 else:
                                                     nm = 'ZH'
                                                     mA = parameters[0]
                                                     mH = parameters[1]
-                                                    histNm = f"DNNOutput_ZAnode_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MA_{mass_to_str(mA)}_MH_{mass_to_str(mH)}"
+                                                    histNm = f"DNNOutput_{nm}node_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MA_{mass_to_str(mA)}_MH_{mass_to_str(mH)}"
                                                 
                                                 inputsCommon = {'l1_pdgId'        : dilepton[0].pdgId               ,
                                                                 'myera'           : op.c_int(int(era_))             ,
@@ -1327,7 +1330,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                     binning = EqB(50, 0., 1.)
     
                                                 DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
-                                                DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA]
+                                                DNN_Output   = ZA_mvaEvaluator(*DNN_Inputs) # [DY, TT, ZA/or ZH]
                                                 
                                                 pltToSum_OSSFLepFlav = Plot.make1D(histNm, DNN_Output[2], sel, binning, title='DNN_Output {nm}', plotopts=plotOptions)
                                                 plots += [pltToSum_OSSFLepFlav]
@@ -1408,7 +1411,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         for dict_ in [plots_ToSum, plots_ToSum2]:
             for pkey, plt in dict_.items():
-                plots.append(SummedPlot(pkey, plt, plotopts=utils.getOpts("ossf")))
+                if plt:
+                    plots.append(SummedPlot(pkey, plt, plotopts=utils.getOpts("ossf")))
             
         return plots
 

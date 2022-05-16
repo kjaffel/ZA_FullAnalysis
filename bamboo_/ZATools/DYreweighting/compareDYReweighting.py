@@ -5,20 +5,21 @@ import argparse
 import copy
 import yaml
 import ROOT
+import collections 
 
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
 class DYReweighting():
-    def __init__(self,variable,variable_name,output,plot_data,plot_MC):
-        self.outname = "DYReweightedPlots_2017/"+output
-        self.era     = '2017'
-        self.variable = variable
-        self.variable_name = variable_name
+    def __init__(self,era, variable,variable_name,output,plot_data,plot_MC):
+        self.outname        = "results/"+output
+        self.era            = era
+        self.variable       = variable
+        self.variable_name  = variable_name
         self.data_hist_dict = {}
-        self.MC_hist_dict = {}
-        self.plot_data = plot_data
-        self.plot_MC = plot_MC
+        self.MC_hist_dict   = {}
+        self.plot_data      = plot_data
+        self.plot_MC        = plot_MC
 
         self.extractAllInformation()
         self.processHistograms()
@@ -48,7 +49,6 @@ class DYReweighting():
             h = self.getHistogram(f,histogram)
             hist_dict[name] =h 
 
-        #print ('hist_dict', hist_dict)
         yaml_dict.update({'histograms':hist_dict})
 
         return yaml_dict
@@ -90,18 +90,16 @@ class DYReweighting():
 
     def processHistograms(self):
         colors = [632, 860, 432, 900, 46, 9, ROOT.kRed+2, ROOT.kMagenta+2] 
-        import collections 
         
         for i,(key, val) in enumerate(self.info_dict.items()):
-            print ('key:', key)
             samp_dict=collections.defaultdict(dict)
             for smp, val2 in val['samples'].items():
                 
                 if 'MuMu' in self.variable_name:
-                    if not str(smp).startswith("DoubleMuon") and not str(smp).startswith("DY"):
+                    if not str(smp).startswith("DoubleMuon") and not str(smp).startswith("DYJets"):
                         continue
                 elif 'ElEl' in self.variable_name:
-                    if not str(smp).startswith("DoubleEGamma") and not str(smp).startswith("DY"):
+                    if not str(smp).startswith("DoubleEGamma") and not str(smp).startswith("DYJets"):
                         continue
                 samp_dict[smp]= val2
             
@@ -112,7 +110,6 @@ class DYReweighting():
             plot_dict = val['plot_options'] 
             #samp_dict = val['samples']
             
-            #print ( samp_dict)
             for sample, data_dict in samp_dict.items():
                 h = hist_dict[sample]
                 if h is None:
@@ -142,14 +139,17 @@ class DYReweighting():
                 MC_hist.SetLineColor(colors[i+1])
             else:
                 MC_hist.SetLineColor(colors[i])
+            
             MC_hist.GetXaxis().SetTitle(plot_dict['x-axis'])
             MC_hist.GetYaxis().SetTitle(plot_dict['y-axis'])
             MC_hist.SetTitle(self.variable_name)
+            
             # Normalize to unity #
             if data_hist.Integral() != 0:
                 data_hist.Scale(1/data_hist.Integral())
             if MC_hist.Integral() != 0:
                 MC_hist.Scale(1/MC_hist.Integral())
+            
             # Save #
             self.data_hist_dict[key] = data_hist
             self.MC_hist_dict[key] = MC_hist
@@ -157,6 +157,7 @@ class DYReweighting():
     def saveHistograms(self):
         num_plots = len(self.data_hist_dict.keys())*self.plot_data + len(self.MC_hist_dict.keys())*self.plot_MC
         plot_ratio = num_plots==2
+        
         #if num_plots>=4:
         #    legend = ROOT.TLegend(0.2,0.8,0.89,0.89)
         #    legend.SetNColumns(2)
@@ -172,6 +173,7 @@ class DYReweighting():
         pad1.SetBottomMargin(0.15)
         pad1.SetLeftMargin(0.15)
         pad1.SetRightMargin(0.1)
+        
         if plot_ratio:
             pad1.SetBottomMargin(0.32)
         #pad1.SetGridx()
@@ -181,7 +183,8 @@ class DYReweighting():
 
         # Get Max values #
         max_data = max([h.GetMaximum() for h in self.data_hist_dict.values()])
-        max_MC = max([h.GetMaximum() for h in self.MC_hist_dict.values()])
+        max_MC   = max([h.GetMaximum() for h in self.MC_hist_dict.values()])
+        
         if self.plot_data and self.plot_MC:
             amax = max(max_data,max_MC)
         elif self.plot_data:
@@ -274,71 +277,30 @@ if __name__ == "__main__":
     
     #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.7/'
     #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.8/ver20.05.28/'
-    path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.9/'
-    for cat in ['MuMu', 'ElEl']:
-        
-        njets_noweight ={(path,'no weight'): '{0}_resolved_Jet_mulmtiplicity'.format(cat)}
-        mjj_noweight = {(path,'no weight'): '{0}_resolved_noDYweight_mjj'.format(cat)}
-        mlljj_noweight = {(path,'no weight'): '{0}_resolved_noDYweight_mlljj'.format(cat)}
+    #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.9/'
+    path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver14'
+
+    era   = 2018
+
+    for reg in ['resolved', 'boosted']:
+        for cat in ['MuMu', 'ElEl']:
+            for var_ToPlot in [ 'mjj', 'mlljj']:#, 'Jet_mulmtiplicity']:
+                
+                variable_name = f'{cat} channel : {reg} {var_ToPlot}')
+                noweight = {(path,'no weight'): f'{cat}_{reg}_{var_ToPlot}'}
+
+                instance = DYReweighting(era, noweight, variable_name,"{cat}_noBtag_{reg}_{var_ToPlot}", var_To,plot_data=True,plot_MC=True)
+                
+                DYweightFromFit = {} 
+                for n in [4, 5, 6]:#, 7, 8]:
+                    
+                    dy_weight = {(path,f'{var_ToPlot}Weight: fit_polynomial{n}'): f"{cat}_{reg}_DYweight_fit{n}_{var_ToPlot}"}
+                    DYweightFromFit[n] = dy_weight
+
+                    instance = DYReweighting(era, {**noweight,**dy_weight},
+                                variable_name,f"{cat}_{reg}_DYweight_fit{n}_{var_ToPlot}",
+                                plot_data=True, plot_MC=True)
     
-        instance = DYReweighting(njets_noweight,'{0} channel : {1}'.format(cat, 'Njets'),"{0}_resolved_inclusive_NoWeight_nobtag_Njets".format(cat),plot_data=True,plot_MC=True)
-        
-        for var_ToPlots in [ 'mjj', 'mlljj', 'Jet_mulmtiplicity']:
-            
-            mjj_weight_pol6 = {(path,'mjjWeight: fit_polynomial6'): '{0}_resolved_mjjDYweight_nominal_fitpolynomial6_{1}'.format(cat, var_ToPlots)}
-            mjj_weight_pol7 = {(path,'mjjWeight: fit_polynomial7'): '{0}_resolved_mjjDYweight_nominal_fitpolynomial7_{1}'.format(cat, var_ToPlots)}
-            mjj_weight_pol8 = {(path,'mjjWeight: fit_polynomial8'): '{0}_resolved_mjjDYweight_nominal_fitpolynomial8_{1}'.format(cat, var_ToPlots)}
-        
-            mlljj_weight_pol6 = {(path,'mlljjWeight: fit_polynomial6'): '{0}_resolved_mlljjDYweight_nominal_fitpolynomial6_{1}'.format(cat, var_ToPlots)}
-            mlljj_weight_pol7 = {(path,'mlljjWeight: fit_polynomial7'): '{0}_resolved_mlljjDYweight_nominal_fitpolynomial7_{1}'.format(cat, var_ToPlots)}
-            mlljj_weight_pol8 = {(path,'mlljjWeight: fit_polynomial8'): '{0}_resolved_mlljjDYweight_nominal_fitpolynomial8_{1}'.format(cat, var_ToPlots)}
-            
-            # FIXME faut de frappe in mlljj
-            mjj_and_mlljj_weight_pol6 = {(path,'totalWeight: fit_polynomial6'): '{0}_resolved_mjjmlljjDYweight_nominal_fitpolynomial6_{1}'.format(cat, var_ToPlots)}
-            mjj_and_mlljj_weight_pol7 = {(path,'totalWeight: fit_polynomial7'): '{0}_resolved_mjjmlljjDYweight_nominal_fitpolynomial7_{1}'.format(cat, var_ToPlots)}
-            mjj_and_mlljj_weight_pol8 = {(path,'totalWeight: fit_polynomial8'): '{0}_resolved_mjjmlljjDYweight_nominal_fitpolynomial8_{1}'.format(cat, var_ToPlots)}
-    
-            variable_name = '{0} channel : {1}'.format(cat, var_ToPlots)
-            noweight = ( mjj_noweight if var_ToPlots =='mjj' else(mlljj_noweight if var_ToPlots =='mlljj' else (njets_noweight)))
-            instance = DYReweighting(noweight,variable_name,"{0}_resolved_inclusive_NoDYweight_nobtag_{1}".format(cat, var_ToPlots),plot_data=True,plot_MC=True)
-            
-            for fit, wgt in zip(['6', '7', '8'], [ mjj_weight_pol6, mjj_weight_pol7, mjj_weight_pol8 ]):
-                suffix= 'onlymjj'
-                #instance = DYReweighting(wgt,variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),plot_data=True,plot_MC=True)
-                instance = DYReweighting({**noweight,**wgt},
-                            variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),
+                instance = DYReweighting(era, {**noweight, **DYweightFromFit[4],**DYweightFromFit[5],**DYweightFromFit[6]},
+                            variable_name,f"{cat}_{reg}_DYweight_fit{n}_{var_ToPlot}",
                             plot_data=True, plot_MC=True)
-            for fit, wgt in zip(['6', '7', '8'], [ mlljj_weight_pol6, mlljj_weight_pol7, mlljj_weight_pol8 ]):
-                suffix= 'onlymlljj'
-                #instance = DYReweighting(wgt,variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),plot_data=True,plot_MC=True)
-                instance = DYReweighting({**noweight,**wgt},
-                            variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),
-                            plot_data=True, plot_MC=True)
-            for fit, wgt in zip(['6', '7', '8'], [mjj_and_mlljj_weight_pol6, mjj_and_mlljj_weight_pol7, mjj_and_mlljj_weight_pol8 ]):
-                suffix= 'both'
-                #instance = DYReweighting(wgt,variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),plot_data=True,plot_MC=True)
-                instance = DYReweighting({**noweight,**wgt},
-                            variable_name,"{0}_resolved_inclusive_{1}DYweight_pol{2}_nobtag_{3}".format(cat, suffix, fit, var_ToPlots),
-                            plot_data=True, plot_MC=True)
-
-            instance = DYReweighting({**noweight,**mjj_weight_pol6,**mlljj_weight_pol6,**mjj_and_mlljj_weight_pol6},
-                        variable_name,"{0}_resolved_inclusive_compareDYweight_fit_polynomial6_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True, plot_MC=True)
-            instance = DYReweighting({**noweight,**mjj_weight_pol7,**mlljj_weight_pol7,**mjj_and_mlljj_weight_pol7},
-                        variable_name,"{0}_resolved_inclusive_compareDYweight_fit_polynomial7_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True, plot_MC=True)
-            instance = DYReweighting({**noweight,**mjj_weight_pol8,**mlljj_weight_pol8,**mjj_and_mlljj_weight_pol8},
-                        variable_name,"{0}_resolved_inclusive_compareDYweight_fit_polynomial8_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True, plot_MC=True)
-
-            
-            instance = DYReweighting({**noweight, **mjj_weight_pol6,**mjj_weight_pol7,**mjj_weight_pol8},
-                        variable_name,"{0}_resolved_inclusive_onlymjjDYweight_comparefit_polynomial_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True,plot_MC=True)
-            instance = DYReweighting({**noweight, **mlljj_weight_pol6,**mlljj_weight_pol7,**mlljj_weight_pol8},
-                        variable_name,"{0}_resolved_inclusive_onlymlljjDYweight_comparefit_polynomial_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True,plot_MC=True)
-            instance = DYReweighting({**noweight, **mjj_and_mlljj_weight_pol6,**mjj_and_mlljj_weight_pol7,**mjj_and_mlljj_weight_pol8},
-                        variable_name,"{0}_resolved_inclusive_bothDYweight_comparefit_polynomial_nobtag_{1}".format( cat, var_ToPlots),
-                        plot_data=True,plot_MC=True)
-

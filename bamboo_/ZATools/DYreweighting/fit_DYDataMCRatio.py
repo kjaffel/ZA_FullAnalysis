@@ -43,8 +43,8 @@ def getHistTemplate(path, gr, prefix, reg):
     filename = glob.glob(os.path.join(path, '*.root'))[0]
     print( filename )
     f = ROOT.TFile.Open(filename)
-    #hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
-    hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
+    hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    #hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
     histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     #histo.Reset()
@@ -104,8 +104,8 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
         lumi   = Cfg["configuration"]["luminosity"][year]
         
         # ignore same root file for different year if happend the given path is the same !
-        if not EraPOGFormat(year) not in smp:
-            continue
+        #if not EraPOGFormat(year) not in smp:
+        #    continue
         
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
@@ -121,10 +121,10 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
         print ( 'looking into :', smp)
         for cat in requested_flav:
             
-            #varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") " old version 
-            #print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
-            varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
-            print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
+            varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") #old version 
+            print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
+            #varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
+            #print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
             if not isData:
                 varToPlots_histo.Scale(sf)
             histo.Add(varToPlots_histo, 1)
@@ -329,9 +329,6 @@ if __name__ == "__main__":
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver19/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
-    # {2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
-    #  2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
-    #  2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
     
     n0 = { 2016: 6, 2017: 7, 2018: 6 }
     scale_factor= collections.defaultdict(list)
@@ -341,9 +338,12 @@ if __name__ == "__main__":
         fNm = "DYJetsTo{flavour}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{foryear}NanoAODv9.json"
         foryear = ""
     
-        for year, files_path in {2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
-                                 2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
-                                 2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver9/results',
+        for year, files_path in {#2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 #2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 #2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
+                                 2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
+                                 2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
                                 }.items():
    
             foryear += str(year).replace('20', '') 
@@ -369,7 +369,7 @@ if __name__ == "__main__":
                         for m, wgt_per_bin in wgt_mass.items():
                             for bin, wgt_massplane in wgt_per_bin.items(): # it is just one bin FIXME later
                                 if reg == 'resolved':
-                                    scale_factor[year][reg][m].update({"polyfit7":sf[reg][m][bin]['low_mass']})
+                                    scale_factor[year][reg][m].update({f"polyfit{n0[year]}":sf[reg][m][bin]['low_mass']})
                                 scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
                                 scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
             

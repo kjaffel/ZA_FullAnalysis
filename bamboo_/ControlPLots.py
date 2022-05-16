@@ -240,7 +240,6 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum
     plots_ToSum2 = collections.defaultdict(list)
 
     maxJet = 1 if suffix=="boosted" else 2
-    nm = 'Fat' if suffix=="boosted" else ''
     
     jet_ptcut = {'resolved': 20.,
                  'boosted' : 200.}
@@ -270,7 +269,8 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum
 
             plots += [ bb_plots[f'plt_bb_{nm}'] for nm in ["pT", "mass", "eta", "phi"] ]
             if suffix == 'boosted' and doSum and not uname in ['ElMu', 'MuEl']:
-                for var, plt in bb_plots.items():
+                for key, plt in bb_plots.items():
+                    nm = key.split('plt_bb_')[1]
                     plots_ToSum2[(f'OSSFLep_{suffix}{cut}_bjet{i+1}_{nm}_{key}_{process}')].append(plt)
 
     return plots, plots_ToSum2

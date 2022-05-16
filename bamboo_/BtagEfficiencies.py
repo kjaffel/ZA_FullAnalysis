@@ -14,8 +14,11 @@ logger = utils.ZAlogger(__name__)
 
 import ControlPLots as cp
 import HistogramTools as HT
+
 from ZAtollbb import NanoHtoZABase
 from bambooToOls import Plot, SaveCutFlowReports
+from reweightDY import getDYweightFromPolyfit
+
 
 
 class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
@@ -25,11 +28,10 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):
         noSel, plots, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(ZA_BTagEfficiencies, self).defineObjects(t, noSel, sample, sampleCfg)
         
-        def getIDX(wp = None):
-            return (0 if wp=="L" else ( 1 if wp=="M" else 2))
         
-        era = sampleCfg.get("era") if sampleCfg else None
-        year= era.split('-')[0] 
+        era  = sampleCfg.get("era") if sampleCfg else None
+        era_ = era if "VFP" not in era else "2016"
+        year = era.split('-')[0] 
         isMC = self.isMC(sample)
         
         ZOOM_PT_ETA_BINS      = True
@@ -38,6 +40,24 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         
         binScaling = 1
         plots = []
+        
+        
+        def getIDX(wp = None):
+            return (0 if wp=="L" else ( 1 if wp=="M" else 2))
+        
+        def get_DYweight(channel, reg):
+            DYweight = None
+            lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 }
+            
+            if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
+                jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
+                               'boosted' :  AK8jets[0].p4.M() }
+            
+                if reg == 'resolved':
+                    DYweight = getDYweightFromPolyfit(channel, era_, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
+                else:
+                    DYweight = getDYweightFromPolyfit(channel, era_, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
+            return DYweight
 
         eoy_btagging_wpdiscr_cuts = {
                 "resolved": {
@@ -118,17 +138,29 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                                     "boosted" :1}
                         }
 
+
         for process, njetscut in processes_dic.items():
             
             proc = "ggH" if process=="gg_fusion" else ("bbH")
+            
 
-            lljj_selections_percat_resolved = { channel.lower() : catSel.refine("twolep_%s_%s_resolved_selection"%(channel.lower(), process), cut=[ njetscut["resolved"]] ) 
-                                                    for channel, (dilepton, catSel) in categories.items() }
-            lljj_selections_percat_boosted  = { channel.lower() : catSel.refine("twolep_%s_%s_boosted_selection"%(channel.lower(), process), cut=[ njetscut["boosted"]] ) 
-                                                    for channel, (dilepton, catSel) in categories.items() }
+            lljj_selections_percat_resolved = { channel.lower() : 
+                                                    catSel.refine("twolep_%s_%s_resolved_selection"%(channel.lower(), process), 
+                                                                            cut=[ njetscut["resolved"]],
+                                                                            weight=( get_DYweight(channel, 'resolved') ) ) 
+                                                    for channel, (dilepton, catSel) in categories.items() 
+                                                }
+            
+            lljj_selections_percat_boosted  = { channel.lower() : 
+                                                    catSel.refine("twolep_%s_%s_boosted_selection"%(channel.lower(), process),
+                                                                            cut=[ njetscut["boosted"]],
+                                                                            weight=( get_DYweight(channel, 'boosted') ) ) 
+                                                    for channel, (dilepton, catSel) in categories.items() 
+                                                }
         
-            lljj_selections_perreg= {"resolved": lljj_selections_percat_resolved, "boosted": lljj_selections_percat_boosted }
-        
+            lljj_selections_perreg= { "resolved": lljj_selections_percat_resolved, 
+                                       "boosted": lljj_selections_percat_boosted 
+                                       }
         
             for reg, lljj_selections_percat in lljj_selections_perreg.items():
     
@@ -142,7 +174,6 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     binning = all_binning["boosted"]
                     firstpt = pt_cuts["boosted"]["pt_i"]
                     lastpt  = pt_cuts["boosted"]["pt_f"]
-                    
                     jets = AK8jets
 
                 ZOOM_BINS = (EqBin(20//binScaling, firstpt, lastpt) , VarBin([0.0, 0.8, 1.4442, 1.566, 2.0, 2.5])) 
