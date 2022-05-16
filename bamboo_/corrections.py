@@ -197,16 +197,21 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
                 else:
                     systVariations[f"{var}{d}"] = f"{d}_{varBTV}"
 
-    method = "incl" if flav == 0 else heavy_method
     prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
     
+    
     if tagger == 'deepCSV_subjet':
-        path_localizePOGSF = localize_btv_json_files(era, 'btv-json-sf/data', 'subjet_tagging.json')
+        #path_localizePOGSF = localize_btv_json_files(era, 'btv-json-sf/data', 'subjet_tagging.json')
+        jsf_nm = 'subjet_btagging.json.gz'
         correction = tagger
+        method = "incl" if flav == 0 else 'lt'
         params[f"{prefix}Jet_bRegCorr"].update({'method':method }) 
     else:
-        path_localizePOGSF = localizePOGSF(era, "BTV", "btagging.json.gz")
+        jsf_nm = 'btagging.json.gz'
+        method = "incl" if flav == 0 else heavy_method
         correction = f"{tagger}_{method}"
+    
+    path_localizePOGSF = localizePOGSF(era, "BTV", jsf_nm)
     
     return get_correction(path_localizePOGSF, correction, params=params[f"{prefix}Jet_bRegCorr"],
                           systParam="systematic", systNomName="central",
@@ -458,6 +463,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     for process in ['gg_fusion', 'bb_associatedProduction']:
         for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
             
+            print( ' working on ', tagger, process, reg, 'helooooooooooooooooooooooooooooooo' )
             bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
             tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
             run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF)}

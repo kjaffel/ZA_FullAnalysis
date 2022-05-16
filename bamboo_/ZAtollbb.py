@@ -999,7 +999,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
        
             for reg , sel in {"resolved": TwoLeptonsTwoJets_Resolved, "boosted": TwoLeptonsOneJet_Boosted}.items():
                 if make_DYReweightingPlots:
-                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era_, isMC, self.reweightDY, self.doSysts, doWgt=True, doSum=True)
+                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, self.reweightDY, self.doSysts, doWgt=True, doSum=True)
                     plots.extend(dy_cp)
                     plots_ToSum2.update(dy_cpToSum)
                 
@@ -1015,8 +1015,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
 
                     lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 } 
                     
-                    DYweight_reso = getDYweightFromPolyfit(channel, era_, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
-                    DYweight_boo  = getDYweightFromPolyfit(channel, era_, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
+                    DYweight_reso = getDYweightFromPolyfit(channel, era, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
+                    DYweight_boo  = getDYweightFromPolyfit(channel, era, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
             
                     TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved.refine(f"TwoJet_{channel}Sel_resolved_DYweight", weight=(DYweight_reso))
                     TwoLeptonsOneJet_Boosted   = TwoLeptonsOneJet_Boosted.refine(f"OneJet_{channel}Sel_boosted_DYweight", weight=(DYweight_boo))
@@ -1152,13 +1152,13 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         "gg_fusion": {
                                     "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1 ],
-                                                                        weight = None #( run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted']['DeepCSV{}'.format(wp)] if isMC else None) 
+                                                                        weight = ( run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted']['DeepCSV{}'.format(wp)] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": {
                                     "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_with_AtLeast1AK4_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepflavourWP) >= 1 ],
-                                                                        weight = None # ([ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)], 
-                                                                                      #    run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None) 
+                                                                        weight = ([ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)], 
+                                                                                      run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                             }
                 

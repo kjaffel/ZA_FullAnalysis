@@ -41,9 +41,8 @@ def EraPOGFormat(year):
 def getHistTemplate(path, gr, prefix, reg):
     
     filename = glob.glob(os.path.join(path, '*.root'))[0]
-    print( filename )
     f = ROOT.TFile.Open(filename)
-    hist  = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    hist   = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
     #hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
     histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
@@ -55,15 +54,14 @@ def getHistTemplate(path, gr, prefix, reg):
     return histo
 
 
-def subtractMinorBackgrounds(h_data, h_mc, lumi):
+def subtractMinorBackgrounds(h_data, h_mc):
     
     h_data.Add(h_mc, -1)
     h_data.SetDirectory(0)
     return h_data
 
 
-def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False):
-    _files = set()
+def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False):
     gr = "data" if isData else ("mc")
     
     requested_flav = ['MuMu', 'ElEl'] if flavour=='LL' else [flavour]
@@ -89,6 +87,10 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
         if 'type' in Cfg['files'][smp].keys() and Cfg['files'][smp]['type'] =='signal':
             continue
 
+        # ignore same root file for different year if happend the given path is the same !
+        if not EraPOGFormat(year) in smp:
+            continue
+        
         if not isData:
             if forDataSubstr: 
                 if Cfg['files'][smp]['group'] in ['data', 'DY']: 
@@ -100,13 +102,7 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
             if not Cfg['files'][smp]['group']=='data':
                 continue
         
-        year   = Cfg['files'][smp]["era"]
-        lumi   = Cfg["configuration"]["luminosity"][year]
-        
-        # ignore same root file for different year if happend the given path is the same !
-        #if not EraPOGFormat(year) not in smp:
-        #    continue
-        
+        lumi    = Cfg["configuration"]["luminosity"][year]
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
@@ -117,7 +113,6 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
             DLdataset["ElEl"] ="EGamma"
 
         f = ROOT.TFile.Open(filename)
-        _files.add(f)
         print ( 'looking into :', smp)
         for cat in requested_flav:
             
@@ -137,6 +132,7 @@ def getHisto(path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False)
 
 
 def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, compareshape):
+    
     lumi = Constants.getLuminosity(year)
 
     if splitDYweight :
@@ -165,12 +161,12 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 else: w = 'comb'
                 
                 #Drell-Yan +jets mc 
-                histo_mc        = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
-                histo_other_mc  = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
-                histo_all_data  = getHisto(files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
+                histo_mc        = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
+                histo_other_mc  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
+                histo_all_data  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
             
                 #histo_data  = histo_all_data 
-                histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc, lumi)
+                histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
                 
                 print ( " Get Drell-Yan weight from polynomial fit order ", n, "from bin ",BinEdges[reg][varToPlot][bin], "to",BinEdges[reg][varToPlot][bin+1], "GeV") 
                 print ( " Integrals ** ", ", region:", reg, ", distribution: ", varToPlot)
@@ -330,24 +326,29 @@ if __name__ == "__main__":
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
     
-    n0 = { 2016: 6, 2017: 7, 2018: 6 }
-    scale_factor= collections.defaultdict(list)
+    n0 = { '2016-preVFP' : 6, 
+           '2016-postVFP': 6, 
+            '2017': 7, 
+            '2018': 6 
+            }
     
     for flavour in ['LL', 'ElEl', 'MuMu']:
         
-        fNm = "DYJetsTo{flavour}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{foryear}NanoAODv9.json"
-        foryear = ""
-    
         for year, files_path in {#2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
-                                 2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
-                                 2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
-                                 2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
+                                 '2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
+                                 '2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
+                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
+                                 '2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
                                 }.items():
    
-            foryear += str(year).replace('20', '') 
+            
+            
+            era = year.replace('20', '').replace('-','')
+            jsf_nm = f"DYJetsTo{flavour}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{era}_NanoAODv9.json"
         
+            scale_factor = collections.defaultdict(list)
             scale_factor[year] = {'resolved': { 
                                         'mjj'  : {},
                                         'mlljj': {} },   
@@ -373,9 +374,9 @@ if __name__ == "__main__":
                                 scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
                                 scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
             
-        #pp.pprint(scale_factor)
-        with open(fNm.format(flavour=flavour, foryear=foryear), 'w') as _f:
-            b = json.dumps(scale_factor, indent=2, separators=(',', ':'), cls=CustomJSONEncoder)
-            b = b.replace('"##<', "").replace('>##"', "")
-            _f.write(b)
-            print('Drell-Yan reweighting is saved in : ', fNm.format(flavour=flavour, foryear=foryear))
+            #pp.pprint(scale_factor)
+            with open(jsf_nm, 'w') as _f:
+                b = json.dumps(scale_factor, indent=2, separators=(',', ':'), cls=CustomJSONEncoder)
+                b = b.replace('"##<', "").replace('>##"', "")
+                _f.write(b)
+                print('Drell-Yan reweighting is saved in : ', jsf_nm)

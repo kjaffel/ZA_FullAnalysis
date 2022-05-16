@@ -47,16 +47,20 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         
         def get_DYweight(channel, reg):
             DYweight = None
-            lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 }
-            
+            lowmass_fitdeg = { '2016-preVFP': 6,
+                               '2016-preVFP': 6,
+                               '2017': 7,
+                               '2018': 6,
+                               }
+
             if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
                 jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
                                'boosted' :  AK8jets[0].p4.M() }
             
                 if reg == 'resolved':
-                    DYweight = getDYweightFromPolyfit(channel, era_, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
+                    DYweight = getDYweightFromPolyfit(channel, era, 'resolved', jj_mass['resolved'], 5, self.doSysts, self.reweightDY)['mjj']
                 else:
-                    DYweight = getDYweightFromPolyfit(channel, era_, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
+                    DYweight = getDYweightFromPolyfit(channel, era, 'boosted', jj_mass['boosted'], lowmass_fitdeg[era_], self.doSysts, self.reweightDY)['mjj']
             return DYweight
 
         eoy_btagging_wpdiscr_cuts = {

@@ -17,16 +17,17 @@ logger = utils.ZAlogger(__name__)
 from corrections import legacy_btagging_wpdiscr_cuts, getIDX
 
 
+def pogEraFormat(era):
+    return "UL" + era.replace('20', '').replace('-','')
 
-jsf= { 'LL'  : "DYJetsToLL_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
-       'MuMu': "DYJetsToMuMu_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
-       'ElEl': "DYJetsToMuMu_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL161718NanoAODv9.json",
-     }
 
-def get_JsonWeights(flav):
-    f   = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", jsf[flav]))
+def get_JsonWeights(era, flav):
+    era_ = pogEraFormat(era)
+    jsf  = f"DYJetsTo{flav}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20{era_}_NanoAODv9.json"
+    f    = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "DYreweighting_run2", jsf))
     params = json.load(f)
     return params
+
 
 def make_polynomial(x, parameters):
     def powers_of(x):
@@ -43,10 +44,15 @@ def make_gaussian(x, parameters):
 
 
 def computeDYweight(flav, era, reg, n, mass, name, doSysts):
-    lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 }
+    lowmass_fitdeg = { '2016-preVFP': 6, 
+                       '2016-preVFP': 6,
+                       '2017': 7, 
+                       '2018': 6, 
+                       }
+    
     fits_rng = {'resolved': [10., 650.], 'boosted': [10., 150.] }
     
-    params = get_JsonWeights(flav)
+    params = get_JsonWeights(era, flav)
     if reg == 'boosted':
         s   = f"_lowmass{n}"
         nom = op.switch( mass < fits_rng[reg][1], 
@@ -59,8 +65,9 @@ def computeDYweight(flav, era, reg, n, mass, name, doSysts):
                               (op.in_range(150., mass, fits_rng[reg][1]), make_polynomial(mass, params[era][reg][name][f"polyfit{n}"]))
                              , op.c_float(params[era][reg][name]['binWgt']))
     
+    era_ = pogEraFormat(era)
     #return op.switch(mass < 650., op.define("double", make_polynomial(mass, params[name][f"polyfit{n}"])), op.c_float(1.))
-    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{reg}_{flav}_ployfit{s}", up=op.c_float(2*nom), down=op.c_float(nom/2))
+    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{era_}_{reg}_{flav}_ployfit{s}", up=op.c_float(2*nom), down=op.c_float(nom/2))
     else: return nom 
 
 
