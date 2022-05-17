@@ -14,6 +14,7 @@ splitJECBySources        = False
 scaleZAToSMCrossSection  = False
 splitTTbarUncertBinByBin = False
 
+
 def CMSNamingConvention(origName, era=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
@@ -45,9 +46,9 @@ def CMSNamingConvention(origName, era=None):
         'HHMoriond17_mumutrig':"CMS_eff_trigMuMu_%s"%era,
         'HHMoriond17_elmutrig':"CMS_eff_trigElMu_%s"%era,
         'HHMoriond17_mueltrig':"CMS_eff_trigMuEl_%s"%era,
+        "jesHEMIssue": "CMS_HEM_%s"%era,
         # some not in use  
         "chMisID": "CMS_chargeMisID_%s"%era,
-        "jesHEMIssue": "CMS_HEM_%s"%era,
         }
     theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR", "pdf": "pdf"}
     if origName in other:
@@ -65,10 +66,10 @@ def CMSNamingConvention(origName, era=None):
     #        return "CMS_res_j_{}_{}".format(jerReg, era)
     #    return "CMS_FR{}_{}".format(flav[0].lower(), vari[:3].lower())
     elif origName.startswith("pileup"):
-        VFP = origName.split('_')[-1]
-        return "CMS_pileup_%s%s"%(era, '_'+VFP if era =='2016' else '')   
+        return "CMS_pileup_%s"%(era)   
     else:
         return origName+'_%s'%era
+
 
 def get_hist_from_key(keys=None, key=None):
     h = keys.get(key, None)
@@ -76,30 +77,41 @@ def get_hist_from_key(keys=None, key=None):
         return h.ReadObj()
     return None
 
-def get_listofsystematics(directory, flavor):
+
+def get_listofsystematics(files, flavorCat):
+    # may not be the fastest  !!
+    #all_files = glob.glob(os.path.join(directory,"*.root"))
+    flavor = flavorCat.split('_')[-1]
+    cat    = flavorCat.split('_')[2]
+
     mu = [ 'muid_', '_mumutrig', 'muiso_', '_mueltrig']
     el = [ 'elid_', '_eleltrig', '_ele_reco', '_elmutrig']
     ll = ['_mumutrig', '_eleltrig']
 
-    files = glob.glob(os.path.join(directory,"*.root"))
     systematics = []
-    for i, f in enumerate(files):
-        F = ROOT.TFile(f)
-        for key in F.GetListOfKeys():
+    for f in files:
+        open_f = ROOT.TFile(f)
+        for key in open_f.GetListOfKeys():
             if not 'TH1' in key.GetClassName():
                 continue
             if not '__' in key.GetName():
                 continue
-            if not 'down' in key.GetName() :#or not 'up' in key.GetName():
+            if not 'down' in key.GetName() :
                 continue
+
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
             syst = syst.replace('pile', 'pileup')
             
             avoid = el if flavor=='MuMu' else (mu if flavor=='ElEl' else( ll))
+            if cat == 'boosted':
+                avoid += [ '_btagSF_deepJet_fixWP', 'DYweight_resolved_'] 
+            elif cat == 'resolved':
+                avoid += [ '_btagSF_deepCSV_fixWP', 'DYweight_boosted_'] 
+            
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
                     systematics.append(syst)
-        F.Close()
+        open_f.Close()
     return systematics
 
 
@@ -117,17 +129,20 @@ def get_method_group(method):
     if method == 'fit':
         return 'fit'
     elif method == 'impacts':
-        return 'pulls'
+        return 'pulls-impacts'
     elif method == 'generatetoys':
-        return 'data'
+        return 'generatetoys-data'
     elif method == 'signal_strength':
-        return ''
+        return 'signal_strength'
     elif method == 'pvalue':
-        return 'significance'
+        return 'pvalue_significance'
     elif method == 'goodness_of_fit':
-        return 'test'
-    else:
-        return 'limits'
+        return 'goodness_of_fit_test'
+    elif method == 'asymptotic':
+        return 'asymptotic-limits'
+    elif method == 'hybridnew':
+        return 'hybridnew-limits'
+
 
 def get_combine_method(method):
     if method == 'fit':
@@ -200,8 +215,10 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
         
         if smp.startswith('__skeleton__'):
             continue
-        if not EraFromPOG(era) in smp:
-            continue
+
+        if not era == "fullrun2":
+            if not EraFromPOG(era) in smp:
+                continue
 
         smpScale = None
         smpCfg   = config["files"][smp]
@@ -217,7 +234,7 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
             
             smpScale = lumi / smpCfg["generated-events"]
             if method in ["fit", 'pvalue']:
-                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]#* 0.066 # BR Z -> ll ( ee, \mu\mu )
+                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]#* 0.066 # BR Z -> ll ( ee, \mu\mu ) fixed in bamboo
             
             dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
         
@@ -228,21 +245,23 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
         dict_scale[smp] =  smpScale
     return dict_seperateInfos if seperate else dict_scale
 
+
 def ignoreSystematic(flavor=None, process=None, s=None):
-        # If some systematics cause problems , put them here they will be ignored in the combine fit
+   # If some systematics cause problems , put them here they will be ignored in the combine fit
    # if s == 'FSR':
    #     return True
    # if s == 'ISR':
    #     return True
    # if s == 'pdf':
    #     return True
-        # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
+   # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
     if '_2016postVFP' in s:
         return True
     if '_2016preVFP' in s:
         return True
     else:
         return False
+
 
 def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, destination=None, luminosity=None, normalize=False):
     """
@@ -284,7 +303,8 @@ def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, dest
     zeroNegativeBins(d)
     return d
 
-def prepareFile(processes_map=None, categories_map=None, input=None, output_filename=None, signal_process=None, method=None, luminosity=None, mode=None, flav_categories=None, era=None, unblind=False, normalize=False):
+
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, flav_categories, era, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -294,12 +314,8 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     
     scalefactors = getnormalisationScale(input, method, era, seperate=False)
     logger.info("Categories                                : %s"%flav_categories )
-    logger.info("scalefactors                              : %s"%scalefactors )
+    #logger.info("scalefactors                              : %s"%scalefactors )
 
-    # FIXME some systematics doesn't go in all falvors catgories !
-    systematics = {f: get_listofsystematics(input, f.split('_')[-1])[:] for f in flav_categories}
-    print( systematics)
-    
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
 
@@ -312,8 +328,10 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
     hash.update(str(luminosity))
 
     all_files = [os.path.join(input, f) for f in os.listdir(input) if f.endswith('.root')]
-    files = [ f for f in all_files if EraFromPOG(era) in f.split('/')[-1]]
-    
+    if not era == "fullrun2":
+        files = [ f for f in all_files if EraFromPOG(era) in f.split('/')[-1]]
+    else:
+        files = all_files
     # Gather a list of inputs files for each process.
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
@@ -335,6 +353,11 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
         else:
             hash.update(process)
         map(hash.update, process_files)
+    
+    # I am assuming you will be able to get full list of sys from these 2 
+    files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0] ]
+    systematics = {f: get_listofsystematics(files_tolistsysts, f)[:] for f in flav_categories}
+    print( systematics)
     
     # Use a TT file as reference to extract the list of histograms
     ref_file = processes_files['ttbar'][0]
@@ -470,7 +493,15 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     shapes_category         = shapes.setdefault(category, {})
                     shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
                 
-                    era_ = '%s-preVFP'%era if 'preVFP' in smp else( '%s-postVFP'%era if 'postVFP' in smp else( era))
+                    if 'preVFP' in smp:
+                        era_ = '2016-preVFP'
+                    elif 'postVFP' in smp:
+                        era_ = '2016-postVFP'
+                    elif '_UL17' in smp:
+                        era_ = '2017'
+                    elif '_UL18' in smp:
+                        era_ = '2018'
+
                     lumi = Constants.getLuminosity(era_)
                     # Load nominal shape
                     try:
@@ -483,10 +514,12 @@ def prepareFile(processes_map=None, categories_map=None, input=None, output_file
                     for systematic in systematics[cat]:
                         if 'postVFP' in smp and 'preVFP' in systematic: continue
                         if 'preVFP' in smp and 'postVFP' in systematic: continue
+                        
                         if ignoreSystematic(s= systematic):
                             continue
-                        cms_systematic = CMSNamingConvention(systematic, era)
                         
+                        cms_systematic = systematic #CMSNamingConvention(systematic, era)
+
                         has_both = True
                         for variation in ['up', 'down']:
                             key = cms_systematic + variation.capitalize()

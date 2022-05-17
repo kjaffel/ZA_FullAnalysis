@@ -141,8 +141,19 @@ def getLuminosity(era):
     elif era == '2018':
         lumi = 59740.565201546  #pb
     elif era == 'fullrun2':
-        lumi = 173837.107489856
+        lumi = 137191.592856304
     return lumi
+
+
+def getLuminosityForEraForRun(era, run):
+
+    lumis = {#'2016': {},
+             '2017': {'B':4.823, 'C':9.664, 'D':4.252, 'E':9.278, 'F':13.540},
+             #'2018': {} 
+             }
+    
+    return lumis[era][run]*1000 # pb 
+
 
 def getLuminosityUncertainty(era):
     era = str(era)
