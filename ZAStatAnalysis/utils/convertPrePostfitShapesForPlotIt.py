@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 nominal_fit.SetName('{}'.format(options.name+ '_%s'%fit))
                 remove_errors(nominal_fit)
         
-                plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'update')
+                plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'recreate')
                 nominal_fit.Write()
                 if background == 'ttbar':
                     # Special treatment for ttbar. Apply errors from the TotalBkgs shapes to ttbar
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             
             if data_driven_dy_histogram:
                 output_filename = "DY_%s_histos.root"%fit
-                plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'update')
+                plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'recreate')
                 data_driven_dy_histogram.Write()
                 plot_file.Close()
                 data_driven_dy_histogram = None
@@ -125,7 +125,7 @@ if __name__ == '__main__':
             # if options.signals:
             # f = TFile.Open(options.signals)
             # output_filename = "%s_%s_histos.root" % (options.signal_process, fit)
-            # plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'update')
+            # plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'recreate')
             # for channel in channels:
                 # # signals = [k.GetName() for k in f.Get(options.name+ '_%s'%fit).GetListOfKeys() if not '__' in k.GetName() and options.signal_process in k.GetName()]
                 # # print 'Detected signals: %s' % (', '.join(signals))

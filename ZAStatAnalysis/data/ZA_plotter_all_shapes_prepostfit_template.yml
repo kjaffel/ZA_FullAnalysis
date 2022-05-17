@@ -5,7 +5,7 @@ configuration:
   experiment: "CMS"
   extra-label: "Preliminary"
   root: myroot_path
-  luminosity: 35921.875594646
+  luminosity: mylumi
   no-lumi-rescaling: true
   blinded-range-fill-color: '#FDFBFB' #"16" #"#29556270"
   blinded-range-fill-style: 4050 #3004
@@ -18,8 +18,9 @@ files:
   HToZATo2L2B_fit-type_histos.root:
     type: signal
     legend: mysignal
-    line-color: '#834da4'
+    line-color: '#C00C1E'
     line-type: 1
+    line-width: 2
   DY_fit-type_histos.root:
     type: mc
     group: DY
@@ -50,32 +51,21 @@ plots:
     y-axis-show-zero: true
 groups:
   data:
-    legend: 'Data'
-  ttbar:
-    legend: 't#bar{t}'
-    legend-order: 6
-    fill-color: "#00ffc7"
+    legend: data
   DY:
-    legend: 'Drell-Yan'
-    legend-order: 5
-    fill-color: "#0000FF"
+    fill-color: '#0000FF'
+    legend: Drell-Yan
+    order: 8
+  ttbar:
+    fill-color: '#c4ffff'
+    legend: ttbar
+    order: 7
   ST:
-    legend: 'Single Top'
-    legend-order: 4
-    fill-color: "#9890f0"
-  ZZ:
-    legend: ZZ
-    fill-color: "#ff4800"
-    order: 3
-  SM:
-    legend: tth, Zh
-    fill-color: "#ff0038"
-    order: 2
-  others:
-    legend: others( tt+V, W+Jets , VVV, VV)
-    fill-color: "#c4ffff"
-    order: 1
+    fill-color: '#ffc800'
+    legend: Single Top
+    order: 6
 legend:
-  position: [0.62, 0.61, 0.95, 0.89]
+    #position: [0.62, 0.61, 0.95, 0.89]
+    position: [0.5, 0.61, 0.95, 0.89]
 systematics:
   - fit-type

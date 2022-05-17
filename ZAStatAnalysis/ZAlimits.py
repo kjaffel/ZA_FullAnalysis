@@ -38,7 +38,7 @@ import CMSStyle as CMSStyle
 parser = argparse.ArgumentParser(description='Draw 95%CL Limits')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
 parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br', help='If set, limits are rescaled to the ZA BR')
-parser.add_argument('--era', action='store', type=str, choices=['2016', '2017', '2018'], help='Output directory', required=True)
+parser.add_argument('--era', action='store', type=str, choices=['2016', '2017', '2018', 'fullrun2'], help='Output directory', required=True)
 parser.add_argument('--unblind', action='store_true', dest='unblind', help='If set, draw also observed upper limits')
 parser.add_argument('--theory', action='store_true', dest='theory', help='If set, draw theoretical cross-section')
 parser.add_argument('--log', action='store_true', dest='log', help='If set, draw limits plot in log-scale')
@@ -54,8 +54,10 @@ options = parser.parse_args()
 
 
 def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
-    
-    name = 'all_combined_MH-500_MA-300'
+    #mpl.rcParams['font.size'] = 8 
+
+    name = 'all_combined_MH-{}_MA-{}'.format(mH, mA)
+    print( 'working on ::' , mH, mA)
     CMSStyle.changeFont()
     fig = plt.figure(1, figsize=(8, 8), dpi=300)
     fig.tight_layout()
@@ -64,13 +66,15 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
     
     channels   = {'ElEl'     : 'ee',
                   'MuMu'     : r'$\mu\mu$',
-                  'ElElMuMu': r'$\mu\mu$ + ee' }
+                  'MuMuElEl' : r'$\mu\mu$ + ee', 
+                  #'MuMuElElMuEl': r'$\mu\mu$ + ee + $\mu e$'
+                  }
     eras= []
     yaxis = []
     yaxis_set_ticklabels = []
 
     limits = {}
-    for era in [2016, 2017, 2018]:
+    for era in [2016, 2017, 2018, 'fullrun2']:
         for cat in catagories:
             for flav in flavors:
                 js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, era))
@@ -86,7 +90,11 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
         flav    = k.split('_')[2]
         era     = k.split('_')[-1]
         
-        ticklabel = 'UL%s\n'%era.replace('20','') + '%s-%s\n'%(process, region)+'%s'%channels[flav]
+        if era =='fullrun2':
+            ticklabel = 'combined\n' + '%s-%s\n'%(process, region)+'%s'%channels[flav]
+        else:
+            ticklabel = 'UL%s\n'%era.replace('20','') + '%s-%s\n'%(process, region)+'%s'%channels[flav]
+
         yaxis_set_ticklabels.append(ticklabel)
         if i == 0:
             y_ = np.arange(0., 3., 1)
@@ -140,14 +148,19 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
                                     label          ="Expected")[0]
         
         xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(mH), Constants.mass_to_str(mA), process, 'HToZA')
+        
         xsc_x_br = float(xsc) *float(br_HeavytoZlight)* float(br_lighttobb) *0.066 *1000
+        lw = 1.5
+        if xsc_x_br < 4:
+            xsc_x_br = 4.01
+            lw = 3.
         theory_line = ax.plot([xsc_x_br, xsc_x_br], [0., y_[-1]], 
                                 ls             ='solid', 
                                 solid_capstyle ='round', 
                                 color          ='red' if process=='ggH' else 'blue', 
                                 ms             =6, 
                                 marker         ='', 
-                                lw             =1.5, 
+                                lw             =lw, 
                                 label          ="{} theory".format(process))[0]
     
     ax.set_xlabel(r'95% CLs limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
@@ -160,6 +173,8 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
 
     lumi = 0.
     for era in eras:
+        if era =='fullrun2' and len(eras) >= 4:
+            continue
         lumi += Constants.getLuminosity(era)/1000.
 
     plt.title('CMS Preliminary', fontsize=14., loc='left', style='italic', weight="bold")
@@ -167,6 +182,7 @@ def PlotMultipleUpperLimits(mH, mA, flavors, catagories, jsonpath):
         
     one_sigma_patch = mpatches.Patch(color='#00B140', label='68% expected')
     two_sigma_patch = mpatches.Patch(color='#FFF04D', label='95% expected')
+    print( expected_line )
     handles = [theory_line, expected_line, one_sigma_patch, two_sigma_patch]
 
     ax.legend(loc='best', handles= handles, labels=['Theory prediction', 'Expected', '68% Expected', '95% Expected'], fontsize='medium', frameon=False)
@@ -256,20 +272,27 @@ colors = {
     'ElEl'     : '#ff7f0e',
     'MuEl'     : '#a02c4d',
     'ElEl_MuMu': 'black',
+    'MuMu_ElEl': 'black',
+    'MuMu_ElEl_MuEl': 'black',
     }
 channels = {
     'ElEl'     : 'ee',
     'MuMu'     : '$\mu\mu$',
-    'ElEl_MuMu': '$\mu\mu$ + ee' }
-    
-flavors = ['MuMu', 'ElEl', 'ElEl_MuMu']
-#flavors = ['ElEl_MuMu']
+    'ElEl_MuMu': '$\mu\mu$ + ee',
+    'MuMu_ElEl': '$\mu\mu$ + ee',
+    'MuMu_ElEl_MuEl': '$\mu\mu$ + ee' 
+    }
+#flavors = ['MuMu', 'ElEl', 'MuMu_ElEl_MuEl']#'ElEl_MuMu']
+flavors = ['MuMu_ElEl']
 
 catagories = ['ggH_resolved']#, 'ggH_boosted', 'bbH_resolved', 'bbH_boosted']
 
 output_dir = options.jsonpath
 
-#PlotMultipleUpperLimits(500, 300, flavors, catagories, options.jsonpath)
+#for (mH, mA) in signal_grid:
+mH=800
+mA=700
+#PlotMultipleUpperLimits(mH, mA, ['MuMu_ElEl', 'MuMu', 'ElEl'], catagories, options.jsonpath)
 
 for the_mH in mH_list:
     parameter_values = {
@@ -282,6 +305,8 @@ for the_mH in mH_list:
     
     for flav in flavors:
         limits = flavors_limits.setdefault(flav, {})
+        
+        #with open('final_part0.json') as f:
         with open(os.path.join(options.jsonpath, 'combinedlimits_ggH_resolved_{}_UL{}.json'.format(flav, options.era))) as f:
             limits_ = json.load(f)
             
@@ -331,13 +356,13 @@ for the_mH in mH_list:
             x.append(param_val)
     
             # from pb to fb 
-            expected.append(limits[point]['expected']*1000)
-            observed.append(limits[point]['observed']*1000)
+            expected.append(limits[point]['expected'])#*1000)
+            observed.append(limits[point]['observed'])#*1000)
     
-            exp_plus_1sigma  = limits[point]['one_sigma'][1]*1000
-            exp_minus_1sigma = limits[point]['one_sigma'][0]*1000
-            exp_plus_2sigma  = limits[point]['two_sigma'][1]*1000
-            exp_minus_2sigma = limits[point]['two_sigma'][0]*1000
+            exp_plus_1sigma  = limits[point]['one_sigma'][1]#*1000
+            exp_minus_1sigma = limits[point]['one_sigma'][0]#*1000
+            exp_plus_2sigma  = limits[point]['two_sigma'][1]#*1000
+            exp_minus_2sigma = limits[point]['two_sigma'][0]#*1000
             
             xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(point[0]), Constants.mass_to_str(point[1]), 'ggH', 'HToZA')
             if options.rescale_to_za_br:
@@ -388,21 +413,26 @@ for the_mH in mH_list:
         data = flavors_data[f] 
         data['x'] = np.array(data['x'], dtype=float)
         
-        if f == "ElEl_MuMu":
+        if f in ["ElEl_MuMu", "MuMu_ElEl_MuEl", 'MuMu_ElEl']:
             # Plot 2 sigma
-            ax.fill_between(data['x'], data['expected'] - data['two_sigma'][0], data['expected'] + data['two_sigma'][1], facecolor='#FFCC29', lw=0, label=r'$\pm$ 2 $\sigma$ expected', interpolate=True) 
+            #ax.fill_between(data['x'], data['expected'] - data['two_sigma'][0], data['expected'] + data['two_sigma'][1], facecolor='#FFCC29', lw=0, label=r'$\pm$ 2 $\sigma$ expected', interpolate=True) 
+            ax.fill_between(data['x'], data['expected'] - data['two_sigma'][0], data['expected'] + data['two_sigma'][1], facecolor='#FFCC29', lw=0, label='2 std. deviation', interpolate=True) 
             # Plot 1 sigma
-            ax.fill_between(data['x'], data['expected'] - data['one_sigma'][0], data['expected'] + data['one_sigma'][1], facecolor='#00A859', lw=0, label=r'$\pm$ 1 $\sigma$ expected', interpolate=True)
+            #ax.fill_between(data['x'], data['expected'] - data['one_sigma'][0], data['expected'] + data['one_sigma'][1], facecolor='#00A859', lw=0, label=r'$\pm$ 1 $\sigma$ expected', interpolate=True)
+            ax.fill_between(data['x'], data['expected'] - data['one_sigma'][0], data['expected'] + data['one_sigma'][1], facecolor='#00A859', lw=0, label='1 std. deviation', interpolate=True)
         # Plot expected limit
-        expected_line = ax.plot(data['x'], data['expected'], ls='dashed', solid_capstyle='round', color=color, ms=6, marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected {}".format(f))[0]
+        #expected_line = ax.plot(data['x'], data['expected'], ls='dashed', solid_capstyle='round', color=color, ms=6, marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected {}".format(f))[0]
+        expected_line = ax.plot(data['x'], data['expected'], ls='dashed', solid_capstyle='round', color=color, ms=6, marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected")[0]
         expected_lines[channels[f]] = expected_line 
         
         # And observed
         if options.unblind:
             observed_markers = ax.plot(data['x'], data['observed'], ls='solid', marker='o' if show_markers[options.scan] else '', color=color, mec=color, lw=1.5, markersize=6, alpha=0.8, label="Observed {}".format(f))
     
-    one_sigma_patch = mpatches.Patch(color='#00A859', label=r'$\pm$ 1 $\sigma$ expected')
-    two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'$\pm$ 2 $\sigma$ expected')
+    one_sigma_patch = mpatches.Patch(color='#00A859', label='1 std. deviation')
+    two_sigma_patch = mpatches.Patch(color='#FFCC29', label='2 std. deviation')
+    #one_sigma_patch = mpatches.Patch(color='#00A859', label=r'$\pm$ 1 $\sigma$ expected')
+    #two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'$\pm$ 2 $\sigma$ expected')
     
     # Set x axis range
     # if not options.log:
@@ -501,7 +531,8 @@ for the_mH in mH_list:
     # Legends
     
     handles = [l for l in expected_lines.values()] + [one_sigma_patch, two_sigma_patch]
-    labels  = [r'Expected 95% upper limit ({})'.format(k) for k in  expected_lines.keys()] + [r'$\pm$ 1 $\sigma$ expected', r'$\pm$ 2 $\sigma$ expected']
+    #labels  = [r'Expected 95% upper limit ({})'.format(k) for k in  expected_lines.keys()] + [r'$\pm$ 1 $\sigma$ expected', r'$\pm$ 2 $\sigma$ expected']
+    labels  = ['Expected 95% upper limit'] + ['1 std. deviation', '2 std. deviation']
     
     if options.unblind:
         handles = observed_markers + handles

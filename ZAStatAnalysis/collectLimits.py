@@ -117,6 +117,8 @@ parser.add_argument('-i','--inputs', action='store', type=str, required=True,
                 help='List of (ROOT) combine output file to collect the limits (e.g. higgsCombineBLABLA_.AsymptoticLimits.mH125.root) or higgsCombineBLABLA_.HybridNew.mH125.root')
 parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], 
                 help='Analysis method')
+parser.add_argument('--era', action='store', required=True,
+                help='')
 options = parser.parse_args()
 
 if options.method == "asymptotic":
@@ -129,7 +131,7 @@ print("Extracting limits...")
 for prod in ['gg_fusion', 'bb_associatedProduction']:
     process = 'ggH' if prod =='gg_fusion' else 'bbH'
     for reg in ['resolved', 'boosted']:
-        for flavor in ['ElEl_MuMu', 'ElEl', 'MuMu']:
+        for flavor in ['MuMu_ElEl_MuEl', 'ElEl', 'MuMu', 'MuMu_ElEl']:
             
             limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), '*', '*', '*{}'.format(s)))
             limits['{}_{}_{}'.format(process, reg, flavor)] = []
@@ -139,8 +141,19 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
                 mode     =  f.split('/')[-3]
                 if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_dnn'.format(prod, reg, flavor)):
                     continue
+                if 'MH_800_MA_400' in root and options.era in ['2016', 'fullrun2']: # point causing me troubles
+                    continue
+                if 'MH_650_MA_50' in root and options.era in ['2016', 'fullrun2']:
+                    continue
+                if 'MH_1000_MA_500' in root and options.era in ['2017', 'fullrun2']:
+                    continue
+                if '750_MA_610' in root and options.era in ['2017', 'fullrun2']:
+                    continue
+                if 'MH_300_MA_100' in root and options.era in ['2017', 'fullrun2']:
+                    continue
+                print( 'working on::', f)
                 point_limits = getLimitsFromFile(f, options.method)
-                print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
+                #print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
             
                 if point_limits['expected'] == 0:
                     print("Warning: expected is 0, skipping point")
@@ -156,7 +169,7 @@ if not os.path.exists(limits_out):
 for k, v in limits.items():
     if not v:
         continue
-    output_file = os.path.join(limits_out, 'combinedlimits_{}.json'.format(k))
+    output_file = os.path.join(limits_out, 'combinedlimits_{}_UL{}.json'.format(k, options.era))
     with open(output_file, 'w') as jf:
         json.dump(v, jf, indent=4)
     print("Limits saved as %s" % output_file)
