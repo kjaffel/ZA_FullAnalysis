@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# You may not need all of this, these are some my functions/craps to get things working in optimizeBinning.py
+# using the bayesian blocks 
 import argparse
 import glob
 import os
@@ -8,19 +10,22 @@ import itertools
 import math
 import shutil
 import subprocess
+import root_numpy
 
 from collections import defaultdict
 from faker import Factory
 fake = Factory.create()
 from matplotlib import pyplot as plt
-import root_numpy
+
 import numpy as np
 import ROOT as R
 R.gROOT.SetBatch(True)
+
 import Harvester as H
 import HistogramTools as HT
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
+
 
 def get_yields(Observation=None, v=False):
     newdic = defaultdict(dict)
@@ -43,6 +48,7 @@ def get_yields(Observation=None, v=False):
             print('==='*20)
     return newdic
 
+
 def get_sortedfiles(binnings=None, inputs=None, era=None):
     for rf in inputs:
         smpNm = rf.split('/')[-1].replace('.root','')
@@ -55,9 +61,9 @@ def get_sortedfiles(binnings=None, inputs=None, era=None):
             binnings['files']['tot_b'].append(rf)
         elif f'_{era}signal' in smpNm: 
             binnings['files']['tot_s'].append(rf)
-        elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
+        elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluTo']):
             binnings['files']['signal'].append(rf)
-        elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+        elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon']):
             binnings['files']['data'].append(rf)
         elif any( x in smpNm for x in ['DYJetsToLL']):
             binnings['files']['mc']['DY'].append(rf)
@@ -66,6 +72,7 @@ def get_sortedfiles(binnings=None, inputs=None, era=None):
         elif any( x in smpNm for x in ['ST']):
             binnings['files']['mc']['SingleTop'].append(rf)
     return binnings
+
 
 def hybride_binning(BOnly=None, SOnly=None):
     """Use min() to find the nearest value in a list to a given one 
@@ -89,6 +96,7 @@ def hybride_binning(BOnly=None, SOnly=None):
     print( f'hybride binning: {newEdges} , len: {len(newEdges)}')
     return [newEdges, FinalBins]
 
+
 def available_points(inputs=None):
     points = []
     for fin in inputs:
@@ -103,29 +111,53 @@ def available_points(inputs=None):
             points.append(p)
     return points
 
-def get_histNm_orig(mode=None, smpNm=None, mass=None, info=False):
-    if 'gg_fusion' in smpNm: process = 'gg_fusion'
-    else: process = 'bb_associatedProduction'
-    if 'ElEl' in smpNm: flavor='ElEl'
-    elif 'MuMu' in smpNm: flavor='MuMu'
-    else: flavor= 'MuEl'
-    if 'resolved' in smpNm: region='resolved'
-    else: region='boosted'
-    if 'DeepFlavourM' in smpNm: taggerWP= 'DeepFlavourM'
-    else: taggerWP='DeepCSVM'
+
+def get_histNm_orig(mode, smpNm, mass, info=False):
+    if not mode == 'dnn': prefix= mode
+    else:
+        if 'HToZA' in smpNm: 
+            prefix = 'DNNOutput_ZAnode'
+            thdm = 'HToZA'
+        else: 
+            prefix= 'DNNOutput_ZAnode' # to fix later in the new production
+            thdm = 'AToZH'
+
+    heavy = thdm[0]
+    light = thdm[-1]
+    m_heavy = str(mass.split('_')[1]).replace('.', 'p')
+    m_light = str(mass.split('_')[3]).replace('.', 'p')
     
-    histNm  = f'{mode}_{flavor}_{region}_{taggerWP}_METCut_{process}_{mass}'
-    details = {'process' :process,
-               'flavor'  :flavor,
-               'region'  :region,
-               'taggerWP':taggerWP,
-               'mass'    :mass
-               }
+    def returnIfExist(x, smp):
+        if x in smp:
+            return x
+        else:
+            return None
+
+    dict_ = { 'flavor'  : [ 'ElEl','MuMu', 'MuEl', 'ElMu', 'OSSF'],
+              'process' : ['gg_fusion', 'bb_associatedProduction'],
+              'region'  : ['resolved', 'boosted'],
+              #'taggerWP': ['DeepFlavourM', 'DeepCSVM'], 
+              }
+                
+    opts = {}
+    for k, v in dict_.items():
+        for opt in v:
+            value = returnIfExist(opt, smpNm) 
+            if value is not None:
+                opts[k] =  value
+                continue
+
+    taggerWP = 'DeepFlavourM' if opts['region'] == 'resolved' else 'DeepCSVM'
+    opts.update({'mass': mass, 'taggerWP': taggerWP})
+    
+    histNm  = f"{prefix}_{opts['flavor']}_{opts['region']}_{opts['taggerWP']}_METCut_{opts['process']}_M{heavy}_{m_heavy}_M{light}_{m_light}"
+    
     if info:
-        return histNm, details
+        return histNm, opts
     else:
         return histNm
-        
+
+
 def no_extra_binedges(newEdges=None, oldEdges=None):
     cleanEdges = [] 
     newEdges= newEdges.astype(float).round(2).tolist()
@@ -139,9 +171,12 @@ def no_extra_binedges(newEdges=None, oldEdges=None):
             if i == 0: 
                 cleanEdges.append(x)
             else:
-                if x - cleanEdges[-1] != 0.02:
+                if x - cleanEdges[-1] != 0.01:
                     cleanEdges.append(x)
+                else:
+                    print(x, 'is a very narrow width will be removed ' )
     return cleanEdges
+
 
 def get_finalbins(hist, edges):
     FinalBins = []
@@ -149,6 +184,7 @@ def get_finalbins(hist, edges):
         b = hist.FindBin(x)
         FinalBins.append(b)
     return FinalBins
+
 
 def get_bin_Content_and_Edges(hist):
     Nbins = hist.GetNbinsX()
@@ -160,6 +196,7 @@ def get_bin_Content_and_Edges(hist):
         edges.append(hist.GetXaxis().GetBinUpEdge(i))
         errors.append(hist.GetBinError(i))
     return bin_content, errors, edges, Nbins
+
 
 def get_new_histogramWgt(hist=None, newEdges=None, oldEdges=None, verbose=False):
    
@@ -194,6 +231,7 @@ def get_new_histogramWgt(hist=None, newEdges=None, oldEdges=None, verbose=False)
         binError   = np.append(binError, error)
     return binContent, binError, FinalBins
 
+
 def bbbyields(hist):
     stat  = []
     uncer = []
@@ -204,6 +242,7 @@ def bbbyields(hist):
         stat.append(content)
         uncer.append(error)
     return stat, uncer
+
 
 def optimizeUncertainty_do_not_use(hist, l, thres, edges):
     cond = True
@@ -263,22 +302,32 @@ def arr2root(old_hist=None, newEdges=None, include_overflow=False, verbose=False
     return newHist
 
 
+def EraFromPOG(era):
+    return '_UL'+era.replace('20','')
+
+
 def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
     s = 'scaled_' if scale else ''
     
-    with open(os.path.join(inDir, 'plots.yml')) as _f:
+    in_ = inDir.replace('results', '')
+    with open(os.path.join(in_, 'plots.yml')) as _f:
         Cfg = yaml.load(_f, Loader=yaml.FullLoader)
 
     sorted_inputs= {'data'  :[], 
                     'mc'    :[], 
-                    'signal':[] }
+                    #'signal':[] 
+                    }
     for rf in inputs:
         isData = False
         smp    = rf.split('/')[-1]
         smpNm  = smp.replace('.root','')
+        
         if smpNm.startswith('__skeleton__'):
             continue
-        
+        if not era == 'fullrun2':
+            if not EraFromPOG(era) in smpNm:
+                continue
+
         year   = Cfg['files'][smp]["era"]
         lumi   = Cfg["configuration"]["luminosity"][year]
 
@@ -294,12 +343,16 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
             
-            if any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGlu']):
+            if any(x in smpNm for x in ['AToZHTo', 'HToZATo', 'GluGluTo']):
                 
                 br = Cfg['files'][smp]["generated-events"]
                 
                 smpScale = (lumi * xsc * br)/ genevt
-                sorted_inputs['signal'].append(path)
+                signal = smpNm.split('_UL')[0]
+                
+                if not signal in sorted_inputs.keys():
+                    sorted_inputs[signal] = []
+                sorted_inputs[signal].append(path)
             else:
                 smpScale = (lumi * xsc )/ genevt
                 sorted_inputs['mc'].append(path)
@@ -318,12 +371,17 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
             resultsFile.Close()
 
     for k, val in sorted_inputs.items():
-        haddCmd = ["hadd", "-f", os.path.join(outDir, sumPath, f"summed_{s}{era}{k}_samples.root")]+val
+        if k in [ 'mc', 'data']:
+            sum_f = f"summed_{s}{era}{k}_samples.root"
+        else:
+            sum_f = k + f'_UL{era}'
+        haddCmd = ["hadd", "-f", os.path.join(outDir, sumPath, sum_f)]+val
         try:
             logger.info("running {}".format(" ".join(haddCmd)))
             subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+
 
 def LATEX(uname=None):
     uname=uname.lower()
@@ -340,7 +398,8 @@ def LATEX(uname=None):
     elif "bb_associatedProduction":
         label = "bbH"
     return label
-                
+
+
 def writeymlPlotter(files, kf, year, Cfg, outf, normalized):
     for root_f in files:
 
@@ -371,6 +430,7 @@ def writeymlPlotter(files, kf, year, Cfg, outf, normalized):
         elif kf == 'mc' and normalized:
             outf.write(f"    generated-events: {genevt}\n")
             outf.write(f"    cross-section: {xsc} # pb\n")
+
 
 def plotRebinnedHistograms(binnings, inDir, folder, mode_, suffix, year, toysdata=False, normalized=False):
     
