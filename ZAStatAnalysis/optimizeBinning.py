@@ -190,30 +190,6 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
         return [], []
 
 
-def FindPrior():  # deprectaed !!
-    random_seed = {'toy1': 500.}#, 'toy2':458., 'toy3': 42.}
-    for t, rd in random_seed.items():
-        toydata = np.array([])
-        for el in np_arr_oldhist:
-            toydata = np.append(toydata, [el*rd])
-    
-        for p_star in np.arange(0.95, 1., 0.01):
-            p0 = p_star
-            _fitness = stats.FitnessFunc(p0=p_star, gamma=None, ncp_prior=None)
-            ncp      = _fitness.compute_ncp_prior(N=old_hist.GetNbinsX()) # or prior.calc(N=old_hist.GetNbinsX())
-            newEdges = bayesian_blocks(oldEdges, weights=toydata, p0=p_star, gamma=None)
-            logger.info( f'{t}, ncp= {ncp}, prior= {p0}, newBlocks= {len(newEdges)}, newEdges= {newEdges}') 
-            
-            p0 = p_star*(1/len(newEdges))
-            new_toydata = optimizer.get_new_histogramWgt(old_hist, newEdges, oldEdges, verbose=False) [0]
-            new_toydata = np.append(new_toydata, toydata[-1])
-            rev_fitness = stats.FitnessFunc(p0=p0, gamma=None, ncp_prior=None)
-            rev_ncp = _fitness.compute_ncp_prior(N=len(newEdges))
-            new_newEdges  = bayesian_blocks(newEdges, weights=new_toydata, p0=p0, gamma=None)
-            logger.info( f'{t}, reversed ncp= {rev_ncp}, prior= {p0}, newBlocks= {len(new_newEdges)}, newEdges= {new_newEdges}') 
-            logger.info('======'*20) 
-
-
 def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=False, isSignal=False, doplot=False, dofind_bestPrior=False, include_overflow=False):
     """
     Bayesian Blocks is a dynamic histogramming method which optimizes one of
@@ -307,39 +283,6 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
         print(f" plots saved in : {output}" )
     print( newEdges, FinalBins ) 
     return newHist, newEdges, FinalBins
-
-
-def rebinmethods():
-    method   = {}
-    normal   = [['scott', 'freedman'], ['Scotts rule', 'Freedman-Diaconis rule']]
-    bayesian = [['knuth', 'blocks'], ["Knuth's rule", 'Bayesian blocks']]
-    
-    for i, m in enumerate([ normal, bayesian]):
-        pNm = name + f'_{i}'
-        for bins, title, subplot in zip(m[0],m[1],[121, 122]):
-            ax = fig.add_subplot(subplot)
-            
-            # plot a standard histogram in the background, with alpha transparency
-            visualization.hist(data, bins=oldEdges, histtype='stepfilled',
-                alpha=0.2, density=False, label='standard histogram')
-            
-            # plot an adaptive-width histogram on top
-            visualization.hist(data, bins=bins, ax=ax, color='black',
-                histtype='step', density=False, label=title)
-            
-            np_arr_edges_newhist = stats.histogram(np_arr_oldhist, bins=bins, range=None, weights=None)
-            print( f'{title} new hist  : {np_arr_edges_newhist[0]}' )
-            print( f'{title} new edges : {np_arr_edges_newhist[1]}' )
-            
-            rebin = len(newEdges[0]) +1
-            root_newhist = R.TH1D(name, "", rebin, 0., 1.)
-            
-            newHist    = root_numpy.array2hist(np.flipud(np_arr_newhist), root_newhist)
-            mergedBins = np.flipud(newEdges).tolist()
-            
-            for b in range(1, len(mergedBins) +2):
-                newEdges.append(newHist.GetXaxis().GetBinLowEdge(b))
-            method[bins] = [newHist, [newEdges, upEdges]]
 
 
 def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=True):
@@ -460,7 +403,7 @@ if __name__ == "__main__":
                                  'change-point in data with no signal present.\n')
     parser.add_argument('--scale', action='store_true', default=False, help=' scale histograms before start rebining')
     parser.add_argument('--toys', action='store_true', default=False, help=' use toys data')
-    parser.add_argument('--hadd', action='store_true', default=False, help=' use pseudo-data , sum of all bkg+ sum of signal')
+    parser.add_argument('--asimov', action='store_true', default=False, help=' use pseudo-data , sum of all bkg+ sum of signal')
     parser.add_argument('--plotit', action='store_true', default=False, help=' do plots after rebining')
     parser.add_argument('--onlypost', action='store_true', default=False, 
                             help=' useful to set to True when the changes is only at the plotting stage')
@@ -489,8 +432,9 @@ if __name__ == "__main__":
     except shutil.SameFileError: 
         pass
     
+    THDM      = 'HToZA'
     keep_bins = [1, 3, 9, 21, 39, 51, 52] # accept overflow  
-    sumPath   = "summed_scaled_histogramms" if args.scale else "summed_histogramms"
+    sumPath   = "asimov_data-scaled" if args.scale else "asimov"
     suffix    = f"{args.rebin}_rebin_on_{args.scenario}/results"
     suff      = f'_all_on_{args.scenario}' if args.submit=='all' else '_template'
     divideByBinWidth = False
@@ -507,45 +451,43 @@ if __name__ == "__main__":
         os.makedirs(plotsDIR)
     
     # normalize and sum samples
-    outDir = os.path.join(args.output, 'inputs/')
-    if args.hadd: # no need to merge files
+    outDir = os.path.join(args.output, sumPath)
+    if args.asimov: 
         if not os.path.isdir(outDir):
             os.makedirs(outDir)
-            if not os.path.isdir(os.path.join(outDir, sumPath)):
-                os.makedirs(os.path.join(outDir, sumPath))
-                optimizer.normalizeAndSumSamples(inDir, outDir, sumPath, list_inputs, args.era, args.scale)
+            logger.info(f'working on hadd backgrounds from bamboo {inDir} to play with as an asimov dataset')
+            optimizer.normalizeAndSumSamples(inDir, outDir, list_inputs, args.era, args.scale)
         else:
             logger.info(f'{outDir}/ already exist and not empty!\n'
-                        '\tScale and hadd steps will be skipped \n'
+                        '\tScale/ hadd steps will be skipped \n'
                         '\tIf you have an updated version of files or you want to rerun the steps above :\n'
-                       f'\tPlease remove {outDir}/ and start over!\n' )
+                       f'\tPlease rm -rf {outDir}/ and start over!\n' )
         
     if args.onlypost:
         inputs = [] # don not process anything , just go to the plotter
     else:
         if args.submit=='all':
             # bkg , data and signal as it is given/found in the args.inputs
-            if args.scale:
-                inputs = glob.glob(os.path.join(outDir, '*.root'))
-            else:
-                inputs= list_inputs
+            inputs= list_inputs
             try:
                 f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}_template.json"))
-                #f= open("ul__combinedlimits/preapproval/works__ul_run2__ver8/work__fullrun2/rebinned_edges_bayesian_template.json")
                 data = json.load(f)
             except Exception as ex:
                 raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_{args.rebin}_template.json')
-        else:
+        else: # prepare Bayesian_Blocks/or custon binning template 
             if args.toys:
                 # take toys data 
                 inDir  = os.path.join(args.input, f'generatetoys-data/{args.mode}/*')
                 inputs = glob.glob(os.path.join(inDir, '*_shapes.root'))
-            else:
-                # take pseudo-data: sum of all bkg 
-                inputs = glob.glob(os.path.join(outDir, sumPath, '*.root'))
-                for x in ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH']:
-                    inputs += glob.glob(os.path.join(inDir, x, '*.root'))
-
+            elif args.asimov:
+                s    ='scaled_' if args.scale else ''
+                dir_ = outDir  if args.scale else inDir #  take from the scaled otherwise bamboodir
+                # take pseudo-data: A sum of all bkg, signal stay seperate 
+                inputs = {'B' : [f"{outDir}/summed_{s}mc_samples_UL{args.era}.root"],
+                          'S' : [] }
+                for rf_s in glob.glob(os.path.join(dir_, '*')):
+                    if any(x in rf_s for x in ['AToZH', 'HToZA', 'GluGluTo']):
+                        inputs['S'].append(rf_s)
     binnings = {
             'files': {
                     'tot_b'       : [],
@@ -564,20 +506,21 @@ if __name__ == "__main__":
                     },
             'histograms':{}
             }
-    binnings = optimizer.get_sortedfiles(binnings, inputs, args.era)
     
+    binnings = optimizer.get_sortedfiles(binnings, inputs, args.era)
     
     if args.toys:
         for rf in inputs:
             smpNm = rf.split('/')[-1].split('_shapes')[0]
             
-            if 'boosted' in smpNm:
-                if not '_ElEl_MuMu_' in smpNm or '_MuMu_ElEl_' in smpNm: continue # for boosted cat, accept only merged flavor , because of the lack of stat
-            elif 'resolved' in smpNm:
-                if '_ElEl_MuMu_' in smpNm or '_MuMu_ElEl_' in smpNm: continue 
+            if 'boosted' in smpNm or 'bb_associatedProduction' in smpNm:
+                if not '_OSSF_' in smpNm: continue # for boosted and bbH cats, accept only merged (ee + mumu) lep flavours, because of the lack of stat
+                if '_OSSF_MuEl' in smpNm: continue # ignore the combination with MuEl 
+            elif 'resolved' in smpNm: # split per lepton flavour 
+                if '_ElEl_MuMu_' in smpNm or '_MuMu_ElEl_' in smpNm: continue # and ignore the combination 
 
             channels = set()
-            inFile  = HT.openFileAndGet(rf)
+            inFile   = HT.openFileAndGet(rf)
             for k in inFile.GetListOfKeys():
                 cat = k.GetName()
                 if not cat.startswith(args.mode):
@@ -629,7 +572,7 @@ if __name__ == "__main__":
                     oldEdges[k]      = np_hist.e
                    
                     
-                    newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( old_hist          = oldHist[k], 
+                    newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( old_hist          = oldHist[k],
                                                                             mass              = mass, 
                                                                             name              = histNm,
                                                                             output            = plotsDIR, 
@@ -650,7 +593,6 @@ if __name__ == "__main__":
                            {'B': [MarkedList(newEdges['B']), MarkedList(FinalBins['B']) ] } )
                 
                 if not any ( x in histNm for x in ['MuEl', 'ElMu'] ):
-                    print( newEdges, histNm )
                     newEdges['S'] = newEdges['S'].astype(float).round(2).tolist()
                     binning  = optimizer.hybride_binning( BOnly = [newEdges['B'], FinalBins['B']], 
                                                           SOnly = [newEdges['S'], FinalBins['S']] )
@@ -675,8 +617,56 @@ if __name__ == "__main__":
                             })
 
             inFile.Close()
-    else:
     
+    elif args.asimov:
+        for k, rf_list in inputs.items():
+            isSignal = False
+            for rf in rf_list:
+                inFile   = HT.openFileAndGet(rf)
+                for key in inFile.GetListOfKeys():
+                    
+                    histNm   = key.GetName()
+                    datatype = 'signal' if k == 'S' else 'asimov_data'
+                    
+                    binnings['histograms'][histNm] = {}
+                    if k == 'S': isSignal=True
+                    if isSignal and any (flav in histNm for flav in ['ElMu', 'MuEl']):
+                        continue
+                    if '__' in histNm: # sys avoid
+                        continue
+                    if args.mode == 'dnn' and not histNm.startswith('DNN'):
+                        continue
+                    
+                    if 'gg_fusion' in histNm: process = 'gg_fusion'
+                    else: process = 'bb_associatedProduction' 
+                    
+                    if 'boosted' in histNm and 'OSSF' not in histNm:
+                        continue
+
+                    mass   = histNm.split(process+'_')[-1].split('__')[0]
+                    label  = mass if isSignal else 'B-Only Asimov data'
+                    newHist, newEdges, FinalBins = BayesianBlocks(  old_hist          = inFile.Get(histNm), 
+                                                                    mass              = mass, 
+                                                                    name              = histNm,
+                                                                    output            = plotsDIR, 
+                                                                    prior             = args.prior, 
+                                                                    datatype          = datatype, 
+                                                                    label             = label,
+                                                                    logy              = args.logy, 
+                                                                    isSignal          = isSignal, 
+                                                                    doplot            = True,
+                                                                    dofind_bestPrior  = False,
+                                                                    include_overflow  = False)
+                    if k == 'B':
+                        binnings['histograms'][histNm]['B'] = {'B' : [MarkedList(newEdges), MarkedList(FinalBins) ] }
+                    if not any ( x in histNm for x in ['MuEl', 'ElMu'] ):
+                        binnings['histograms'][histNm].update(
+                                {   'S' : [MarkedList(newEdges), MarkedList(FinalBins) ],
+                                })
+                inFile.Close()
+
+
+    else: # this step will do the rebinning on bamboo output using the rebining saved in the json template
         if not os.path.isdir(os.path.join(args.output, suffix)):
             os.makedirs(os.path.join(args.output, suffix))
         
@@ -715,6 +705,9 @@ if __name__ == "__main__":
                 
                 if 'gg_fusion' in key.GetName(): process = 'gg_fusion'
                 else: process = 'bb_associatedProduction' 
+                
+                if not any( key.GetName().startswith(x) for x in data['histograms'].keys()): # binning template not produce for these histogram
+                    continue
                 
                 mass   = key.GetName().split(process+'_')[-1].split('__')[0]
                 sig    = mass.replace('MH_', 'MH-').replace('MA_', 'MA-')

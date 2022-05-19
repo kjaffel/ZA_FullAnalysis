@@ -22,24 +22,40 @@ import Constants as Constants
 import CombineHarvester.CombineTools.ch as ch
 logger = Constants.ZAlogger(__name__)
 
+signal_grid_part0 = { 
+    'gg_fusion': { 
+        'resolved': { 
+            'HToZA': [
+                (516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71)
+                #part0 : 21 signal samples
+                #( 200, 50), ( 200, 100), ( 200, 125), 
+                #( 250, 50), ( 250, 100),
+                #( 300, 50), ( 300, 100), ( 300, 200), 
+                #( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
+                #( 510, 130),            
+                #( 650, 50), 
+                #( 609.21, 253.68),
+                #( 750, 610),
+                #( 800, 50), ( 800, 200), ( 800, 400),  ( 800, 700),
+                #(1000, 50), (1000, 200), (1000, 500), 
+                #(2000, 1000),
+                #(3000, 2000) 
+                ],
+            'AToZH': [] },
+        'boosted': {
+            'HToZA': [(516.94, 78.52), (296.1, 36.79), (230.77, 56.73), (997.14, 55.16), (209.9, 30.0), (609.21, 63.58), (717.96, 47.08), (500.0, 50.0)], 
+            'AToZH': [] }
+        },
+    'bb_associatedProduction': { 
+        'resolved': { 
+            'HToZA': [(516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71)],
+            'AToZH': [] },
+        'boosted': {
+            'HToZA': [(516.94, 78.52), (296.1, 36.79), (230.77, 56.73), (997.14, 55.16), (209.9, 30.0), (609.21, 63.58), (717.96, 47.08), (500.0, 50.0)],
+            'AToZH': [] }
+        }
+    }
 
-signal_grid_part0 = [ 
-        #part0 : 21 signal samples
-        ( 200, 50), ( 200, 100), ( 200, 125), 
-        ( 250, 50), ( 250, 100),
-        ( 300, 50), ( 300, 100), ( 300, 200), 
-        ( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-        ( 510, 130),            
-        ( 650, 50), 
-        ( 609.21, 253.68),
-        ( 750, 610),
-        ( 800, 50), ( 800, 200), ( 800, 400),  ( 800, 700),
-        (1000, 50), (1000, 200), (1000, 500), 
-        (2000, 1000),
-        (3000, 2000) 
-        ]
-extra_signals = [
-        ]
 
 
 def mass_to_str(m, _p2f=False):
@@ -167,7 +183,7 @@ def get_signal_parameters(f, prefix, isNew=False, isOld=False):
 
 
 
-def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, parameters, mode, input, ellipses_mumu_file, output, method, node, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards_by_cat= False, scale= False, normalize= False, submit_to_slurm= False):
+def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards_by_cat= False, scale= False, normalize= False, submit_to_slurm= False):
     
     luminosity  = Constants.getLuminosity(era)
     
@@ -199,7 +215,6 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, parameters, m
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
     
     
-    print  ( all_parameters )
     logger.info("Era and the corresponding luminosity      : %s, %s" %(era, Constants.getLuminosity(era)))
     logger.info("Input path                                : %s" %input )
     logger.info("Chosen analysis mode                      : %s" % mode)
@@ -208,6 +223,11 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, parameters, m
     for prod in ['gg_fusion', 'bb_associatedProduction']:
         for reg in ['resolved', 'boosted']:
             
+            if prod =='bb_associatedProduction' or reg =='boosted':
+                flavors = [ 'OSSF', 'MuEl']
+            else:
+                flavors = ['MuMu', 'ElEl', 'MuEl']
+
             logger.info("Working on %s && %s cat.     :"%(prod, reg) )
             logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
             
@@ -220,7 +240,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, parameters, m
                             parameters             = all_parameters[prod][reg], 
                             productions            = [prod],# 'gg_fusion', 'bb_associatedProduction'], 
                             regions                = [reg], # 'resolved', 'boosted'], 
-                            flavors                = ['MuMu', 'ElEl', 'MuEl'], 
+                            flavors                = flavors, 
                             ellipses               = ellipses, 
                             mode                   = mode,  
                             output                 = output, 
@@ -268,7 +288,7 @@ done
         logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepareShapes(input, dataset, thdm, expectSignal, era, method, productions, regions, flavors, ellipses, mode, output, luminosity, merge_cards_by_cat=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
+def prepareShapes(input, dataset, thdm, expectSignal, era, method, parameters, productions, regions, flavors, ellipses, mode, output, luminosity, merge_cards_by_cat=False, scale=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -304,18 +324,20 @@ def prepareShapes(input, dataset, thdm, expectSignal, era, method, productions, 
     histfactory_to_combine_categories = {}
     histfactory_to_combine_processes  = {
             # main Background
-            'ttbar'    : ['^TT*', '^ttbar_*'],  
+            'ttbar'    : ['^TTToSemiLeptonic*', '^TTTo2L2Nu*'],  
             'SingleTop': ['^ST_*'],
-            'DY'       : ['^DYJetsToLL_0J*', '^DYJetsToLL_1J*', '^DYJetsToLL_2J*', '^DYToLL_*', '^DYJetsToLL_M-10to50*'],
+            'DY'       : ['^DYJetsToLL_0J*', '^DYJetsToLL_1J*', '^DYJetsToLL_2J*', '^DYJetsToLL_M-10to50*'],
             # Others Backgrounds
-            #'WPlusJets': ['^WJetsToLNu*'],
-            #'ttV'      : ['^TT(WJets|Z)To*'],
-            #'VV'       : ['^(ZZ|WW|WZ)To*'],
-            #'VVV'      : ['^(ZZZ|WWW|WZZ|WWZ)*'],
-            #'Wgamma'   : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
-            #'SMHiggs'  : ['^ggZH_HToBB_ZToNuNu*', '^HZJ_HToWW*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToLL*', '^ttHJet*']
+            'WJets'    : ['^WJetsToLNu*'],
+            'ttV'      : ['^TT(W|Z)To*'],
+            'VV'       : ['^(ZZ|WW|WZ)To*'],
+           #'VVV'      : ['^(ZZZ|WWW|WZZ|WWZ)*'],
+           #'Wgamma'   : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
+            'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToNuNu_M-125*', '^ttHTobb*', '^ttHToNonbb*']
             }
     
+    bkg_processes = histfactory_to_combine_processes.keys()
+
     # Shape depending on the signal hypothesis
     for p in parameters:
         m_heavy = p[0]
@@ -403,18 +425,6 @@ def prepareShapes(input, dataset, thdm, expectSignal, era, method, productions, 
         
         #cb.AddObservations( mass, analysis, era, channel, bin)
         cb.AddObservations(['*'], [sig_process], ['13TeV_%s'%era], flav_categories, categories_with_parameters)
-        
-        bkg_processes = [
-                'ttbar',
-                'SingleTop',
-                'DY',
-                #'WPlusJets',
-                #'ttV',
-                #'VV',
-                #'VVV',
-                #'Wgamma',
-                #'SMHiggs'
-                ]
         
         for cat in flav_categories:
             processes = []
@@ -815,7 +825,7 @@ popd
             
         if merge_cards_by_cat:
             mergeable_regions = ['resolved', 'boosted']
-            listmergeable_flavors = [['MuMu', 'ElEl'], ['MuMu', 'ElEl', 'MuEl']] 
+            listmergeable_flavors = [['MuMu', 'ElEl'], ['MuMu', 'ElEl', 'MuEl'], ['OSSF', 'MuEl']] 
             for prod in productions:
                # for i, cat in enumerate(categories_with_parameters):
                #     if all(x in flavors for x in mergeable_flavors) and all(x in regions for x in mergeable_regions):
@@ -957,10 +967,10 @@ if __name__ == '__main__':
         #except shutil.SameFileError:
             pass
        
-        for thdm in ['HToZA'] :#, 'HToZA', 'AToZH']:
+        for thdm in ['HToZA']:#, 'AToZH']:
             signal_grid = get_SignalMassPoints(options.output, returnKeyMode = False)
-            
-            prepare_DataCards(  grid_data          = signal_grid, 
+            print( signal_grid ) 
+            prepare_DataCards(  grid_data          = signal_grid_part0, #signal_grid, 
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 

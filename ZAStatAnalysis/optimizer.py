@@ -27,7 +27,64 @@ import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
 
-def get_yields(Observation=None, v=False):
+def rebinmethods():
+    method   = {}
+    normal   = [['scott', 'freedman'], ['Scotts rule', 'Freedman-Diaconis rule']]
+    bayesian = [['knuth', 'blocks'], ["Knuth's rule", 'Bayesian blocks']]
+    
+    for i, m in enumerate([ normal, bayesian]):
+        pNm = name + f'_{i}'
+        for bins, title, subplot in zip(m[0],m[1],[121, 122]):
+            ax = fig.add_subplot(subplot)
+            
+            # plot a standard histogram in the background, with alpha transparency
+            visualization.hist(data, bins=oldEdges, histtype='stepfilled',
+                alpha=0.2, density=False, label='standard histogram')
+            
+            # plot an adaptive-width histogram on top
+            visualization.hist(data, bins=bins, ax=ax, color='black',
+                histtype='step', density=False, label=title)
+            
+            np_arr_edges_newhist = stats.histogram(np_arr_oldhist, bins=bins, range=None, weights=None)
+            print( f'{title} new hist  : {np_arr_edges_newhist[0]}' )
+            print( f'{title} new edges : {np_arr_edges_newhist[1]}' )
+            
+            rebin = len(newEdges[0]) +1
+            root_newhist = R.TH1D(name, "", rebin, 0., 1.)
+            
+            newHist    = root_numpy.array2hist(np.flipud(np_arr_newhist), root_newhist)
+            mergedBins = np.flipud(newEdges).tolist()
+            
+            for b in range(1, len(mergedBins) +2):
+                newEdges.append(newHist.GetXaxis().GetBinLowEdge(b))
+            method[bins] = [newHist, [newEdges, upEdges]]
+
+
+def FindPrior():  # deprectaed !!
+    random_seed = {'toy1': 500.}#, 'toy2':458., 'toy3': 42.}
+    for t, rd in random_seed.items():
+        toydata = np.array([])
+        for el in np_arr_oldhist:
+            toydata = np.append(toydata, [el*rd])
+    
+        for p_star in np.arange(0.95, 1., 0.01):
+            p0 = p_star
+            _fitness = stats.FitnessFunc(p0=p_star, gamma=None, ncp_prior=None)
+            ncp      = _fitness.compute_ncp_prior(N=old_hist.GetNbinsX()) # or prior.calc(N=old_hist.GetNbinsX())
+            newEdges = bayesian_blocks(oldEdges, weights=toydata, p0=p_star, gamma=None)
+            logger.info( f'{t}, ncp= {ncp}, prior= {p0}, newBlocks= {len(newEdges)}, newEdges= {newEdges}') 
+            
+            p0 = p_star*(1/len(newEdges))
+            new_toydata = optimizer.get_new_histogramWgt(old_hist, newEdges, oldEdges, verbose=False) [0]
+            new_toydata = np.append(new_toydata, toydata[-1])
+            rev_fitness = stats.FitnessFunc(p0=p0, gamma=None, ncp_prior=None)
+            rev_ncp = _fitness.compute_ncp_prior(N=len(newEdges))
+            new_newEdges  = bayesian_blocks(newEdges, weights=new_toydata, p0=p0, gamma=None)
+            logger.info( f'{t}, reversed ncp= {rev_ncp}, prior= {p0}, newBlocks= {len(new_newEdges)}, newEdges= {new_newEdges}') 
+            logger.info('======'*20) 
+
+
+def get_yields(Observation, v=False):
     newdic = defaultdict(dict)
     channels = []
     for k,v in Observation.items():
@@ -49,17 +106,17 @@ def get_yields(Observation=None, v=False):
     return newdic
 
 
-def get_sortedfiles(binnings=None, inputs=None, era=None):
+def get_sortedfiles(binnings, inputs, era):
     for rf in inputs:
         smpNm = rf.split('/')[-1].replace('.root','')
         if smpNm.startswith('__skeleton__'):
             continue
     
-        if   f'_{era}data' in smpNm: 
+        if   'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
             binnings['files']['tot_obs_data'].append(rf)
-        elif f'_{era}mc' in smpNm: 
+        elif   'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
             binnings['files']['tot_b'].append(rf)
-        elif f'_{era}signal' in smpNm: 
+        elif   'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
             binnings['files']['tot_s'].append(rf)
         elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluTo']):
             binnings['files']['signal'].append(rf)
@@ -69,8 +126,14 @@ def get_sortedfiles(binnings=None, inputs=None, era=None):
             binnings['files']['mc']['DY'].append(rf)
         elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar','TTToSemiLept']):
             binnings['files']['mc']['ttbar'].append(rf)
-        elif any( x in smpNm for x in ['ST']):
+        elif any( x in smpNm for x in ['ST_']):
             binnings['files']['mc']['SingleTop'].append(rf)
+        elif any( x in smpNm for x in ['ZZTo2L2Nu', 'ZZTo4L', 'ZZTo2L2Q']):
+            binnings['files']['mc']['ZZ'].append(rf)
+        elif any( x in smpNm for x in ['HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
+            binnings['files']['mc']['ZZ'].append(rf)
+        else:
+            binnings['files']['mc']['others'].append(rf)
     return binnings
 
 
@@ -97,7 +160,7 @@ def hybride_binning(BOnly=None, SOnly=None):
     return [newEdges, FinalBins]
 
 
-def available_points(inputs=None):
+def available_points(inputs):
     points = []
     for fin in inputs:
         smp = fin.split('/')[-1].replace('.root','')
@@ -158,14 +221,15 @@ def get_histNm_orig(mode, smpNm, mass, info=False):
         return histNm
 
 
-def no_extra_binedges(newEdges=None, oldEdges=None):
+def no_extra_binedges(newEdges, oldEdges):
     cleanEdges = [] 
-    newEdges= newEdges.astype(float).round(2).tolist()
-    oldEdges= oldEdges.astype(float).round(2).tolist()
+    newEdges   = newEdges.astype(float).round(2).tolist()
+    oldEdges   = oldEdges.astype(float).round(2).tolist()
+    
     for i, x in enumerate(newEdges):
         if not x in oldEdges:
             closest_value = min(oldEdges, key=lambda val:abs(val-x))
-            logger.warning(f'I am changing {x} with the closest value : {closest_value} in oldEdges')
+            logger.warning(f'replacing {x} with the closest value : {closest_value} in oldEdges')
             x = closest_value
         if not x in cleanEdges:
             if i == 0: 
@@ -174,7 +238,7 @@ def no_extra_binedges(newEdges=None, oldEdges=None):
                 if x - cleanEdges[-1] != 0.01:
                     cleanEdges.append(x)
                 else:
-                    print(x, 'is a very narrow width will be removed ' )
+                    print(x, 'is a very narrow bin width will be removed ' )
     return cleanEdges
 
 
@@ -244,15 +308,13 @@ def bbbyields(hist):
     return stat, uncer
 
 
-def optimizeUncertainty_do_not_use(hist, l, thres, edges):
+def optimizeUncertainty_(hist, l, thres, edges): # deprectaed /bugy
     cond = True
     dels = 0 
     num_bins = len(l)
     reversed_list = l[::-1]
     pos  = np.arange(len(l)+1)
-    print('pos::', pos )
-    l = np.array(reversed_list)
-    print( 'start aggreagating from the right to the left of :: ', l)
+    l    =np.array(reversed_list)
     while cond:
         indx = np.where(l < thres)[0]
         if len(indx) == 0:
@@ -306,17 +368,18 @@ def EraFromPOG(era):
     return '_UL'+era.replace('20','')
 
 
-def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
-    s = 'scaled_' if scale else ''
-    
+def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=False):
+    s   = 'scaled_' if scale else ''
     in_ = inDir.replace('results', '')
+    
     with open(os.path.join(in_, 'plots.yml')) as _f:
         Cfg = yaml.load(_f, Loader=yaml.FullLoader)
 
     sorted_inputs= {'data'  :[], 
                     'mc'    :[], 
-                    #'signal':[] 
+                   #'signal':[],
                     }
+    to_hadd = ['mc']
     for rf in inputs:
         isData = False
         smp    = rf.split('/')[-1]
@@ -324,6 +387,7 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
         
         if smpNm.startswith('__skeleton__'):
             continue
+        
         if not era == 'fullrun2':
             if not EraFromPOG(era) in smpNm:
                 continue
@@ -335,9 +399,11 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
         else: path = rf 
         
         if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
-            if scale:
-                shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
-            sorted_inputs['data'].append(path)
+            if doNeedData:
+                to_hadd += ['data']
+                if scale:
+                    shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
+                sorted_inputs['data'].append(path)
             isData = True
         else:
             xsc    = Cfg['files'][smp]["cross-section"]
@@ -369,13 +435,16 @@ def normalizeAndSumSamples(inDir, outDir, sumPath, inputs, era, scale=False):
                 hist.Write()
             normalizedFile.Write()
             resultsFile.Close()
-
+    
     for k, val in sorted_inputs.items():
-        if k in [ 'mc', 'data']:
-            sum_f = f"summed_{s}{era}{k}_samples.root"
-        else:
-            sum_f = k + f'_UL{era}'
-        haddCmd = ["hadd", "-f", os.path.join(outDir, sumPath, sum_f)]+val
+        if k in to_hadd:
+            sum_f = f"summed_{s}{k}_samples_UL{era}.root"
+            haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
+        else: # the rest are signal we dont want to hadd them all 
+              # only the ones those belong to the same group like pre/post VFP
+            if era == '2016':
+                sum_f = val[0].replace('preVFP', '')
+                haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
         try:
             logger.info("running {}".format(" ".join(haddCmd)))
             subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)

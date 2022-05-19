@@ -146,7 +146,7 @@ def get_method_group(method):
 
 def get_combine_method(method):
     if method == 'fit':
-        # FIXME   hey leave iut this way : --rMax 500 : the postfit plots are better that why
+        # FIXME   hey leave it this way : --rMax 500 : the postfit plots are better that why
         # I can tell you alrady, did nothing for the limits !! 
         return '-M FitDiagnostics --rMax 500'#--rMin -50 --rMax 50 --robustFit=1' #--X-rtd MINIMIZER_analytic'# -M MaxLikelihoodFit'
     elif method == 'asymptotic':
@@ -246,15 +246,14 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
     return dict_seperateInfos if seperate else dict_scale
 
 
-def ignoreSystematic(flavor=None, process=None, s=None):
-   # If some systematics cause problems , put them here they will be ignored in the combine fit
-   # if s == 'FSR':
-   #     return True
-   # if s == 'ISR':
-   #     return True
-   # if s == 'pdf':
-   #     return True
-   # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
+def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
+    """
+        If some systematics cause problems, return True and they will be ignored in the combine fit
+    """
+    # do not propagate DYrewigthing to non DY samples !
+    if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
+        return True 
+    # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
     if '_2016postVFP' in s:
         return True
     if '_2016preVFP' in s:
@@ -515,10 +514,10 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                         if 'postVFP' in smp and 'preVFP' in systematic: continue
                         if 'preVFP' in smp and 'postVFP' in systematic: continue
                         
-                        if ignoreSystematic(s= systematic):
+                        if ignoreSystematic(smp, s= systematic):
                             continue
                         
-                        cms_systematic = systematic #CMSNamingConvention(systematic, era)
+                        cms_systematic = CMSNamingConvention(systematic, era)
 
                         has_both = True
                         for variation in ['up', 'down']:
