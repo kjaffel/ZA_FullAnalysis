@@ -199,7 +199,6 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
 
     prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
     
-    
     if tagger == 'deepCSV_subjet':
         #path_localizePOGSF = localize_btv_json_files(era, 'btv-json-sf/data', 'subjet_tagging.json')
         jsf_nm = 'subjet_btagging.json.gz'
@@ -375,7 +374,7 @@ def call_BTagCalibration(flav, noSel, era, wp):
                     getters= getters, sel= noSel, uName= f'btagSF_subjetdeepcsv_fixWP_{flav}')
 
 
-def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse):
+def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, full_scheme, full_scheme_mapping):
     
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
 
@@ -402,7 +401,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     
     def get_bTagSF(tagger, flav):
         return get_bTagSF_fixWP(tagger=tagger, wp=wp, flav=flav, era=era.replace('-',''), 
-                sel=noSel, dobJetER=dobJetER, isSignal=isSignal, defineOnFirstUse=defineOnFirstUse)
+                sel=noSel, dobJetER=dobJetER, isSignal=isSignal, defineOnFirstUse=defineOnFirstUse, full_scheme=full_scheme, full_scheme_mapping=full_scheme_mapping)
     
     def bTagSF(j, tagger):
         return op.multiSwitch( (j.hadronFlavour == 5, get_bTagSF(tagger, 5)(j)),
@@ -418,6 +417,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
         params   = {
                 'Jet_bRegCorr'  : {"pt": lambda j: j.pt*j.bRegCorr, "eta": lambda j: j.eta}, 
                 'noJet_bRegCorr': {"pt": lambda j: j.pt, "eta": lambda j: j.eta} }
+        
         correctionSet = { 
                 "b": f"pair_lept_2j_jet_pt_vs_eta_bflav_{reg}_{tagger}_wp{wp}_{process}__mc_eff",
                 "c": f"pair_lept_2j_jet_pt_vs_eta_cflav_{reg}_{tagger}_wp{wp}_{process}__mc_eff",
@@ -426,7 +426,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
         def call_get_correction(flav):
             return get_correction(bTagEff_file, correctionSet[flav], params=params[f'{prefix}Jet_bRegCorr'],
                                 systParam="ValType", systNomName="sf",
-                                systVariations={f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, sel= noSel )
+                                systVariations={f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, defineOnFirstUse=defineOnFirstUse, sel= noSel )
 
         if reg == 'resolved':
             return op.multiSwitch( (j.hadronFlavour == 5, call_get_correction('b')(j)),
@@ -451,22 +451,24 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                     bTagSF(j, tagger), 
                                     wFail( bTagSF(j, tagger), get_bTagEff( j, reg, tagger_.lower(), wp, process) ) )
             elif doCorrect == 'subjets':
-                return op.product( op.switch(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx], 
-                                            subjet_bTagSF(j.subJet1),
-                                            wFail( subjet_bTagSF(j.subJet1), get_bTagEff( j.subJet1, reg, tagger_.lower(), wp, process) ) ), 
-                                   op.switch(j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx],
-                                            subjet_bTagSF(j.subJet2),
-                                            wFail( subjet_bTagSF(j.subJet2), get_bTagEff( j.subJet2, reg, tagger_.lower(), wp, process) ) )
-                                   ) 
+                return op.product( op.switch( op.abs(j.subJet1.eta) < 2.5, 
+                                                   op.switch(j.subJet1.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx], 
+                                                            subjet_bTagSF(j.subJet1),
+                                                            wFail( subjet_bTagSF(j.subJet1), get_bTagEff( j.subJet1, reg, tagger_.lower(), wp, process) ) ),
+                                              op.c_float(1.) ),
+                                   op.switch( op.abs(j.subJet2.eta) < 2.5,
+                                                    op.switch(j.subJet2.btagDeepB >= legacy_btagging_wpdiscr_cuts[tagger_][era][idx],
+                                                            subjet_bTagSF(j.subJet2),
+                                                            wFail( subjet_bTagSF(j.subJet2), get_bTagEff( j.subJet2, reg, tagger_.lower(), wp, process) ) ),
+                                              op.c_float(1.) )
+                                )
 
-   
     for process in ['gg_fusion', 'bb_associatedProduction']:
         for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
             
-            print( ' working on ', tagger, process, reg, 'helooooooooooooooooooooooooooooooo' )
             bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
             tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
-            run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF)}
+            run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF) }
 
     return run2_bTagEventWeight_PerWP
         
