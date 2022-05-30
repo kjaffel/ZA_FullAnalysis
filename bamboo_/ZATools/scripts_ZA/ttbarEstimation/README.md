@@ -52,8 +52,10 @@ To get the correct normalization factors for MuMu and ElEl, get the yields of th
 - ``MuMu cat.:  data = DY + SINGLETOP + OTHERBKGS + k_mumu*TTBAR_DATA  -->  k_mumu = (DATA - DY - SINGLETOP - OTHERBKGS) / TTBAR_DATA``
 - ``ElEl cat.:  data = DY + SINGLETOP + OTHERBKGS + k_elel*TTBAR_DATA  -->  k_elel = (DATA - DY - SINGLETOP - OTHERBKGS) / TTBAR_DATA``
 
-4- Once you have k_factors : ``k_mumu`` and ``k_elel``, you can apply them to the ``ttbar_data`` in the various distributions  (``m_bb`` and ``m_llbb``, ...). This is done with function ``getTTbarFromData``. The output root file is called "TTbar_FromMuonEGData_UL{era}BCDEF_minus_SingleTop_inHighMET.root" and contains the ttbar estimated from data.
-Again, copy this file to the folder in factories_ZA that you're using to make plots repeating step 3!
+4- Once you have k_factors : ``k_mumu`` and ``k_elel``, you can apply them to the ``ttbar_data`` in the various distributions  (``m_bb`` and ``m_llbb``, ...). This is done with function ``getTTbarFromData``. 
+The output root file is called ``TTbar_FromMuonEGData_UL{era}BCDEF_minus_SingleTop_inHighMET.root`` and contains the ttbar estimated from data.
+Again, copy this file to your ZA factories that you're using to make plots repeating step 3!
 
-5- After you get you ttbar estimated from data and with the right normalization, compare it to ttbar MC in (``m_bb`` and ``m_llbb``, ...) to make sure you have enough statistics to cover the plane. Should the statistics of ttbar from data be poorer than the one taken from MC, then don't go with a data-driven estimation.
-The script to compare the stats is "checkStats.py" and produces the folder "checkStats" in which it stores a root file called ``compareStatsTTbarMC_vs_Data.root``, containing the histos to compare the stats.
+5- After you get you ttbar estimated from data and with the right normalization, compare it to ttbar MC in (``m_bb`` and ``m_llbb``, ...) to make sure you have enough statistics to cover the plane. 
+Should the statistics of ttbar from data be poorer than the one taken from MC, then don't go with a data-driven estimation.
+The script to compare the stats is ``checkStats.py`` and produces the folder ``checkStats`` in which it stores a root file called ``compareStatsTTbarMC_vs_Data.root``, containing the histos to compare the stats.
