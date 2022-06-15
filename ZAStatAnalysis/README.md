@@ -59,69 +59,93 @@ cd ${CMSSW_BASE}/src
 
 scram b -j7
 ```
-##  Prepare Shape Cards:
-**Warning:** make sure that the inputs root file are normalized !
+## Optimize Binning: 
+- Commands for the Bayesian Blocks method can be found in ``run_bboptimizer.sh``
+```python
+python optimizeBinning.py -i $bambooDir -o $outDir --rebin bayesian --era $era --mode dnn --asimov --scale --logy
+```
+- ``-i``/``--inputs``    : Bamboo results dir 
+- ``-o``/``--outputs``   : Path to the output dir of the new rebinned histogram. 
+- ``--era``              : Choices ``['2016', '2017', '2018', 'fullrun2']``
+- ``--scale``            : Re-create the input histograms scaled to`` scale = lumi * xsc / sumGenEvts`` and ``scale *= BR`` in case of signal.  
+- ``--rebin``            : Choices ``['custom', 'standalone', 'bayesian']``.
+- ``--scenario```        : Choices ``['hybride', 'S', 'B']``.
+- ``-p0``/``--prior``    : False positive probability betwee 0 and 1 which is the relative frequency with which the algorithm falsely reports detection of change-point in data with no signal present. 
+- ``--toys``/``--asimov``:
+- ``--sys``              : Rebin ssytematic histograms as well.
+- ``--submit``           : Choices ``['all','test']`` first will rebin all histogram found in the input files, second weill do only a test. Useful for debugging.
+### For plotting: 
+- ``--onlypost``         : Do just plotting. 
+- ``--plotit``           : Do plots after rebining.
+- ``--logy``             : log scale for plotit.
+- ``--mode``             : Choices ``['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'rho', 'dnn']``.
+- ``--normalized``       : normalize histogram for plotting. 
+### For Custom rebinning: 
+- ``--uncertainty``      : max stat. uncertainty needed in each bin.
+- ``--events``           : max entries in each bin.
+
+##  Prepare DataCards and how to run combine:
 ```bash
 cms_env
 cd ${CMSSW_BASE}/src
 cmsenv
-./prepareShapesAndCards.py --era -i -o --dataset --mode --method --expectSignal
 ```
-- ``-i``/``--input`` : path to inputs prefit histograms
-- **``--normalize``: normalize the inputs histograms if the given ``--inputs`` above are not !**
-- ``-o``/``--output``: path to where you want to save the datacards 
-- ``-p``/``--parameters``: take a list of float ntuples ``[(MH, MA)]``, by default will do all signal mass points that can be found in ``inputs/results/*.root``
-- ``-v``/``--verbose``: for more printout when debugging
-- ``--era`` : choices ``[2016, 2017, 2018]``
-- ``--expectSignal``: ``0`` for B-Only or ``1`` for S+B hypothesis.
-- ``--dataset``: if ``asimov``; ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. If ``toys``; ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
-- ``--node``: choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node by default ``ZA`` is the only relevant one.
-- ``--mode``: choices of histogram you want to run combined on ``[mjj_vs_mlljj, mjj_and_mlljj, postfit, mjj, mlljj, ellipse, dnn]``
-- ``--method``: choices of statistical method ``[asymptotic, hybridnew, fit, impacts, generatetoys]``
-- ``--unblind``: if set to False``--run blind`` options will be added to combine commands otherwise real_data will be used instead. 
-- ``--scale``: scale signal rate; the signale is usualy normalized to 1pb, this flag will scale signal process to ``BR * cross-section``.
+- Have a look about the available commands written in ``run_combine.sh``ii
+bash run_combine.sh
+###1. Generate toys data only: 
+```python
+./prepareShapesAndCards.py --era $era -i $bambooDir -o $outDir --dataset toys --mode dnn --method generatetoys --expectSignal 0 --normalize --stat
+```
+###2. Pulls and impacts:
+```python
+./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --dataset asimov --mode dnn --method fit --expectSignal 1 --unblind --normalize
+```
+###3. CLs limits:
+```python
+./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --dataset asimov --mode dnn --method asymptotic --expectSignal 1 --normalize #--verbose
+./run_combined_dnn_asymptoticlimits.sh
+```
+###4. P-value/Significane:
+```python
+./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --dataset asimov --mode dnn --method pvalue --expectSignal 1 --normalize
+./run_combined_dnn_pvalue.sh
+python collectPvalue.py --inputs $outDir/$scenario/
+```
+###Details about the available options:
+- ``-i``/``--input``  : Path to inputs prefit histograms
+- ``-o``/``--output`` : Path to the output datacards to be saved.
+- ``--era``           : Choices ``['2016', '2017', '2018', 'fullrun2']``.
+- ``--dataset``       : if ``asimov``; 
+- **``--normalize``   : Normalize the inputs histograms  lumi x xsc / sumGenEvts if the given ``--inputs`` are not !**
+- ``--expectSignal``  : ``0`` for B-Only or ``1`` for S+B hypothesis.
+                            ``-t -1``will produce an Asimov dataset in which statistical fluctuations are suppressed. 
+                        elif ``toys``; 
+                            ``-t N with N > 0`` will be used instead. Combine will generate ``N toy`` datasets from the model and re-run the method once per toy.
+- ``--node``          : Choices of nodes yo want to look at ``[DY, TT, ZA]``, the signal node by default ``ZA`` is the only relevant one.
+- ``--mode``          : Choices of histogram you want to run combined on ``['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn']``.
+- ``--method``        : Choices of statistical method ``['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit']``.
+- ``--unblind``       : If set to False``--run blind`` options will be added to all combine commands otherwise real_data will be used instead. 
+- ``--slurm``         : Submit to slurm for long jobs. Supported for pullls and impacts
+- ``-v``/``--verbose``: For more printout when debugging in combine.
 
 ## Collect Limits:
 ```python
 python collectLimits.py -i output_path_of_previous_step/ --method 
 ```
-- ``-i``/``--inputs`` : path to (ROOT) combine output file, the combined limits will be saved by default in ``args.inputs/jsons/*.json``.
-- ``--method``: ``asymptotic or hybridnew`` required to collect the limits from ``higgsCombinexxxx_.AsymptoticLimits.mH125.root`` if the method is asymptotic for instance.
+- ``-i``/``--inputs`` : Path to (ROOT) combine output file, the combined limits will be saved by default in ``args.inputs/jsons/*.json``.
+- ``--method``        : ``asymptotic or hybridnew`` required to collect the limits from ``higgsCombinexxxx_.AsymptoticLimits.mH125.root`` if the method is asymptotic for instance.
 
 ## Plot ZA Limits:
 ```python
-python ZAlimits.py -p path_to/jsons/ --era
+python ZAlimits.py -p path_to_dir/jsons/ --era
 ```
-- ``-p``/``--jsonpath``: path to limits in jsons format which are the results of setp2.
-- ``--era`` : choices ``[2016, 2017, 2018]``
-- ``--unblind``: plot the observed limits.
+- ``-p``/``--jsonpath`` : path to limits in jsons format which are the results of setp2.
+- ``--era``             : Choices ``['2016', '2017', '2018', 'fullrun2']``.
+- ``--unblind``         : Plot the observed limits.
 - ``--rescale-to-za-br``: If set, limits are rescaled to the ZA branching-ratio.
-- ``--numbers``: If set, show values of expected limits on top of the plot.
-- ``--theory``: plot theory cross-section.
-- ``--log`` : make plot in log scale.
-## Optimize Binning: 
-- Important notes: 
-    - If you are running on ingrid-ui1, you need to run on a worker node with a more recent CPU``srun --partition=cp3 --qos=cp3 --time=0-02:00:00 --pty bash``
-    - Needs python3 environment, you can use LCG [here](https://github.com/kjaffel/ZA_FullAnalysis#environment-setup-always-).
-```python
-python optimizeBinning.py -i -o --rebin 
-```
-- ``-i``/``--inputs``:
-- ``-o``/``--outputs``:
-- ``--era``: 
-- ``--uncertainty``:
-- ``--events``:
-- ``-p0/--prior``: 
-- --onlypost
-- --plotit
-- --logy 
-- --sys
-- --mode
-- --toys
-- --scale 
-- --submit 
-- ``--rebin``:
-- ``--normalized``: 
+- ``--theory``          : Plot 2HDM signal theory cross-section.
+- ``--log``             : Make plot in log scale.
+
 ## Trouble-Shooting:
 - If you ever face Segfault in CombineHarvester::WriteDatacard(string, string) in Python[ issue-239](https://github.com/cms-analysis/CombineHarvester/issues/239) you can try with [PR-240](https://github.com/cms-analysis/CombineHarvester/pull/240), simply do:
 ```bash

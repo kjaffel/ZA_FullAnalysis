@@ -1,5 +1,4 @@
 import sys
-sys.dont_write_bytecode  = True
 import os, os.path
 import yaml
 import ROOT
@@ -9,25 +8,13 @@ import re, hashlib
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
-splitPDF                 = False
-splitJECBySources        = False
-scaleZAToSMCrossSection  = False
+sys.dont_write_bytecode  = True
 splitTTbarUncertBinByBin = False
-
 
 def CMSNamingConvention(origName, era=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     other = {
-        # old naming for old histograms, will be removed  soon 
-        'puweights2016_Moriond17': "CMS_pileup_%s"%era,
-        'elid':"CMS_eff_el_%s"%era,
-        'muid':"CMS_eff_mu_%s"%era,
-        'muiso':"CMS_iso_mu_%s"%era,
-        'eleltrig':"CMS_eff_trigElEl_%s"%era,
-        'mumutrig':"CMS_eff_trigMuMu_%s"%era,
-        'elmutrig':"CMS_eff_trigElMu_%s"%era,
-        'mueltrig':"CMS_eff_trigMuEl_%s"%era,
         # new names in the histograms  
         "btagSF_fixWP_subjetdeepcsvM_light":"CMS_btag_light_%s"%era,
         "btagSF_fixWP_subjetdeepcsvM_heavy":"CMS_btag_heavy_%s"%era,
@@ -42,33 +29,42 @@ def CMSNamingConvention(origName, era=None):
         'highpt_ele_reco':"CMS_eff_elreco_highpt_%s"%era,
         'muid_medium':"CMS_eff_muid_%s"%era,
         'muiso_tight':"CMS_eff_muiso_%s"%era,
+        "jesHEMIssue": "CMS_HEM_%s"%era,
+        # old naming for old histograms, will be removed  soon 
+        'puweights2016_Moriond17': "CMS_pileup_%s"%era,
+        'elid' :"CMS_eff_el_%s"%era,
+        'muid' :"CMS_eff_mu_%s"%era,
+        'muiso':"CMS_iso_mu_%s"%era,
+        'eleltrig':"CMS_eff_trigElEl_%s"%era,
+        'mumutrig':"CMS_eff_trigMuMu_%s"%era,
+        'elmutrig':"CMS_eff_trigElMu_%s"%era,
+        'mueltrig':"CMS_eff_trigMuEl_%s"%era,
         'HHMoriond17_eleltrig':"CMS_eff_trigElEl_%s"%era,
         'HHMoriond17_mumutrig':"CMS_eff_trigMuMu_%s"%era,
         'HHMoriond17_elmutrig':"CMS_eff_trigElMu_%s"%era,
         'HHMoriond17_mueltrig':"CMS_eff_trigMuEl_%s"%era,
-        "jesHEMIssue": "CMS_HEM_%s"%era,
-        # some not in use  
+        # some not in use anymore
         "chMisID": "CMS_chargeMisID_%s"%era,
         }
+    
     theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR", "pdf": "pdf"}
     if origName in other:
         return other[origName]
     elif origName in theo_perProc:
         return "{}".format(theo_perProc[origName])
     elif origName.startswith("jes"):
-        return "CMS_scale_j_{}".format(origName[3:])
+        return "CMS_scale_j_{}_{}".format(origName[3:], era)
     elif origName.startswith("jer"):
-        return "CMS_res_j_Total"
-    #    if len(origName) == 3:
-    #        return "CMS_res_j_{}".format(era)
-    #    else:
-    #        jerReg = jerRegions[int(origName[3:])]
-    #        return "CMS_res_j_{}_{}".format(jerReg, era)
-    #    return "CMS_FR{}_{}".format(flav[0].lower(), vari[:3].lower())
+        return "CMS_res_j_Total_{}".format(era)
+    #   if len(origName) == 3:
+    #       return "CMS_res_j_{}".format(era)
+    #   else:
+    #       jerReg = jerRegions[int(origName[3:])]
+    #       return "CMS_res_j_{}_{}".format(jerReg, era)
     elif origName.startswith("pileup"):
-        return "CMS_pileup_%s"%(era)   
+        return "CMS_pileup_{}".format(era)   
     else:
-        return origName+'_%s'%era
+        return origName+'_{}'.format(era)
 
 
 def get_hist_from_key(keys=None, key=None):
@@ -79,18 +75,21 @@ def get_hist_from_key(keys=None, key=None):
 
 
 def get_listofsystematics(files, flavorCat):
-    # may not be the fastest  !!
-    #all_files = glob.glob(os.path.join(directory,"*.root"))
+    
     flavor = flavorCat.split('_')[-1]
-    cat    = flavorCat.split('_')[2]
-
-    mu = [ 'muid_', '_mumutrig', 'muiso_', '_mueltrig']
-    el = [ 'elid_', '_eleltrig', '_ele_reco', '_elmutrig']
-    ll = ['_mumutrig', '_eleltrig']
+    cat    = None
+    if len( flavorCat.split('_') ) >= 2:
+        cat    = flavorCat.split('_')[-2]
+    
+    muel  = [ 'elmu_trigSF', 'muel_trigSF', 'mu_trigger']
+    mumu  = [ 'muid_medium', 'mumu_trigSF', 'muiso_tight', 'mu_trigger']
+    elel  = [ 'elid_medium', 'lowpt_ele_reco', 'elel_trigSF', 'highpt_ele_reco']
+    ll    = [ 'mumu_trigSF', 'elel_trigSF']
 
     systematics = []
     for f in files:
         open_f = ROOT.TFile(f)
+        avoid  = []
         for key in open_f.GetListOfKeys():
             if not 'TH1' in key.GetClassName():
                 continue
@@ -102,7 +101,11 @@ def get_listofsystematics(files, flavorCat):
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
             syst = syst.replace('pile', 'pileup')
             
-            avoid = el if flavor=='MuMu' else (mu if flavor=='ElEl' else( ll))
+            if   flavor == 'MuMu': avoid += elel + muel 
+            elif flavor == 'ElEl': avoid += mumu + muel 
+            elif flavor == 'OSSF': avoid += muel 
+            else: avoid += ll
+            
             if cat == 'boosted':
                 avoid += [ '_btagSF_deepJet_fixWP', 'DYweight_resolved_'] 
             elif cat == 'resolved':
@@ -111,6 +114,7 @@ def get_listofsystematics(files, flavorCat):
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
                     systematics.append(syst)
+        
         open_f.Close()
     return systematics
 
@@ -231,11 +235,9 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
         
         elif smpCfg.get("type") == "signal":
             m = smp.split('To2L2B_')[1].split('_tb_')[0].replace('p00','')
-            
             smpScale = lumi / smpCfg["generated-events"]
-            if method in ["fit", 'pvalue']:
+            if method in ["fit", 'pvalue', 'generatetoys']:
                 smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]#* 0.066 # BR Z -> ll ( ee, \mu\mu ) fixed in bamboo
-            
             dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
         
         elif smpCfg.get("type") == "data":
@@ -248,16 +250,32 @@ def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
 
 def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
     """
-        If some systematics cause problems, return True and they will be ignored in the combine fit
+        If some systematics cause problems, 
+        return True and they will be ignored in the statistic test
     """
-    # do not propagate DYrewigthing to non DY samples !
-    if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
-        return True 
-    # I don't need these to be splitted take only 2016 VFP sum ( pre + post)
-    if '_2016postVFP' in s:
+    if not s:
+        return False
+    
+    if smp:
+        # do not propagate DYrewigthing to non DY samples !
+        if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
+            return True 
+    
+        if 'postVFP' in smp and 'preVFP' in s: 
+            return True 
+        if 'preVFP' in smp and 'postVFP' in s: 
+            return True
+    
+    # this is my first attempt, applying tth dy weights
+    if 'DYReWeight' in s:
         return True
-    if '_2016preVFP' in s:
-        return True
+    
+    # to test the effect of DY weights on signal strength 
+    #if 'DYweight_resolved_mjj_ployfit_lowmass7_highmass5' in s:
+    #    return True
+    #if 'DYweight_boosted_mjj_ployfit_lowmass5' in s:
+    #    return True
+    
     else:
         return False
 
@@ -308,11 +326,12 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
       1) Each observable is mapped to a subfolder. The name of the folder is the name of the observable
-      2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. The name of the histogram is the name of the background.
+      2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. 
+      The name of the histogram is the name of the background.
     """
     
     scalefactors = getnormalisationScale(input, method, era, seperate=False)
-    logger.info("Categories                                : %s"%flav_categories )
+    logger.info("Categories                                 : %s"%flav_categories )
     #logger.info("scalefactors                              : %s"%scalefactors )
 
     logger.info("Preparing ROOT file for combine...")
@@ -331,11 +350,11 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         files = [ f for f in all_files if EraFromPOG(era) in f.split('/')[-1]]
     else:
         files = all_files
+    
     # Gather a list of inputs files for each process.
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
     # be merged together later
-    # FIXME : It's causing problem with the observation !! \ FIXME
     processes_files = {}
     for process, paths in processes_map.items():
         process_files = []
@@ -511,14 +530,14 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
                     # Load systematics shapes
                     for systematic in systematics[cat]:
-                        if 'postVFP' in smp and 'preVFP' in systematic: continue
-                        if 'preVFP' in smp and 'postVFP' in systematic: continue
                         
-                        if ignoreSystematic(smp, s= systematic):
+                        cms_systematic = CMSNamingConvention(systematic, era_)
+                        
+                        if ignoreSystematic(smp, s= cms_systematic):
                             continue
                         
-                        cms_systematic = CMSNamingConvention(systematic, era)
-
+                        
+                        
                         has_both = True
                         for variation in ['up', 'down']:
                             key = cms_systematic + variation.capitalize()

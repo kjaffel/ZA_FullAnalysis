@@ -18,26 +18,40 @@ files:
   HToZATo2L2B_fit-type_histos.root:
     type: signal
     legend: mysignal
-    line-color: '#C00C1E'
-    line-type: 1
-    line-width: 2
+    line-color: '#FF0A2A'
+    line-type: 8
+    line-width: 3
   DY_fit-type_histos.root:
     type: mc
     group: DY
+    line-color: 1
+    line-type: 1
+    line-width: 2
   ttbar_fit-type_histos.root:
     type: mc
     group: ttbar
   SingleTop_fit-type_histos.root:
     type: mc
     group: ST
+  SMHiggs_fit-type_histos.root:
+    type: mc
+    group: SM
+  VV_fit-type_histos.root:
+    type: mc
+    group: VV
+  ttV_fit-type_histos.root:
+    type: mc
+    group: others
 plots:
   dnn_scores_fit-type:
     blinded-range: [0.6, 1.0]
     labels:
-    - position: [0.22, 0.895]
-      size: 24
+        #- {text: 'Label1', position: [0.22, 0.895]}
+        #- {text: 'Label2', position: [0.3, 0.895]}
+    - position: [0.22, 0.89]
+      size: 20
       text: mychannel
-    legend-columns: 2
+    legend-columns: 3
     log-y: both
     ratio-y-axis-range: [0.6, 1.4]
     save-extensions: [pdf, png]
@@ -48,24 +62,38 @@ plots:
     - 0.0
     - 1.0
     y-axis: Events
+    log-y-axis-range: [10e-4, 10e8]
     y-axis-show-zero: true
 groups:
   data:
     legend: data
   DY:
     fill-color: '#0000FF'
-    legend: Drell-Yan
-    order: 8
+    legend: DY+jets
+    order: 6
   ttbar:
     fill-color: '#c4ffff'
-    legend: ttbar
-    order: 7
+    legend: tt
+    order: 5
   ST:
     fill-color: '#ffc800'
-    legend: Single Top
-    order: 6
+    legend: ST
+    order: 4
+  VV:
+    fill-color: '#ff8d58'
+    legend: VV
+    order: 3
+  SM:
+    fill-color: '#43294D' 
+    legend: ggh, tth, Zh
+    order: 2
+  others:
+    fill-color: '#9370DB'
+    legend: VVV, ttV
+    order: 1
 legend:
     #position: [0.62, 0.61, 0.95, 0.89]
-    position: [0.5, 0.61, 0.95, 0.89]
+    #position: [0.5, 0.61, 0.95, 0.89]
+    position: [0.5, 0.7, 0.95, 0.89]
 systematics:
   - fit-type

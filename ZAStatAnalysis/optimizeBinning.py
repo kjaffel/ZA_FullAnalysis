@@ -122,11 +122,10 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
     plt.close(fig)
     plt.gcf().clear()
 
-
     fig = plt.figure(figsize=(12, 4), dpi=300)
     fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
-    for i, subplot in enumerate([121, 122]):
     
+    for i, subplot in enumerate([121, 122]):
         ax = fig.add_subplot(subplot)
         if i ==0:
             ax.hist( oldEdges["B"][:-1], 
@@ -165,13 +164,15 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
                     color   = 'red', 
                     weights = np_w_newhist["S_hybride"], 
                     alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Signal")
+        # not in use!
         #ax.hist(newEdges["B_safe_stat"], 
         #        bins    = newEdges["B_safe_stat"]+[1.], 
         #        color   = 'purple', 
         #        weights = np_arr_hybride["B_safe_stat"], 
         #        histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: hybride +safe stat.")
         if logy:
-            ax.set_yscale('log') 
+            ax.set_yscale('log')
+            ax.set_ylim([10e-4, 10e3])
         ax.legend(prop=dict(size=10), loc='best')
         ax.set_xlabel('DNN_output ZA')
         ax.set_ylabel('Probability density function')
@@ -198,8 +199,10 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
     The code below uses a fitness function suitable for event data with possible
     repeats.  More fitness functions are available: see :mod:`density_estimation`
     
-    https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
-    https://root.cern.ch/doc/master/classTH1.html#ae0895b66e993b9e9ec728d828b9336fe 
+    useful ref :
+        - https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
+        - https://root.cern.ch/doc/master/classTH1.html#ae0895b66e993b9e9ec728d828b9336fe 
+    
     np_arr_edges_oldhist = root_numpy.hist2array(old_hist, include_overflow=include_overflow, copy=True, return_edges=True)
     np_arr_oldhist = np_arr_edges_oldhist[0]
     oldEdges       = np_arr_edges_oldhist[1][0]
@@ -214,18 +217,16 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
     print( "oldBinContents : ",  np_arr_oldhist, len(np_arr_oldhist))
     print( "oldEdges       : ",  oldEdges ,      len(oldEdges))
 
-
     priorDir = os.path.join(output, "prior")
     if not os.path.isdir(priorDir):
         os.makedirs(priorDir)
 
     if doplot:
-
         color = 'red' if isSignal else 'blue' 
-        p0  = 0.1 if isSignal else 0.02 
-        pNm = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
+        p0    = 0.1 if isSignal else 0.02 
+        pNm   = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
         
-        fig = plt.figure(figsize=(10, 4), dpi=300)
+        fig   = plt.figure(figsize=(10, 4), dpi=300)
         fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
         
         for i, (p0, subplot) in enumerate(zip([p0, p0+0.01], [121, 122])):
@@ -243,10 +244,10 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             newEdges  = optimizer.no_extra_binedges(newEdges, oldEdges)
             newEdges  = [float(format(e,'.2f')) for e in newEdges]
            
-            if len( newEdges) <4:
-                newEdges = [0.0, 0.1, 0.28, 0.68, 0.82, 0.9, 1.0] # [1, 6, 15, 35, 45, 51]
-            else:
-                newEdges  = newEdges[:-2] # merge last 2 bins: keep me safe from having bins with 0 to few bkg events also this will localize signal in 1 bin
+            #if len( newEdges) <4:
+            #    newEdges = [0.0, 0.1, 0.28, 0.68, 0.82, 0.9, 1.0] # [1, 6, 15, 35, 45, 51]
+            #else:
+            #newEdges  = newEdges[:-2] # merge last 2 bins: keep me safe from having bins with 0 to few bkg events also this will localize signal in 1 bin
             
             if not 1.0 in newEdges: final_edge = newEdges+[1.0]
             else: final_edge = newEdges
@@ -268,7 +269,9 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             ax.hist(newEdges[:-1], bins=newEdges, color='black', weights=np_arr_newhist,
                     histtype='step', density=True, label=f"Bayesian blocks: prior = {'%.2f' % (float(p0))}")
             
-            ax.legend(prop=dict(size=12))
+            ax.legend(prop=dict(size=10), loc='best')
+            ax.set_ylim([10e-4, 10e3])
+            
             ax.set_xlabel('DNN_output ZA')
             ax.set_ylabel('Probability density function')
             if logy:
@@ -276,12 +279,17 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
         
         if logy:
             pNm += '_logy'
+        
         fig.savefig(os.path.join(priorDir, pNm+'.png')) 
         fig.savefig(os.path.join(priorDir, pNm+'.pdf'))
         plt.close(fig)
         plt.gcf().clear()
         print(f" plots saved in : {output}" )
-    print( newEdges, FinalBins ) 
+    
+    print( "newBinContents : ",  np_arr_newhist, len(np_arr_newhist))
+    print( "newEdges       : ",  newEdges ,      len(newEdges))
+    print( "newBins        : ",  FinalBins )
+    
     return newHist, newEdges, FinalBins
 
 
@@ -295,6 +303,7 @@ def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=
     bin = 1; first bin with low-edge xlow INCLUDED
     bin = nbins; last bin with upper-edge xup EXCLUDED
     bin = nbins+1; overflow bin
+
     GetSum
     GetSumOfWeights
     GetSumw2
@@ -514,7 +523,7 @@ if __name__ == "__main__":
             smpNm = rf.split('/')[-1].split('_shapes')[0]
             
             if 'boosted' in smpNm or 'bb_associatedProduction' in smpNm:
-                if not '_OSSF_' in smpNm: continue # for boosted and bbH cats, accept only merged (ee + mumu) lep flavours, because of the lack of stat
+                if not 'OSSF' in smpNm and not 'MuEl' in smpNm: continue # for boosted and bbH cats, accept only merged (ee + mumu) lep flavours, because of the lack of stat
                 if '_OSSF_MuEl' in smpNm: continue # ignore the combination with MuEl 
             elif 'resolved' in smpNm: # split per lepton flavour 
                 if '_ElEl_MuMu_' in smpNm or '_MuMu_ElEl_' in smpNm: continue # and ignore the combination 
@@ -640,7 +649,10 @@ if __name__ == "__main__":
                     if 'gg_fusion' in histNm: process = 'gg_fusion'
                     else: process = 'bb_associatedProduction' 
                     
-                    if 'boosted' in histNm and 'OSSF' not in histNm:
+                    if 'boosted' in histNm or process == 'bb_associatedProduction':
+                        if not 'OSSF' in histNm:
+                            continue
+                    if 'resolved' in histNm and 'OSSF' in histNm:
                         continue
 
                     mass   = histNm.split(process+'_')[-1].split('__')[0]
@@ -751,19 +763,21 @@ if __name__ == "__main__":
                     
                     nph_old = NumpyHist.getFromRoot(oldHist)
                     
-                    if divideByBinWidth: 
-                        # please do not use this option when you want to produce rebinned histogram to run combine
-                        # I use it to get better binning for paper plots (just for visual effect improvemets)
-                        # so I am not sure how the stat error is propagated if you intend to use it when you run the stat test in combine
-                        newHist_ = nph_old.rebin(np.array(binning[0])).fillHistogram(oldHist.GetName()) 
+                    #if divideByBinWidth: 
+                    """
+                        Please do not use this option if you are producing rebinned histogram for Combine
+                        I use it only to get better binning for paper plots (just for visual effect improvemets)
+                        So I am not sure how the stat error is propagated if you intend to use it when you run the stat test in combine
+                    """ 
+                    #    newHist_ = nph_old.rebin(np.array(binning[0])).fillHistogram(oldHist.GetName()) 
+                    #    nph_new = NumpyHist.getFromRoot(newHist_)
+                    #    nph_new.divideByBinWidth() 
+                    #    #nph_new.setUnitaryBinWidth()
+                    #    newHist = nph_new.fillHistogram(oldHist.GetName())
+                    #else:
                     
-                        nph_new = NumpyHist.getFromRoot(newHist_)
-                        nph_new.divideByBinWidth() 
-                       #nph_new.setUnitaryBinWidth()
-                        newHist = nph_new.fillHistogram(oldHist.GetName())
-                    else:
-                        newHist = nph_old.rebin(np.array(binning[0])).fillHistogram(oldHist.GetName()) 
-                        nph_new = NumpyHist.getFromRoot(newHist)
+                    newHist = nph_old.rebin(np.array(binning[0])).fillHistogram(oldHist.GetName()) 
+                    nph_new = NumpyHist.getFromRoot(newHist)
 
                     if nph_new.w.sum() != 0. and abs(nph_new.w.sum()-nph_old.w.sum())/nph_new.w.sum() > 1e-4:
                         logger.warning("sum of binContents between 2 histogram does not match\n"

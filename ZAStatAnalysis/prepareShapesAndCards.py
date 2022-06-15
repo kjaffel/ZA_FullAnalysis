@@ -22,11 +22,15 @@ import Constants as Constants
 import CombineHarvester.CombineTools.ch as ch
 logger = Constants.ZAlogger(__name__)
 
+
+H.splitTTbarUncertBinByBin = False
+
 signal_grid_part0 = { 
     'gg_fusion': { 
         'resolved': { 
             'HToZA': [
-                (516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71)
+                (516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71),
+                (500, 300),
                 #part0 : 21 signal samples
                 #( 200, 50), ( 200, 100), ( 200, 125), 
                 #( 250, 50), ( 250, 100),
@@ -120,43 +124,49 @@ def get_ellipses_parameters(ellipses_mumu_file):
     with open(ellipses_mumu_file.replace('MuMu', 'ElEl')) as inf:
         content = json.load(inf)
         ellipses['ElEl'] = content
-
     return ellipses
 
 
-def get_SignalMassPoints(outdir, returnKeyMode= False):
+def get_SignalMassPoints(outdir, returnKeyMode= False, split_sig_reso_boo= False):
+    
     with open(os.path.join(outdir, 'plots.yml')) as _f:
-        plotConfig = yaml.safe_load(_f) # yaml.load(_f, Loader=yaml.FullLoader)
+        plotConfig = yaml.safe_load(_f) 
     
     points = {'gg_fusion': 
                 { 'resolved': { 'HToZA': [], 'AToZH': [] },
-                  'boosted' : { 'HToZA': [], 'AToZH': [] } },
+                  'boosted' : { 'HToZA': [], 'AToZH': [] } 
+                  },
               'bb_associatedProduction':
                 { 'resolved': {'HToZA': [], 'AToZH': [] },
-                  'boosted' : {'HToZA': [], 'AToZH': [] } },
+                  'boosted' : {'HToZA': [], 'AToZH': [] } 
+                  },
             }
     
     for f in plotConfig['files']:
-        key = 'HToZA'
-        region = 'resolved'
+        thdm = 'HToZA'
         if not (f.startswith('GluGluTo') or f.startswith('HToZATo2L2B') or f.startswith('AToZHTo2L2B')):
             continue
         split_f = f.split('_')
         
-        if split_f[1] == 'MA': key = 'AToZH'
+        if split_f[1] == 'MA': thdm = 'AToZH'
         
         m0 = float(split_f[2].replace('p', '.'))
         m1 = float(split_f[4].replace('p', '.'))
         
-        if m0 > 4*m1:
-            region = 'boosted'
-
-        if 'GluGluTo' in f: 
-            if not (m0, m1) in points['gg_fusion'][region][key]:
-                points['gg_fusion'][region][key].append( (m0, m1))
+        if split_sig_reso_boo:
+            if m0 > 4*m1: regions = ['boosted']
+            else: regions = ['resolved']
         else:
-            if not (m0, m1) in points['bb_associatedProduction'][region][key]:
-                points['bb_associatedProduction'][region][key].append( (m0, m1))
+            regions = ['resolved', 'boosted']
+
+        for region in regions:
+            if 'GluGluTo' in f: 
+                if not (m0, m1) in points['gg_fusion'][region][thdm]:
+                    points['gg_fusion'][region][thdm].append( (m0, m1))
+            else:
+                if not (m0, m1) in points['bb_associatedProduction'][region][thdm]:
+                    points['bb_associatedProduction'][region][thdm].append( (m0, m1))
+    
     if returnKeyMode:
         otherFormatPoints = {}
         for mode in [ 'HToZA', 'AToZH']:
@@ -191,13 +201,14 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     if mode == "ellipse":
         get_ellipses_parameters(ellipses_mumu_file)
 
-    # this is sanity check that the extracted signal mass points from the plots.yml
+    # this is cross-check that the extracted signal mass points from the plots.yml
     # have their equivalent root file in the results/ dir  
     all_parameters = {}
     for prefix, prod in {'GluGluTo': 'gg_fusion', '': 'bb_associatedProduction'}.items():
         
         all_parameters[prod] = { 'resolved': [] , 'boosted': [] }
         for f in glob.glob(os.path.join(input, '*.root')):
+            
             isNew = False
             isOld = False
             
@@ -211,12 +222,12 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             for reg in ['resolved', 'boosted']:
                 m_heavy, m_light = get_signal_parameters(split_filename, isNew, isOld)
         
-                if (m_heavy, m_light) in grid_data[prod][reg][thdm]:
+                if (m_heavy, m_light) in grid_data[prod][reg][thdm] and not (m_heavy, m_light) in all_parameters[prod][reg]:
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
     
     
     logger.info("Era and the corresponding luminosity      : %s, %s" %(era, Constants.getLuminosity(era)))
-    logger.info("Input path                                : %s" %input )
+    logger.info("Input path                                : %s" % input )
     logger.info("Chosen analysis mode                      : %s" % mode)
 
 
@@ -224,14 +235,14 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
         for reg in ['resolved', 'boosted']:
             
             if prod =='bb_associatedProduction' or reg =='boosted':
-                flavors = [ 'OSSF', 'MuEl']
+                flavors = [ 'OSSF'] #, 'MuEl']
             else:
-                flavors = ['MuMu', 'ElEl', 'MuEl']
+                flavors = ['MuMu', 'ElEl'] #, 'MuEl']
 
             logger.info("Working on %s && %s cat.     :"%(prod, reg) )
             logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
             
-            prepareShapes(  input                 = input, 
+            prepareShapes(  input                  = input, 
                             dataset                = dataset, 
                             thdm                   = thdm, 
                             expectSignal           = expectSignal, 
@@ -331,9 +342,9 @@ def prepareShapes(input, dataset, thdm, expectSignal, era, method, parameters, p
             'WJets'    : ['^WJetsToLNu*'],
             'ttV'      : ['^TT(W|Z)To*'],
             'VV'       : ['^(ZZ|WW|WZ)To*'],
-           #'VVV'      : ['^(ZZZ|WWW|WZZ|WWZ)*'],
+           # 'VVV'     : ['^(ZZZ|WWW|WZZ|WWZ)*'],
            #'Wgamma'   : ['^WGToLNuG_TuneCUETP8M1'], TODO add this sample 
-            'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToNuNu_M-125*', '^ttHTobb*', '^ttHToNonbb*']
+            'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL*', '^ggZH_HToBB_ZToNuNu_M-125*', '^ttHTobb_M125_*', '^ttHToNonbb_M125_*']
             }
     
     bkg_processes = histfactory_to_combine_processes.keys()
@@ -373,10 +384,6 @@ def prepareShapes(input, dataset, thdm, expectSignal, era, method, parameters, p
     logger.info('Histfactory_to_combine_categories         : %s '%histfactory_to_combine_categories )
     logger.info('histfactory_to_combine_processes          : %s '%histfactory_to_combine_processes  )
     
-    H.splitJECBySources = False
-    if signal_strength:
-        H.scaleZAToSMCrossSection = True
-    H.splitTTbarUncertBinByBin = False
     
     flav_categories = []
     for prod in productions:
@@ -541,7 +548,7 @@ popd
             dir            = os.path.dirname(os.path.abspath(datacard)) )
 
 
-            if method == 'pvalue' and 'ElEl_MuMu' in flavor:
+            if method == 'pvalue' and ( 'ElEl_MuMu' in flavor or 'OSSF' in flavor):
                 create = True
                 script ="""#!/bin/bash -l
 
@@ -562,7 +569,10 @@ pushd {dir}
 if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}{SLURM_ARRAY_TASK_ID}.root
 fi
+
+#=============================================
 # Computing Significances with toys
+#=============================================
 #{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 1 -m {mass} {verbose} &> {name}__toys1.log
 #{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 2 -m {mass} {verbose} &> {name}__toys2.log
 #{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 3 -m {mass} {verbose} &> {name}__toys3.log
@@ -573,6 +583,7 @@ if [ -f merged.root ]; then
     rm merged.root
     echo "merged.root is removed, to be created again !"
 fi
+
 #hadd merged.root higgsCombineTest.HybridNew.mH125.1.root higgsCombineTest.HybridNew.mH125.2.root higgsCombineTest.HybridNew.mH125.3.root higgsCombineTest.HybridNew.mH125.4.root higgsCombineTest.HybridNew.mH125.5.root 
 
 # Observed significance with toys
@@ -580,21 +591,24 @@ fi
 
 # Expected significance, assuming some signal
 #{slurm}combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=merged.root --grid=higgsCombineTest.significance_exp_plus_s.mH{mass}.root --pvalue --expectedFromGrid=0.84 -m {mass} {verbose} &> {name}__significance_exp_plus_s.log
+#=============================================
 
 {c}echo "Observed significance"
-{c}combine {method} {workspace_root}.root -m {mass}
+{c}combine {method} {workspace_root}.root -m {mass} &> observed__significance_expectSignal{expectSignal}_{flavor}.log
 
 echo "Expected significance"
-combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} -m {mass} --toysFreq &> expected__significance_expectSignal{expectSignal}.log
+combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} -m {mass} --toysFreq &> expected__significance_expectSignal{expectSignal}_{flavor}.log
 
 {c}echo "Observed p-value" 
-{c}combine {method} {workspace_root}.root --pvalue -m {mass}
+{c}combine {method} {workspace_root}.root --pvalue -m {mass} &> observed__pvalue_expectSignal{expectSignal}_{flavor}.log
 
 echo "Expected p-value" 
-combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} --pvalue -m {mass} --toysFreq &> expected__pvalue_expectSignal{expectSignal}.log
+combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} --pvalue -m {mass} --toysFreq &> expected__pvalue_expectSignal{expectSignal}_{flavor}.log
+
 popd
 """.format( workspace_root = workspace_file.replace('.root', ''), 
             datacard       = os.path.basename(datacard), 
+            flavor         = flavor, 
             mass           = mass,
             name           = 'sig__toysFreq__{}'.format(output_prefix),
             slurm          = 'srun ' if submit_to_slurm else '', 
@@ -858,7 +872,9 @@ popd
 
 
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
+    
     parser.add_argument('-i', '--input',        action='store', dest='input', type=str, required=True, default=None, 
                                                 help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following\n'
                                                      'steps: 1/- final selection ( 2l+bjets pass btagging discr cut + met + corrections + etc... )\n'
@@ -893,7 +909,7 @@ if __name__ == '__main__':
     parser.add_argument('--slurm',              action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
                                                 help='slurm submission for long pull and impacts jobs')
     parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
-                                                help='normalize the inputs histograms')
+                                                help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_genEvts')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required=True, default=None,                             
                                                 help='if asimov:\n'
                                                         '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
@@ -902,6 +918,7 @@ if __name__ == '__main__':
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
     options = parser.parse_args()
+    
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
    
@@ -921,8 +938,8 @@ if __name__ == '__main__':
                 list_path = glob.glob(os.path.join(options.input, 'work__UL{}'.format(year), 'bayesian_rebin_on_S',H.get_method_group(options.method), options.mode, '*', '*.dat'))
                 
                 for p in list_path:
-                    cardNm = p.split('/')[-1]
-                    masses = p.split('/')[-2]
+                    cardNm  = p.split('/')[-1]
+                    masses  = p.split('/')[-2]
                     pOut    = os.path.join(options.output, 'bayesian_rebin_on_S', H.get_method_group(options.method), options.mode, masses)
                     cardOut = '> {}/{}'.format(pOut, cardNm)
                     if not cat in to_combine.keys():
@@ -968,9 +985,11 @@ if __name__ == '__main__':
             pass
        
         for thdm in ['HToZA']:#, 'AToZH']:
-            signal_grid = get_SignalMassPoints(options.output, returnKeyMode = False)
+            
+            # last flag means: that I will not split the generated masses between resolved an boosted
+            signal_grid = get_SignalMassPoints(options.output, returnKeyMode= False, split_sig_reso_boo= True) 
             print( signal_grid ) 
-            prepare_DataCards(  grid_data          = signal_grid_part0, #signal_grid, 
+            prepare_DataCards(  grid_data          = signal_grid, # for test use signal_grid_part0,
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 

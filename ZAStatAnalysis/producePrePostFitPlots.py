@@ -18,22 +18,26 @@ def CopyTH1F_to_TH1D(hist):
     copyHist = ROOT.TH1D(str(hist.GetName()), hist.GetTitle(), hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     return copyHist
 
-def reshape(workdir, mode):
+
+def reshapePrePostFitHistograms(workdir, mode):
     for rf in  glob.glob(os.path.join(workdir, 'fit', mode, '*', 'plotIt_*', '*.root')):
         cat    = rf.split('/')[-2]
-        smp    = rf.split('/') [-1]
+        smp    = rf.split('/')[-1]
         p_out  = rf.split(smp)[0]
         
         outdir = os.path.join(p_out, 'reshaped')
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        
+        else:
+            logger.warning( f'dir not empty, please rm if you want to pick up any changes: {outdir}' )  
+            break
+
         if smp == 'plots.root':
             continue
-        if 'MH-750_MA-610' in p_out: # those ponit have problem width < 0.
-            continue
-        if 'MH-800_MA-400' in p_out:
-            continue
+        #if 'MH-750_MA-610' in p_out: # those ponit have problem width < 0.
+        #    continue
+        #if 'MH-800_MA-400' in p_out:
+        #    continue
         
         inFile  = HT.openFileAndGet(rf)
         outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
@@ -45,7 +49,7 @@ def reshape(workdir, mode):
             histNm = hk.ReadObj().GetName()
             hk.ReadObj().SetDirectory(0)
             
-            hist = hk.ReadObj()
+            hist  = hk.ReadObj()
             #hist = CopyTH1F_to_TH1D(hk.ReadObj())
             nph = NumpyHist.getFromRoot(hist)
             #nph.setUnitaryBinWidth()
@@ -177,19 +181,19 @@ def EventsYields(mH, mA, workdir, mode, unblind):
         f.write(R'\end{tabular}' + '\n')
 
 
-def runPlotIt_prepostFit(workdir=None, mode=None, era=None, unblind=False, reshape=False):
+def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
 
-        base   = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
+        base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
         re   = 'reshaped' if reshape else ''
         lumi = Constants.getLuminosity(era)
         
         plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode,'*/', 'plotIt_*', re))
         for fit in ['prefit', 'postfit']:
             for cat_path in plotit_histos:
-                if reshape: p_out     = cat_path.split('/')[-2]
-                else: p_out     = cat_path.split('/')[-1]
+                if reshape: p_out = cat_path.split('/')[-2]
+                else: p_out = cat_path.split('/')[-1]
                 
-                output = cat_path.split('/')[-1]
+                output = cat_path.split()[-1]
                 
                 do_unblind = unblind
                 #if 'MuEl' in p_out: do_unblind = True
@@ -199,16 +203,20 @@ def runPlotIt_prepostFit(workdir=None, mode=None, era=None, unblind=False, resha
 
                 process    = 'ggH' if 'gg_fusion' in p_out else 'bbH'
                 params     = cat_path.split('/')[-3].split('_')
-                mH         = params[0].split('-')[1]
-                mA         = params[1].split('-')[1]
+                m_heavy    = '%.2f'%float(params[0].split('-')[1])
+                m_light    = '%.2f'%float(params[1].split('-')[1])
+                mH         = m_heavy.replace('.00', '')
+                mA         = m_light.replace('.00', '')
                 
-                signal_smp = f"{process}: (MH, MA)= ({mH}, {mA})GeV"
-                flavor     = 'ee' if 'ElEl' in p_out else (r'$\mu\mu$' if 'MuMu' in p_out else( r'$\mu e$'))
+                signal_smp = "#splitline{%s: (m_{H}, m_{A})}{= (%s, %s) GeV}"%(process, mH, mA)
+                flavor     = 'ee' if 'ElEl' in p_out else (r'$\mu\mu$' if 'MuMu' in p_out else( r'$\mu e$' if 'MuEl' in p_out  else (r'$\mu\mu +ee$')))
                 region     = 'resolved' if 'resolved' in p_out else 'boosted'
-                cats       = {'ggH': {'resolved': 'nb=2, resolved',
-                                      'boosted' : 'nb=2, boosted'},
-                              'bbH': {'resolved': 'nb=3, resolved',
-                                      'boosted' : 'nb=3, boosted'}
+                cats       = {'ggH': 
+                                {'resolved': 'nb=2, resolved',
+                                 'boosted' : 'nb=2, boosted'},
+                              'bbH': {
+                                  'resolved': 'nb=3, resolved',
+                                  'boosted' : 'nb=3, boosted'}
                               }
                 with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                     with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
@@ -225,6 +233,10 @@ def runPlotIt_prepostFit(workdir=None, mode=None, era=None, unblind=False, resha
                                 outf.write(f"    legend: '{signal_smp}'\n")
                             elif '      text: mychannel' in line:
                                 outf.write(f"      text: {cats[process][region]}, {flavor}\n")
+                            #elif 'Label1' in line:
+                            #    outf.write("        - {text: '%s', position: [0.22, 0.895], size: 20}\n"%cats[process][region])
+                            #elif 'Lable2' in line:
+                            #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
                             else:
                                 outf.write(line)
                 
@@ -238,6 +250,7 @@ def runPlotIt_prepostFit(workdir=None, mode=None, era=None, unblind=False, resha
                 print(f' plot saved in :: {cat_path}/dnn_scores_logy.png')
             os.chdir(base)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PreFit/PostFit Producer')
     parser.add_argument('-i', '--inputs', action='store', required=True, default=None, 
@@ -248,9 +261,14 @@ if __name__ == '__main__':
                 help='data taking year')
     parser.add_argument('--unblind', action='store_true', default=False, 
                 help='unblind data in dnn score template')
+    parser.add_argument('--reshape', action='store_true', default=False, 
+                help='bin histograms divide by the bin width')
 
     options = parser.parse_args()
     
-    #reshape(workdir=options.inputs, mode=options.mode)
-    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=True)
+    if options.reshape: 
+        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
+    
+    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape)
+    
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

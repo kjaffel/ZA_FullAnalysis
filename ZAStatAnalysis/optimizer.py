@@ -229,7 +229,7 @@ def no_extra_binedges(newEdges, oldEdges):
     for i, x in enumerate(newEdges):
         if not x in oldEdges:
             closest_value = min(oldEdges, key=lambda val:abs(val-x))
-            logger.warning(f'replacing {x} with the closest value : {closest_value} in oldEdges')
+            #logger.warning(f'replacing {x} with the closest value : {closest_value} in oldEdges')
             x = closest_value
         if not x in cleanEdges:
             if i == 0: 
@@ -302,7 +302,7 @@ def bbbyields(hist):
     NBins = hist.GetNbinsX()
     for i in range(1, NBins + 1):
         content = hist.GetBinContent(i)
-        error = hist.GetBinError(i)
+        error   = hist.GetBinError(i)
         stat.append(content)
         uncer.append(error)
     return stat, uncer
@@ -377,9 +377,7 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=F
 
     sorted_inputs= {'data'  :[], 
                     'mc'    :[], 
-                   #'signal':[],
                     }
-    to_hadd = ['mc']
     for rf in inputs:
         isData = False
         smp    = rf.split('/')[-1]
@@ -400,7 +398,6 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=F
         
         if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
             if doNeedData:
-                to_hadd += ['data']
                 if scale:
                     shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
                 sorted_inputs['data'].append(path)
@@ -437,20 +434,25 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=F
             resultsFile.Close()
     
     for k, val in sorted_inputs.items():
-        if k in to_hadd:
+        haddCmd = []
+        if not val : continue
+        if k in ['mc', 'data']:
             sum_f = f"summed_{s}{k}_samples_UL{era}.root"
             haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
-        else: # the rest are signal we dont want to hadd them all 
-              # only the ones those belong to the same group like pre/post VFP
+        else: 
+            # the rest are signal we dont want to hadd them all 
+            # only the ones those belong to the same group like 2016 pre-/post-VFP signals
             if era == '2016':
                 sum_f = val[0].replace('preVFP', '')
                 haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
-        try:
-            logger.info("running {}".format(" ".join(haddCmd)))
-            subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
-        except subprocess.CalledProcessError:
-            logger.error("Failed to run {0}".format(" ".join(haddCmd)))
-
+        
+        if haddCmd:
+            try:
+                logger.info("running {}".format(" ".join(haddCmd)))
+                subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+    
 
 def LATEX(uname=None):
     uname=uname.lower()
