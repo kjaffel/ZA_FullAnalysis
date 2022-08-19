@@ -16,7 +16,8 @@ class Interpolation:
         # self.p2_ = p2_
         # self.p3_ = p3_
         if self.p3 > self.p2 or self.p3 < self.p1:
-            raise RuntimeError(f'Extrapolation dangerous : p1 = {self.p1}, p2 = {self.p2}, p3 = {self.p3}')
+            #raise RuntimeError(f'Extrapolation dangerous : p1 = {self.p1}, p2 = {self.p2}, p3 = {self.p3}')
+            print(f'Extrapolation dangerous : p1 = {self.p1}, p2 = {self.p2}, p3 = {self.p3}')
         self.w1 = 1-(self.p3-self.p1)/(self.p2-self.p1) 
        # self.w1_ = 1-(self.p3_-self.p1_)/(self.p2_-self.p1_)
         self.w2 = 1-(self.p2-self.p3)/(self.p2-self.p1)
