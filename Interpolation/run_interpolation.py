@@ -37,48 +37,81 @@ def get_Histograms(inDir, thdm, heavy, light, m_heavy, m_light, flavor, reg, tag
 def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
 
     for par_inter in par_interlist:
+
         m_heavy_inter = par_inter[0]
         m_light_inter = par_inter[1]
+        idx = tools.get_idx_topave(do_fix, thdm) 
         
-        pdfFile   = f'test_interp_DNN_{prod}_M{heavy}_{m_heavy_inter}_M{light}_{m_light_inter}_tb_{tb}.pdf'
+        #all_masses   = tools.YMLparser.get_masspoints(path, thdm)[prod]
+        all_masses    = tools.no_plotsYML(inDir, thdm, year)[prod] # work around when I can't find the plots.yml
+        
+        if par_inter in all_masses:
+            print( f'This mass you already have {par_inter}')
+            continue
+
+        pdfFile   = f'test_interp_DNN_{prod}_M{heavy}_{m_heavy_inter}_M{light}_{m_light_inter}_tb_{tb}_{year}.pdf'
         
         C = ROOT.TCanvas('C','C',800,800)
         C.Print(pdfFile+"[")
 
+        if doTriangle:
+            # Find three points in triangle #
+            print ('\tLooking for triangle')
+            name = f'finder/test_{par_inter[0]}_{par_inter[1]}.png'
+            
+            finder  = PointFinder(list(HToZA),verbose=False)
+            triplet = finder.find_triangle(par_inter)
+            finder.draw(name)
+            print ('... done')
+                
+            par0 = tuple(triplet[0])
+            par1 = tuple(triplet[1])
+            par2 = tuple(triplet[2])
+            print ('\tTriangle edge points are :')
+        else:
+            nearest_params  = [] 
+            # okay let's get 3 closet points
+            # https://docs.python.org/3.8/library/math.html#math.hypot 
+            for i in range(len(all_masses)):
+                nearest = min(all_masses, key=lambda c: math.hypot(c[0]-m_heavy_inter, c[1]-m_light_inter))
+                nearest_params.append(nearest)
+                all_masses.remove(nearest) # rm and start over
+            
+            ## let's avoid running into extrapolation 
+            params_less = []
+            params_greater = []
+            for p in nearest_params:
+                if par_inter[idx] > p[idx]:
+                    params_less.append(p)
+                elif p[idx] > par_inter[idx]:
+                    params_greater.append(p)
+            
+            if do2Param:
+                par0, par1, par2 = nearest_params[0:3]
+            else:
+                if not params_less or len(params_greater) < 2:
+                    print( 'no good points are found to allow interpolation for {par_inter}')
+                    continue
+                par0 = params_less[0]
+                par1, par2 = params_greater[0:2]
+        
+        print ('\tClosest points are :')
+        print (f' ... params 0 : {par0}')
+        print (f' ... params 1 : {par1}')
+        print (f' ... params 2 : {par2}')
+        print (f' ... params to get : {par_inter}')
+        #====================================================================== 
         all_histos_3 = {} 
+        
         for reg, taggerWP in {'resolved': 'DeepFlavourM', 
                               'boosted' : 'DeepCSVM'}.items():
-            for flavor in ['ElEl', 'MuMu', 'OSSF']: 
 
-                if doTriangle:
-                    # Find three points in triangle #
-                    print ('\tLooking for triangle')
-                    name = f'finder/test_{par_inter[0]}_{par_inter[1]}.png'
-                
-                    finder  = PointFinder(list(HToZA),verbose=False)
-                    triplet = finder.find_triangle(par_inter)
-                    finder.draw(name)
-                    print ('... done')
-                
-                    par0 = tuple(triplet[0])
-                    par1 = tuple(triplet[1])
-                    par2 = tuple(triplet[2])
-                    print ('\tTriangle edge points are :')
-                else:
-                    params  = [] 
-                    # okay let's get 3 closet points
-                    for i in np.arange(3):
-                        nearest = min(all_masses, key=lambda c: math.hypot(c[0]-m_heavy_inter, c[1]-m_light_inter))
-                        params.append(nearest)
-                        all_masses.remove(nearest) # rm and start over
-                    par0, par1, par2 = [p for p in params]
-                    print ('\tClosest points are :')
-
-                print (f' ... params 0 : {par0}')
-                print (f' ... params 1 : {par1}')
-                print (f' ... params 2 : {par2}')
-                print (f' ... params to get : {par_inter}')
-                
+            if reg == 'boosted' or prod =='bb_associatedProduction': 
+                flavors = ['OSSF'] 
+            else: 
+                flavors = ['ElEl', 'MuMu', 'OSSF']
+            
+            for flavor in flavors: 
                 #================= Get your histograms from the root file ===========================
                 histos = {}
                 for i, (m_heavy, m_light) in enumerate([ par0, par1, par2]):
@@ -96,7 +129,7 @@ def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
                         sorted_histos[syst][i]=hist
                 
                 #================= and now interpolate =================================
-                print ('\tInterpolating')
+                print (f'\tInterpolating : {prod}, {reg}, {flavor} for {year}')
                 histName  = f'DNNOutput_ZAnode_{flavor}_{reg}_{taggerWP}_METCut_{prod}_M{heavy}_{tools.mass_to_str(m_heavy_inter)}_M{light}_{tools.mass_to_str(m_light_inter)}'
                 histos[3] = {}
 
@@ -110,7 +143,6 @@ def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
                         if i == 0:
                             print( 'This class take first 2 histogram inputs')
                             print(f' ... params 2 : {par2} will be skipped !!')
-                        idx = tools.get_idx_topave(do_fix, thdm) 
                         getNew_histo = Interpolation(par0[idx], par1[idx], par_inter[idx])
                         histos[3][f'{histName}{syst}']= getNew_histo(_histos[0], _histos[1], f'{histName}{syst}') 
                 
@@ -119,10 +151,9 @@ def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
                 #================= Plotting  =================================
                 colors = [ ROOT.kRed+1, ROOT.kBlue+1, ROOT.kGreen+1, ROOT.kMagenta+1, ROOT.kOrange+1]
                  
-                
                 histosToPlot = {}
                 for i in np.arange(3):
-                    histosToPlot[i] = sorted_histos[''][i] #meaning nominal 
+                    histosToPlot[i] = sorted_histos[''][i] # '' meaning nominal 
                 histosToPlot[3] =  histos[3][f'{histName}']
 
                 hmax = max([h.GetMaximum() for h in histosToPlot.values()])
@@ -187,7 +218,7 @@ def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
                     else: nbr = i
                     
                     leg.SetTextAlign(12)
-                    leg.AddEntry(h, '$h_{%s} (m_{%s}, m_{%s})= %s GeV$'%(nbr, heavy, light, params))
+                    leg.AddEntry(h, 'h_{%s} (m_{%s}, m_{%s})= %s GeV'%(nbr, heavy, light, params))
                 leg.Draw()
                 C.SetLogy()
                 C.Print (pdfFile)
@@ -196,7 +227,6 @@ def runInterpolation(par_interlist, doTriangle=False, do2Param=False):
         
         rootInter = os.path.join(outDir, f"{prefix}{thdm}To2L2B_M{heavy}_{m_heavy_inter}_M{light}_{m_light_inter}_tb_{tb}_TuneCP5_13TeV_madgraph_pythia8_{year}.root")
         outFile   = ROOT.TFile(rootInter,"RECREATE")
-        
         for hist_Nm, hist in all_histos_3.items():
             hist.GetYaxis().SetTitle("Events")
             hist.GetXaxis().SetTitle(f"DNN_Output {node}")
@@ -237,7 +267,7 @@ if __name__ == "__main__":
     
     # Put what you want to interpolate in format --> (mH, mA) or (mA, mH) in case  thdm='AToZH' 
     #par_interlist=[(250,100), (300,50),(300,200),(500,200),(510,130),(650,50),(800,50),(800,100),(800,200)]
-    par_interlist=[(609.21, 30.)]#(500.0, 175.85)]
+    par_interlist=[(609.21, 35.), (609.21, 50.)]
     
     for prefix, prod in {'GluGluTo': 'gg_fusion', 
                          '': 'bb_associatedProduction'
@@ -245,9 +275,5 @@ if __name__ == "__main__":
         
         if prod =='gg_fusion': tb = '1p50' 
         else: tb = '20p00'
-        
-        #all_masses   = tools.YMLparser.get_masspoints(path, thdm)[prod]
-        all_masses    = tools.no_plotsYML(inDir, thdm, year)[prod] # work around when I can't find the plots.yml
-        print( all_masses )
         
         runInterpolation(par_interlist, doTriangle=False, do2Param=False)

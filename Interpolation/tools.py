@@ -65,6 +65,35 @@ def no_plotsYML(input, thdm, year):
     return {'gg_fusion': all_parameters['gg_fusion']['resolved'], 
             'bb_associatedProduction': all_parameters['bb_associatedProduction']['resolved']}
 
+
+def haddSignalFiles(inDir, outDir):
+    SignalToHadd = {}
+    for f in glob.glob(os.path.join(input, '*.root')):
+
+        smp = f.split('/')[-1]
+        if not smp.startswith('{}{}To2L2B_'.format(prefix, thdm)):
+            continue
+        
+        resultsFile    = HT.openFileAndGet(os.path.join(inDir, smp), mode="READ")
+        normalizedFile = HT.openFileAndGet(os.path.join(outDir, smp), "recreate")
+        for hk in resultsFile.GetListOfKeys():
+            hist  = hk.ReadObj()
+            if not hist.InheritsFrom("TH1"):
+                continue
+            hist.Scale(smpScale)
+            hist.Write()
+            normalizedFile.Write()
+        normalizedFile.Close()
+        resultsFile.Close()
+
+        key = smp.replace(f'_{year}.root')
+        if not key in SignalToHadd.keys():
+            SignalToHadd[key] = []
+        SignalToHadd[key].append(split_filename)
+
+    return 
+
+
 class YMLparser:
     def get_masspoints(path, thdm):
         with open(os.path.join(path,'plots_ggH.yml')) as _f:
