@@ -46,7 +46,7 @@ def getHisto(era, Cfg, path, isBkg, prefix, reg, tagger, wp, cat, process):
         else:
             if not smp.startswith(prefix):
                 continue
-            br = Cfg['files'][smp]["Branching-ratio"]
+            br = Cfg['files'][smp]["branching-ratio"]
             smpScale = br
        
         if not smp in Cfg['files'].keys():
@@ -93,11 +93,12 @@ def optimizeMETcut(era, Cfg, path):
                     "resolved" : 5.,
                     "boosted"  : 5. }
                 }
-    for process in ['gg_fusion', 'bb_associatedProduction']:
+    for process in ['bb_associatedProduction']:#, 'gg_fusion']:
         prefix = gethistNm(path, process)
    
-        for reg, tagger in {'resolved':'DeepFlavour', 
-                            'boosted' : 'DeepCSV'}.items():
+        for reg, tagger in {#'resolved':'DeepFlavour', 
+                            'boosted' : 'DeepCSV'
+                            }.items():
             c = []
             legend = []
             for k, cat in enumerate(category):
@@ -120,13 +121,13 @@ def optimizeMETcut(era, Cfg, path):
                     toSkip=False
                     print( "working on ::", pref, process, reg, cat)
                     for i in range(0, 201, 5):
-                        histo_met_bkg.GetXaxis().SetRangeUser(11, i)
-                        histo_met_bkg.GetYaxis().SetRangeUser(0, 1.0)
+                        histo_met_bkg.GetXaxis().SetRangeUser(0, i)
+                        #histo_met_bkg.GetYaxis().SetRangeUser(0, 1.0)
                         #Check why for different i, the integral is the same
                         histo_met_bkg.SetDirectory(0)
                         histo_met_sig = getHisto(era, Cfg, path, isBkg=False, prefix=pref, reg=reg, tagger=tagger, wp= workingPoint, cat=cat, process=process)
-                        histo_met_sig.GetXaxis().SetRangeUser(11, i)
-                        histo_met_sig.GetYaxis().SetRangeUser(0, 1.0)
+                        histo_met_sig.GetXaxis().SetRangeUser(0, i)
+                        #histo_met_sig.GetYaxis().SetRangeUser(0, 1.0)
                         histo_met_sig.SetDirectory(0)
                         
                         #significance = 2*(SQRT(S+B)-SQRT(B))
@@ -203,9 +204,11 @@ if __name__ == "__main__":
     #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2016Results/version20_02_19/ellipses_metcut_bjets_/results'
     #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2016Results/version20_04_01/plots_toOptimizeMETCut/'
     #path = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2016Results/ver.20_04_01/plots_toOptimizeMETCut/'
-    #path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver3/'
-    path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver16/'
-    era   = 2016
+    #path = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver3/'
+    #path = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver16/'
+    #path = '/storage/data/cms/store/user/kjaffel/ulBamboo_results/ul_2016__ver16/'
+    path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/forHIG/ul_2017_ver42/'
+    era   = 2017
     
     with open(os.path.join(path, 'plots.yml')) as _f:
         Cfg = yaml.load(_f, Loader=yaml.FullLoader)

@@ -26,15 +26,14 @@ def get_era_and_luminosity(smp=None, run=None, isdata=False):
 
         lumi   = 19667.812849099 if prefix=='-preVFP' else( 16977.701784453)
         
-        if 'UL2016'in smp: return f'2016{prefix}', lumi, 0.012
-        elif 'UL2017'in smp: return '2017', 41529.152060112, 0.023
-        elif 'UL2018'in smp: return '2018', 59740.565201546, 0.025
-    
+        if   'UL2016'in smp: return f'2016{prefix}', lumi, 0.01
+        elif 'UL2017'in smp: return '2017', 41529.152060112, 0.02
+        elif 'UL2018'in smp: return '2018', 59740.565201546, 0.015
     else:
-        if 'RunIISummer20UL16NanoAODAPV' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-preVFP', 19667.812849099, 0.012
-        elif 'RunIISummer20UL16NanoAOD' in smp or 'RunIISummer19UL16NanoAOD' in smp: return '2016-postVFP', 16977.701784453, 0.012
-        elif 'RunIISummer20UL17' in smp or 'RunIISummer19UL17' in smp: return '2017', 41529.152060112, 0.023
-        elif 'RunIISummer20UL18' in smp or 'RunIISummer19UL18' in smp: return '2018', 59740.565201546, 0.025
+        if   'RunIISummer20UL16NanoAODAPV' in smp or 'RunIISummer19UL16NanoAODAPV' in smp: return '2016-preVFP', 19667.812849099, 0.01
+        elif 'RunIISummer20UL16NanoAOD' in smp or 'RunIISummer19UL16NanoAOD' in smp: return '2016-postVFP', 16977.701784453, 0.01
+        elif 'RunIISummer20UL17' in smp or 'RunIISummer19UL17' in smp: return '2017', 41529.152060112, 0.02
+        elif 'RunIISummer20UL18' in smp or 'RunIISummer19UL18' in smp: return '2018', 59740.565201546, 0.015
 
 def mass_to_str(m):
     return str(m).replace('.','p')
@@ -51,18 +50,30 @@ def get_list_ofsystematics(eras):
         'jer3',
         'jer4',
         'jer5',
+        '# on fat jets',
         'jmr',
         'jms',
+        '# on missing energy',
         'unclustEn',
         '# on the jets energy scale ',
         'jesTotal']
     for era in eras.keys():
         era = era.split('-')[0]
         
+        n = '7' if era == '2017' else '6'
+        sys  += [ 
+                '# on DY+jets @nlo',
+                f'DYweight_resolved_elel_ployfit_lowmass{n}_highmass5',
+                #"   type: shape",
+                #"   on: 'DY'",
+                f'DYweight_boosted_mumu_ployfit_lowmass{n}',
+                #"   type: shape",
+                #"   on: 'DY'",
+            ]
         if era == '2017':
             sys += [
-                '# on pu HLTZvtx',
-                    f'HLTZvtx'
+                '# on HLTZvtx',
+                f'HLTZvtx',
             ]
         if not f'jesAbsolute_{era}' in sys:
             sys += [
@@ -106,6 +117,10 @@ def get_list_ofsystematics(eras):
         'btagSF_fixWP_deepcsvM_heavy',
         'btagSF_fixWP_deepflavourM_light',
         'btagSF_fixWP_deepflavourM_heavy',
+        '# from btag eff meas '
+        'bEff',
+        'cEff',
+        'lightEff',
         ]
     return sys
 
@@ -114,46 +129,45 @@ def get_mcNmConvention_and_group(smpNm):
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/HowToGenXSecAnalyzer
     """
-    shortnames = {'DYJetsToLL_M-10to50': ['DY', 18610.0,    0., 'Drell-Yan', '#0000FF',    8],
-                  'DYJetsToLL_0J'      : ['DY', 4757.0,     0., 'Drell-Yan', '#0000FF',    8],
-                  'DYJetsToLL_1J'      : ['DY', 859.589402, 0., 'Drell-Yan', '#0000FF',    8],
-                  'DYJetsToLL_2J'      : ['DY', 361.4,      0., 'Drell-Yan', '#0000FF',    8],
-                  'TTHadronic'             : ['ttbar_FullHadronic', 377.96, 0., 'tt Full Had.',  '#00ffc7',  4],
-                  'TTToSemiLeptonic'       : ['ttbar_SemiLeptonic', 365.35, 0., 'tt Semi Lept.', '#9370DB',  5],
-                  'TTTo2L2Nu'              : ['ttbar_FullLeptonic', 88.288, 0., 'tt Full Lept.', '#c4ffff',  7],
-                  'ST_tW_top_5f'           : ['ST', 34.91,  0.02817, 'Single Top',    '#ffc800',  6],
-                  'ST_tW_antitop_5f'       : ['ST', 34.97,  0.02827, 'Single Top',    '#ffc800',  6],
-                  'ST_t-channel_top_4f'    : ['ST', 136.02, 0., 'Single Top',    '#ffc800',  6],
-                  'ST_t-channel_antitop_4f': ['ST', 80.95,  0., 'Single Top',    '#ffc800',  6],
-                  'ST_s-channel_4f'        : ['ST', 3.36,   0., 'Single Top',    '#ffc800',  6],
-                  'ZZTo2L2Nu'   : ['ZZ', 0.5644, 0.0002688, 'ZZ',   '#ff4800',  3],
-                  'ZZTo2L2Q'    : ['ZZ', 3.222, 0.004901,   'ZZ',   '#ff4800',  3],
-                  'ZZTo4L'      : ['ZZ', 1.256, 0.002271,   'ZZ',   '#ff4800',  3],
-                  'HZJ_HToWW_M125'          : ['SM', 0.7524,  0.003643, 'tth, Zh',  '#ff0038',  2],
-                  'ZH_HToBB_ZToLL_M125'     : ['SM', 0.5269,  0.003834, 'tth, Zh',  '#ff0038',  2],
-                  'ggZH_HToBB_ZToLL_M125'   : ['SM', 0.5638,  0.02855,  'tth, Zh',  '#ff0038',  2],
-                  'ggZH_HToBB_ZToNuNu_M125' : ['SM', 0.01373, 0.,       'tth, Zh',  '#ff0038',  2],
-                  'ttHTobb'                 : ['SM', 0.5638,  0.,       'tth, Zh',  '#ff0038',  2],
-                  'ttHToNonbb'              : ['SM', 0.5638,  0.,       'tth, Zh',  '#ff0038',  2],
-                  'WWToLNuQQ'       : ['others', 43.53,     0.,     'others',   '#ff8d58',  1],
-                  'WWTo2L2Nu'       : ['others', 10.48,     0.,     'others',   '#ff8d58',  1],
-                  'WZTo2L2Q'        : ['others', 5.606,     0.,     'others',   '#ff8d58',  1],
-                  'WZTo1L3Nu'       : ['others', 3.054,     0.,     'others',   '#ff8d58',  1],
-                  'WZTo1L1Nu2Q'     : ['others', 10.73,     0.,     'others',   '#ff8d58',  1],
-                  'WZTo3LNu'        : ['others', 4.43,      0.,     'others',   '#ff8d58',  1],
-                  'WWW_4F'          : ['others', 0.2086,    0.,     'others',   '#ff8d58',  1],
-                  'WWZ_4F'          : ['others', 0.1651,    0.,     'others',   '#ff8d58',  1],
-                  'WZZ'             : ['others', 0.05565,   0.,     'others',   '#ff8d58',  1],
-                  'ZZZ'             : ['others', 0.01398,   0.,     'others',   '#ff8d58',  1],
-                  'WJetsToLNu'      : ['others', 60430.0,   0.,     'others',   '#ff8d58',  1],
-                  'TTWJetsToQQ'     : ['others', 0.405,     0.,     'others',   '#ff8d58',  1],
-                  'TTWJetsToLNu'    : ['others', 0.2001,    0.,     'others',   '#ff8d58',  1],
-                  'TTZToQQ'         : ['others', 0.5297,    0.,     'others',   '#ff8d58',  1],
-                  'TTZToLLNuNu_M-10': ['others', 0.2529,    0.,     'others',   '#ff8d58',  1],
-                  'HZJ_HToWW_M-125' : ['others', 0.04062,   0.,     'others',   '#ff8d58',  1],
-                  'ggZH_HToBB_ZToLL_M-125'  : ['others', 0.00695,   0.,     'others',   '#ff8d58',  1],
-                  'ggZH_HToBB_ZToNuNu_M-125': ['others', 0.00695,   0.,     'others',   '#ff8d58',  1],
+    shortnames = {'DYJetsToLL_M-10to50': ['DY', 18610.0,    None, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_0J'      : ['DY', 4757.0,     None, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_1J'      : ['DY', 859.589402, None, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_2J'      : ['DY', 361.4,      None, 'DY+jets', '#0000FF',    6],
+                  'TTToHadronic'           : ['ttbar', 377.96, 0.5174,             'tt',     '#c4ffff',  5],
+                  'TTToSemiLeptonic'       : ['ttbar', 365.35,  '+4.8% -6.1%',      'tt',    '#c4ffff',  5],
+                  'TTTo2L2Nu'              : ['ttbar', 88.288,  '+4.8% -6.1%',      'tt',    '#c4ffff',  5],
+                  'ST_tW_top_5f'           : ['ST', 35.85,  '+0.90 -0.90 +1.70 -1.70',  'ST',    '#ffc800',  4],
+                  'ST_tW_antitop_5f'       : ['ST', 35.85,  '+0.90 -0.90 +1.70 -1.70',  'ST',    '#ffc800',  4],
+                  'ST_t-channel_top_4f'    : ['ST', 136.02, None,                       'ST',    '#ffc800',  4],
+                  'ST_t-channel_antitop_4f': ['ST', 80.95,  None,                       'ST',    '#ffc800',  4],
+                  'ST_s-channel_4f'        : ['ST', 3.36,   +0.13 -0.12 ,               'ST',    '#ffc800',  4],
+                  'ZZTo2L2Nu'       : ['VV', 0.5644, 0.0002688,         'VV',   '#ff8d58',  3],
+                  'ZZTo2L2Q'        : ['VV', 3.222, 0.004901,           'VV',   '#ff8d58',  3],
+                  'ZZTo4L'          : ['VV', 1.256, 0.002271,           'VV',   '#ff8d58',  3],
+                  'WWToLNuQQ'       : ['VV', 43.53,     0.,             'VV',   '#ff8d58',  3],
+                  'WWTo2L2Nu'       : ['VV', 10.48,     0.,             'VV',   '#ff8d58',  3],
+                  'WZTo2L2Q'        : ['VV', 5.595,     0.,             'VV',   '#ff8d58',  3],
+                  'WZTo1L3Nu'       : ['VV', 3.033,     2.060e-02,      'VV',   '#ff8d58',  3],
+                  'WZTo1L1Nu2Q'     : ['VV', 10.71,     0.,             'VV',   '#ff8d58',  3],
+                  'WZTo3LNu'        : ['VV', 4.42965,   0.,             'VV',   '#ff8d58',  3],
+                  'HZJ_HToWW_M-125'          : ['SM', 0.0406,    0.,        'ggh, tth, Zh',  '#43294D',  2],
+                  'ZH_HToBB_ZToLL_M-125'     : ['SM', 0.07814,   0.0001904, 'ggh, tth, Zh',  '#43294D',  2],
+                  'ggZH_HToBB_ZToLL_M-125'   : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
+                  'ggZH_HToBB_ZToNuNu_M-125' : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
+                  'GluGluHToZZTo2L2Q_M125'   : ['SM', 1,         0.,        'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHTobb'                  : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHToNonbb'               : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'WWW_4F'          : ['others', 0.2086,    0.,         'VVV, ttV',   '#9370DB',  1],
+                  'WWZ_4F'          : ['others', 0.1651,    0.,         'VVV, ttV',   '#9370DB',  1],
+                  'WZZ'             : ['others', 0.05565,   0.,         'VVV, ttV',   '#9370DB',  1],
+                  'ZZZ'             : ['others', 0.01398,   0.,         'VVV, ttV',   '#9370DB',  1],
+                  'WJetsToLNu'      : ['others', 61526.7,   0.,         'VVV, ttV',   '#9370DB',  1],
+                  'TTWJetsToQQ'     : ['others', 0.4062,    0.0021,     'VVV, ttV',   '#9370DB',  1],
+                  'TTWJetsToLNu'    : ['others', 0.2043,    0.0020,     'VVV, ttV',   '#9370DB',  1],
+                  'TTZToQQ'         : ['others', 0.5297,    0.0008,     'VVV, ttV',   '#9370DB',  1],
+                  'TTZToLLNuNu_M-10': ['others', 0.2529,    0.0004,     'VVV, ttV',   '#9370DB',  1],
                   }
+
     for Nm, val in shortnames.items():
         if smpNm.startswith(Nm):
             return Nm , val[0], val[1], val[2], val[3], val[4], val[5] # name, xsc, uncer, legend, fill_color, order_of_group_in_plotit
@@ -194,23 +208,38 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
     else:
         return 'das:{}'.format(smp), []
 
-def get_legend(process, comp, H, l, m_heavy, m_light, smpNm):
-    return  f"{process}, (M{H}, M{l}) = (%d, %d) GeV"%(float(m_heavy),float(m_light))
+def get_legend(process, comp, heavy, light, m_heavy, m_light, smpNm):
+    m_heavy    = ('%.2f'%float(m_heavy)).replace('.00', '')
+    m_light    = ('%.2f'%float(m_light)).replace('.00', '')
+    if heavy == 'H':
+        return  "#splitline{%s: (m_{H}, m_{A})}{= (%s, %s) GeV}"%(process, m_heavy, m_light)
+    else:
+        return  "#splitline{%s: (m_{A}, m_{H})}{= (%s, %s) GeV}"%(process, m_heavy, m_light)
 
-def get_xsc_br_fromSushi(smpNm, arr):
+def get_xsc_br_fromSushi(smpNm, mode, base, process, comp):
+    if mode == "HToZA":
+        benchmarks = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
+        fullsim    = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
+        all_       = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_all_{process}_lo_{mode}_datasetnames.txt")
+                
+        arr = np.concatenate((benchmarks, fullsim, all_))
+
+    elif mode == "AToZH":
+        arr = loadSushiInfos(len(smpNm),'A', 'H', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
+    
     for lis in arr:
         if not smpNm == lis[0]: continue
         if 'To2L2B' in smpNm: 
             l = 'A' if 'HToZA' in smpNm else 'H'
             H = 'H' if 'HToZA' in smpNm else 'A'
-            mHeavy  = lis[1]
-            mlight  = lis[2]
+            m_heavy  = lis[1]
+            m_light  = lis[2]
             tb      = lis[3]
             xsc     = lis[4]
             xsc_err = lis[5]
             br_HeavytoZlight  = lis[6]
             br_lighttobb      = lis[7]
-            return H, l, mHeavy, mlight, tb, xsc, xsc_err, float(br_HeavytoZlight), float(br_lighttobb)
+            return H, l, m_heavy, m_light, tb, xsc, xsc_err, float(br_HeavytoZlight), float(br_lighttobb)
 
 def lumi_block(inf):
     with open(options.das, 'r') as inf:
@@ -315,12 +344,14 @@ if __name__ == "__main__":
     
     eras = lumi_block(options.das)
     print( eras)
+
     with open(options.das, 'r') as inf:
         with open(options.output, 'w+') as outf:
             
             groups = defaultdict()
             merged_daspath = []
-            
+            # It's mainly for pre-/post- VFP I don't want same signal to be plotit twice with diff colors
+            save_colors_forSignalGroup = {} 
             # =======================================================
             outf.write(f"tree: Events\n")
             outf.write(f"eras:\n")
@@ -333,6 +364,7 @@ if __name__ == "__main__":
             # =======================================================
             run = None
             for i, smp in enumerate(inf):
+                
                 isMC     = False
                 isdata   = False
                 issignal = False
@@ -343,10 +375,17 @@ if __name__ == "__main__":
                 if "HToZATo2L2B" in smp or "AToZHTo2L2B" in smp : 
                     issignal = True
                     mode     = 'AToZH' if 'AToZH' in smpNm else 'HToZA'
+                    heavy    = mode[0]
+                    light    = mode[-1]
                     comp     = 'nlo' if 'amcatnlo' in smp else 'lo'
-                    process  = 'ggH' if smpNm.startswith('GluGluTo') else('bbH')
+                    process  = f'gg{heavy}' if smpNm.startswith('GluGluTo') else(f'bb{heavy}')
+                    tb       = 1.5 if  smpNm.startswith('GluGluTo') else 20.0
+                    m_heavy  = float(smpNm.split('_')[1].split('-')[-1].replace('p', '.'))
+                    m_light  = float(smpNm.split('_')[2].split('-')[-1].replace('p', '.'))
+                
                 elif smpNm in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']: 
                     isdata   = True
+                
                 else: 
                     isMC     = True
                 
@@ -355,9 +394,11 @@ if __name__ == "__main__":
                 
                 if isdata:
                     run = smp.split('/')[2].split('-')[0][-1]
+                
                 era, lumi, uncer = get_era_and_luminosity(smp, run, isdata)
                 if era == '2016-preVFP' and run =='B':
                     run = 'B_ver1' if '2016B-ver1' in smp else 'B_ver2'
+                
                 year = era.replace('20', '')
                 if  'VFP' in era :
                     era_ = era.split('-')[0]
@@ -368,29 +409,46 @@ if __name__ == "__main__":
 
                 if issignal:
                     br_Ztoll = 0.067264
+                    # deprecated     
+                    # H, l, m_heavy, m_light, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, mode, base, process, comp)
                     
-                    if mode == "HToZA":
-                        benchmarks = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
-                        fullsim    = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_fullsim_{process}_{comp}_{mode}_datasetnames.txt")
-                        all_       = loadSushiInfos(len(smpNm),'H', 'A', f"{base}/list_all_{process}_lo_{mode}_datasetnames.txt")
-                        
-                        arrs = np.concatenate((benchmarks, fullsim, all_))
-                    
-                    elif mode == "AToZH":
-                        arrs = loadSushiInfos(len(smpNm),'A', 'H', f"{base}/list_benchmarks_{process}_{comp}_{mode}_datasetnames.txt")
-                        
-                    H, l, mHeavy, mlight, tb, xsc, xsc_err, br_HeavytoZlight, br_lighttobb = get_xsc_br_fromSushi(smpNm, arrs)
+                    # recommended 
+                    with open('../data/sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb))) as f_:
+                        dict_ = yaml.safe_load(f_)
+                  
+                    given_mass = dict_[mode]['M{}_{}_M{}_{}'.format(heavy, float(m_heavy), light, float(m_light))]
+
+                    br_HeavytoZlight = given_mass['branching-ratio']['{}ToZ{}'.format(heavy, light)]
+                    br_lighttobb     = given_mass['branching-ratio']['{}Tobb'.format(light)]
+
+                    if process == f'gg{heavy}': 
+                        xsc  = given_mass['cross-section'][process].split()[0]
+                        xsc_err  = given_mass['cross-section'][process].split()[1]
+                    else: 
+                        xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
+                        xsc_err  = given_mass['cross-section'][process]['NLO'].split()[1]
+
                     Nm      = smpNm.replace('-','_')+VFP
                     br      = br_HeavytoZlight * br_lighttobb * br_Ztoll
-                    leg     = get_legend(process, comp, H, l, mHeavy, mlight, smpNm)
+                    leg     = get_legend(process, comp, heavy, light, m_heavy, m_light, smpNm)
                     search  = smpNm
-                    details = f'{H} -> Z{l} ({br_HeavytoZlight}) * {l} -> bb ({br_lighttobb}) * Z -> ee+ mumu ({br_Ztoll})'
+                    details = f'{heavy} -> Z{light} ({br_HeavytoZlight}) * {light} -> bb ({br_lighttobb}) * Z -> ee+ mumu ({br_Ztoll})'
+                    
+                    if 'VFP' in era:
+                        nm_s = Nm.split('_UL')[0]
+                        if nm_s in save_colors_forSignalGroup.keys():
+                            color = save_colors_forSignalGroup[nm_s]
+                        else:
+                            save_colors_forSignalGroup = { nm_s: color }
+
                 elif isdata:
                     Nm = f'{smpNm}_UL{era_}{run}{VFP}'
                     run_range = run2_ranges[era][run]
-                    cert = certification[era.split('-')[0]] # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
+                    # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
+                    cert = certification[era.split('-')[0]] 
                     split  = 4
                     search = smpNm
+
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
                     Nm = Nm + VFP
@@ -415,26 +473,29 @@ if __name__ == "__main__":
                 outf.write(f"    era: '{era}'\n")
                 if isMC :
                     outf.write(f"    group: {group}\n")
+                    outf.write("    type: mc\n")
                     outf.write("    generated-events: 'genEventSumw'\n")
-                    outf.write(f"    cross-section: {xsc} # +- {uncer} pb\n")
+                    outf.write(f"    cross-section: {xsc} # +/- {uncer} pb\n")
                 elif isdata :
                     outf.write("    group: data\n")
+                    outf.write("    type: data\n")
                     outf.write(f"    run_range: {run_range}\n")
                     outf.write(f"    certified_lumi_file: {cert}\n")
                 elif issignal :
                     outf.write("    type: signal\n")
                     outf.write("    generated-events: 'genEventSumw'\n")
-                    outf.write(f"    cross-section: {xsc}   # +- {xsc_err} pb\n")
-                    outf.write(f"    Branching-ratio: {br}  # {details}\n")
+                    outf.write(f"    cross-section: {xsc}   # {xsc_err} pb\n")
+                    outf.write(f"    branching-ratio: {br}  # {details}\n")
                     outf.write(f"    line-color: '{color}'\n")
-                    outf.write("    line-type: 1\n")
-                    outf.write(f"    legend: {leg}\n")
+                    outf.write("    line-type: 8\n")
+                    outf.write("    line-width: 3\n")
+                    outf.write(f"    legend: '{leg}'\n")
                 outf.write("\n")
             outf.write("\n")
             outf.write("plotIt:\n")
             outf.write("  configuration:\n")
             outf.write("    width: 800\n")
-            outf.write("    height: 600\n")
+            outf.write("    height: 800\n")
             outf.write("    luminosity-label: '%1$.2f fb^{-1} (13 TeV)' \n")
             outf.write("    experiment: CMS\n")
             outf.write(f"    extra-label: {get_label(eras)} --Work in progress\n")
@@ -448,8 +509,8 @@ if __name__ == "__main__":
             outf.write("    #ratio-fit-line-color: '#0B486B'\n")
             outf.write("    y-axis-format: '%1% / %2$.2f'\n")
             outf.write("  legend:\n")
-            outf.write("    position: [0.6, 0.7, 0.9, 0.9]\n")
-            outf.write("    #columns: 2\n")
+            outf.write("    position: [0.45, 0.5, 0.95, 0.89]\n")
+            outf.write("    columns: 3\n")
             outf.write("  groups:\n")
             outf.write("    data:\n")
             outf.write("      legend: data\n")

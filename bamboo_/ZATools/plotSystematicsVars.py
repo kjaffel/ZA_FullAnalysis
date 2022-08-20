@@ -39,6 +39,7 @@ def halfRound(r):
     else:
         return 5. * pow(10., power)
 
+
 def beautify(s, era):
     if s == f'summed_normalized_{era}DY_samples':
         return 'Drell-Yan'
@@ -104,51 +105,58 @@ def beautify(s, era):
 
 
 def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era =None, normalize=True):
-    files= {'mc':{
-                  'DY'       :[], 
-                  'ttbar'    :[],
-                  'SingleTop':[],
-                  'total'    :[] },
+    
+    groups = Cfg['groups'].keys()
+    
+    split_gp = {}
+    for gp in groups:
+        split_gp[gp]  = []
+    split_gp['total'] = []
+
+    files= {'mc': split_gp,
             'signal': collections.defaultdict(dict),
             }
     
+    print( files )
     s = 'normalized_' if normalize else ''
     
     for rf in inputs:
         smp   = rf.split('/')[-1]
         smpNm = smp.replace('.root','')
+        
         if smpNm.startswith('__skeleton__'):
             continue
         if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
             continue
+
+        if not era == "fullrun2":
+            if not H.EraFromPOG(era) in smp:
+                continue
 
         year   = Cfg['files'][smp]["era"]
         lumi   = Cfg["configuration"]["luminosity"][year]
         xsc    = Cfg['files'][smp]["cross-section"]
         genevt = Cfg['files'][smp]["generated-events"]
         root   = Cfg["configuration"]["root"]
-        
+                
         rf = os.path.join(outDir, f'summed_{s}processes', rf)
         
         smpScale = (lumi * xsc )/ genevt
 
-        if any( x in smpNm for x in ['DYJetsToLL']):
-            files['mc']['DY'].append(rf)
-        elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar']):
-            files['mc']['ttbar'].append(rf)
-        elif any( x in smpNm for x in ['ST']):
-            files['mc']['SingleTop'].append(rf)
-        elif any(x in smpNm for x in ['AToZHTo2L2B', 'HToZATo2L2B', 'GluGluTo']):
-            br = Cfg['files'][smp]["Branching-ratio"]
-            smpScale *= br 
-            signal_smp = smpNm.replace('_preVFP', '').replace('_postVFP', '')
-            if not signal_smp in files['signal'].keys():
-                files['signal'][signal_smp] = []
-            files['signal'][signal_smp].append(rf)
+        if Cfg['files'][smp]['type'] == 'mc':
+            files['mc'][Cfg['files'][smp]['group']].append(rf)
+            files['mc']['total'].append(rf)
+        else:
+            if any(x in smpNm for x in ['AToZHTo2L2B', 'HToZATo2L2B', 'GluGluTo']):
+                
+                br = Cfg['files'][smp]["branching-ratio"]
+                smpScale *= br 
+                
+                signal_smp = smpNm.replace('_preVFP', '').replace('_postVFP', '')
+                if not signal_smp in files['signal'].keys():
+                    files['signal'][signal_smp] = []
+                files['signal'][signal_smp].append(rf)
         
-        files['mc']['total']= files['mc']['DY']+files['mc']['ttbar']+files['mc']['SingleTop']
-        
-
         if normalize:
             resultsFile    = HT.openFileAndGet(os.path.join(inDir, smp), mode="READ")
             normalizedFile = HT.openFileAndGet(os.path.join(outDir, f'summed_{s}processes', smp), "recreate")
@@ -164,6 +172,8 @@ def get_mergedBKG_processes(inputs=None, Cfg=None, inDir=None, outDir=None, era 
     print( files )
     for group in ['mc', 'signal']:
         for k, val in files[group].items():
+            if not val or len(val) ==1: 
+                continue
             r_f = f"summed_{s}{era}{k}_samples.root" if group == 'mc' else f"{k}_{era}_{s}.root"
             haddCmd = ["hadd", "-f", os.path.join(outDir, f'summed_{s}processes', r_f)]+val
             try:
@@ -265,7 +275,6 @@ def drawSystematic(nominal, up, down, title, era, syst, proc, plotOpts, output):
     #down_ratio.SetMarkerSize(0.6)
     down_ratio.Draw(ratio_style + "same")
 
-    
     # !!! 
     #nominal_ratio = down.Clone()
     #down_ratio.Divide(nominal)
@@ -330,16 +339,19 @@ def drawSystematic(nominal, up, down, title, era, syst, proc, plotOpts, output):
         os.makedirs(proc_output)
     c.SaveAs(os.path.join(proc_output, name))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draw systematics')
+    
     parser.add_argument('-i', '--input' , type=str , help='Input to bamboo directory'  , required=True)
     parser.add_argument('-o', '--output', type=str , help='Output directory', default ='sysvars')
+    parser.add_argument('-y', '--yml'   , help='plotit yml files', required=True) 
     parser.add_argument('-e', '--era'   , type=str , help='', required=True)
-    parser.add_argument('-m', '--merge' , action='store_true', default=True, help='merge bkg processes instead of going through them seperatly')
-    parser.add_argument('-n', '--normalize', action='store_true', default=True, help='normalize mc samples')
     parser.add_argument('-p', '--plots' , nargs='*', help='Restrict to those plots - use all by default')
     parser.add_argument('-f', '--files' , nargs='*', help='Restrict to those files - use all by default')
     parser.add_argument('-s', '--syst'  , nargs='*', help='Restrict to those systematics - use all by default')
+    parser.add_argument('-m', '--merge'    , action='store_true', default=True, help='merge bkg processes instead of going through them seperatly')
+    parser.add_argument('-n', '--normalize', action='store_true', default=True, help='normalize mc samples')
     
     options = parser.parse_args()
 
@@ -348,26 +360,28 @@ if __name__ == "__main__":
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    subdir = options.input.split('/')[-2]
-    plotter_p = options.input.split(subdir)[0]
-    for x in ['bayesian_rebin_on_S', 'bayesian_rebin_on_B', 'bayesian_rebin_on_hybride']:
-        if x in plotter_p:
-            plotter_p = plotter_p.replace(x,'')
-    with open(os.path.join(plotter_p, 'plots.yml')) as _f:
+    with open(options.yml) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
-    root = plotConfig["configuration"]["root"]
     
+    root = plotConfig["configuration"]["root"]
     systematics = plotConfig["systematics"]
+    
     with open(os.path.join(options.output, "systematics.json"), 'w') as _f:
         json.dump(systematics, _f, indent=4)
     logger.info( f'found systematics saved in : {options.output}/systematics.json' )
     # use the sys we get from the histogram 
     
-    
     ignore_systematics = []#['jer2', 'unclustEn', 'jer4', 'jer3', 'L1PreFiring', 'jer0', 'jer5', 'jer1', 'jmr', 'jms', 'HLTZvtx_2016postVFP', 'HLTZvtx_2016', 'HLTZvtx_2016preVFP']
 
-    all_files = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
-    files     = [ f for f in all_files if H.EraFromPOG(options.era) in f]
+    all_files  = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
+    
+    # I am assuming you will be able to get full list of sys from these 2 
+    files_tolistsysts  = [ [ f'{options.input}/{f}' for f in all_files if plotConfig["files"][f]["group"] == "ttbar"][0] , 
+                           [ f'{options.input}/{f}' for f in all_files if plotConfig["files"][f]["group"] == "DY" ][0] 
+                         ]
+    all_files += [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "signal" ]
+    files      = [ f for f in all_files if H.EraFromPOG(options.era) in f]
+    
     if options.merge:
         if not os.path.isdir(os.path.join(options.output, f'summed_{s}processes')):
             os.makedirs(os.path.join(options.output, f'summed_{s}processes'))
@@ -383,10 +397,11 @@ if __name__ == "__main__":
     
     plots = plotConfig["plots"]
     
+
     HT.setTDRStyle()
     found_systematics = {}
-    for flavor in ['ElEl', 'MuMu', 'ElMu']:
-        found_systematics[flavor] = H.get_listofsystematics(options.input, flavor) 
+    for flavor in ['ElEl', 'MuMu', 'MuEl']:
+        found_systematics[flavor] = H.get_listofsystematics(files_tolistsysts, flavor) 
     print( found_systematics )
     
     for proc in files:
@@ -406,7 +421,7 @@ if __name__ == "__main__":
                 if plot not in options.plots:
                     continue
             
-            if 'ElMu' in plot: flavor = 'ElMu'
+            if 'MuEl' in plot: flavor = 'MuEl'
             elif 'ElEl'in plot: flavor = 'ElEl'
             elif 'MuMu' in plot: flavor = 'MuMu'
 

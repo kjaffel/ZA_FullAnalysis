@@ -19,6 +19,7 @@ import optimizer as optimizer
 from json import JSONEncoder
 from plotSystematicsVars import get_mergedBKG_processes as merge
 
+
 class MarkedList:
     _list = None
     def __init__(self, l):
@@ -42,41 +43,42 @@ def swapdict(dic):
             newdic[ch][k] = v[ch]
     return newdic
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Bin by Bin factory yields')
     parser.add_argument('-i', '--input', help='desired root files you want to check their yields', required=True)
     parser.add_argument('-o', '--output', help='results to be saved in', required=False)
     parser.add_argument('-e', '--era', help='working year', required=True)
+    parser.add_argument('-y', '--yml', help='plotit yml files', required=True)
     parser.add_argument('--normalize', help='scale root files if needed', required=False, default=True)
 
     args = parser.parse_args()
     
-    if args.output ==None:
-        args.output = args.input.split('bayesian_rebin')[0]
-
     s = 'normalized_' if args.normalize else ''
     
-    with open(os.path.join(args.input.split('bayesian_rebin')[0], 'plots.yml')) as _f:
+    with open(args.yml) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
 
     all_files  = [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "mc" ]
     all_files += [ f for f in plotConfig["files"] if plotConfig["files"][f]["type"] == "signal" ]
-    files      = [f for  f in all_files if H.EraFromPOG(args.era) in f.split('/')[-1]]
+    files      = [ f for  f in all_files if H.EraFromPOG(args.era) in f.split('/')[-1]]
 
     if not os.path.isdir(os.path.join(args.output, f'summed_{s}processes')):
         os.makedirs(os.path.join(args.output, f'summed_{s}processes'))
         merge(inputs=files, Cfg=plotConfig, inDir= args.input, outDir=args.output, era =args.era, normalize=args.normalize)
-    else:
-        logger.info(f'output directory {args.output}/summed_{s}processes/ is not empty, remove or change output dir path')
     
-    root_files = glob.glob(os.path.join(args.output, f'summed_{s}processes', f'summed_{s}{args.era}*'))
-    signal_root_files =  glob.glob(os.path.join(args.output, f'summed_{s}processes', '*_normalized_.root'))
+    logger.info(f'output directory {args.output}/summed_{s}processes/ is not empty, remove or change output dir path')
+    mc_files     = glob.glob(os.path.join(args.input, f'summed_{s}processes', f'summed_{s}{args.era}*.root'))
+    signal_files = [] 
+    for smp in ['GluGluToHToZATo2L2B', 'HToZATo2L2B', 'GluGluToAToZHTo2L2B', 'AToZHTo2L2B']:
+        signal_files += glob.glob(os.path.join(args.input, f'summed_{s}processes', f'{smp}*.root'))
     
     yields_b = {}
     yields_s = {}
-    print( root_files )
-    print( signal_root_files)
-    for rf in root_files:
+    print( 'mc files :', mc_files )
+    print( 'signal files :', signal_files)
+    
+    for rf in mc_files:
 
         smp = rf.split('/')[-1]
         smpNm = smp.split('.root')[0]
@@ -92,25 +94,30 @@ if __name__ == "__main__":
             if not 'gg_fusion' in hist.GetName(): continue
             if not 'resolved' in hist.GetName(): continue
             
-            m = hist.GetName().split('gg_fusion_')[1].split('_')
-            masses = m[0] + '_' +m[1]+ 'p00_'+ m[2] + '_'+ m[3] +'p00_'
+            if not hist.GetName() == 'ElEl_resolved_METCut_NobJetER_bTagWgt_mbb_DeepFlavourM_gg_fusion':
+                continue
             
-            for sf in signal_root_files:
+            #m = hist.GetName().split('gg_fusion_')[1].split('_')
+            #masses = m[0] + '_' +m[1]+ 'p00_'+ m[2] + '_'+ m[3] +'p00_'
+            
+            for sf in signal_files:
                 sf_nm  = sf.split('/')[-1]
-                if not masses in sf_nm: continue
+                if not sf_nm.startswith('GluGluToHToZATo2L2B_MH_500p00_MA_300p00'):
+                    continue
+                #if not masses in sf_nm: continue
                 
                 yields_s[sf_nm] = {}
                 inFile_s  = HT.openFileAndGet(sf)
-                hist_s = inFile_s.Get(hist.GetName())
+                hist_s    = inFile_s.Get(hist.GetName())
                 
                 stat_s, error_s = optimizer.bbbyields( hist_s )
-                yields_s[sf_nm][hist.GetName()] = {'stat': MarkedList(stat_s), 
-                                                'error': MarkedList(error_s)}
+                yields_s[sf_nm][hist.GetName()] = {'stat' : MarkedList(stat_s), 
+                                                   'error': MarkedList(error_s)}
                 inFile_s.Close() 
 
             stat, error = optimizer.bbbyields( hist )
-            yields_b[smp][hist.GetName()] = {'stat': MarkedList(stat), 
-                                          'error': MarkedList(error)}
+            yields_b[smp][hist.GetName()] = {'stat' : MarkedList(stat), 
+                                             'error': MarkedList(error)}
         inFile.Close()
 
     for i, y in enumerate([yields_s, yields_b]):

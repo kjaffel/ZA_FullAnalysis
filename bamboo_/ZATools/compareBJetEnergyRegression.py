@@ -220,11 +220,11 @@ class BJetEnergyRegression():
         pad1.Draw()
         pad1.cd()
         
-
         # Get Max values #
-        max_data = max([h.GetMaximum() for h in self.data_hist_dict.values()])
-        max_MC = max([h.GetMaximum() for h in self.MC_hist_dict.values()])
+        max_data   = max([h.GetMaximum() for h in self.data_hist_dict.values()])
+        max_MC     = max([h.GetMaximum() for h in self.MC_hist_dict.values()])
         max_signal = max([h.GetMaximum() for h in self.signal_hist_dict.values()])
+        
         if self.plot_data and self.plot_MC:
             amax = max(max_data,max_MC)
         elif self.plot_data:

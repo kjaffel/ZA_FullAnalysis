@@ -42,12 +42,15 @@ def getHistTemplate(path, gr, prefix, reg):
     
     filename = glob.glob(os.path.join(path, '*.root'))[0]
     f = ROOT.TFile.Open(filename)
-    hist   = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
-    #hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
+    #hist   = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
-    histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
-    #histo.Reset()
+    #histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
+    histo  = hist.Clone()
+    
+    histo.Reset()
     histo.Sumw2()
+    histo.SetName(prefix +f"_{gr}") 
     histo.SetDirectory(0)
     
     f.Close()
@@ -84,6 +87,10 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
         #    continue
         
         # ignore signal 
+        if 'HToZATo2L2B_' in smp:
+            continue
+        if 'AToZHTo2L2B_' in smp:
+            continue
         if 'type' in Cfg['files'][smp].keys() and Cfg['files'][smp]['type'] =='signal':
             continue
 
@@ -102,7 +109,8 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
             if not Cfg['files'][smp]['group']=='data':
                 continue
         
-        lumi    = Cfg["configuration"]["luminosity"][year]
+        era     = Cfg["files"][smp]['era']
+        lumi    = Cfg["configuration"]["luminosity"][era]
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
@@ -116,10 +124,10 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
         print ( 'looking into :', smp)
         for cat in requested_flav:
             
-            varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") #old version 
-            print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
-            #varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
-            #print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
+            #varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") #old version 
+            #print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
+            varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
+            print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
             if not isData:
                 varToPlots_histo.Scale(sf)
             histo.Add(varToPlots_histo, 1)
@@ -139,8 +147,9 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
         BinEdges = {'resolved': {'mjj': [0., 50, 100., 200, 450., 650.], 'mlljj': [100., 200., 450., 650., 1200.] },
                     'boosted' : {'mjj': [], 'mlljj': [] } }
     else:
-        BinEdges = {'resolved': {'mjj' : [0., 650.], 'mlljj': [120., 650.] },
-                    'boosted' : {'mjj' : [0., 150.], 'mlljj': [200., 650.] } }
+        #BinEdges = {'resolved': {'mjj' : [0., 650.], 'mlljj': [120., 650.] },
+        BinEdges  = {'resolved': {'mjj' : [0., 600.], 'mlljj': [120., 650.] },
+                     'boosted' : {'mjj' : [0., 150.], 'mlljj': [200., 650.] } }
         
     
     outDir = os.path.join(os.getcwd(), f"results/ul{year}/{flavour}")
@@ -160,13 +169,13 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 if splitDYweight: w = bin  
                 else: w = 'comb'
                 
-                #Drell-Yan +jets mc 
+                # histo_mc is hadd Drell-Yan + jets  mc
                 histo_mc        = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
                 histo_other_mc  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
                 histo_all_data  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
             
-                #histo_data  = histo_all_data 
-                histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
+                histo_data  = histo_all_data 
+                #histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
                 
                 print ( " Get Drell-Yan weight from polynomial fit order ", n, "from bin ",BinEdges[reg][varToPlot][bin], "to",BinEdges[reg][varToPlot][bin+1], "GeV") 
                 print ( " Integrals ** ", ", region:", reg, ", distribution: ", varToPlot)
@@ -177,8 +186,8 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 print ( " Data - other_mc/Drell-Yan mc  :", (histo_data.Integral() - histo_other_mc.Integral() )/histo_other_mc.Integral())
                 print ( "====================================================================================")
                 
-                
-                w_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.root", "recreate")
+                f_nm = f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.root" 
+                w_file = ROOT.TFile.Open(f_nm, "recreate")
                 histo_mc.SetDirectory(0)
                 histo_data.SetDirectory(0)
                 
@@ -186,9 +195,7 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 histo_data.Write()
                 w_file.Close()
         
-                ratio_file = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.root")
-                c1 = ROOT.TCanvas("c1", "c1", 800, 800)
-        
+                ratio_file = ROOT.TFile.Open(f_nm)
                 histo_mc   = ratio_file.Get("%s_mc"%varToPlot)
                 histo_data = ratio_file.Get("%s_data"%varToPlot)
         
@@ -202,6 +209,8 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 #histo_mc.ResetStats()
                 
                 if compareshape:
+                    c1 = ROOT.TCanvas("c1", "c1", 800, 800)
+                    
                     histo_mc.SetStats(0)
                     histo_mc.SetLineWidth(2)
                     histo_mc.SetLineColor(kRed)
@@ -221,13 +230,23 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                     c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.png", "png")
                
                     del c1
+                
                 #create histo of ratio data/MC
-                c2 = ROOT.TCanvas("c2", "c2", 800, 800)
                 ratio = histo_data.Clone()
                 ratio.SetTitle("")
                 ratio.Sumw2()
                 ratio.SetStats(0)
                 ratio.Divide(histo_mc)
+                
+                c2 = ROOT.TCanvas("c2", "c2", 800, 800)
+                c2.DrawFrame(-12,-12,12,12)
+                
+                ROOT.gStyle.SetOptTitle(0)
+                ROOT.gStyle.SetOptStat(0)
+                ROOT.gStyle.SetOptFit(1111)
+                ROOT.gStyle.SetStatBorderSize(0)
+                ROOT.gStyle.SetStatX(.89)
+                ROOT.gStyle.SetStatY(.89)
                 
                 ratio.SetMarkerColor(ROOT.kBlack)
                 ratio.SetMarkerStyle(20)
@@ -235,7 +254,6 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 ratio.SetMinimum(0.6)
                 ratio.SetMaximum(1.4)
                 
-                ratio.SetTitle("")
                 ratio.GetYaxis().SetTitle("Data/Mc")
                 ratio.GetYaxis().SetNdivisions(505)
                 ratio.GetYaxis().SetTitleSize(20)
@@ -256,7 +274,6 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 b1 = 150.
                 b2 = BinEdges[reg][varToPlot][bin+1]
                 
-
                 gaus_pars  = []
                 pol_highmass_params = []
                 pol_lowmass_params  = []
@@ -268,16 +285,25 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 
                     #fit_func1.SetParameter(1, 0.0000005)
                     #fit_func2.SetParameter(1, 0.0000005)
-                
+                    
+                    fit_func1.SetLineColor(ROOT.kBlue)
+                    fit_func2.SetLineColor(ROOT.kRed)
+                    
                     ratio.Fit(fit_func1, "R")
                     ratio.Fit(fit_func2, "R+")
-                
+                    
+                    fit_func1.Print()
+                    fit_func2.Print()
+
                     for i in range(0, n0+1):
                         p = fit_func1.GetParameter(i)
                         pol_lowmass_params.append(p)
                 else:
-                    fit_func2 = ROOT.TF1(f"pol{n}", f"pol{n}", 10., 200.)
-                    ratio.Fit(fit_func2, "R")
+                    fit_func1 = ROOT.TF1(f"pol{n}", f"pol{n}", 10., 200.)
+                    fit_func1.SetLineColor(ROOT.kBlue)
+                    
+                    ratio.Fit(fit_func1, "R")
+                    fit_func1.Print()
                 
                 if histo_mc.Integral(histo_mc.FindBin(b2), histo_mc.FindBin(1200)) != 0 :
                     #print( ratio.GetNbinsX(), ratio.GetXaxis().GetBinLowEdge(2), ratio.FindBin(20))
@@ -288,7 +314,6 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                     pol_highmass_params.append(p)
                 
                 print("========"*10)
-                #print( 'gaus fit degree 3:', gaus_pars)
                 print(f'Parms for:  {reg} {varToPlot}')
                 print(f'low mass pol fit degree {n0} parameters:', pol_lowmass_params)
                 print(f'high mass pol fit degree {n} parameters:', pol_highmass_params)
@@ -297,20 +322,46 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
                 
                 sf[reg][varToPlot][bin]= {'low_mass': pol_lowmass_params, 'high_mass': pol_highmass_params, 'binWgt': binWgt }
 
+                ratio.Draw()
+                
+                t = c2.GetTopMargin()
+                r = c2.GetRightMargin()
+                l = c2.GetLeftMargin()
+                lumiTextOffset   = 0.2
+
+                latex = ROOT.TLatex()
+                latex.SetNDC()
+                latex.SetTextAngle(0)
+                latex.SetTextColor(ROOT.kBlack)
+
+                lumiText = "%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(year)/1000.,'.2f')
+                lumi = latex.DrawLatex(0.65,1-t+lumiTextOffset*t,lumiText)
+                lumi.SetNDC()
+                lumi.SetTextFont(40)
+                lumi.SetTextSize(0.03)
+                lumi.Draw("same")
+
+                cms_text = latex.DrawLatex(0.12, 1-t+lumiTextOffset*t, "CMS Preliminary")
+                cms_text.SetNDC()
+                cms_text.SetTextFont(40)
+                cms_text.SetTextSize(0.03)
+                cms_text.Draw("same")
+
                 line = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1, ratio.GetXaxis().GetXmax(), 1)
+                line.SetLineWidth(5)
                 line.SetLineColor(ROOT.kBlack)
-                line.Draw("")
+                line.Draw("PE")
                 
                 add_ratio = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.root", "recreate")
                 ratio.SetDirectory(0)
                 ratio.Write()
                 add_ratio.Close()
 
-                ratio.Draw()
                 c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.pdf", "pdf")
                 c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.png", "png")
         
                 ratio_file.Close()
+                del c2
     return sf
 
 if __name__ == "__main__":
@@ -326,21 +377,28 @@ if __name__ == "__main__":
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
     #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
     
-    n0 = { '2016-preVFP' : 6, 
-           '2016-postVFP': 6, 
+    n0 = {  '2016-preVFP' : 6, 
+            '2016-postVFP': 6, 
+            '2016': 6, 
             '2017': 7, 
             '2018': 6 
             }
     
     for flavour in ['LL', 'ElEl', 'MuMu']:
         
-        for year, files_path in {#2016: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
-                                 #2017: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
-                                 #2018: '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
-                                 '2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
-                                 '2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver28/results',
-                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver27/results',
-                                 '2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver11/results',
+        for year, files_path in {#'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
+                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver29/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver19/results',
+                                 #'2016-preVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
+                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
+                                  '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver33/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver21/results',
                                 }.items():
    
             

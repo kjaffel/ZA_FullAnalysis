@@ -263,9 +263,9 @@ def get_ttbarFromData(plotConfig, path, year, era):
                             region  = 'resolved' if 'resolved' in name else 'boosted'
                             process = 'gg_fusion' if 'gg_fusion' in name else 'bb_associatedProduction'
                             histos_data[i].Reset()
+                            histos_data[j].Scale(k_factor_BTAG[flavor][process][region])
                             histos_data[i].Add(histos_data[j], 1)
-                            histos_data[i].Scale(k_factor_BTAG[flavor][process][region])
-
+                            histos_data[i].SetDirectory(0)
     # In PlotIt, these histograms will be normalized with the lumi. Since this is mc,
     # we don't want any normalization by lumi. To avoid this, we "normalize" all the plots
     # by 1/lumi here.
