@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# You may not need all of this, these are some my functions/craps to get things working in optimizeBinning.py
+# You may not need all of this, these are some of my functions/craps to test things in optimizeBinning.py script
 # using the bayesian blocks 
 import argparse
 import glob
@@ -25,6 +25,7 @@ import Harvester as H
 import HistogramTools as HT
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
+
 
 
 def rebinmethods():
@@ -112,25 +113,25 @@ def get_sortedfiles(binnings, inputs, era):
         if smpNm.startswith('__skeleton__'):
             continue
     
-        if   'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
+        if 'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
             binnings['files']['tot_obs_data'].append(rf)
-        elif   'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
+        elif 'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
             binnings['files']['tot_b'].append(rf)
-        elif   'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
+        elif 'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
             binnings['files']['tot_s'].append(rf)
-        elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluTo']):
+        elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH']):
             binnings['files']['signal'].append(rf)
         elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon']):
             binnings['files']['data'].append(rf)
         elif any( x in smpNm for x in ['DYJetsToLL']):
             binnings['files']['mc']['DY'].append(rf)
-        elif any( x in smpNm for x in ['TTTo2L2Nu', 'ttbar','TTToSemiLept']):
+        elif any( x in smpNm for x in ['TTTo2L2Nu', 'TTToHadronic','TTToSemiLept']):
             binnings['files']['mc']['ttbar'].append(rf)
         elif any( x in smpNm for x in ['ST_']):
             binnings['files']['mc']['SingleTop'].append(rf)
         elif any( x in smpNm for x in ['ZZTo2L2Nu', 'ZZTo4L', 'ZZTo2L2Q']):
             binnings['files']['mc']['ZZ'].append(rf)
-        elif any( x in smpNm for x in ['HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
+        elif any( x in smpNm for x in ['GluGluHToZZTo2L2Q_M125', 'HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
             binnings['files']['mc']['ZZ'].append(rf)
         else:
             binnings['files']['mc']['others'].append(rf)
@@ -175,6 +176,12 @@ def available_points(inputs):
     return points
 
 
+def mass_to_str(m):
+    m = str(m).replace('p','.')
+    m = "%.2f"%float(m)
+    return str(m).replace('.','p')
+
+
 def get_histNm_orig(mode, smpNm, mass, info=False):
     if not mode == 'dnn': prefix= mode
     else:
@@ -182,14 +189,15 @@ def get_histNm_orig(mode, smpNm, mass, info=False):
             prefix = 'DNNOutput_ZAnode'
             thdm = 'HToZA'
         else: 
-            prefix= 'DNNOutput_ZAnode' # to fix later in the new production
+            prefix= 'DNNOutput_ZHnode' 
             thdm = 'AToZH'
 
     heavy = thdm[0]
     light = thdm[-1]
-    m_heavy = str(mass.split('_')[1]).replace('.', 'p')
-    m_light = str(mass.split('_')[3]).replace('.', 'p')
-    
+
+    m_heavy = mass_to_str(mass.split('_')[1])
+    m_light = mass_to_str(mass.split('_')[3])
+
     def returnIfExist(x, smp):
         if x in smp:
             return x
@@ -264,8 +272,7 @@ def get_bin_Content_and_Edges(hist):
 
 def get_new_histogramWgt(hist=None, newEdges=None, oldEdges=None, verbose=False):
    
-    oldNbins = hist.GetNbinsX() 
-    
+    oldNbins  = hist.GetNbinsX() 
     binContent= np.array([])
     binError  = np.array([])
     FinalBins = []
@@ -368,16 +375,28 @@ def EraFromPOG(era):
     return '_UL'+era.replace('20','')
 
 
-def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=False):
-    s   = 'scaled_' if scale else ''
-    in_ = inDir.replace('results', '')
+def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
     
-    with open(os.path.join(in_, 'plots.yml')) as _f:
-        Cfg = yaml.load(_f, Loader=yaml.FullLoader)
+    sorted_inputs= {'data'  :[],
+                    'mc'    :[]}
+    
+    in_ = inDir.replace('results', '')
+    plotter_p = outDir.split('work__UL')[0]
 
-    sorted_inputs= {'data'  :[], 
-                    'mc'    :[], 
-                    }
+    if scale:
+        file_ = os.path.join(in_, 'plots.yml')
+        if not os.path.exists(file_):
+            file_ = os.path.exists(os.path.join(outDir, f'config_{year}.yml'))
+    
+        if not os.path.exists(file_):
+            logger.info(f'Sorry neither Bamboo plotIt  << plots.yml >> is found \n'
+                        'neither << config_{year}.yml >> of Harvester.get_normalisationScale class, \n'
+                        'this is then gonna take sometime!\n')
+            H.get_normalisationScale(inDir, method, era)
+        
+        with open(file_) as _f:
+            Cfg = yaml.load(_f, Loader=yaml.FullLoader)
+
     for rf in inputs:
         isData = False
         smp    = rf.split('/')[-1]
@@ -390,34 +409,33 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=F
             if not EraFromPOG(era) in smpNm:
                 continue
 
-        year   = Cfg['files'][smp]["era"]
-        lumi   = Cfg["configuration"]["luminosity"][year]
 
         if scale: path = os.path.join(outDir, smp)
         else: path = rf 
         
         if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
-            if doNeedData:
-                if scale:
-                    shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
-                sorted_inputs['data'].append(path)
             isData = True
+            sorted_inputs['data'].append(path)
+            if scale:
+                shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
         else:
-            xsc    = Cfg['files'][smp]["cross-section"]
-            genevt = Cfg['files'][smp]["generated-events"]
+            if scale:
+                year     = Cfg['files'][smp]["era"]
+                lumi     = Cfg["configuration"]["luminosity"][year]
+                xsc      = Cfg['files'][smp]["cross-section"]
+                genevt   = Cfg['files'][smp]["generated-events"]
+                smpScale = (lumi * xsc )/ genevt
             
-            if any(x in smpNm for x in ['AToZHTo', 'HToZATo', 'GluGluTo']):
-                
-                br = Cfg['files'][smp]["generated-events"]
-                
-                smpScale = (lumi * xsc * br)/ genevt
-                signal = smpNm.split('_UL')[0]
-                
+            if any(x in smpNm for x in ['AToZHTo', 'HToZATo', 'GluGluToHToZATo', 'GluGluToAToZHTo']):
+                if scale:
+                    br = Cfg['files'][smp]["generated-events"]
+                    smpScale *=br
+
+                signal   = smpNm.split(f'_UL{EraFromPOG(era)}')[0]
                 if not signal in sorted_inputs.keys():
                     sorted_inputs[signal] = []
                 sorted_inputs[signal].append(path)
             else:
-                smpScale = (lumi * xsc )/ genevt
                 sorted_inputs['mc'].append(path)
         
         if scale and not isData:
@@ -433,25 +451,20 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False, doNeedData=F
             normalizedFile.Write()
             resultsFile.Close()
     
+    s   = 'scaled_' if scale else ''
     for k, val in sorted_inputs.items():
-        haddCmd = []
         if not val : continue
-        if k in ['mc', 'data']:
-            sum_f = f"summed_{s}{k}_samples_UL{era}.root"
-            haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
-        else: 
-            # the rest are signal we dont want to hadd them all 
-            # only the ones those belong to the same group like 2016 pre-/post-VFP signals
-            if era == '2016':
-                sum_f = val[0].replace('preVFP', '')
-                haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
-        
-        if haddCmd:
-            try:
-                logger.info("running {}".format(" ".join(haddCmd)))
-                subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+        if len(val) ==1: continue
+
+        if  k in ['data', 'mc']: sum_f = f"summed_{s}{k}_UL{era}.root" 
+        else: sum_f = f"{k}_UL{era}.root"
+
+        haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
+        try:
+            logger.info("running {}".format(" ".join(haddCmd)))
+            subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            logger.error("Failed to run {0}".format(" ".join(haddCmd)))
     
 
 def LATEX(uname=None):
@@ -504,11 +517,9 @@ def writeymlPlotter(files, kf, year, Cfg, outf, normalized):
 
 
 def plotRebinnedHistograms(binnings, inDir, folder, mode_, suffix, year, toysdata=False, normalized=False):
-    
     with open(os.path.join(inDir, 'plots.yml')) as _f:
         Cfg = yaml.load(_f, Loader=yaml.FullLoader)
     lumiconfig = Cfg['configuration']
-    print(lumiconfig) 
     
     if toysdata:
         plotsDIR = os.path.join(folder, 'bayesian_rebinned_on_toysdata')

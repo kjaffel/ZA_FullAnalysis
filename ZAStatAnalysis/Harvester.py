@@ -4,16 +4,69 @@ import yaml
 import ROOT
 import json
 import glob
+import subprocess
 import re, hashlib
+
+from cppyy import gbl
+
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
+
 
 sys.dont_write_bytecode  = True
 splitTTbarUncertBinByBin = False
 
-def CMSNamingConvention(origName, era=None):
+
+
+def openFileAndGet(path, mode="read"):
+    """Open ROOT file in a mode, check if open properly, and return TFile handle."""
+    tf = ROOT.TFile.Open(path, mode)
+    if not tf or not tf.IsOpen():
+        raise Exception("Could not open file {}".format(path))
+    return tf
+
+
+def readRecursiveDirContent(content, currTDir, resetDir=True):
+    """
+    Fill dictionary content with the directory structure of currTDir.
+    Every object is read and put in content with their name as the key.
+    Sub-folders will define sub-dictionaries in content with their name as the key.
+    """
+    if not currTDir.InheritsFrom("TDirectory") or not isinstance(content, dict):
+        return
+
+    # Retrieve the directory structure inside the ROOT file
+    currPath = currTDir.GetPath().split(':')[-1].split('/')[-1]
+
+    if currPath == '':
+        # We are in the top-level directory
+        thisContent = content
+    else:
+        thisContent = {}
+        content[currPath] = thisContent
+
+    listKeys = currTDir.GetListOfKeys()
+
+    for key in listKeys:
+        obj = key.ReadObj()
+        if obj.InheritsFrom("TDirectory"):
+            print("Entering sub-directory {}".format(obj.GetPath()))
+            readRecursiveDirContent(thisContent, obj)
+        else:
+            name = obj.GetName()
+            if '__' in name:
+                continue
+            thisContent[name] = obj
+            if resetDir:
+                obj.SetDirectory(0)
+
+
+def CMSNamingConvention(origName=None, era=None, process=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
+    
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
+    era_  = '2016' if 'VFP' in era else era 
+
     other = {
         # new names in the histograms  
         "btagSF_fixWP_subjetdeepcsvM_light":"CMS_btag_light_%s"%era,
@@ -29,7 +82,9 @@ def CMSNamingConvention(origName, era=None):
         'highpt_ele_reco':"CMS_eff_elreco_highpt_%s"%era,
         'muid_medium':"CMS_eff_muid_%s"%era,
         'muiso_tight':"CMS_eff_muiso_%s"%era,
-        "jesHEMIssue": "CMS_HEM_%s"%era,
+        'jesHEMIssue': "CMS_HEM_%s"%era,
+        'HLTZvtx': "CMS_HLTZvtx_%s"%era,
+        
         # old naming for old histograms, will be removed  soon 
         'puweights2016_Moriond17': "CMS_pileup_%s"%era,
         'elid' :"CMS_eff_el_%s"%era,
@@ -43,11 +98,22 @@ def CMSNamingConvention(origName, era=None):
         'HHMoriond17_mumutrig':"CMS_eff_trigMuMu_%s"%era,
         'HHMoriond17_elmutrig':"CMS_eff_trigElMu_%s"%era,
         'HHMoriond17_mueltrig':"CMS_eff_trigMuEl_%s"%era,
+        
         # some not in use anymore
         "chMisID": "CMS_chargeMisID_%s"%era,
         }
-    
-    theo_perProc = {"qcdScale": "QCDscale", "psISR": "ISR", "psFSR": "FSR", "pdf": "pdf"}
+   
+    # remove mass _MX-... duplicate in the datacards 
+    if process:
+        process = process.split('_')[0]
+
+    theo_perProc = {"qcdScale": "QCDscale_%s"%process, 
+                    "qcdMuF"  : "qcdMuF_%s"%process, 
+                    "qcdMuR"  : "qcdMuR_%s"%process, 
+                    "psISR"   : "ISR_%s"%process, 
+                    "psFSR"   : "FSR_%s"%process, 
+                    "pdf"     : "pdf_%s"%process}
+
     if origName in other:
         return other[origName]
     elif origName in theo_perProc:
@@ -56,13 +122,17 @@ def CMSNamingConvention(origName, era=None):
         return "CMS_scale_j_{}_{}".format(origName[3:], era)
     elif origName.startswith("jer"):
         return "CMS_res_j_Total_{}".format(era)
+    elif origName.startswith("jms"):
+        return "CMS_scale_fatjet_{}".format(era_)
+    elif origName.startswith("jmr"):
+        return "CMS_res_fatjet_{}".format(era_)
     #   if len(origName) == 3:
     #       return "CMS_res_j_{}".format(era)
     #   else:
     #       jerReg = jerRegions[int(origName[3:])]
     #       return "CMS_res_j_{}_{}".format(jerReg, era)
     elif origName.startswith("pileup"):
-        return "CMS_pileup_{}".format(era)   
+        return "CMS_pileup_{}".format(era_)   
     else:
         return origName+'_{}'.format(era)
 
@@ -95,7 +165,9 @@ def get_listofsystematics(files, flavorCat):
                 continue
             if not '__' in key.GetName():
                 continue
-            if not 'down' in key.GetName() :
+            if not 'down' in key.GetName():
+                continue
+            if 'Jet_mulmtiplicity' in key.GetName(): # nm of histogram contain add __ this isn't sys, ignore until i fix it again in the new vers 
                 continue
 
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
@@ -107,9 +179,9 @@ def get_listofsystematics(files, flavorCat):
             else: avoid += ll
             
             if cat == 'boosted':
-                avoid += [ '_btagSF_deepJet_fixWP', 'DYweight_resolved_'] 
+                avoid += [ 'btagSF_deepJet_fixWP', 'DYweight_resolved_'] 
             elif cat == 'resolved':
-                avoid += [ '_btagSF_deepCSV_fixWP', 'DYweight_boosted_'] 
+                avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
             
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
@@ -125,8 +197,21 @@ def zeroNegativeBins(h):
             h.SetBinContent(i, 0.)
             h.SetBinError(i, 0.)
 
+
 def EraFromPOG(era):
     return '_UL'+era.replace('20','')
+
+
+def ConfigurationEra(smp):                    
+    if 'preVFP' in smp:
+        era_ = '2016-preVFP'
+    elif 'postVFP' in smp:
+        era_ = '2016-postVFP'
+    elif '_UL17' in smp:
+        era_ = '2017'
+    elif '_UL18' in smp:
+        era_ = '2018'
+    return era_
 
 
 def get_method_group(method):
@@ -139,7 +224,7 @@ def get_method_group(method):
     elif method == 'signal_strength':
         return 'signal_strength'
     elif method == 'pvalue':
-        return 'pvalue_significance'
+        return 'pvalue-significance'
     elif method == 'goodness_of_fit':
         return 'goodness_of_fit_test'
     elif method == 'asymptotic':
@@ -149,18 +234,19 @@ def get_method_group(method):
 
 
 def get_combine_method(method):
+            # --rMin -50 --rMax 50 --robustFit=1' 
+            # --X-rtd MINIMIZER_analytic'
+            # --X-rtd MINIMIZER_no_analytic 
     if method == 'fit':
-        # FIXME   hey leave it this way : --rMax 500 : the postfit plots are better that why
-        # I can tell you alrady, did nothing for the limits !! 
-        return '-M FitDiagnostics --rMax 500'#--rMin -50 --rMax 50 --robustFit=1' #--X-rtd MINIMIZER_analytic'# -M MaxLikelihoodFit'
+        return '-M FitDiagnostics --rMax 20'   
     elif method == 'asymptotic':
-        return '-M AsymptoticLimits --rMax 500' #-X-rtd MINIMIZER_no_analytic # --X-rtd MINIMIZER_analytic
+        return '-M AsymptoticLimits --rMax 20' 
     elif method == 'impacts':
         return '-M Impacts --rMin -20 --rMax 20' 
     elif method == 'hybridnew':
         return '-H Significance -M HybridNew --frequentist --testStat LHC --fork 10'
     elif method == 'signal_strength':
-        return '-M MultiDimFit --rMin -1 --rMax 3'
+        return '-M MultiDimFit --rMin -3 --rMax 3'
     elif method == 'pvalue':
         return '-M Significance'
 
@@ -192,60 +278,119 @@ def get_Observed_HIG_18_012(m):
         return None
 
 
-def getnormalisationScale(inDir=None, method=None, era=None, seperate=False):
-    """
-    dict_seperateInfos = {"Configurations": {}
-                smp_signal : [era, lumi, xsc , generated-events, br],
-                smp_mc     : [era, lumi, xsc , generated-events, None], 
-                smp_data   : [era, None, None, None,           , None] }
-    """
-    dict_scale = {} 
-    dict_seperateInfos = {}
+def get_normalisationScale(inDir=None, method=None, era=None):
+    dict_ = {}
+    wEra  = EraFromPOG(era)
+    plotter_p = inDir.split('work__UL')[0]
+    yaml_file = os.path.join(plotter_p, 'work_{}/plots.yml'.format(wEra))
+    plotit_yml= True
+    # just make things faster reading an yml file, rather than opening xx root files
+    # plotit cmd get killed when there are lots of files to read and does not give the plots.yml
+    # this is just a workaround
+    if not os.path.exists(yaml_file):
+        yaml_file = os.path.join(plotter_p, 'config_{}.yml'.format(era))
+    if os.path.exists(yaml_file):
+        with open(yaml_file) as file:
+            scalefactors = yaml.safe_load(file)
+        return scalefactors
+    else:
+        yaml_file  = 'data/fullanalysisRunIISummer20UL_18_17_16_nanov9.yml'
+        plotit_yml = False
     
-    subdir = inDir.split('/')[-2]
-    plotter_p = inDir.split(subdir)[0]
-    for x in ['bayesian_rebin_on_S', 'bayesian_rebin_on_B', 'bayesian_rebin_on_hybride']:
-        if x in plotter_p:
-            plotter_p = plotter_p.replace(x,'')
-    yaml_file  = os.path.join(plotter_p, 'plots.yml')
     try:
         with open(yaml_file, 'r') as inf:
             config = yaml.safe_load(inf)
     except yaml.YAMLError as exc:
         logger.error('failed reading file : %s '%exc)
     
-    for proc_path in glob.glob(os.path.join(inDir, "*.root")): 
-        smp = proc_path.split('/')[-1]
-        
+    for i, inPath in enumerate(glob.glob(os.path.join(inDir, "*.root"))): 
+        smp   = inPath.split('/')[-1]
+        smpNm = smp.split('.root')[0]
         if smp.startswith('__skeleton__'):
             continue
 
-        if not era == "fullrun2":
-            if not EraFromPOG(era) in smp:
+        if era != "fullrun2":
+            if not wEra in smp:
                 continue
-
+        
+        if i == 0: dict_['files'] = {}
+        
+        print( "working on scale factors:: ", smp)
         smpScale = None
-        smpCfg   = config["files"][smp]
-        lumi     = config["configuration"]["luminosity"][smpCfg["era"]]
-        dict_seperateInfos["configuration"] = config["configuration"]["luminosity"]
+        sumW     = None
+        do_SumW  = True
+
+        if plotit_yml:
+            smpCfg   = config['files'][smp]
+            sumW     = smpCfg["generated-events"]
+            lumi     = config["configuration"]["luminosity"][smpCfg["era"]]
+            dict_["configuration"] = config["configuration"]["luminosity"]
+        else:
+            smpCfg   = config['samples'][smpNm]
+            lumi     = config["eras"][smpCfg["era"]]["luminosity"]
+            dict_["configuration"] = {"luminosity": {    
+                    '2016-postVFP': 16977.701784453,
+                    '2016-preVFP': 19667.812849099,
+                    '2017': 41529.152060112,
+                    '2018': 59740.565201546}}
+
+            if smpCfg.get("type")== "mc" or smpCfg.get("type")=="signal":
+                #if  smpCfg.get("type")=="signal" and not '500p00_' in smp: do_SumW=False
+                if do_SumW:
+                    inFile = openFileAndGet(inPath)
+                    hists  = dict()
+                    readRecursiveDirContent(hists, inFile, resetDir=False)
+                    runsTree = hists['Runs']
+                    sumW     = sum([entry.genEventSumw for entry in runsTree])
+                    inFile.Close()
         
         if smpCfg.get("type") == "mc":
-            smpScale = lumi * smpCfg["cross-section"]/ smpCfg["generated-events"]
-            dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], None]
-        
+            smpScale = lumi * smpCfg["cross-section"]/ sumW
+            
+            dict_['files'][smp] = { 'era'  : smpCfg["era"], 
+                                    'lumi' : lumi, 
+                                    'type' : 'mc', 
+                                    'group': smpCfg["group"],
+                                    'scale': smpScale, 
+                                    'cross-section': smpCfg["cross-section"], 
+                                    'generated-events': sumW, 
+                                    'branching-ratio': None 
+                                    }
+             
         elif smpCfg.get("type") == "signal":
-            m = smp.split('To2L2B_')[1].split('_tb_')[0].replace('p00','')
-            smpScale = lumi / smpCfg["generated-events"]
-            if method in ["fit", 'pvalue', 'generatetoys']:
-                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]#* 0.066 # BR Z -> ll ( ee, \mu\mu ) fixed in bamboo
-            dict_seperateInfos[smp] = [smpCfg["era"], lumi, smpCfg["cross-section"], smpCfg["generated-events"], smpCfg["Branching-ratio"]]
+            if not do_SumW:
+                sumW = None
+                smpScale = None
+            else:
+                smpScale  = lumi / sumW
+                smpScale *= smpCfg["cross-section"] * smpCfg["branching-ratio"]
+            
+            dict_['files'][smp] = { 'era'  : smpCfg["era"], 
+                                    'lumi' : lumi, 
+                                    'type' : 'signal', 
+                                    'group': 'signal',
+                                    'scale': smpScale, 
+                                    'cross-section': smpCfg["cross-section"], 
+                                    'generated-events': sumW, 
+                                    'branching-ratio': smpCfg["branching-ratio"], 
+                                    }
         
         elif smpCfg.get("type") == "data":
-            smpScale = 1
-            dict_seperateInfos[smp] = [smpCfg["era"], None, None, None, None]
+            
+            dict_['files'][smp] = { 'era'  : smpCfg["era"], 
+                                    'lumi' : None, 
+                                    'type' : 'data',
+                                    'group': smpCfg["group"],
+                                    'scale': 1, 
+                                    'cross-section': None, 
+                                    'generated-events': None, 
+                                    'branching-ratio' : None 
+                                }
 
-        dict_scale[smp] =  smpScale
-    return dict_seperateInfos if seperate else dict_scale
+    with open(os.path.join(inDir, "config_{}.yml".format(era)), 'w') as _f:
+        yaml.dump(dict_, _f, default_flow_style=False)
+
+    return dict_ 
 
 
 def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
@@ -295,7 +440,7 @@ def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, dest
     """
     
     if not histogram:
-        raise Exception()
+        raise Exception('Histogram can not be found')
     if histogram.GetEntries() == 0:
         if destination:
             return destination
@@ -321,7 +466,21 @@ def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, dest
     return d
 
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, flav_categories, era, unblind=False, normalize=False):
+def call_python_version(Version, Module, Function, ArgumentList):
+    import execnet
+    """
+    scalefactors = call_python_version("3", "Harvester.py", "get_normalisationScale",  [input, method, era]) 
+    """
+    gw      = execnet.makegateway("popen//python=python%s" % Version)
+    channel = gw.remote_exec("""
+                from %s import %s as the_function
+                channel.send(the_function(*channel.receive()))
+            """ % (Module, Function))
+    channel.send(ArgumentList)
+    return channel.receive()
+
+
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, flav_categories, era, scalefactors, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -330,10 +489,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
       The name of the histogram is the name of the background.
     """
     
-    scalefactors = getnormalisationScale(input, method, era, seperate=False)
     logger.info("Categories                                 : %s"%flav_categories )
-    #logger.info("scalefactors                              : %s"%scalefactors )
-
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
 
@@ -355,12 +511,14 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
     # be merged together later
+
     processes_files = {}
     for process, paths in processes_map.items():
         process_files = []
         for path in paths:
             r = re.compile(path, re.IGNORECASE)
             local_process_files = [f for f in files if r.search(os.path.basename(f))]
+            #print( process, path, local_process_files)
             if len(local_process_files) == 0:
                 logger.warning("Warning: regular expression {} do not match any file".format(path))
                 #continue
@@ -375,8 +533,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # I am assuming you will be able to get full list of sys from these 2 
     files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0] ]
     systematics = {f: get_listofsystematics(files_tolistsysts, f)[:] for f in flav_categories}
-    print( systematics)
-    
+    print(systematics)
+
     # Use a TT file as reference to extract the list of histograms
     ref_file = processes_files['ttbar'][0]
     print("Extract histogram names from {}".format(ref_file))
@@ -394,10 +552,11 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # contains at least one histogram (the nominal histogram), and possibly more, two per systematic (up & down variation)
     histogram_names_per_cat = {}
     for cat in flav_categories:
-        flavor = cat.split('_')[-1]
-        reg    = cat.split('_')[-2]
-        prod   = cat.split('_')[0]+'_' + cat.split('_')[1]
+        flavor   = cat.split('_')[-1]
+        reg      = cat.split('_')[-2]
+        prod     = cat.split('_')[0] +'_' + cat.split('_')[1]
         taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
+        
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
@@ -434,6 +593,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         histograms_per_cat[cat] = histograms
 
     cms_systematics = {f: [CMSNamingConvention(s, era) for s in v] for f, v in systematics.items()}
+    
     for cat in flav_categories:
         hash.update(cat)
         for systematic in cms_systematics[cat]:
@@ -455,6 +615,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     final_systematics = {}
     shapes = {}
     smpScale = None
+    
     # Try to open each file once
     for process, process_files in processes_files.items():
         process_specific_to_signal_hypo = None
@@ -471,10 +632,31 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
         for process_file in process_files:
             f = ROOT.TFile.Open(process_file)
-            smp = process_file.split('/')[-1]
+            
+            smp  = process_file.split('/')[-1]
+            smpNm= smp.replace('.root', '') 
             if smp.startswith('__skeleton__'):
                 continue
-            smpScale = scalefactors[smp]
+            
+            era_ = ConfigurationEra(smp)
+            lumi = scalefactors['files'][smp]['lumi']
+            _t   = scalefactors['files'][smp]['type'] 
+            
+            if _t =='signal' or _t =='mc': 
+                sumW = scalefactors['files'][smp]['generated-events']
+                xsc  = scalefactors['files'][smp]['cross-section']
+            
+            smpScale = 1
+            if _t =='signal':
+                smpScale = lumi/sumW
+                
+                br   = scalefactors['files'][smp]['branching-ratio']
+                if method !='asymptotic':
+                    smpScale *= xsc*br
+            
+            elif _t == 'mc':
+                smpScale = (xsc*lumi)/sumW
+
             # Build a dict key name -> key for faster access
             keys = {}
             for key in f.GetListOfKeys():
@@ -503,7 +685,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
                         if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
                             continue
-                        logger.info("Keeping only category {} with the following parameters ::  {} for {}".format(category, cat, process))
+                    #logger.info("Keeping only category {} with the following parameters ::  {} for {}".format(category, cat, process))
 
                     final_systematics_category         = final_systematics[cat].setdefault(category, {})
                     final_systematics_category_process = final_systematics_category.setdefault(systematic_process, set())
@@ -511,16 +693,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     shapes_category         = shapes.setdefault(category, {})
                     shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
                 
-                    if 'preVFP' in smp:
-                        era_ = '2016-preVFP'
-                    elif 'postVFP' in smp:
-                        era_ = '2016-postVFP'
-                    elif '_UL17' in smp:
-                        era_ = '2017'
-                    elif '_UL18' in smp:
-                        era_ = '2018'
 
-                    lumi = Constants.getLuminosity(era_)
                     # Load nominal shape
                     try:
                         hist = get_hist_from_key(keys, original_histogram_name)
@@ -531,12 +704,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     # Load systematics shapes
                     for systematic in systematics[cat]:
                         
-                        cms_systematic = CMSNamingConvention(systematic, era_)
-                        
+                        cms_systematic = CMSNamingConvention(systematic, era_, process)
                         if ignoreSystematic(smp, s= cms_systematic):
                             continue
-                        
-                        
                         
                         has_both = True
                         for variation in ['up', 'down']:
@@ -560,8 +730,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             for key, value in d.items():
                 d[key] = list(value)
 
-    # Alessia: In 'fit' mode, scale the signal to 1 pb
-    # Khawla: everything already in pb 
+    # Alessia version of code: In 'fit' mode, scale the signal to 1 pb
+    # Khawla version of code : everything already in pb 
     #if method == 'fit':
     #    for category, processes in shapes.items():
     #        for process, systematics_dict in processes.items():
@@ -569,8 +739,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     #                continue
     #            for name, shape in systematics_dict.items():
     #                shape.Scale(1000)
-    output_file = ROOT.TFile.Open(output_filename, 'recreate')
+    
     # Store hash
+    output_file = ROOT.TFile.Open(output_filename, 'recreate')
     file_hash = ROOT.TNamed('hash', hash)
     file_hash.Write()
 
@@ -613,13 +784,17 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
     for category, processes in shapes.items():
         output_file.mkdir(category).cd()
+        
         for process, systematics_ in processes.items():
             for systematic, histogram in systematics_.items():
                 if process == 'data_obs' and systematic != 'nominal':
                     continue
                 histogram.SetName(process if systematic == 'nominal' else process + '__' + systematic)
                 histogram.Write()
+        
         output_file.cd()
     output_file.Close()
+    
     print("Done. File saved as %r" % output_filename)
+    
     return output_filename, final_systematics

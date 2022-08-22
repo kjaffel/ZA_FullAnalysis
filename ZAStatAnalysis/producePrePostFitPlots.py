@@ -28,9 +28,9 @@ def reshapePrePostFitHistograms(workdir, mode):
         outdir = os.path.join(p_out, 'reshaped')
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        else:
-            logger.warning( f'dir not empty, please rm if you want to pick up any changes: {outdir}' )  
-            break
+        #else:
+        #    logger.warning( f'dir not empty, please rm if you want to pick up any changes: {outdir}' )  
+        #    break
 
         if smp == 'plots.root':
             continue
@@ -185,54 +185,73 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
 
         base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
         re   = 'reshaped' if reshape else ''
-        lumi = Constants.getLuminosity(era)
+        lumi    = Constants.getLuminosity(era)
+        hist_nm = Constants.get_Nm_for_runmode( mode)
+        
+        xmax_dict  = {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
         
         plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode,'*/', 'plotIt_*', re))
         for fit in ['prefit', 'postfit']:
             for cat_path in plotit_histos:
-                if reshape: p_out = cat_path.split('/')[-2]
-                else: p_out = cat_path.split('/')[-1]
                 
+                split_path = cat_path.split('/')
+                if '' in split_path: split_path.remove('')
+                
+                if reshape: p_out = split_path[-2]
+                else: p_out = split_path[-1]
+               
                 output = cat_path.split()[-1]
-                
-                do_unblind = unblind
-                #if 'MuEl' in p_out: do_unblind = True
                 
                 os.chdir(os.path.join(base, cat_path.split(output)[0]))
                 os.getcwd()
 
                 process    = 'ggH' if 'gg_fusion' in p_out else 'bbH'
                 params     = cat_path.split('/')[-3].split('_')
+                
+                heavy      = params[0].split('-')[0].replace('M', '')
+                light      = params[1].split('-')[0].replace('M', '')
                 m_heavy    = '%.2f'%float(params[0].split('-')[1])
                 m_light    = '%.2f'%float(params[1].split('-')[1])
-                mH         = m_heavy.replace('.00', '')
-                mA         = m_light.replace('.00', '')
-                
-                signal_smp = "#splitline{%s: (m_{H}, m_{A})}{= (%s, %s) GeV}"%(process, mH, mA)
+                m_heavy    = m_heavy.replace('.00', '')
+                m_light    = m_light.replace('.00', '')
+                x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode} (GeV)'
+                x_max      = xmax_dict[mode]
+                signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
                 flavor     = 'ee' if 'ElEl' in p_out else (r'$\mu\mu$' if 'MuMu' in p_out else( r'$\mu e$' if 'MuEl' in p_out  else (r'$\mu\mu +ee$')))
                 region     = 'resolved' if 'resolved' in p_out else 'boosted'
-                cats       = {'ggH': 
-                                {'resolved': 'nb=2, resolved',
+                cats       = {'ggH': {
+                                 'resolved': 'nb=2, resolved',
                                  'boosted' : 'nb=2, boosted'},
                               'bbH': {
                                   'resolved': 'nb=3, resolved',
                                   'boosted' : 'nb=3, boosted'}
                               }
+
                 with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                     with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
                         for line in inf:
-                            if '    blinded-range: [0.6, 1.0]' in line and do_unblind:
-                                outf.write("#    blinded-range: [0.6, 1.0]\n")
+                            
+                            if '    blinded-range: [0.6, 1.0]' in line:
+                                outf.write("{}    blinded-range: [0.6, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
+                            elif '    x-axis:' in line:
+                                outf.write(f"    x-axis: {x_axis}\n")
                             elif '  root: myroot_path' in line:
                                 outf.write(f"  root: {output}\n")
                             elif '  luminosity: mylumi' in line:
                                 outf.write(f"  luminosity: {lumi}\n")
+                            elif 'signal-prod_fit-type_histos.root:' in line:
+                                #outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
+                                outf.write("{}\n".format(line.replace('signal-prod', 'HToZATo2L2B').replace('fit-type', fit)))
                             elif 'fit-type' in line:
                                 outf.write("{}\n".format(line.replace('fit-type', fit)))
                             elif '    legend: mysignal' in line:
                                 outf.write(f"    legend: '{signal_smp}'\n")
                             elif '      text: mychannel' in line:
                                 outf.write(f"      text: {cats[process][region]}, {flavor}\n")
+                            elif '  histo-name:' in line:
+                                outf.write(f"  {hist_nm}_{fit}:\n")
+                            elif '    - x_max' in line:
+                                outf.write(f"    - {x_max}\n")
                             #elif 'Label1' in line:
                             #    outf.write("        - {text: '%s', position: [0.22, 0.895], size: 20}\n"%cats[process][region])
                             #elif 'Lable2' in line:
@@ -244,10 +263,10 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
                 try:
                     logger.info("running {}".format(" ".join(plotitCmd)))
                     subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
+                    print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}.png')
+                    print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}_logy.png')
                 except subprocess.CalledProcessError:
                     logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-                print(f' plot saved in :: {cat_path}/dnn_scores.png')
-                print(f' plot saved in :: {cat_path}/dnn_scores_logy.png')
             os.chdir(base)
 
 
@@ -255,19 +274,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PreFit/PostFit Producer')
     parser.add_argument('-i', '--inputs', action='store', required=True, default=None, 
                 help='Path to work dir ( output given when running prepareShapesAndCards.py script with arg --method fit )')
-    parser.add_argument('-m', '--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn'], 
+    parser.add_argument('-m', '--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], 
                 help='posfit plots produced for one of these mode')
     parser.add_argument('--era', action='store', required=True, default=None, choices=['2016', '2017', '2018', 'fullrun2'], 
                 help='data taking year')
     parser.add_argument('--unblind', action='store_true', default=False, 
                 help='unblind data in dnn score template')
     parser.add_argument('--reshape', action='store_true', default=False, 
-                help='bin histograms divide by the bin width')
+                help='bin histograms will be divide by the bin width')
 
     options = parser.parse_args()
     
-    if options.reshape: 
-        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
+    #if options.reshape: # needed only for dnn mode 
+    #    reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
     
     runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape)
     

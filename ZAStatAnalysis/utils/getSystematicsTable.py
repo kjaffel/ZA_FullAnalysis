@@ -20,11 +20,13 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 import CMSStyle as CMSStyle
 import CombineHarvester.CombineTools.ch as ch
 
+
 def format_float(value):
     if value * 100 < 0.1:
         return '$<$ 0.1'
     else:
         return '%.1f' % (value * 100)
+
 
 def format_value(value):
     if type(value) is float:
@@ -43,15 +45,18 @@ def format_value(value):
             fmt = r'{}\%'
             return fmt.format(value_1)
 
+
 def format_latex_table_line_2(name, value):
     fmt = r'''{}   & \multicolumn{{2}}{{c}}{{{}}} \\
     '''
     return fmt.format(name, format_value(value))
 
+
 def format_latex_table_line_3(name, v, w):
     fmt = r'''{}   & {}  & {} \\
     '''
     return fmt.format(name, format_value(v), format_value(w))
+
 
 def beautify(s):
     if s == 'ttbar':
@@ -79,7 +84,7 @@ def beautify(s):
     if s == 'CMS_res_j':
         return 'Jet energy resolution'
     if s == 'CMS_eff_e':
-        return 'Electron ID \\& ISO'
+        return 'Electron ID \\& Reco'
     if s == 'CMS_eff_mu':
         return 'Muon ID'
     if s == 'CMS_iso_mu':
@@ -106,7 +111,7 @@ def beautify(s):
         return 'MC stat.'
     if 'QCDscale' in s:
         return 'QCD scale'
-    return s + '**'
+    return s.replace('_', '\_')
 
 def fill_table(bkg_, sig_, table):
     # Remove statistical systematic uncertainty shapes
@@ -172,7 +177,7 @@ def fill_table(bkg_, sig_, table):
     '''
     return table, common_systematics
 
-def fill_affecting_only_table(name=None, bkgs=None, already_included_systs=None, table=None, processes=None, title="Affecting only {} ({} of the total bkg.)"):
+def fill_affecting_only_bkg_table(name=None, bkgs=None, already_included_systs=None, table=None, processes=None, title="Affecting only {} ({} of the total bkg.)"):
     if not processes:
         processes = [name]
 
@@ -223,7 +228,7 @@ def fill_affecting_only_table(name=None, bkgs=None, already_included_systs=None,
 
     return table
 
-def fill_affecting_only_signal_table(sigs, already_included_systs, table, title="Affecting only {} ({} of the total bkg.)"):
+def fill_affecting_only_signal_table(sigs, signal_process, already_included_systs, table, title="Affecting only {} ({} of the total bkg.)"):
     sigs = [x.cp() for x in sigs]
 
     def extract_values(process):
@@ -256,8 +261,7 @@ def fill_affecting_only_signal_table(sigs, already_included_systs, table, title=
             systematics_values.append(only_mc_stat.GetUncertainty() / only_mc_stat.GetRate())
 
         return flavor_systematics_values
-
-    flavor_systematics_values = extract_values('HToZATo2L2B')
+    flavor_systematics_values = extract_values(signal_process)
     systematics = flavor_systematics_values.keys()
     # Sort systematics by value, biggest impact on SM on top
     systematics = sorted(systematics, key= lambda k: max(flavor_systematics_values[k]), reverse=True)
@@ -266,7 +270,6 @@ def fill_affecting_only_signal_table(sigs, already_included_systs, table, title=
     for s in systematics:
         systematics_values.append((min(flavor_systematics_values[s]), max(flavor_systematics_values[s])))
 
-    #table = table + r'''Affecting only signal & SM signal & $\text{m}_\text{X} = 400\,\text{GeV}$ \\
     table = table + r'''\multicolumn{3}{c}{Affecting only signal} \\
     '''
     for i in range(len(systematics_values)):
@@ -274,43 +277,43 @@ def fill_affecting_only_signal_table(sigs, already_included_systs, table, title=
 
     return table
 
-def get_table(bkg=None, sig=None):
+def get_table(bkg=None, sig=None, signal_process=None):
     table = r'''
 \begin{tabular}{@{}lcc@{}} \torule
 Source & Background yield variation & %s \\
 \midrule
+\hline
 ''' % signal_title
 
     table, systematics = fill_table(bkg, sig, table)
 
-    table = fill_affecting_only_table('DY', bkg, systematics, table, title=r"Affecting only {} ({} of the total bkg.)")
+    table = fill_affecting_only_bkg_table('DY', bkg, systematics, table, title=r"Affecting only {} ({} of the total bkg.)")
     table = table + r'''\midrule
+    \hline
     '''
-    table = fill_affecting_only_table('ttbar', bkg, systematics, table)
+    table = fill_affecting_only_bkg_table('ttbar', bkg, systematics, table)
     table = table + r'''\midrule
+    \hline
     '''
-    table = fill_affecting_only_table('SingleTop', bkg, systematics, table)
+    table = fill_affecting_only_bkg_table('SingleTop', bkg, systematics, table)
     table = table + r'''\midrule
+    \hline
     '''
-    #table = fill_affecting_only_table('ZZ', bkg, systematics, table)
+    #table = fill_affecting_only_bkg_table('ZZ', bkg, systematics, table)
     #table = table + r'''\midrule
+    #\hline
     #'''
-    #table = fill_affecting_only_table('SM', bkg, systematics, table)
+    #table = fill_affecting_only_bkg_table('SM', bkg, systematics, table)
     #table = table + r'''\midrule
+    #\hline
     #'''
-    #table = fill_affecting_only_table('others', bkg, systematics, table)
+    #table = fill_affecting_only_bkg_table('others', bkg, systematics, table)
     #table = table + r'''\midrule
+    #\hline
     #'''
-    
-    # if 'ggHH' in sig.process_set():
-    #table = table + r'''\midrule
-    #'''
-    table = fill_affecting_only_signal_table(sig, systematics, table)
-    # if 'ggX0HH' in sig.process_set():
-        # table = table + r'''\midrule
-        # '''
-        # table = fill_affecting_only_table('ggX0HH', sig, systematics, table)
+    table = fill_affecting_only_signal_table(sig, signal_process, systematics, table)
     table = table + r'''\bottomrule
+\hline
 \end{tabular}
 '''
     return table
@@ -318,7 +321,7 @@ Source & Background yield variation & %s \\
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create LaTeX table of systematics impact on background')
     parser.add_argument('-i', '--inputs', action='store', required=True, help='path to data cards')
-    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'ellipse', 'dnn'], help='Analysis mode')
+    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], help='Analysis mode')
     options = parser.parse_args()
     
     # Extract mass from name. We can't let CH do it for us
@@ -327,31 +330,34 @@ if __name__ == '__main__':
     
     inputs_list = glob.glob(os.path.join(options.inputs, 'fit',options.mode, '*', '*.dat'))
     for f in inputs_list:
+        
         cbs = []
         signals = []
         backgrounds = []
-        for prod in ['gg_fusion', 'bb_associatedProduction']:
-            process = 'ggH' if prod =='gg_fusion' else 'bbH'
-            for reg in ['resolved', 'boosted']:
-                for flavor in ['ElEl_MuMu', 'ElEl', 'MuMu']:
-
-                    outputDir = os.path.join(options.inputs, 'systematics-tabs', options.mode, f.split('/')[-2])
-                    if not os.path.isdir(outputDir):
-                        os.makedirs(outputDir)
-                
-                    mass = f.split('/')[-2].replace('-','_')
-                    cat  = "HToZATo2L2B_{}_{}_{}_{}_{}.tex".format(prod, reg, flavor, options.mode, mass)
-
-                    cb = ch.CombineHarvester()
-                    cb.ParseDatacard(f, mass="125")
         
-                    backgrounds.append(cb.cp().backgrounds())
-                    signals.append(cb.cp().signals())
-                
-                    cbs.append(cb)
-                    
-                    latex_table = get_table(backgrounds, signals)
-                    print(latex_table)
-                    with open(os.path.join(outputDir, cat), 'w') as f_:
-                        f_.write(latex_table)
-        print( "All Latex tables saved in : %s" %os.path.join(options.inputs, 'systematics-tabs', options.mode))
+        outputDir = os.path.join(options.inputs, 'systematics-tabs', options.mode, f.split('/')[-2])
+        if not os.path.isdir(outputDir):
+            os.makedirs(outputDir)
+            
+        if not any( x in f.split('/')[-1] for x in [ 'OSSF', 'MuMu', 'ElEl']):
+            continue # avoid  MuEl cat. 
+
+        mass = f.split('/')[-2].replace('-','_')
+        cat  = f.split('/')[-1].replace('.dat', '.tex')
+        signal_process = 'ggH' if 'gg_fusion' in cat else 'bbH'
+        print( 'working on ::', cat)
+
+        cb = ch.CombineHarvester()
+        cb.ParseDatacard(f, mass="125")
+
+        backgrounds.append(cb.cp().backgrounds())
+        signals.append(cb.cp().signals())
+        
+        cbs.append(cb)
+        
+        latex_table = get_table(backgrounds, signals, signal_process)
+        with open(os.path.join(outputDir, cat), 'w') as f_:
+            f_.write(latex_table)
+        
+        print( latex_table)
+    print( "All Latex tables are saved in : %s" %os.path.join(options.inputs, 'systematics-tabs', options.mode))

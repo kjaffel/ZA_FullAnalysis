@@ -30,13 +30,13 @@ def getLimitsFromFile(input_file, method):
     """
     Extract observed, expected, and 1/2 sigma limits
     """
+    data = {}
     if method == 'asymptotic':
         f = ROOT.TFile.Open(input_file)
         print( input_file)
         if not f or f.IsZombie() or f.TestBit(ROOT.TFile.kRecovered):
             return None
 
-        data = {}
         # Index 0 is DOWN error, index 1 is UP error
         one_sigma = data.setdefault('one_sigma', [0, 0])
         two_sigma = data.setdefault('two_sigma', [0, 0])
@@ -80,7 +80,6 @@ def getLimitsFromFile(input_file, method):
         if (not f_obs or f_obs.IsZombie() or f_obs.TestBit(ROOT.TFile.kRecovered)) or (not f_exp or f_exp.IsZombie() or f_exp.TestBit(ROOT.TFile.kRecovered)) or (not f_P1sigma or f_P1sigma.IsZombie() or f_P1sigma.TestBit(ROOT.TFile.kRecovered)) or (not f_M1sigma or f_M1sigma.IsZombie() or f_M1sigma.TestBit(ROOT.TFile.kRecovered)) or (not f_P2sigma or f_P2sigma.IsZombie() or f_P2sigma.TestBit(ROOT.TFile.kRecovered)) or (not f_M2sigma or f_M2sigma.IsZombie() or f_M2sigma.TestBit(ROOT.TFile.kRecovered)):
             return None
 
-        data = {}
         # Index 0 is DOWN error, index 1 is UP error
         one_sigma = data.setdefault('one_sigma', [0, 0])
         two_sigma = data.setdefault('two_sigma', [0, 0])
@@ -115,61 +114,71 @@ def getLimitsFromFile(input_file, method):
 parser = argparse.ArgumentParser(description='Collection non-resonant limits')
 parser.add_argument('-i','--inputs', action='store', type=str, required=True,  
                 help='List of (ROOT) combine output file to collect the limits (e.g. higgsCombineBLABLA_.AsymptoticLimits.mH125.root) or higgsCombineBLABLA_.HybridNew.mH125.root')
-parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], 
-                help='Analysis method')
-parser.add_argument('--era', action='store', required=True,
-                help='')
+parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], help='Analysis method')
+parser.add_argument('--era', action='store', required=True, help='')
+parser.add_argument('-m', '--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], help='')
+
 options = parser.parse_args()
 
-if options.method == "asymptotic":
-    s = '.AsymptoticLimits.mH125.root'
-elif options.method == "hybridnew":
-    s = '.HybridNew.mH125.root'
 
 limits = defaultdict(dict)
 print("Extracting limits...")
-for prod in ['gg_fusion', 'bb_associatedProduction']:
-    process = 'ggH' if prod =='gg_fusion' else 'bbH'
-    for reg in ['resolved', 'boosted']:
-        for flavor in ['MuMu_ElEl_MuEl', 'ElEl', 'MuMu', 'MuMu_ElEl']:
+
+for process, prod in {'ggH': 'gg_fusion', 
+                      'bbH': 'bb_associatedProduction', 
+                      #'profiled_r_ggH'  : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating 
+                      #'profiled_r_bbH'  : 'gg_fusion_bb_associatedProduction',
+                      #'freezed_r_ggH'   : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
+                      #'freezed_r_bbH'   : 'gg_fusion_bb_associatedProduction',
+                      }.items():
+    
+    if options.method == "asymptotic":
+        s = '.AsymptoticLimits.mH125.root'
+    elif options.method == "hybridnew":
+        s = '.HybridNew.mH125.root'
             
-            limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), '*', '*', '*{}'.format(s)))
+    if '_r_' in process: s = '{}'.format(process) +s
+
+    for reg in ['resolved', 'boosted']:#, 'resolved_boosted']:
+        for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
+            
+            # I don't need this for now
+            if 'MuEl' in flavor:
+                continue
+
+            limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, '*', '*{}'.format(s)))
             limits['{}_{}_{}'.format(process, reg, flavor)] = []
             for f in limits_path:
                 root     =  f.split('/')[-1]
                 mH, mA   =  string_to_mass(f.split('/')[-2])
                 mode     =  f.split('/')[-3]
-                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_dnn'.format(prod, reg, flavor)):
+                
+                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_{}'.format(prod, reg, flavor, options.mode)):
                     continue
-                if 'MH_800_MA_400' in root and options.era in ['2016', 'fullrun2']: # point causing me troubles
-                    continue
-                if 'MH_650_MA_50' in root and options.era in ['2016', 'fullrun2']:
-                    continue
-                if 'MH_1000_MA_500' in root and options.era in ['2017', 'fullrun2']:
-                    continue
-                if '750_MA_610' in root and options.era in ['2017', 'fullrun2']:
-                    continue
-                if 'MH_300_MA_100' in root and options.era in ['2017', 'fullrun2']:
-                    continue
-                print( 'working on::', f)
+                
                 point_limits = getLimitsFromFile(f, options.method)
+                #print( 'working on::', f)
                 #print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
             
                 if point_limits['expected'] == 0:
                     print("Warning: expected is 0, skipping point")
                     continue
+                
                 limits['{}_{}_{}'.format(process, reg, flavor)].append({
                     'parameters': (mH, mA),
                     'limits'    : point_limits
                     })
 
-limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), 'jsons', 'dnn')
+limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), 'jsons', options.mode)
 if not os.path.exists(limits_out):
     os.makedirs(limits_out)
+
 for k, v in limits.items():
     if not v:
         continue
+    
     output_file = os.path.join(limits_out, 'combinedlimits_{}_UL{}.json'.format(k, options.era))
     with open(output_file, 'w') as jf:
         json.dump(v, jf, indent=4)
+    
     print("Limits saved as %s" % output_file)

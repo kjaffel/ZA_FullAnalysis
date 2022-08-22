@@ -98,7 +98,8 @@ class NumpyHist:
         else:
             raise NotImplementedError
         if (widths <= 0.).any():
-            raise RuntimeError(f"Some bins have width <= 0., this might not be wanted : {widths}")
+            #raise RuntimeError(f"Some bins have width <= 0., this might not be wanted : {widths}")
+            logging.warning(f"Some bins have width <= 0., this might not be wanted : {widths}")
         return widths
             
 

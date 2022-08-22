@@ -34,15 +34,15 @@ print("Extracting pvalue_significance...")
 for prod in ['gg_fusion', 'bb_associatedProduction']:
     process = 'ggH' if prod =='gg_fusion' else 'bbH'
     for reg in ['resolved', 'boosted']:
-        for flavor in ['ElEl_MuMu']:
+        for flavor in ['MuMu_ElEl', 'OSSF']:
             
-            pvalue_path = glob.glob(os.path.join(options.inputs, 'pvalue-significance/dnn/', '*', '*expectSignal1.log'))
+            pvalue_path = glob.glob(os.path.join(options.inputs, 'pvalue-significance/dnn/', '*', '*expectSignal1_{}_{}_{}.log'.format(prod, reg, flavor)))
             pvalue_significance['{}_{}_{}'.format(process, reg, flavor)] = []
             for i, f in enumerate(pvalue_path):
                 root     =  f.split('/')[-1]
                 mH, mA   =  string_to_mass(f.split('/')[-2])
 
-                if not (root.endswith('__pvalue_expectSignal1.log') or root.endswith('__significance_expectSignal1.log') ):
+                if not 'pvalue' in root or 'significance' in root:
                     continue
                 
                 if 'expected' in root: key = 'expected_'

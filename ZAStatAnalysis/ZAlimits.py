@@ -83,7 +83,7 @@ axes_y_limits = {
     }
 axes_log_y_limits = {
     "mH": { },
-    "mA": {'ymin': 1, 'ymax':10e9},
+    "mA": {'ymin': 10e-2, 'ymax':10e6},
     }
 show_markers = {
     'mH': False,
@@ -127,6 +127,22 @@ catagories = OrderedDict({
     })
 
 
+def get_SushiXSC(process, tb , heavy, light, m_heavy, m_light):
+    br_Ztoll = 0.066 
+    
+    with open('data/sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb))) as f_:
+        dict_ = yaml.safe_load(f_)
+
+    given_mass = dict_[thdm]['M{}_{}_M{}_{}'.format(heavy, float(m_heavy), light, float(m_light))]
+    
+    br_HeavytoZlight = given_mass['branching-ratio']['{}ToZ{}'.format(heavy, light)]
+    br_lighttobb     = given_mass['branching-ratio']['{}Tobb'.format(light)]
+    br = float(br_HeavytoZlight)* float(br_lighttobb)* br_Ztoll
+    
+    if process == 'ggH': xsc  = given_mass['cross-section'][process].split()[0]
+    else: xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
+    return float(xsc), br 
+
 
 def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
     mpl.rcParams['font.size'] = 10
@@ -134,8 +150,6 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
     
     heavy = thdm[0]
     light = thdm[-1]
-    
-    br_Ztoll = 0.066 
     
     name  = 'all_combined_M{}-{}_M{}-{}'.format(heavy, m0, light, m1)
     print( 'working on ::' , m0, m1)
@@ -164,18 +178,20 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
                 
                 print( js_path )
                 with open(js_path) as f:
-                    limits['{}_{}_{}'.format(cat, flav, era)] = json.load(f)
+                    limits['{}-{}-{}'.format(cat.replace('_','-'), flav, era)] = json.load(f)
     if not limits:
         print('no limits is found !')
         exit()
 
     theory_line = {} 
+    print( limits.keys() )
     for i, (k, params) in enumerate(limits.items()):
        
-        process = k.split('_')[0]
-        region  = k.split('_')[1]
-        flav    = k.split('_')[2]
-        era     = k.split('_')[-1]
+        process = k.split('-')[0]
+        region  = k.split('-')[1]
+        flav    = k.split('-')[2]
+        era     = k.split('-')[-1]
+        tb      = 1.5 if process =='ggH' else 20.
 
         theory_line.update({process: {}})
         
@@ -206,6 +222,8 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
             if not era in eras:
                 eras.append(era)
             
+            print( k, l )
+            
             expected       = l['limits']['expected']*1000
             observed       = l['limits']['observed']*1000
             one_sigma_up   = l['limits']['one_sigma'][1]*1000
@@ -218,8 +236,16 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
             exp_plus_2sigma  = expected + two_sigma_up
             exp_minus_2sigma = expected - two_sigma_down
             
-            print( k, l )
-            
+            if options.rescale_to_za_br:
+                xsc, br = get_SushiXSC(process, tb , heavy, light, m_heavy, m_light)
+                
+                expected         *= br
+                observed         *= br
+                exp_plus_1sigma  *= br
+                exp_minus_1sigma *= br
+                exp_plus_2sigma  *= br
+                exp_minus_2sigma *= br
+
             ax.fill_betweenx(y_, [exp_minus_2sigma]*fact, [exp_plus_2sigma]*fact,
                                     facecolor   ='#FFF04D', 
                                     lw          =0, 
@@ -249,31 +275,19 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
                                         lw             =1.5, 
                                         label          ="Observed 95% upper limit")[0]
 
-        one_sigma_patch = mpatches.Patch(color='#00B140', label=r'Expected $\pm$ 1 std. deviation')
-        two_sigma_patch = mpatches.Patch(color='#FFF04D', label=r'Expected $\pm$ 2 std. deviation')
-        
-        handles = [expected_line, one_sigma_patch, two_sigma_patch]
-        labels  = ['Expected 95% uppper limit', r'Expected $\pm$ 1 std. deviation', r'Expected $\pm$ 2 std. deviation']
-        
+            one_sigma_patch = mpatches.Patch(color='#00B140', label=r'Expected $\pm$ 1 std. deviation')
+            two_sigma_patch = mpatches.Patch(color='#FFF04D', label=r'Expected $\pm$ 2 std. deviation')
+            
+            handles = [expected_line, one_sigma_patch, two_sigma_patch]
+            labels  = ['Expected 95% uppper limit', r'Expected $\pm$ 1 std. deviation', r'Expected $\pm$ 2 std. deviation']
+            
         if options.unblind:
             handles += [observed_line]
             labels  += ['Observed 95% uppper limit']
         
-        for  tb in [1.5, 20]:
-            
-            with open('data/sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb))) as f_:
-                dict_ = yaml.safe_load(f_)
-
-            given_mass = dict_[thdm]['M{}_{}_M{}_{}'.format(heavy, float(m_heavy), light, float(m_light))]
-            
-            br_HeavytoZlight = given_mass['branching-ratio']['{}ToZ{}'.format(heavy, light)]
-            br_lighttobb     = given_mass['branching-ratio']['{}Tobb'.format(light)]
-            
-            if process == 'ggH': xsc  = given_mass['cross-section'][process].split()[0]
-            else: xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
-
-            xsc_x_br = float(xsc)* float(br_HeavytoZlight)* float(br_lighttobb)* br_Ztoll* 1000 # fb
-            
+        for tb in [1.5, 20.]: 
+            xsc, br  = get_SushiXSC(process, tb , heavy, light, m_heavy, m_light)
+            xsc_x_br = xsc* br* 1000 # fb
             theory_line[process][tb] = ax.plot([xsc_x_br]*fact, y_, #[0., th_lmax],
                                                 ls             ='solid' if tb==1.5 else 'dashed', 
                                                 solid_capstyle ='round', 
@@ -288,11 +302,10 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
             handles += [theory_line[process][tb]]
             labels  += [r'{} theory prediction (tan$\beta$ = {})'.format(process, tb)]
    
-    print(y_ )
     ax.set_xlabel(r'$\sigma(pp \rightarrow\, H) B(H \rightarrow\, ZA \rightarrow\, ll b\bar{b})$ (fb)', fontsize=12.)
     yaxis_set_ticklabels.append('')
-    ax.set_xscale('symlog')
-    ax.set_xlim(-0.1, 1e5)
+    ax.set_xscale('log')
+    ax.set_xlim(1e-2, 1e5)
     ax.set_ylim(-0.1, y_[-1]+3)
     ax.axes.yaxis.label.set_size(8.)
     
@@ -310,7 +323,7 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
     plt.gcf().clear()
                
 
-def draw_theory(ax, mH, mA, label=False, rescale_to_za_br=False):
+def draw_theory(ax, mH, mA, br, label=False):
     # Make sure we vary over the right coupling
     params    = [0] * 5
     params[0] = mH
@@ -331,10 +344,10 @@ def draw_theory(ax, mH, mA, label=False, rescale_to_za_br=False):
         down = [(th['sigma'][i] - pow(pow(th['sigma_err_muRm'][i], 2) + pow(th['sigma_errIntegration'][i], 2), 0.5)) * 1000  * th['BR'][i] for i in indices]
         up   = [(th['sigma'][i] + pow(pow(th['sigma_err_muRp'][i], 2) + pow(th['sigma_errIntegration'][i], 2), 0.5)) * 1000 * th['BR'][i] for i in indices]
                 
-        #if not rescale_to_za_br:
-        #    xs = xs * br
-        #    down = down * br
-        #    up = up * br
+        if options.rescale_to_za_br:
+            xs   *= br
+            down *= br
+            up   *= br
                 
         theory_markers = ax.plot(x, xs , lw=2, color=th_colors[ifile], alpha=0.7, zorder=1000)
         ax.fill_between(x, down, up,
@@ -358,16 +371,18 @@ def draw_theory(ax, mH, mA, label=False, rescale_to_za_br=False):
     return theory_markers
 
 
-def Plot1D_ScanLimits(signal_grid):
-
+def Plot1D_ScanLimits(signal_grid, thdm):
+    mpl.rcParams['font.size'] = 12
     ToBe_Stacked = {}
     
-    for proc, flavors in catagories.items():
+    for cat, flavors in catagories.items():
         
-        ToBe_Stacked[proc] = {}
-        cba = 0.01
-        tb  = 1.5 if 'ggH' in proc else 20
-        process = 'gluon-gluon fusion' if 'ggH' in proc else 'b-associated production'
+        ToBe_Stacked[cat] = {}
+        cba     = 0.01
+        tb      = 1.5 if 'ggH' in cat else 20
+        heavy   = thdm[0]
+        light   = thdm[-1]
+        process = 'gluon-gluon fusion' if 'ggH' in cat else 'b-associated production'
 
         for the_fixmass in massTofix_list:
             
@@ -377,7 +392,7 @@ def Plot1D_ScanLimits(signal_grid):
             flavors_limits = {}
             for flav in flavors:
                 limits = flavors_limits.setdefault(flav, {})
-                json_f = os.path.join(options.jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(proc, flav, options.era)) 
+                json_f = os.path.join(options.jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era)) 
                 
                 if not os.path.isfile(json_f):
                     continue
@@ -402,6 +417,10 @@ def Plot1D_ScanLimits(signal_grid):
     
             for point in available_parameters[the_fixmass]:
                 next_point = False
+                
+                m_heavy = point[0]
+                m_light = point[1]
+                
                 ## Only keep points request by the user for the scan
                 for name, value in parameter_values.items():
                     if float(point[parameter_index[name]]) != float(value):
@@ -419,6 +438,9 @@ def Plot1D_ScanLimits(signal_grid):
                 if point == (1, 1):
                     scanning_SM = True
                 
+                if options.rescale_to_za_br:
+                    xsc, br = get_SushiXSC(cat.split('_')[0], tb , heavy, light, m_heavy, m_light)
+                    
                 for f in flavors:
                     limits = flavors_limits[f]
                     data   = flavors_data.setdefault(f, {})
@@ -432,18 +454,23 @@ def Plot1D_ScanLimits(signal_grid):
                     param_val = point[parameter_index[options.scan]]
                     x.append(param_val)
             
+                    exp = limits[point]['expected']
+                    obs = limits[point]['observed']
+                    
+                    if options.rescale_to_za_br:
+                        exp *= br
+                        obs *= br
+                    
                     # from pb to fb 
-                    expected.append(limits[point]['expected']*1000)
-                    observed.append(limits[point]['observed']*1000)
+                    expected.append(exp*1000)
+                    observed.append(obs*1000)
             
                     exp_plus_1sigma  = limits[point]['one_sigma'][1]*1000
                     exp_minus_1sigma = limits[point]['one_sigma'][0]*1000
                     exp_plus_2sigma  = limits[point]['two_sigma'][1]*1000
                     exp_minus_2sigma = limits[point]['two_sigma'][0]*1000
                     
-                    xsc, xsc_err, br_HeavytoZlight, br_lighttobb = Constants.get_2hdm_xsc_br_unc_fromSushi(Constants.mass_to_str(point[0]), Constants.mass_to_str(point[1]), 'ggH', 'HToZA')
                     if options.rescale_to_za_br:
-                        br = br_HeavytoZlight * br_lighttobb
                         exp_plus_1sigma  *= br
                         exp_minus_1sigma *= br
                         exp_plus_2sigma  *= br
@@ -458,7 +485,7 @@ def Plot1D_ScanLimits(signal_grid):
             if not flavors_data:
                 continue
     
-            ToBe_Stacked[proc][the_fixmass] = flavors_data
+            ToBe_Stacked[cat][the_fixmass] = flavors_data
             
             # Create a figure instance
             #==============================
@@ -468,10 +495,10 @@ def Plot1D_ScanLimits(signal_grid):
             
             # Create an axes instance
             ax = fig.add_subplot(111)
-            ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
+            ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
             ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
             if options.rescale_to_za_br:
-                ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
+                ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
             #ax.grid()
             
             CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
@@ -663,7 +690,7 @@ def Plot1D_ScanLimits(signal_grid):
                     ax.set_ylim(top=inv_op(new_top))
             
             # Build plot name
-            plot_name = 'limits_{}_1Dscan_{}_'.format(proc, options.scan)
+            plot_name = 'limits_{}_1Dscan_{}_'.format(cat, options.scan)
             name_elements = range(5)
             for p, i in parameter_index.items():
                 if p == options.scan:
@@ -723,7 +750,8 @@ def Plot1D_ScanLimits(signal_grid):
 
 
 def Plot1D_StackedLimits(masses_tofix, upper_limits):
-    
+    mpl.rcParams['font.size'] = 12
+
     for cat, flavors in catagories.items():
         
         tb = 20 if 'bbH' in cat else 1.5
@@ -739,14 +767,14 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
             
             # Create an axes instance
             ax = fig.add_subplot(111)
-            ax.set_ylabel(r'$\sigma(pp \rightarrow\, H) B(H \rightarrow\, ZA \rightarrow\, ll b\bar{b})$ (fb)')
+            ax.set_ylabel(r'95% C.L. upper limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
             ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
             if options.rescale_to_za_br:
-                ax.set_ylabel(r'95% C.L. upper limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
+                ax.set_ylabel(r'$\sigma(pp \rightarrow\, H) B(H \rightarrow\, ZA \rightarrow\, ll b\bar{b})$ (fb)')
             
             CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
             
-            for fact, m in enumerate(masses_tofix):
+            for fact, m in enumerate(sorted(masses_tofix)):
                 
                 multi = float('10e%s'%fact)
                 data  = upper_limits[cat][m][flav]
@@ -788,7 +816,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                                         lw=1.5, 
                                         label="Expected 95% upper limits")[0]
                 
-                ax.annotate(r' ${}$= {} GeV'.format(m_fix, m), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]+50), fontsize=10,
+                ax.annotate(r' ${}$= {} GeV (x $10^{}$)'.format(m_fix, m, fact), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]+50), fontsize=10,
                             arrowprops=dict(arrowstyle="->",facecolor='w', connectionstyle="arc3"), horizontalalignment='left')
                 
                 # And observed
@@ -846,7 +874,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--jsonpath', action='store', type=str, dest='jsonpath', 
                                         help='path to json limits for different catagories, looking for all_limits_{cat}.josn format ', required=True)
     parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br', 
-                                        help='If set, limits are rescaled to the ZA BR')
+                                        help='If flagged True, limits in HToZA mode will be x to BR( Z -> ll) x BR(A -> bb ) x (H -> ZA)')
     parser.add_argument('--era'     , action='store', type=str, default='fullrun2', choices=['2016', '2017', '2018', 'fullrun2'], help='Output directory')
     parser.add_argument('--unblind' , action='store_true', dest='unblind', help='If set, draw also observed upper limits')
     parser.add_argument('--theory'  , action='store_true', dest='theory', help='If set, draw theoretical cross-section')
@@ -855,13 +883,12 @@ if __name__ == '__main__':
     parser.add_argument('--leg-pos' , action='store', type=str, dest='leg_pos', default='left', choices=['left', 'right'], help='Legend position')
     parser.add_argument('--scan'    , action='store', type=str, dest='scan', default='mA', choices=['mA', 'mH'], 
                                         help='Parameter being scanned in the x axis wihle the other is fixed for a certain value')
-    #parser.add_argument('--mH'     , action='store', type=float, dest='mH', default=500, help='default value for m_H')
-    parser.add_argument('--mA'      , action='store', type=float, dest='mA', default=300, help='default value for m_A')
     
     options = parser.parse_args()
     
     output_dir = options.jsonpath
     m_fix = 'm_{H}' if options.scan =='mA' else 'm_{A}'
+    
     
     signal_grid = []
     for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0],'dnn', '*')):
@@ -881,12 +908,14 @@ if __name__ == '__main__':
             if not mA in massTofix_list:
                 massTofix_list.append(mA)
                 available_parameters[mA]= []
-
     
     for m in massTofix_list:
         for tup in sorted(signal_grid):
-            if m ==tup[0]: available_parameters[m].append((str(tup[0]),str(tup[1])))
-    
+            if options.scan=='mA':
+                if m ==tup[0]: available_parameters[m].append((str(tup[0]),str(tup[1])))
+            else:
+                if m ==tup[1]: available_parameters[m].append((str(tup[0]),str(tup[1])))
+
     # for test
     #signal_grid = [(500., 300.)] 
     print( signal_grid )
@@ -895,5 +924,5 @@ if __name__ == '__main__':
         for (m0, m1) in signal_grid:
             PlotMultipleUpperLimits(m0, m1, catagories, options.jsonpath, thdm)
     
-    ToBe_Stacked = Plot1D_ScanLimits(available_parameters)    
-    Plot1D_StackedLimits(massTofix_list, ToBe_Stacked)
+        ToBe_Stacked = Plot1D_ScanLimits(available_parameters, thdm)    
+        Plot1D_StackedLimits(massTofix_list, ToBe_Stacked)
