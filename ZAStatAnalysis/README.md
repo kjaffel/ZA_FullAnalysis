@@ -90,28 +90,27 @@ cms_env
 cd ${CMSSW_BASE}/src
 cmsenv
 ```
-- Have a look about the available commands written in ``run_combine.sh``ii
-bash run_combine.sh
-###1. Generate toys data only: 
+- Have a look at the available commands written in ``run_combine.sh``:
+### 1. Generate toys data only: 
 ```python
 ./prepareShapesAndCards.py --era $era -i $bambooDir -o $outDir --dataset toys --mode dnn --method generatetoys --expectSignal 0 --normalize --stat
 ```
-###2. Pulls and impacts:
+### 2. Pulls and impacts:
 ```python
 ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --dataset asimov --mode dnn --method fit --expectSignal 1 --unblind --normalize
 ```
-###3. CLs limits:
+### 3. CLs/Clsplusb limits:
 ```python
 ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --dataset asimov --mode dnn --method asymptotic --expectSignal 1 --normalize #--verbose
 ./run_combined_dnn_asymptoticlimits.sh
 ```
-###4. P-value/Significane:
+### 4. P-value/Significane:
 ```python
 ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --dataset asimov --mode dnn --method pvalue --expectSignal 1 --normalize
 ./run_combined_dnn_pvalue.sh
 python collectPvalue.py --inputs $outDir/$scenario/
 ```
-###Details about the available options:
+### 5. Details about the available options:
 - ``-i``/``--input``  : Path to inputs prefit histograms
 - ``-o``/``--output`` : Path to the output datacards to be saved.
 - ``--era``           : Choices ``['2016', '2017', '2018', 'fullrun2']``.
@@ -135,7 +134,7 @@ python collectLimits.py -i output_path_of_previous_step/ --method
 - ``-i``/``--inputs`` : Path to (ROOT) combine output file, the combined limits will be saved by default in ``args.inputs/jsons/*.json``.
 - ``--method``        : ``asymptotic or hybridnew`` required to collect the limits from ``higgsCombinexxxx_.AsymptoticLimits.mH125.root`` if the method is asymptotic for instance.
 
-## Plot ZA Limits:
+## Plot Z H/A Limits:
 ```python
 python ZAlimits.py -p path_to_dir/jsons/ --era
 ```
