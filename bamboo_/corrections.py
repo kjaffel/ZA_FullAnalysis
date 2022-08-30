@@ -16,10 +16,12 @@ import utils as utils
 from bambooToOls import Plot
 from scalefactorslib import all_scalefactors, all_run2_Ulegacyscalefactors
 
+
 #https://cms-nanoaod.github.io/correctionlib/index.html
 #https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
 #https://indico.cern.ch/event/1096988/contributions/4615134/attachments/2346047/4000529/Nov21_btaggingSFjsons.pdf
 #https://gitlab.cern.ch/vanderli/btv-json-sf/-/blob/master/convert_subjetSF.py
+
 eoy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
                             "2016":(0.2217, 0.6321, 0.8953), 
@@ -32,6 +34,8 @@ eoy_btagging_wpdiscr_cuts = {
                             "2018":(0.0494, 0.2770, 0.7264) 
                           }
                 }
+
+
 legacy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
                             "2016-preVFP" :(0.2027, 0.6001, 0.8819),  
@@ -49,6 +53,19 @@ legacy_btagging_wpdiscr_cuts = {
                           }
                 }
         
+# same discriminator cut for Full run2 
+BoostedTopologiesWP = {
+    "DeepCSV":{
+        "2016-preVFP" : {"L":0.2027, "M":0.6001}, 
+        "2016-postVFP": {"L":0.1918, "M":0.5847}, 
+        "2017": {"L":0.1355, "M":0.4506}, 
+        "2018": {"L":0.1208, "M":0.4506} }, 
+    "DoubleB":{
+        "L": 0.3, "M1": 0.6, "M2": 0.8, "T": 0.9 },
+    "DeepDoubleBvLV2":{
+        "L1": 0.64, "L2": 0.7, "M1": 0.86, "M2": 0.89, "T1": 0.91, "T2": 0.92}
+    }
+
 
 scalesfactorsLIB = {
      "DeepFlavour": {
@@ -59,16 +76,17 @@ scalesfactorsLIB = {
      "DeepCSV" : {
         "Ak4": {
             year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-               {"2016":"2016/Btag/DeepCSV_2016LegacySF_V1.csv" , 
+               {"2016": "2016/Btag/DeepCSV_2016LegacySF_V1.csv" , 
                 "2017": "2017/Btag/DeepCSV_94XSF_V5_B_F.csv" , 
                 "2018": "2018/Btag/DeepCSV_102XSF_V1.csv"}.items() },
         "softdrop_subjets": {
             year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
-               {"2016":"2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , 
+               {"2016": "2016/Btag/subjet_DeepCSV_2016LegacySF_V1.csv" , 
                 "2017": "2017/Btag/subjet_DeepCSV_94XSF_V4_B_F_v2.csv" , 
                 "2018": "2018/Btag/subjet_DeepCSV_102XSF_V1.csv"}.items() }, }
     }
-        
+
+
 scalesfactorsULegacyLIB = {
     "DeepFlavour": {
         year: os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "Inputs", csv) for year, csv in
@@ -90,43 +108,64 @@ scalesfactorsULegacyLIB = {
                 "2017": "2017UL/Btag/subjet_DeepCSV_106X_UL17_SF.csv" , 
                 "2018": "2018UL/Btag/subjet_deepCSV_106XUL18_v1.csv"}.items() }, }
     }
-    
+
+
 # maps name of systematic to name of correction inside of jsons
 leptonSFLib = {
     "electron_ID"     : "UL-Electron-ID-SF",
     "electron_reco"   : "UL-Electron-ID-SF",
-    "muon_ID"     : "NUM_MediumID_DEN_TrackerMuons",
-    "muon_iso"    : "NUM_TightRelIso_DEN_TightIDandIPCut",
+    "muon_ID"         : "NUM_MediumID_DEN_TrackerMuons",
+    "muon_iso"        : "NUM_TightRelIso_DEN_TightIDandIPCut",
     "muon_trigger": {
         "2016-preVFP" : "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight",
         "2016-postVFP": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight",
-        "2017": "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight",
-        "2018": "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight",
-    },
+        "2017"        : "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight",
+        "2018"        : "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"},
     "TkMu50_muon_trigger":{
         "2016-preVFP" : "NUM_Mu50_or_TkMu50_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose",
         "2016-postVFP": "NUM_Mu50_or_TkMu50_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose",
-        "2017": "NUM_Mu50_or_OldMu100_or_TkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose",
-        "2018": "NUM_Mu50_or_OldMu100_or_TkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose",
-    },
-}
+        "2017"        : "NUM_Mu50_or_OldMu100_or_TkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose",
+        "2018"        : "NUM_Mu50_or_OldMu100_or_TkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose"},
+    }
+
 
 def pogEraFormat(era):
     return era.replace("-", "") + "_UL"
 
+
 def getIDX(wp):
     return (0 if wp=="loose" else ( 1 if wp=="medium" else 2))
+
 
 def getYearFromEra(era):
     if '2016' in era: return '16'
     elif '2017' in era: return '17'
     elif '2018' in era: return '18'
 
+
+def get_subjets_requirements(tagger, wp, wpdiscr_cut, era): 
+    subjets_btag_req = { 
+        "b": { 
+            "atleast_1subjet_pass": lambda j : op.OR(j.subJet1.btagDeepB >= wpdiscr_cut, j.subJet2.btagDeepB >= wpdiscr_cut),
+            "both_subjets_pass"   : lambda j : op.AND(j.subJet1.btagDeepB >= wpdiscr_cut, j.subJet2.btagDeepB >= wpdiscr_cut),
+            "fatjet_pass"         : lambda j : j.btagDeepB >= wpdiscr_cut,
+            },
+        "light":{ 
+            "atleast_1subjet_notpass": lambda j : op.OR(j.subJet1.btagDeepB < wpdiscr_cut, j.subJet2.btagDeepB < wpdiscr_cut),
+            "both_subjets_notpass"   : lambda j : op.AND(j.subJet1.btagDeepB < wpdiscr_cut, j.subJet2.btagDeepB < wpdiscr_cut),
+            "fatjet_notpass"         : lambda j : j.btagDeepB < wpdiscr_cut,
+            },
+    }
+    return subjets_btag_req
+
+
 def localizePOGSF(era, POG, fileName):
     return os.path.join("/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration", "POG", POG, pogEraFormat(era), fileName)
 
+
 def localize_btv_json_files( era, data, fileName):
     return os.path.join("/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/scripts_ToExtractSFs/", data, 'UL'+era.replace('-',''), fileName)
+
 
 def getLeptonSF(era, correctionSet,):
     if "muon_trigger" in correctionSet:
@@ -174,7 +213,7 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
                 syst_prefix="", decorr_eras=True, full_scheme=False, full_scheme_mapping=None):
     params = { 
             "noJet_bRegCorr" : { "pt": lambda j: op.forSystematicVariation(j.pt, "nominal") if use_nominal_jet_pt else j.pt,
-                               "abseta": lambda j: op.abs(j.eta), "working_point": wp, "flavor": flav },
+                                 "abseta": lambda j: op.abs(j.eta), "working_point": wp, "flavor": flav },
             "Jet_bRegCorr" : { "pt": lambda j: op.forSystematicVariation(j.pt*j.bRegCorr, "nominal") if use_nominal_jet_pt else j.pt*j.bRegCorr,
                                "abseta": lambda j: op.abs(j.eta), "working_point": wp, "flavor": flav }
             }
@@ -184,19 +223,22 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
     systVariations = {}
     
     for d in ("up", "down"):
-        if not decorr_eras and not full_scheme:
+        if tagger == 'deepCSV_subjet':
             systVariations[f"{systName}{d}"] = d
-        if decorr_eras and (not full_scheme or flav == 0):
-            systVariations[f"{systName}{d}"] = f"{d}_correlated"
-            systVariations[f"{systName}_{era}{d}"] = f"{d}_uncorrelated"
-        if full_scheme and flav > 0:
-            systVariations[f"{syst_prefix}statistic_{era}{d}"] = f"{d}_statistic"
-            for var,varBTV in full_scheme_mapping.items():
-                if varBTV is None:
-                    systVariations[f"{syst_prefix}{var}{d}"] = f"{d}_{var}"
-                else:
-                    systVariations[f"{var}{d}"] = f"{d}_{varBTV}"
-
+        else:
+            if not decorr_eras and not full_scheme:
+                systVariations[f"{systName}{d}"] = d
+            if decorr_eras and (not full_scheme or flav == 0):
+                systVariations[f"{systName}{d}"] = f"{d}_correlated"
+                systVariations[f"{systName}_{era}{d}"] = f"{d}_uncorrelated"
+            if full_scheme and flav > 0:
+                systVariations[f"{syst_prefix}statistic_{era}{d}"] = f"{d}_statistic"
+                for var,varBTV in full_scheme_mapping.items():
+                    if varBTV is None:
+                        systVariations[f"{syst_prefix}{var}{d}"] = f"{d}_{var}"
+                    else:
+                        systVariations[f"{var}{d}"] = f"{d}_{varBTV}"
+    
     prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
     
     if tagger == 'deepCSV_subjet':
@@ -229,6 +271,7 @@ def get_Ulegacyscalefactor(objType, key, periods=None, combine=None, additionalV
 
 def getL1PreFiringWeight(tree):
     return op.systematic(tree.L1PreFiringWeight_Nom, name="L1PreFiring", up=tree.L1PreFiringWeight_Up, down=tree.L1PreFiringWeight_Dn)
+
 
 class makeYieldPlots:
     def __init__(self):
@@ -466,9 +509,12 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     for process in ['gg_fusion', 'bb_associatedProduction']:
         for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
             
-            bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
             tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
-            run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF) }
+            if wp =='T' and tagger =='deepCSV':
+                run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.c_float(1.) }
+            else:
+                bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
+                run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF) }
 
     return run2_bTagEventWeight_PerWP
         
@@ -551,7 +597,6 @@ def Top_reweighting(t, noSel, sampleCfg, isMC):
         Sel_with_top_reWgt = noSel
 
     return Sel_with_top_reWgt, plots
-
 
 
 def DrellYanreweighting(noSel, j, tagger, era, doSysts):

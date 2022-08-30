@@ -130,9 +130,9 @@ def get_mcNmConvention_and_group(smpNm):
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/HowToGenXSecAnalyzer
     """
     shortnames = {'DYJetsToLL_M-10to50': ['DY', 18610.0,    None, 'DY+jets', '#0000FF',    6],
-                  'DYJetsToLL_0J'      : ['DY', 4757.0,     None, 'DY+jets', '#0000FF',    6],
-                  'DYJetsToLL_1J'      : ['DY', 859.589402, None, 'DY+jets', '#0000FF',    6],
-                  'DYJetsToLL_2J'      : ['DY', 361.4,      None, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_0J'      : ['DY', 4757.0,     9.294, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_1J'      : ['DY', 859.589402, 6.067, 'DY+jets', '#0000FF',    6],
+                  'DYJetsToLL_2J'      : ['DY', 361.4,      3.704, 'DY+jets', '#0000FF',    6],
                   'TTToHadronic'           : ['ttbar', 377.96, 0.5174,             'tt',     '#c4ffff',  5],
                   'TTToSemiLeptonic'       : ['ttbar', 365.35,  '+4.8% -6.1%',      'tt',    '#c4ffff',  5],
                   'TTTo2L2Nu'              : ['ttbar', 88.288,  '+4.8% -6.1%',      'tt',    '#c4ffff',  5],
@@ -154,7 +154,7 @@ def get_mcNmConvention_and_group(smpNm):
                   'ZH_HToBB_ZToLL_M-125'     : ['SM', 0.07814,   0.0001904, 'ggh, tth, Zh',  '#43294D',  2],
                   'ggZH_HToBB_ZToLL_M-125'   : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
                   'ggZH_HToBB_ZToNuNu_M-125' : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
-                  'GluGluHToZZTo2L2Q_M125'   : ['SM', 1,         0.,        'ggh, tth, Zh',  '#43294D',  2],
+                  'GluGluHToZZTo2L2Q_M125'   : ['SM', 28.87,       0.02027, 'ggh, tth, Zh',  '#43294D',  2],
                   'ttHTobb'                  : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
                   'ttHToNonbb'               : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
                   'WWW_4F'          : ['others', 0.2086,    0.,         'VVV, ttV',   '#9370DB',  1],
@@ -423,10 +423,10 @@ if __name__ == "__main__":
 
                     if process == f'gg{heavy}': 
                         xsc  = given_mass['cross-section'][process].split()[0]
-                        xsc_err  = given_mass['cross-section'][process].split()[1]
+                        xsc_err  = given_mass['cross-section'][process].split()[2]
                     else: 
                         xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
-                        xsc_err  = given_mass['cross-section'][process]['NLO'].split()[1]
+                        xsc_err  = given_mass['cross-section'][process]['NLO'].split()[2]
 
                     Nm      = smpNm.replace('-','_')+VFP
                     br      = br_HeavytoZlight * br_lighttobb * br_Ztoll
@@ -484,7 +484,7 @@ if __name__ == "__main__":
                 elif issignal :
                     outf.write("    type: signal\n")
                     outf.write("    generated-events: 'genEventSumw'\n")
-                    outf.write(f"    cross-section: {xsc}   # {xsc_err} pb\n")
+                    outf.write(f"    cross-section: {xsc}   # +/- {xsc_err} pb\n")
                     outf.write(f"    branching-ratio: {br}  # {details}\n")
                     outf.write(f"    line-color: '{color}'\n")
                     outf.write("    line-type: 8\n")

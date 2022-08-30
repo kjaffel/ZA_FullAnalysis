@@ -1,4 +1,15 @@
+import collections
 from bamboo import treefunctions as op
+from bamboo.plots import SummedPlot
+from bamboo.plots import EquidistantBinning as EqB
+
+import utils as utils
+import corrections as corr
+import ControlPLots as cp
+
+from bambooToOls import Plot
+
+
 
 def freeze(d):
     if isinstance(d, dict):
@@ -7,11 +18,13 @@ def freeze(d):
         return tuple(freeze(value) for value in d)
     return d
 
+
 def key_for_value(d):
     """Return a key in neseted dic `d` having a sub-key ."""
     for k, v in d.items():
         if k == "350-850" or k == "350-840":
             return k
+
 
 def get_BoostedEventWeight(era, tagger, wp, fatjet):
     if "2016" in era:
@@ -103,25 +116,79 @@ def get_BoostedEventWeight(era, tagger, wp, fatjet):
             down = nominal - dic[pTrange]["down"][idx]
     return op.systematic(op.c_float(nominal), name="{0}{1}".format(tagger, wp), up=op.c_float(up), down=op.c_float(down)) 
 
-def get_DeepDoubleXDeepBoostedJet(AK8Jets, discr, BoostedTopologiesWP_):
-    # DeepDoubleX (mass-decorrelated) discriminator for H(Z)->bb vs QCD
-    cleaned_AK8JetsbtagDDBvL = op.sort(AK8Jets, lambda j: -j.btagDDBvL)
-    # DeepDoubleX discriminator (no mass-decorrelation) for H(Z)->bb vs QCD
-    cleaned_AK8JetsbtagDDBvL_noMD = op.sort(AK8Jets, lambda j: -j.btagDDBvL_noMD)
-    # Mass-decorrelated DeepBoostedJet tagger H->bb vs QCD discriminator
-    cleaned_AK8JetsdeepTagMD_HbbvsQCD = op.sort(AK8Jets, lambda j: -j.deepTagMD_HbbvsQCD)
-    # Mass-decorrelated DeepBoostedJet tagger Z/H->bb vs QCD discriminator
-    cleaned_AK8JetsdeepTagMD_ZHbbvsQCD = op.sort(AK8Jets, lambda j: -j.deepTagMD_ZHbbvsQCD)
-    
-    DeepDoubleXDeepBoostedJet ={}
-    for wp, discr_cut  in BoostedTopologiesWP_.items():           
-        if discr == 'btagDDBvL':
-            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsbtagDDBvL, lambda j : j.btagDDBvL >= discr_cut)
-        elif discr == 'btagDDBvL_noMD':
-            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsbtagDDBvL_noMD, lambda j : j.btagDDBvL_noMD >= discr_cut)
-        elif discr == 'deepTagMD_HbbvsQCD':
-            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsdeepTagMD_HbbvsQCD, lambda j : j.deepTagMD_HbbvsQCD >= discr_cut)
-        elif discr == 'deepTagMD_ZHbbvsQCD':
-            DeepDoubleXDeepBoostedJet[wp] = op.select(cleaned_AK8JetsdeepTagMD_ZHbbvsQCD, lambda j : j.deepTagMD_ZHbbvsQCD >= discr_cut)
 
-    return DeepDoubleXDeepBoostedJet
+def get_DeepDoubleX(AK8jets, discr, discr_cut):
+    
+    if discr == 'btagDDBvLV2':
+        # DeepDoubleX (mass-decorrelated) discriminator for H(Z)->bb vs QCD
+        cleaned_AK8JetsbtagDDBvL = op.sort(AK8jets, lambda j: -j.btagDDBvLV2)
+        return op.select(cleaned_AK8JetsbtagDDBvL, lambda j : j.btagDDBvLV2 >= discr_cut)
+    
+    elif discr == 'btagDDBvL_noMD':
+        # DeepDoubleX discriminator (no mass-decorrelation) for H(Z)->bb vs QCD
+        cleaned_AK8JetsbtagDDBvL_noMD = op.sort(AK8jets, lambda j: -j.btagDDBvL_noMD)
+        return op.select(cleaned_AK8JetsbtagDDBvL_noMD, lambda j : j.btagDDBvL_noMD >= discr_cut)
+    
+    elif discr == 'deepTagMD_HbbvsQCD':
+        # Mass-decorrelated DeepBoostedJet tagger H->bb vs QCD discriminator
+        cleaned_AK8JetsdeepTagMD_HbbvsQCD = op.sort(AK8jets, lambda j: -j.deepTagMD_HbbvsQCD)
+        return op.select(cleaned_AK8JetsdeepTagMD_HbbvsQCD, lambda j : j.deepTagMD_HbbvsQCD >= discr_cut)
+    
+    elif discr == 'deepTagMD_ZHbbvsQCD':
+        # Mass-decorrelated DeepBoostedJet tagger Z/H->bb vs QCD discriminator
+        cleaned_AK8JetsdeepTagMD_ZHbbvsQCD = op.sort(AK8jets, lambda j: -j.deepTagMD_ZHbbvsQCD)
+        return op.select(cleaned_AK8JetsdeepTagMD_ZHbbvsQCD, lambda j : j.deepTagMD_ZHbbvsQCD >= discr_cut)
+    else:
+        raise RuntimeError(f'sorry {discr} is unkown')
+
+
+def get_bestSubjetsCut(sel, channel, ll, fatjet, corrMET, optstex, era, doProduceSum):
+    plots = []
+    plots_ToSum2 = collections.defaultdict(list)
+    binScaling = 1
+    cfr = {} 
+    
+    cleaned_AK8JetsByDeepB = op.sort(fatjet, lambda j: -j.btagDeepB)
+
+    for wp in ['L', 'M']:
+        
+        wpdiscr_cut = corr.BoostedTopologiesWP['DeepCSV'][era][wp]
+        subjets_btag_req = corr.get_subjets_requirements('DeepCSV', wp, wpdiscr_cut, era)
+        
+        for scenario, lambda_f in subjets_btag_req['b'].items(): 
+
+            subjets_AK8_scenarios = op.select(cleaned_AK8JetsByDeepB, lambda_f)
+
+            llxsubjets_noMET_boosted = { 
+                    "gg_fusion": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_ggH_Boosted".format(channel, scenario, wp, channel),
+                                    cut    = [ op.rng_len(subjets_AK8_scenarios) == 1, corrMET.pt < 80.],
+                                    weight = None),
+                    "bb_associatedProduction": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_bbH_Boosted".format(channel, scenario, wp, channel),
+                                    cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, corrMET.pt < 80.],
+                                    weight = None)
+                    }
+            
+            cfr[f'{channel}_DeepCSV{wp}_{scenario}'] = { 
+                    "gg_fusion":
+                            ( f"nb=2 -boosted: {optstex} + == 1 AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + MET cut",
+                              llxsubjets_noMET_boosted["gg_fusion"] ),
+                    "bb_associatedProduction":
+                            ( f"nb=3 -boosted: {optstex} + $>1$ AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + MET cut",
+                              llxsubjets_noMET_boosted["bb_associatedProduction"] ),
+                    }
+
+            for process, sel in llxsubjets_noMET_boosted.items():
+                
+                selDict = {f'DeepCSV{wp}': sel}
+                bjets   = {'DeepCSV': {wp: subjets_AK8_scenarios }}
+                suffix  = f'METCut_NobTagWgt_{scenario}'
+
+                final_cp, final_cpToSum = cp.makeControlPlotsForFinalSel(selDict, bjets, ll, channel, 'boosted', suffix, process, doProduceSum)
+                bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, channel, 'boosted', suffix, era, process, doProduceSum)
+                
+                plots.extend(final_cp)
+                plots.extend(bjets_cp)
+                plots_ToSum2.update(final_cpToSum)
+                plots_ToSum2.update(bjets_cpToSum)
+        
+    return plots, plots_ToSum2, cfr

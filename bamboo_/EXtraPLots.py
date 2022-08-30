@@ -1,3 +1,5 @@
+## Also deprecated 
+
 from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
 from bamboo.root import gbl
@@ -6,7 +8,9 @@ from bamboo import treefunctions as op
 import utils
 import corrections as corr
 import ControlPLots as cp
+
 from bambooToOls import Plot
+
 
 def makerhoPlots(selections, bjets, leptons, ellipses, ellipse_params, reg, cut, WP, uname, doblinded, process):
     plots = []
@@ -30,6 +34,7 @@ def makerhoPlots(selections, bjets, leptons, ellipses, ellipse_params, reg, cut,
                             sel, EqB(6, 0., 3.), title="rho ",
                             plotopts= plotOptions))
     return plots
+
 
 def MakeTriggerDecisionPlots(catSel, channel):
     """
@@ -68,9 +73,10 @@ def MakeTriggerDecisionPlots(catSel, channel):
     #plots.append(passboth)
     return plots
 
-# for better selection of b jets 
-# and to remove fakes b from my selection I should take into account only the jet with the highest discriminator !
+
 def MakeBestBJetsPairPlots(self, sel, bestJetPairs, dilepton, suffix, wp):
+    # for better selection of b jets 
+    # and to remove fakes b from my selection I should take into account only the jet with the highest discriminator !
     plots =[]
     for key in sel.keys():
         tagger= key.replace(wp, "")
@@ -118,6 +124,7 @@ def MakeBestBJetsPairPlots(self, sel, bestJetPairs, dilepton, suffix, wp):
                     xTitle= "dilepton P_{T} [GeV]"))
     return plots
 
+
 def MakeHadronFlavourPLots(self, sel, bestJetPairs, uname, wp, isMC):
     plots =[]
     # FIXME
@@ -150,6 +157,7 @@ def MakeHadronFlavourPLots(self, sel, bestJetPairs, uname, wp, isMC):
                     title="{0}".format(key), plotopts=utils.getOpts(uname)))
         return plots
 
+
 def zoomplots(oslepsel, oslep_plus2jet_sel, leptons, jets, suffix, uname):
     plots = []
     binScaling=1
@@ -175,6 +183,7 @@ def zoomplots(oslepsel, oslep_plus2jet_sel, leptons, jets, suffix, uname):
                 title="mlljj [GeV]", plotopts=utils.getOpts(uname, **{"log-y": False})))
     
     return plots
+
 
 def ptcuteffectOnJetsmultiplicty(TwoLepsel, leptons, jets_noptcut, jet_ptcut, corrMET, era, uname):
     plots = []
@@ -206,7 +215,6 @@ def ptcuteffectOnJetsmultiplicty(TwoLepsel, leptons, jets_noptcut, jet_ptcut, co
                             EqB(7, 0., 7.), title="Jet mulmtiplicity",
                             plotopts=utils.getOpts(uname, **{"log-y": True})))
 
-            
                 plots.append(Plot.make1D(f"{uname}_%s_lep{i+1}_pt"%suffix, leptons[i].pt, sel,
                         EqB(60 // binScaling, leptonptCut, 200.), title=f"{utils.getCounter(i+1)} Lepton pT [GeV]" ,
                         plotopts=utils.getOpts(uname, **{"log-y": True})))
@@ -220,7 +228,6 @@ def ptcuteffectOnJetsmultiplicty(TwoLepsel, leptons, jets_noptcut, jet_ptcut, co
                 #plots.append(Plot.make1D(f"{uname}_%s_llpT"%suffix, (leptons[0].p4 + leptons[1].p4).Pt(), sel, 
                 #        EqB(60, 0., 200.), title= "dilepton P_{T} [GeV]", 
                 #        plotopts=utils.getOpts(uname, **{"log-y": True})))
-                    
                 #plots.append(Plot.make1D(f"{uname}_%s_mll"%suffix, op.invariant_mass(leptons[0].p4, leptons[1].p4), sel, 
                 #        EqB(60, 70., 120.), title= "mll [GeV]", 
                 #        plotopts=utils.getOpts(uname, **{"log-y": True})))
@@ -377,13 +384,10 @@ def LeptonsInsideJets(jets, sel, uname):
 
 
 def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
-
-    # sel : 2leptons os
     plots = []
     binScaling=1
     Njets = op.rng_len(jets)
     HT = op.rng_sum(Njets, lambda j : j.pt)
-    
 #    plots.append(Plot.make1D(f"NJets_%s"%uname, op.rng_len(jets), sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
 #            EqB(10, 0., 10.), title="Reco. Njets",
 #            plotopts=utils.getOpts(uname, **{"log-y": True})))
@@ -395,7 +399,6 @@ def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
 #    plots.append(Plot.make1D(f"pt_ll_%s"%uname, (leptons[0].p4 + leptons[1].p4).Pt(), sel.weight/op.switch(tree.genWeight < 0 , tree.genWeight, op.c_bool(isMC)),
 #            EqB(60//binScaling, 0., 1000.), title="GEN. pT(ll)",
 #            plotopts=utils.getOpts(uname, **{"log-y": True})))
-
     plots.append(Plot.make1D(f"genWeight_%s"%uname, tree.genWeight, sel,
             EqB(60//binScaling, 0., 1000.), title="GEN. Weight",
             plotopts=utils.getOpts(uname, **{"log-y": True})))
@@ -404,7 +407,6 @@ def NegativeWeightsFractions( self, tree, leptons, jets, sel, uname, isMC):
             plotopts=utils.getOpts(uname, **{"log-y": True})))
     
     return plots
-
 
 
 def DYgenLevelPlots(t, noSel, sample):

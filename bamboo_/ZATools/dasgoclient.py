@@ -1,3 +1,7 @@
+# VOMS is needed here
+#source /cvmfs/cms.cern.ch/cmsset_default.sh
+#voms-proxy-init -voms cms -rfc -valid 192:00
+
 import os, os.path, sys
 import subprocess
 import glob
@@ -114,7 +118,7 @@ if __name__ == "__main__":
                'TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8',
                'TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8',
                # Zh
-               'HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-pythia8', 
+               'HZJ_HToWW_M-125', 
                'ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8', 
                'ggZH_HToBB_ZToNuNu_M-125_TuneCP5_13TeV-powheg-pythia8',
                # ggh, h ->(ll)Z(qq),
@@ -136,7 +140,7 @@ if __name__ == "__main__":
     request  = [218, 232, 8, 13]
     all_processes = []
     
-    for era in [18, 17, 16]:
+    for era in [17]:#18, 17, 16]:
         suffix += f'_{era}'
         
         for dtype, listsmp in look_for.items():

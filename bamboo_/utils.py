@@ -2,6 +2,9 @@
 import os
 import re
 import yaml
+import shutil
+import collections
+import subprocess
 import numpy as np
 import HistogramTools as HT
 
@@ -44,6 +47,138 @@ def ZAlogger(name):
         logger.addHandler(stream)
     return logger
 
+
+def getYearFromEra(era):
+    if   '2016' in era: return '16'
+    elif '2017' in era: return '17'
+    elif '2018' in era: return '18'
+
+
+def get_tagger_wp(key):
+    if not 'DeepDoubleBvLV2' in key: s= -1 
+    else: s= -2
+    tagger  = key[:s]
+    wp      = key.split(tagger)[-1]
+    return tagger, wp
+
+
+def run_Plotit(workdir, inDir, outDir, counterReader, config):
+    logger   = ZAlogger(__name__)
+    
+    to_hadd  = collections.defaultdict(list)
+    hadd_cfg = collections.defaultdict(dict)
+    keep_cfg = collections.defaultdict(dict)
+
+    _gp =  list(config["plotIt"]["groups"].keys())
+    if 'signal' in _gp:
+        _gp.remove('signal')
+
+    lumiCFG = {}
+    for smp, smpCfg in config["samples"].items():
+        
+        era   = smpCfg["era"]
+        lumi  = config["eras"][smpCfg["era"]]["luminosity"]
+        lumiCFG[era] = lumi
+        
+        smpNm = smp.split('_UL'+getYearFromEra(era))[0]
+        mergedHists = {}
+        
+        if smpCfg.get("group") in _gp:
+            #copy results file to outDir
+            shutil.copyfile( os.path.join(inDir, f"{smp}.root"), os.path.join(outDir,f"{smp}.root"))
+            keep_cfg[smp] = smpCfg
+        else:
+            resultsFile    = HT.openFileAndGet(os.path.join(inDir, f"{smp}.root"), mode="READ")
+            
+            print( smp)
+            xsc  = smpCfg["cross-section"]
+            gevt = counterReader(resultsFile)[smpCfg["generated-events"]]
+            br   = smpCfg["branching-ratio"]
+            
+            print( smp , lumi, xsc, gevt , br)
+            smpScale = (lumi * xsc* br) / gevt
+            
+            for hk in resultsFile.GetListOfKeys():
+                hist  = hk.ReadObj()
+                if not hist.InheritsFrom("TH1"): 
+                    continue
+                hist.Scale(smpScale)
+                name = hist.GetName()
+                if name not in mergedHists.keys():
+                    mergedHists[name] = hist.Clone()
+                    mergedHists[name].SetDirectory(0)
+                else:
+                    mergedHists[name].Add(hist)
+            
+            resultsFile.Close()
+        
+            normalizedFile = HT.openFileAndGet(os.path.join(outDir, f"{smp}.root"), "recreate")
+            for hist in mergedHists.values():
+                hist.Write()
+            normalizedFile.Close()
+        
+            to_hadd[smpNm].append(os.path.join(outDir, f"{smp}.root"))
+            hadd_cfg[smpNm].update(smpCfg)
+            
+    for smp, val in to_hadd.items():
+        sum_f   = f"{smp}_ULfull.root"
+        haddCmd = ["hadd", "-f", os.path.join(outDir, sum_f)]+val
+        try:
+            logger.info("running {}".format(" ".join(haddCmd)))
+            subprocess.check_call(haddCmd)#, stdout=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            logger.error("Failed to run {0}".format(" ".join(haddCmd)))
+    
+    with open(os.path.join(workdir, 'plots.yml'), 'r') as inf:
+        with open(os.path.join(workdir, 'plots_full.yml'), 'w+') as outf:
+            outf.write('configuration:\n')
+            outf.write("  blinded-range-fill-color: '#FDFBFB'\n")
+            outf.write('  blinded-range-fill-style: 4050\n')
+            outf.write('  eras:\n')
+            for era in lumiCFG.keys():
+                outf.write(f'  - {era}\n')
+            outf.write('  experiment: CMS\n')
+            outf.write('  extra-label: Preliminary\n')
+            outf.write('  height: 800\n')
+            outf.write('  luminosity:\n')
+            for era, lumi in lumiCFG.items():
+                outf.write(f'    {era}: {lumi}\n')
+            outf.write("  luminosity-label: '%1$.2f fb^{-1} (13 TeV)'\n")
+            outf.write(f'  root: {workdir}/results/normalizedSummedSignal\n')
+            outf.write('  show-overflow: true\n')
+            outf.write('  width: 800\n')
+            outf.write("  y-axis-format: '%1% / %2$.2f'\n")
+            outf.write('files:\n')
+            line_found = False
+            
+            for smp, cfg in hadd_cfg.items():
+                outf.write(f'  {smp}_ULfull.root:\n')
+                for k, v in cfg.items():
+                    if k in ['type', 'group', 'line-width', 'line-type', 'legend', 'line-color']:
+                        outf.write(f"    {k}: {v}\n")
+            
+            for smp, cfg in keep_cfg.items():
+                outf.write(f'  {smp}.root:\n')
+                for k, v in cfg.items():
+                    outf.write(f"    {k}: {v}\n")
+            
+            for line in inf:
+                if 'groups:' in line:
+                    line_found = True
+                if line_found:
+                    outf.write(line)
+                
+    if not os.path.isdir(os.path.join(workdir, "plots_full")):
+        os.makedirs(os.path.join(workdir,"plots_full"))
+
+    plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", f'{workdir}/plots_full', "--", f"{workdir}/plots_full.yml"]
+    try:
+        logger.info("running {}".format(" ".join(plotitCmd)))
+        subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+
+
 def getOpts(name, **kwargs):
     uname=name.lower()
     if "elmu" in uname:
@@ -70,6 +205,7 @@ def getOpts(name, **kwargs):
     opts.update(kwargs)
     return opts
 
+
 def getCounter(i):
     if i <= 0:
         return str(i)
@@ -82,6 +218,7 @@ def getCounter(i):
     if i >= 4:
         return "{}th Highest".format(i)
 
+
 def getRunEra(sample):
     """Return run era (A/B/...) for data sample"""
     result = re.search(r'Run201.([A-Z]?)', sample)
@@ -90,14 +227,9 @@ def getRunEra(sample):
     return result.group(1)
 
 
-def getSignalMassPoints(outdir, distributed):
-    if distributed:
-        f = 'plots.yml'
-        k = 'files'
-    else:
-        f = 'config.yml' 
-        k = 'samples'
-    with open(os.path.join(outdir, 'plots.yml')) as _f:
+def getSignalMassPoints(outdir):
+    
+    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL16_17_18_nanov9.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
     
     points = {'gg_fusion': 
@@ -129,7 +261,6 @@ def getSignalMassPoints(outdir, distributed):
         else:
             if not (m0, m1) in points['bb_associatedProduction'][region][key]:
                 points['bb_associatedProduction'][region][key].append( (m0, m1))
-
     return points 
 
 
@@ -171,6 +302,7 @@ def computeHessianPDFUncertainty(weights):
     weights = np.asarray(weights)
     return np.sqrt(np.sum((weights[1:] - weights[0])**2))
 
+
 def not_in_use_declareHessianPDFCalculator():
     if not hasattr(gbl, "computeHessianPDFUncertainty"):
         gbl.gInterpreter.Declare("""
@@ -182,6 +314,7 @@ def not_in_use_declareHessianPDFCalculator():
                                     result += pow(weights[i] - weights[0], 2);
                                  return sqrt(result);
                             }""")
+
 
 def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True, PSISR=False, PSFSR=False, PDFs=False, pdf_mode="simple"):
     plotter.qcdScaleVariations = dict()
@@ -221,6 +354,7 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True,
         noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
     return noSel
 
+
 def splitTTjetFlavours(cfg, tree, noSel):
     subProc = cfg["subprocess"]
     if subProc == "ttbb":
@@ -233,8 +367,8 @@ def splitTTjetFlavours(cfg, tree, noSel):
         noSel = noSel.refine(subProc, cut=(tree.genTtbarId % 100) < 41)
     return noSel
 
+
 def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, outPath):
-    import shutil
     for smp, smpCfg in config["samples"].items():
         if smpCfg.get("group") == "data":
             #copy results file to outPath
@@ -242,24 +376,36 @@ def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, out
         else:
             resultsFile    = HT.openFileAndGet(os.path.join(inDir, f"{smp}.root"), mode="READ")
             normalizedFile = HT.openFileAndGet(os.path.join(outPath, f"{smp}.root"), "recreate")
+            
             lumi = config["eras"][smpCfg["era"]]["luminosity"]
             smpScale = lumi / counterReader(resultsFile)[smpCfg["generated-events"]]
+            
             if smpCfg.get("type") == "signal":
                 smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
-            if smpCfg.get("type") == "mc":
+            elif smpCfg.get("type") == "mc":
                 smpScale *= smpCfg["cross-section"]
-            for plot in plots:
-                hNom = resultsFile.Get(plot.name)
-                hNom.Scale(smpScale)
-                hNom.Write()
-                prefix = f"{plot.name}__"
-                for hk in resultsFile.GetListOfKeys():
-                    if hk.GetName().startswith(prefix):
-                        hV = resultsFile.Get(hk.GetName())
-                        hV.Scale(smpScale)
-                        hV.Write()
-            normalizedFile.Write()
-            resultsFile.Close()
+            
+            if plots is None: # do all 
+                for k in resultsFile.GetListOfKeys():
+                    h = resultsFile.Get(k.GetName())
+                    h.Scale(smpScale)
+                    h.Write()
+                normalizedFile.Write()
+                resultsFile.Close()
+            else:
+                for plot in plots:
+                    hNom = resultsFile.Get(plot.name)
+                    hNom.Scale(smpScale)
+                    hNom.Write()
+                    prefix = f"{plot.name}__"
+                    for hk in resultsFile.GetListOfKeys():
+                        if hk.GetName().startswith(prefix):
+                            hV = resultsFile.Get(hk.GetName())
+                            hV.Scale(smpScale)
+                            hV.Write()
+                normalizedFile.Write()
+                resultsFile.Close()
+
 
 def getSumw(resultsFile, smpCfg, readCounters=None):
     if "generated-events" in smpCfg:
@@ -271,6 +417,7 @@ def getSumw(resultsFile, smpCfg, readCounters=None):
         genEvts = None
     return genEvts
 
+
 def normalizeAndSumSamples(eras, samples, inDir, outPath, readCounters=lambda f: -1.):
     """
     Produce file containing the sum of all the histograms over the processes, 
@@ -281,7 +428,7 @@ def normalizeAndSumSamples(eras, samples, inDir, outPath, readCounters=lambda f:
     for era in eras:
         lumi = eras[era]["luminosity"]
         mergedHists = {}
-        for proc,cfg in samples.items():
+        for proc, cfg in samples.items():
             if cfg["era"] != era: continue
             if "syst" in cfg: continue
             xs = cfg["cross-section"]
@@ -305,6 +452,7 @@ def normalizeAndSumSamples(eras, samples, inDir, outPath, readCounters=lambda f:
         mergedFile.Close()
     os.system("hadd -f " + outPath + "_run2.root " + " ".join([ f"{outPath}_{era}.root" for era in eras ]))
 
+
 def produceMEScaleEnvelopes(plots, scaleVariations, path):
     _tf = HT.openFileAndGet(path, "update")
     listOfKeys = [ k.GetName() for k in _tf.GetListOfKeys() ]
@@ -324,6 +472,7 @@ def produceMEScaleEnvelopes(plots, scaleVariations, path):
         up.Write(f"{plot.name}__qcdScaleup", ROOT.TObject.kOverwrite)
         down.Write(f"{plot.name}__qcdScaledown", ROOT.TObject.kOverwrite)
     _tf.Close()
+
 
 def producePDFEnvelopes(plots, task, resultsdir):
     sample = task.name

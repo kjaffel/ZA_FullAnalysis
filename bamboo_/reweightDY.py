@@ -2,13 +2,15 @@ import os, os.path, sys
 import math 
 import collections
 import json
+import numpy as np
 
 from itertools import count
 
 from bambooToOls import Plot
+from bamboo import treefunctions as op
 from bamboo.plots import SummedPlot
 from bamboo.plots import EquidistantBinning as EqB
-from bamboo import treefunctions as op
+from bamboo.plots import VariableBinning as VarBin
 
 import ControlPLots as cp 
 import utils as utils
@@ -44,13 +46,14 @@ def make_gaussian(x, parameters):
 
 
 def computeDYweight(flav, era, reg, n, mass, name, doSysts):
-    lowmass_fitdeg = { '2016-preVFP': 6, 
+    lowmass_fitdeg = { '2016-postVFP': 6, 
                        '2016-preVFP': 6,
+                       '2016': 6,
                        '2017': 7, 
                        '2018': 6, 
                        }
     
-    fits_rng = {'resolved': [10., 650.], 'boosted': [10., 150.] }
+    fits_rng = {'resolved': [10., 600.], 'boosted': [10., 150.] }
     
     params = get_JsonWeights(era, flav)
     if reg == 'boosted':
@@ -65,9 +68,8 @@ def computeDYweight(flav, era, reg, n, mass, name, doSysts):
                               (op.in_range(150., mass, fits_rng[reg][1]), make_polynomial(mass, params[era][reg][name][f"polyfit{n}"]))
                              , op.c_float(params[era][reg][name]['binWgt']))
     
-    era_ = pogEraFormat(era)
     #return op.switch(mass < 650., op.define("double", make_polynomial(mass, params[name][f"polyfit{n}"])), op.c_float(1.))
-    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{era_}_{reg}_{flav}_ployfit{s}", up=op.c_float(2*nom), down=op.c_float(nom/2))
+    if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{reg}_{flav.lower()}_ployfit{s}", up=op.c_float(2*(nom-1)+1), down=op.c_float((nom-1)/2+ 1))
     else: return nom 
 
 
@@ -135,19 +137,22 @@ def DYPlusJetsCP(jets, dilepton, sel, uname, reg, n, doWgt=False, doSum=False, d
         nm += "0Btag"
     if doWgt:
         nm += f"DYweight_polyfit{n}"
+   
+    #BIns  = EqB(60 // binScaling, 0., 1200.)
+    BIns   = { 'resolved': VarBin(np.arange(0., 600., 10).tolist()+np.arange(600., 1201., 200).tolist()),
+               'boosted' : VarBin(np.arange(0., 150., 10).tolist()+[150., 600., 800., 1000., 1200.]), 
+               } 
     
-    EqBIns = EqB(60 // binScaling, 0., 1200.)
     jj_p4  = (jets[0].p4 if reg=="boosted" else(jets[0].p4+jets[1].p4))
     mlljj  = (dilepton[0].p4 +dilepton[1].p4+jj_p4).M()
     mjj    = jj_p4.M()
     
     plt_mjj = Plot.make1D(f"{uname}_{reg}_{nm}_mjj",
-                op.invariant_mass(jj_p4), sel,
-                EqB(60 // binScaling, 0., 1200.), 
+                op.invariant_mass(jj_p4), sel, BIns[reg],
                 title="m_{jj} (GeV)", plotopts=utils.getOpts(uname))
     
     plt_mlljj = Plot.make1D(f"{uname}_{reg}_{nm}_mlljj", 
-                 (dilepton[0].p4 +dilepton[1].p4+jj_p4).M(), sel, EqBIns, 
+                 (dilepton[0].p4 +dilepton[1].p4+jj_p4).M(), sel, BIns[reg], 
                  title="m_{lljj} (GeV)", plotopts=utils.getOpts(uname))
     
     if doSum and not uname in ['ElMu', 'MuEl']:
@@ -166,7 +171,7 @@ def DYPlusJetsCP(jets, dilepton, sel, uname, reg, n, doWgt=False, doSum=False, d
     return plots, plots_ToSum2
 
 
-def getDYweightFromPolyfit(channel, era, reg, mass, polyfit, doSysts, doreweightDY):
+def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, lightflavour_j=None, doSysts=False, doreweightDY=False, doOnlylightflav=False):
     
     if doreweightDY == "comb": flav = 'LL'
     else: flav = channel if channel in ['ElEl', 'MuMu'] else ( 'LL')
@@ -176,14 +181,18 @@ def getDYweightFromPolyfit(channel, era, reg, mass, polyfit, doSysts, doreweight
                 #"mjj_vs_mlljj" : op.product( computeDYweight(flav, era, reg, polyfit, mass, 'mjj', doSysts), 
                 #                             computeDYweight(flav, era, reg, polyfit, mass, 'mlljj', doSysts)) 
                 }
-    return DYweight        
+    
+    if doOnlylightflav:
+        return op.switch( lightflavour_j, DYweight[k], op.c_float(1.))
+    else:
+        return DYweight[k]
 
 
-def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp, corrMET, doMETCut, doWgt, doSum):
+def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp, corrMET, doMETCut, doWgt, doSum, doPlot=True):
     
     plots = []
     binScaling = 1
-    non_bjets = {}
+    non_bjets  = {}
     plots_ToSum2 = collections.defaultdict(list)
     
     metCut = {'resolved' : 80. , 'boosted'  : 120. }
@@ -195,7 +204,7 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
 
     lambda_failbtag = {'DeepFlavour': lambda j: j.btagDeepFlavB < legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][getIDX(wp)],
                        'DeepCSV'    : lambda j: op.AND(j.subJet1.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)],
-                                                      j.subJet2.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)]) }
+                                                       j.subJet2.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)]) }
 
     for (tagger, lambda_), k in zip( lambda_failbtag.items(), ['resolved', 'boosted']):
         non_bjets[jetType[k]] = op.select(jets[k][tagger], lambda_)
@@ -203,16 +212,24 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
     cut_per_cr = { 'resolved': [ op.rng_len(non_bjets["AK4"]) >= 2,  op.rng_len(non_bjets["AK8"]) == 0 ],
                    'boosted' : [ op.rng_len(non_bjets["AK4"]) >= 0,  op.rng_len(non_bjets["AK8"]) >= 1 ] }
     
-    cut_ = cut_per_cr[reg]
+    cut_lightflav_j = { 'resolved' : op.AND( op.rng_len(non_bjets["AK4"]) >= 2, op.rng_len(non_bjets["AK8"]) == 0 ),
+                         'boosted' : op.AND( op.rng_len(non_bjets["AK4"]) >= 0, op.rng_len(non_bjets["AK8"]) >= 1 ) }
+    
+    Sel_cut = cut_per_cr[reg]
     if doMETCut:
-        cut_ += [corrMET.pt < metCut[reg]]
-    sel = sel.refine(f'{uname}_{reg}_controlregion_2Lep2Jets_0Btag_{nm}_{wp}', cut=cut_ )
+        Sel_cut += [corrMET.pt < metCut[reg]]
+        lf_cut   = op.AND( cut_lightflav_j[reg], corrMET.pt < metCut[reg] )
+    
+    if doPlot:
+        sel = sel.refine(f'{uname}_{reg}_controlregion_2Lep2Jets_0Btag_{nm}_{wp}', cut=Sel_cut )
+    
+        cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(non_bjets[jetType[reg]], dilepton, sel, uname, reg, '', doWgt=doWgt, doSum=doSum, do0Btag=True)
+        plots += cp_0Btag
+        plots_ToSum2.update(cp_0BtagToSum)
+        return plots, plots_ToSum2
+    else:
+        return lf_cut
 
-    cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(non_bjets[jetType[reg]], dilepton, sel, uname, reg, '', doWgt=doWgt, doSum=doSum, do0Btag=True)
-    plots += cp_0Btag
-    plots_ToSum2.update(cp_0BtagToSum)
-
-    return plots, plots_ToSum2
 
 
 def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg, era, isMC, doreweightDY, doSysts, doWgt, doSum):
@@ -224,12 +241,12 @@ def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg
     jj_p4  = (jets[0].p4 if reg=="boosted" else(jets[0].p4+jets[1].p4))
     mlljj  = (dilepton[0].p4 +dilepton[1].p4+jj_p4).M()
     mjj    = jj_p4.M()
-        
+
     for deg in [4, 5, 6, 7, 8]:
         
-        if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY':
+        if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and uname in ['MuMu', 'ElEl']:
             sel = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweight{doreweightDY}_fitpolynomial{deg}_on_mjj", 
-                    weight=(getDYweightFromPolyfit(uname, era, reg, mjj, deg, doSysts, doreweightDY)['mjj'])
+                    weight=(getDYweightFromPolyfit(channel=uname, era=era, reg=reg, k='mjj', mass=mjj, polyfit=deg, doSysts=doSysts, doreweightDY=doreweightDY))
                     )  
             
         plt, pltToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, deg, doWgt, doSum)

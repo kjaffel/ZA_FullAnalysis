@@ -394,7 +394,7 @@ def setTDRStyle():
 #  tdrStyle.SetTitleTextColor(1)
 #  tdrStyle.SetTitleFillColor(10)
 #  tdrStyle.SetTitleFontSize(0.05)
-#  # tdrStyle.SetTitleH(0) # Set the height of the title box
+  # tdrStyle.SetTitleH(0) # Set the height of the title box
   # tdrStyle.SetTitleW(0) # Set the width of the title box
   # tdrStyle.SetTitleX(0) # Set the position of the title box
   # tdrStyle.SetTitleY(0.985) # Set the position of the title box
@@ -436,17 +436,16 @@ def setTDRStyle():
   tdrStyle.SetLabelSize(0.1, "XYZ")
   tdrStyle.cd()
 
-
   return tdrStyle
 
 
 
-# CMS_lumi
-#   Initiated by: Gautier Hamel de Monchenault (Saclay)
-#   Translated in Python by: Joshua Hardenbrook (Princeton)
-#   Updated by:   Dinko Ferencek (Rutgers)
 def CMS_lumi(pad, iPeriod, iPosX, extraText="Preliminary"):
-    cmsText     = "CMS"
+    """ Initiated by: Gautier Hamel de Monchenault (Saclay)
+        Translated in Python by: Joshua Hardenbrook (Princeton)
+        Updated by:   Dinko Ferencek (Rutgers)
+    """ 
+    cmsText       = "CMS"
     cmsTextFont   = 61  
 
     writeExtraText = True

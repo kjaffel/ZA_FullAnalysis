@@ -7,6 +7,7 @@ import utils as utils
 from bambooToOls import Plot
 
 
+
 def makeControlPlotsForZpic(sel, leptons, suffix, uname, reg ):
     plots = []
     binScaling=1
@@ -50,7 +51,7 @@ def makeControlPlotsForZpic(sel, leptons, suffix, uname, reg ):
 def makeJetmultiplictyPlots(sel, jets, uname, suffix):
     binScaling=1
     plots=[]
-    plots.append(Plot.make1D(f"{uname}_{suffix}_Jet_multiplicity".format(suffix=suffix), op.rng_len(jets), sel,
+    plots.append(Plot.make1D(f"{uname}{suffix}_Jet_multiplicity".format(suffix=suffix), op.rng_len(jets), sel,
             EqB(7, 0., 7.), title="Jet multiplicity",
             plotopts=utils.getOpts(uname, **{"log-y": True})))
         
@@ -127,20 +128,16 @@ def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, suffix):
     return plots
 
 
-def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, cut, process, doSum):
+def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, suffix, cut, process, doSum):
     plots =[]
     bb_plots = {}
-    binScaling=1
+    binScaling = 1
     plots_ToSum2 = collections.defaultdict(list)
-
+    
     for key, sel in selections.items():
-
-        if 'DeepDoubleBvL' in key:
-            tagger= 'DeepDoubleBvL'
-            bjets_ = bjets
-        else:
-            tagger = key.replace(wp, "")
-            bjets_ = bjets[tagger][wp]
+        
+        tagger, wp = utils.get_tagger_wp(key)
+        bjets_     = bjets[tagger][wp]
         
         bb_p4   = ((bjets_[0].p4+bjets_[1].p4)if suffix=="resolved" else( bjets_[0].p4))
         llbb_p4 = (leptons[0].p4 +leptons[1].p4+bb_p4)
@@ -186,10 +183,10 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, c
 
         
         plots += [plt_mbb, plt_mllbb]
-        if not uname in ['ElMu', 'MuEl']:
-            plots_ToSum2[(f"OSSF_{suffix}{cut}_mbb_{key}_{process}")].append(plt_mbb)
-            plots_ToSum2[(f"OSSF_{suffix}{cut}_mllbb_{key}_{process}")].append(plt_mllbb)
-            if suffix == 'resolved' and doSum:
+        if doSum:
+            if not uname in ['ElMu', 'MuEl']:
+                plots_ToSum2[(f"OSSF_{suffix}{cut}_mbb_{key}_{process}")].append(plt_mbb)
+                plots_ToSum2[(f"OSSF_{suffix}{cut}_mllbb_{key}_{process}")].append(plt_mllbb)
                 for nm, plt in bb_plots.items():
                     plots_ToSum2[(f"OSSF_{suffix}{cut}_bb{nm}_{key}_{process}")].append(plt)
 
@@ -197,9 +194,9 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, wp, uname, suffix, c
 
 
 def makeJetPlots(sel, jets, uname, suffix, era):
-    binScaling=1
-    plots = []
-    maxJet=( 1 if suffix=="boosted" else(2))
+    binScaling = 1
+    plots  = []
+    maxJet = ( 1 if suffix=="boosted" else(2))
     for i in range(maxJet):
         
         eqBin = {'resolved': EqB(60 // binScaling, 20., 650.),
@@ -233,7 +230,7 @@ def makedeltaRPlots(sel, jets, leptons, uname, suffix):
     return plots
 
 
-def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum):
+def makeBJetPlots(selections, bjets, uname, suffix, cut, era, process, doSum):
     binScaling = 1
     plots  = []
     bb_plots = {}
@@ -245,12 +242,9 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum
                  'boosted' : 200.}
     
     for key, sel in selections.items():
-        if 'DeepDoubleBvL' in key:
-            tagger = 'DeepDoubleBvL'
-            bjets_ = bjets
-        else:
-            tagger = key.replace(wp, "")
-            bjets_ = bjets[tagger][wp]
+        
+        tagger, wp = utils.get_tagger_wp(key)
+        bjets_ = bjets[tagger][wp]
         
         plots.append(Plot.make1D(f"{uname}_{suffix}_{key}_{cut}_{process}_Jet_mulmtiplicity", op.rng_len(bjets_), sel,
                     EqB(7, 0., 7.), title="Jet mulmtiplicity",
@@ -258,7 +252,7 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum
         
         for i in range(maxJet):
             bb_plots = { f'plt_bb_{nm}': Plot.make1D(f"{uname}_{suffix}{cut}_bjet{i+1}_{nm}_{key}_{process}",
-                        jVar(bjets_[i]), sel, binning, title=f"{utils.getCounter(i+1)} b-tagged {nm}Jet {title}",
+                        jVar(bjets_[i]), sel, binning, title=f"{utils.getCounter(i+1)} b-tagged Jet {title}",
                         plotopts=utils.getOpts(uname))
                 for nm, (jVar, binning, title) in {
                     "pT"   : (lambda j : j.pt,  EqB(60 // binScaling, jet_ptcut[suffix], 850.), "p_{T} (GeV)"),
@@ -269,9 +263,9 @@ def makeBJetPlots(selections, bjets, wp, uname, suffix, cut, era, process, doSum
 
             plots += [ bb_plots[f'plt_bb_{nm}'] for nm in ["pT", "mass", "eta", "phi"] ]
             if suffix == 'boosted' and doSum and not uname in ['ElMu', 'MuEl']:
-                for key, plt in bb_plots.items():
-                    nm = key.split('plt_bb_')[1]
-                    plots_ToSum2[(f'OSSFLep_{suffix}{cut}_bjet{i+1}_{nm}_{key}_{process}')].append(plt)
+                for var, plt in bb_plots.items():
+                    nm = var.split('plt_bb_')[1]
+                    plots_ToSum2[(f'OSSFLep_{suffix}{cut}_bjet{i+1}_{nm}_{var}_{key}_{process}')].append(plt)
 
     return plots, plots_ToSum2
 
@@ -294,7 +288,6 @@ def makeBoOstedInvariantMass( uname, fatjet, lepPlusJetssel, suffix):
 
 def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, uname):
    # https://arxiv.org/pdf/1011.2268.pdf
-    
     binScaling=1
     plots = []
    
@@ -337,7 +330,9 @@ def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname,
     plots=[]
     binScaling = 1
     for key, sel in selections.items():
-        tagger  = key.replace(wp, "")
+        
+        tagger, wp = utils.get_tagger_wp(key)
+        
         bb      = bjets[tagger][wp]
         bb_p4   = bb[0].p4 + bb[1].p4
         ll_p4   = ll[0].p4 + ll[1].p4
@@ -366,7 +361,8 @@ def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname,
 
 def MakeMETPlots(selections, lepton, corrmet, met, uname, suffix, process):
     plots = []
-    binScaling=1
+    binScaling = 1
+    
     for key, sel in selections.items():
         
         plots.append(Plot.make1D("met_pt_{0}_{1}_hZA_lljj_{2}_{3}".format(suffix, uname, key, process), 
@@ -415,13 +411,14 @@ def MakePuppiMETPlots(PuppiMET, sel, uname):
     return plots
 
 
-def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, wp, uname, suffix, cut, process):
+def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, uname, suffix, cut, process):
     plots = []
     binScaling=1
     
     for key, sel in selections.items():
-        tagger = key.replace(wp, "")
-        bjets_ = bjets[tagger][wp]
+    
+        tagger, wp = utils.get_tagger_wp(key)
+        bjets_  = bjets[tagger][wp]
         bb_p4 = ((bjets_[0].p4 + bjets_[1].p4) if suffix =="resolved" else( bjets_[0].p4))
 
         for i in range(2): 
@@ -441,3 +438,35 @@ def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, wp, uname, suffix, 
                 }.items()
             ]
     return plots
+
+
+def MakeBtagDiscriminatorPlots(tagger, list_j_sel, uname):
+    plots = []
+    binScaling=1
+    plots_ToSum2 = collections.defaultdict(list)
+
+    jet = list_j_sel[0]
+    sel = list_j_sel[1]
+
+    if tagger == 'DeepDoubleBvLV2':
+        discr = 'btagDDBvLV2'
+        discrToPlot = op.map(jet, lambda j: j.btagDDBvLV2)
+    elif tagger == 'DeepFlavour':
+        discr = 'btagDeepFlavB'
+        discrToPlot = op.map(jet, lambda j: j.btagDeepFlavB)
+    elif tagger == 'DeepCSV':
+        discr = 'btagDeepB'
+        discrToPlot = op.map(jet, lambda j: j.btagDeepB)
+    else:
+        raise RuntimeError(f'sorry {tagger} is unkown so the discriminator !')
+
+    plt_discr = Plot.make1D(f"{uname}_{discr}_discriminator_{tagger}",
+                        discrToPlot, sel,
+                        EqB(60 // binScaling, 0., 1.), title=f"{discr} discriminator",
+                        plotopts=utils.getOpts(uname))
+    
+    plots +=[plt_discr]
+    if not uname in ['ElMu', 'MuEl']:
+        plots_ToSum2[(f"OSSF_{discr}_discriminator_{tagger}")].append(plt_discr)
+    
+    return plots, plots_ToSum2
