@@ -48,14 +48,17 @@ def ZAlogger(name):
     return logger
 
 
+logger   = ZAlogger(__name__)
+
 def getYearFromEra(era):
     if   '2016' in era: return '16'
     elif '2017' in era: return '17'
     elif '2018' in era: return '18'
 
 
-def get_tagger_wp(key):
+def get_tagger_wp(key, btv):
     if not 'DeepDoubleBvLV2' in key: s= -1 
+    elif not btv: s=-6
     else: s= -2
     tagger  = key[:s]
     wp      = key.split(tagger)[-1]
@@ -63,7 +66,6 @@ def get_tagger_wp(key):
 
 
 def run_Plotit(workdir, inDir, outDir, counterReader, config):
-    logger   = ZAlogger(__name__)
     
     to_hadd  = collections.defaultdict(list)
     hadd_cfg = collections.defaultdict(dict)
@@ -336,22 +338,32 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True,
         noSel = noSel.refine("psFSR", weight=psFSRSyst)
     
     if PDFs:
-        nPdfVars = (0, 101) if pdf_mc else (1, 103)
-        if pdf_mode == "full" and sampleCfg['type']== 'mc':
-            logger.info("Adding full PDF systematics")
-            pdfVars = { f"pdf{i}": tree.LHEPdfWeight[i] for i in range(*nPdfVars) }
+        if sampleCfg['type']== 'mc':
+            pdf_mc = True
+            logger.info("This sample has MC PDF variations")
+        else:
+            pdf_mc = False  ## signal sample produced with hessian pdf
+            logger.info("This sample has Hessian PDF variations")
         
-        elif pdf_mode == "simple":
-            logger.info("Adding simplified PDF systematics")
-            if sampleCfg['type']== 'mc':
-                pdfSigma = op.rng_stddev(tree.LHEPdfWeight)
-            else:
-                logger.info("Signal sample has Hessian PDF variations: NNPDF31_nnlo_as_0118_mc_hessian_pdfas")
-                sigmaCalc = op.extMethod("Numba::computeHessianPDFUncertainty", returnType="float")
-                pdfSigma = sigmaCalc(tree.LHEPdfWeight)
+        nPdfVars = (0, 101) if pdf_mc else (1, 103)
+        if hasattr(tree, "LHEPdfWeight"):
+            if pdf_mode == "full" and sampleCfg['type']== 'mc':
+                logger.info("Adding full PDF systematics")
+                pdfVars = { f"pdf{i}": tree.LHEPdfWeight[i] for i in range(*nPdfVars) }
             
-            pdfVars = { "pdfup": tree.LHEPdfWeight[0] + pdfSigma, "pdfdown": tree.LHEPdfWeight[0] - pdfSigma }
-        noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
+            elif pdf_mode == "simple":
+                logger.info("Adding simplified PDF systematics")
+                if sampleCfg['type']== 'mc':
+                    pdfSigma = op.rng_stddev(tree.LHEPdfWeight)
+                else:
+                    logger.info("Signal sample has Hessian PDF variations: NNPDF31_nnlo_as_0118_mc_hessian_pdfas")
+                    sigmaCalc = op.extMethod("Numba::computeHessianPDFUncertainty", returnType="float")
+                    pdfSigma = sigmaCalc(tree.LHEPdfWeight)
+                
+                pdfVars = { "pdfup": tree.LHEPdfWeight[0] + pdfSigma, "pdfdown": tree.LHEPdfWeight[0] - pdfSigma }
+            noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
+        else:
+            logger.warning("LHEPdfWeight not present in tree, PDF systematics will not be added")
     return noSel
 
 

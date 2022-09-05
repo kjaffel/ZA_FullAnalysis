@@ -128,7 +128,7 @@ def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, suffix):
     return plots
 
 
-def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, suffix, cut, process, doSum):
+def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, suffix, cut, process, doSum, btv):
     plots =[]
     bb_plots = {}
     binScaling = 1
@@ -136,7 +136,7 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, suffix, cut, 
     
     for key, sel in selections.items():
         
-        tagger, wp = utils.get_tagger_wp(key)
+        tagger, wp = utils.get_tagger_wp(key, btv)
         bjets_     = bjets[tagger][wp]
         
         bb_p4   = ((bjets_[0].p4+bjets_[1].p4)if suffix=="resolved" else( bjets_[0].p4))
@@ -230,7 +230,7 @@ def makedeltaRPlots(sel, jets, leptons, uname, suffix):
     return plots
 
 
-def makeBJetPlots(selections, bjets, uname, suffix, cut, era, process, doSum):
+def makeBJetPlots(selections, bjets, uname, suffix, cut, era, process, doSum, btv):
     binScaling = 1
     plots  = []
     bb_plots = {}
@@ -243,7 +243,7 @@ def makeBJetPlots(selections, bjets, uname, suffix, cut, era, process, doSum):
     
     for key, sel in selections.items():
         
-        tagger, wp = utils.get_tagger_wp(key)
+        tagger, wp = utils.get_tagger_wp(key, btv)
         bjets_ = bjets[tagger][wp]
         
         plots.append(Plot.make1D(f"{uname}_{suffix}_{key}_{cut}_{process}_Jet_mulmtiplicity", op.rng_len(bjets_), sel,
@@ -326,12 +326,12 @@ def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, uname):
     return plots
 
 
-def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname, region, suffix, process):
+def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname, region, suffix, process, btv):
     plots=[]
     binScaling = 1
     for key, sel in selections.items():
         
-        tagger, wp = utils.get_tagger_wp(key)
+        tagger, wp = utils.get_tagger_wp(key, btv)
         
         bb      = bjets[tagger][wp]
         bb_p4   = bb[0].p4 + bb[1].p4
@@ -411,13 +411,13 @@ def MakePuppiMETPlots(PuppiMET, sel, uname):
     return plots
 
 
-def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, uname, suffix, cut, process):
+def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, uname, suffix, cut, process, btv):
     plots = []
     binScaling=1
     
     for key, sel in selections.items():
     
-        tagger, wp = utils.get_tagger_wp(key)
+        tagger, wp = utils.get_tagger_wp(key, btv)
         bjets_  = bjets[tagger][wp]
         bb_p4 = ((bjets_[0].p4 + bjets_[1].p4) if suffix =="resolved" else( bjets_[0].p4))
 

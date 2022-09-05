@@ -142,7 +142,7 @@ def get_DeepDoubleX(AK8jets, discr, discr_cut):
         raise RuntimeError(f'sorry {discr} is unkown')
 
 
-def get_bestSubjetsCut(sel, channel, ll, fatjet, corrMET, optstex, era, doProduceSum):
+def get_bestSubjetsCut(wp, sel, bJets_resolved_PassdeepcsvWP, weight, channel, ll, fatjet, corrMET, optstex, era, doProduceSum, btv):
     plots = []
     plots_ToSum2 = collections.defaultdict(list)
     binScaling = 1
@@ -150,45 +150,43 @@ def get_bestSubjetsCut(sel, channel, ll, fatjet, corrMET, optstex, era, doProduc
     
     cleaned_AK8JetsByDeepB = op.sort(fatjet, lambda j: -j.btagDeepB)
 
-    for wp in ['L', 'M']:
-        
-        wpdiscr_cut = corr.BoostedTopologiesWP['DeepCSV'][era][wp]
-        subjets_btag_req = corr.get_subjets_requirements('DeepCSV', wp, wpdiscr_cut, era)
-        
-        for scenario, lambda_f in subjets_btag_req['b'].items(): 
+    wpdiscr_cut = corr.BoostedTopologiesWP['DeepCSV'][era][wp]
+    subjets_btag_req = corr.get_subjets_requirements('DeepCSV', wp, wpdiscr_cut, era)
+    
+    for scenario, lambda_f in subjets_btag_req['b'].items(): 
 
-            subjets_AK8_scenarios = op.select(cleaned_AK8JetsByDeepB, lambda_f)
+        subjets_AK8_scenarios = op.select(cleaned_AK8JetsByDeepB, lambda_f)
 
-            llxsubjets_noMET_boosted = { 
-                    "gg_fusion": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_ggH_Boosted".format(channel, scenario, wp, channel),
-                                    cut    = [ op.rng_len(subjets_AK8_scenarios) == 1, corrMET.pt < 80.],
-                                    weight = None),
-                    "bb_associatedProduction": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_bbH_Boosted".format(channel, scenario, wp, channel),
-                                    cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, corrMET.pt < 80.],
-                                    weight = None)
-                    }
+        llxsubjets_noMET_boosted = { 
+                "gg_fusion": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_ggH_Boosted".format(channel, scenario, wp, channel),
+                                cut    = [ op.rng_len(subjets_AK8_scenarios) == 1, corrMET.pt < 80.],
+                                weight = weight['nb2-boosted']),
+                "bb_associatedProduction": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_bbH_Boosted".format(channel, scenario, wp, channel),
+                                cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, op.rng_len(bJets_resolved_PassdeepcsvWP) >= 0, corrMET.pt < 80.],
+                                weight = weight['nb3-boosted'])
+                }
+        
+        cfr[f'{channel}_DeepCSV{wp}_{scenario}'] = { 
+                "gg_fusion":
+                        ( f"nb=2 -boosted: {optstex} + == 1 AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + "+"$p_{T}^{miss}$ cut",
+                            llxsubjets_noMET_boosted["gg_fusion"] ),
+                "bb_associatedProduction":
+                        ( f"nb=3 -boosted: {optstex} + $>1$ AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + "+"$p_{T}^{miss}$ cut",
+                            llxsubjets_noMET_boosted["bb_associatedProduction"] ),
+                }
+
+        for process, sel in llxsubjets_noMET_boosted.items():
             
-            cfr[f'{channel}_DeepCSV{wp}_{scenario}'] = { 
-                    "gg_fusion":
-                            ( f"nb=2 -boosted: {optstex} + == 1 AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + MET cut",
-                              llxsubjets_noMET_boosted["gg_fusion"] ),
-                    "bb_associatedProduction":
-                            ( f"nb=3 -boosted: {optstex} + $>1$ AK8 b-jets boosted (DeepCSV{wp}, {scenario}) + MET cut",
-                              llxsubjets_noMET_boosted["bb_associatedProduction"] ),
-                    }
+            selDict = {f'DeepCSV{wp}': sel}
+            bjets   = { 'DeepCSV': {wp: subjets_AK8_scenarios }}
+            suffix  = 'METCut_{}bTagWgt_{}'.format('No' if weight==None else '', scenario) 
 
-            for process, sel in llxsubjets_noMET_boosted.items():
-                
-                selDict = {f'DeepCSV{wp}': sel}
-                bjets   = {'DeepCSV': {wp: subjets_AK8_scenarios }}
-                suffix  = f'METCut_NobTagWgt_{scenario}'
-
-                final_cp, final_cpToSum = cp.makeControlPlotsForFinalSel(selDict, bjets, ll, channel, 'boosted', suffix, process, doProduceSum)
-                bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, channel, 'boosted', suffix, era, process, doProduceSum)
-                
-                plots.extend(final_cp)
-                plots.extend(bjets_cp)
-                plots_ToSum2.update(final_cpToSum)
-                plots_ToSum2.update(bjets_cpToSum)
+            final_cp, final_cpToSum = cp.makeControlPlotsForFinalSel(selDict, bjets, ll, channel, 'boosted', suffix, process, doProduceSum, btv)
+            bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, channel, 'boosted', suffix, era, process, doProduceSum, btv)
+            
+            plots.extend(final_cp)
+            plots.extend(bjets_cp)
+            plots_ToSum2.update(final_cpToSum)
+            plots_ToSum2.update(bjets_cpToSum)
         
     return plots, plots_ToSum2, cfr

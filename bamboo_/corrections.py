@@ -417,7 +417,7 @@ def call_BTagCalibration(flav, noSel, era, wp):
                     getters= getters, sel= noSel, uName= f'btagSF_subjetdeepcsv_fixWP_{flav}')
 
 
-def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, full_scheme, full_scheme_mapping):
+def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, decorr_eras, full_scheme, full_scheme_mapping):
     
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
 
@@ -444,7 +444,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     
     def get_bTagSF(tagger, flav):
         return get_bTagSF_fixWP(tagger=tagger, wp=wp, flav=flav, era=era.replace('-',''), 
-                sel=noSel, dobJetER=dobJetER, isSignal=isSignal, defineOnFirstUse=defineOnFirstUse, full_scheme=full_scheme, full_scheme_mapping=full_scheme_mapping)
+                sel=noSel, dobJetER=dobJetER, isSignal=isSignal, defineOnFirstUse=defineOnFirstUse, decorr_eras=decorr_eras, full_scheme=full_scheme, full_scheme_mapping=full_scheme_mapping)
     
     def bTagSF(j, tagger):
         return op.multiSwitch( (j.hadronFlavour == 5, get_bTagSF(tagger, 5)(j)),
@@ -469,7 +469,8 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
         def call_get_correction(flav):
             return get_correction(bTagEff_file, correctionSet[flav], params=params[f'{prefix}Jet_bRegCorr'],
                                 systParam="ValType", systNomName="sf",
-                                systVariations={f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, defineOnFirstUse=defineOnFirstUse, sel= noSel )
+                                systVariations={}, #{f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, 
+                                defineOnFirstUse=defineOnFirstUse, sel= noSel )
 
         if reg == 'resolved':
             return op.multiSwitch( (j.hadronFlavour == 5, call_get_correction('b')(j)),
@@ -507,14 +508,15 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                 )
 
     for process in ['gg_fusion', 'bb_associatedProduction']:
-        for reg, tagger in {'resolved': 'deepJet', 'boosted': 'deepCSV'}.items():
-            
-            tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
-            if wp =='T' and tagger =='deepCSV':
-                run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.c_float(1.) }
-            else:
-                bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
-                run2_bTagEventWeight_PerWP[process][reg] = { f'{tagger_}{wp}': op.rng_product(bTag_SF) }
+        for reg, taggers in {'resolved': ['deepJet', 'deepCSV'], 'boosted': ['deepCSV']}.items():
+            run2_bTagEventWeight_PerWP[process][reg] = {}
+            for tagger in taggers:
+                tagger_ = tagger.replace('deepJet', 'DeepFlavour').replace('deepCSV', 'DeepCSV')
+                if wp =='T' and tagger =='deepCSV':
+                    run2_bTagEventWeight_PerWP[process][reg].update({ f'{tagger_}{wp}': op.c_float(1.) })
+                else:
+                    bTag_SF = op.map(jets[reg], lambda j: Evaluate(j, reg, process, tagger))
+                    run2_bTagEventWeight_PerWP[process][reg].update({ f'{tagger_}{wp}': op.rng_product(bTag_SF) })
 
     return run2_bTagEventWeight_PerWP
         
