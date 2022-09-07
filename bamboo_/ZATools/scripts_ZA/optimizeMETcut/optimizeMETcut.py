@@ -27,12 +27,10 @@ for i in range(1, 10):
     for c in wheel:
         colors.append(c+i)
 
+
 def getHisto(era, Cfg, path, isBkg, prefix, reg, tagger, wp, cat, process):
-
-    _files = set()
+    
     histo_met = TH1F("histo_met", "histo_met", 60, 0, 600)
-
-    integral=0
     for i, filename in enumerate(glob.glob(os.path.join(path, '*.root'))):
         split_filename = filename.split('/')
         smp = split_filename[-1]
@@ -40,7 +38,7 @@ def getHisto(era, Cfg, path, isBkg, prefix, reg, tagger, wp, cat, process):
             continue
 
         if isBkg:
-            if smp.startswith("DoubleMuon") or smp.startswith("DoubleEG") or smp.startswith("MuonEG") or smp.startswith("HToZA") or smp.startswith("GluGluToHToZA"):
+            if Cfg['files'][smp]["type"] !='mc':
                 continue
             smpScale = 1.
         else:
@@ -59,15 +57,15 @@ def getHisto(era, Cfg, path, isBkg, prefix, reg, tagger, wp, cat, process):
         smpScale *= ( lumi* xsc )/ genevt
 
         f = ROOT.TFile.Open(filename)
-        _files.add(f)
         for j, key in enumerate(f.GetListOfKeys()):
+            
             cl = ROOT.gROOT.GetClass(key.GetClassName())
             if key.ReadObj().GetName() == "xycorrmet_pt_{}_{}_hZA_lljj_{}{}_{}".format(reg, cat, tagger, wp, process):
                 key.ReadObj().SetDirectory(0)
-                integral = integral + key.ReadObj().Integral()
+                
+                histo_met.Scale(smpScale)
                 histo_met.Add(key.ReadObj(), 1)
-        histo_met.SetDirectory(0)
-        histo_met.Scale(smpScale)
+    
     return histo_met
 
 
@@ -82,8 +80,8 @@ def gethistNm(path, process):
                 prefix.append(fnm)
     return prefix
 
-def optimizeMETcut(era, Cfg, path):
 
+def optimizeMETcut(era, Cfg, path):
     category = ["MuMu", "ElEl"]#, "MuEl"]
     workingPoint = "M"
     yaxis_max = {"gg_fusion":{
@@ -119,13 +117,15 @@ def optimizeMETcut(era, Cfg, path):
                     significance = []
                     xAxis = []
                     toSkip=False
+                    
                     print( "working on ::", pref, process, reg, cat)
+                    histo_met_sig = getHisto(era, Cfg, path, isBkg=False, prefix=pref, reg=reg, tagger=tagger, wp= workingPoint, cat=cat, process=process)
+                    
                     for i in range(0, 201, 5):
                         histo_met_bkg.GetXaxis().SetRangeUser(0, i)
                         #histo_met_bkg.GetYaxis().SetRangeUser(0, 1.0)
                         #Check why for different i, the integral is the same
                         histo_met_bkg.SetDirectory(0)
-                        histo_met_sig = getHisto(era, Cfg, path, isBkg=False, prefix=pref, reg=reg, tagger=tagger, wp= workingPoint, cat=cat, process=process)
                         histo_met_sig.GetXaxis().SetRangeUser(0, i)
                         #histo_met_sig.GetYaxis().SetRangeUser(0, 1.0)
                         histo_met_sig.SetDirectory(0)
