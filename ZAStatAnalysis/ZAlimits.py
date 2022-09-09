@@ -83,7 +83,8 @@ axes_y_limits = {
     }
 axes_log_y_limits = {
     "mH": { },
-    "mA": {'ymin': 10e-2, 'ymax':10e6},
+    #"mA": {'ymin': 10e-2, 'ymax':10e6},
+    "mA": {'ymin': 10e-3, 'ymax':10e5},
     }
 show_markers = {
     'mH': False,
@@ -113,17 +114,29 @@ nb = { 'ggH': 'nb=2',
        'bbH': 'nb=3'
     }
 catagories = OrderedDict({
-    'ggH_resolved' : ['MuMu_ElEl'],         #'MuMu', 'ElEl', 'MuMu_ElEl_MuEl'
-    'bbH_resolved' : ['OSSF'],              #'OSSF_MuEl'
-    'ggH_boosted'  : ['OSSF'],              #'OSSF_MuEl'        
-    'bbH_boosted'  : ['OSSF'],              #'OSSF_MuEl'
-   #TODO 1
-   #'ggH_resolved_boosted': ['MuMu_ElEl'], 
-   #'bbH_resolved_boosted': ['OSSF'],
-   #TODO 2
-   #'ggH_resolved_bbH_resolved':,
-   #'ggH_boosted_bbH_boosted':,
-   #'ggH_resolved_ggH_boosted_bbH_resolved_bbH_boosted':,
+    'ggH_resolved' : [['MuMu_ElEl'], 'ggH', 'resolved'],
+    'bbH_resolved' : [['OSSF'],      'bbH', 'resolved'],             
+    'ggH_boosted'  : [['OSSF'],      'ggH', 'boosted' ],             
+    'bbH_boosted'  : [['OSSF'],      'bbH', 'boosted' ],   
+    # combination 1 reso +boo  
+    'ggH_resolved_boosted': [['OSSF'], 'ggH', 'resolved_boosted'],
+    'bbH_resolved_boosted': [['OSSF'], 'bbH', 'resolved_boosted'],
+    # combination 2 ggH +bbH 
+    # the limits here set on r while _r_bbH or _r_ggH mentionned in the name of the file
+    # means that that process left to float freely in the fit or freezed to a certain value
+    'freezed_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    'freezed_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
+    'freezed_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
+    'freezed_r_ggH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    'freezed_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
+    'freezed_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
+    ## combination 3
+    #'profiled_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    #'profiled_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
+    #'profiled_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
+    #'profiled_r_ggH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    #'profiled_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
+    #'profiled_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
     })
 
 
@@ -167,7 +180,10 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
     limits = OrderedDict()
     
     th_lmax  = 0.
-    for cat, flavors in catagories.items():
+    for cat, Cfg in catagories.items():
+        
+        flavors, prod, region = Cfg
+
         for flav in flavors:
             for era in [2016, 2017, 2018, 'fullrun2']:
                 
@@ -178,7 +194,7 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
                 
                 print( js_path )
                 with open(js_path) as f:
-                    limits['{}-{}-{}'.format(cat.replace('_','-'), flav, era)] = json.load(f)
+                    limits['{}-{}-{}-{}'.format(prod, region, flav, era)] = json.load(f)
     if not limits:
         print('no limits is found !')
         exit()
@@ -375,14 +391,15 @@ def Plot1D_ScanLimits(signal_grid, thdm):
     mpl.rcParams['font.size'] = 12
     ToBe_Stacked = {}
     
-    for cat, flavors in catagories.items():
+    for cat, Cfg in catagories.items():
         
         ToBe_Stacked[cat] = {}
         cba     = 0.01
-        tb      = 1.5 if 'ggH' in cat else 20
         heavy   = thdm[0]
         light   = thdm[-1]
-        process = 'gluon-gluon fusion' if 'ggH' in cat else 'b-associated production'
+        flavors, prod, region = Cfg
+        tb      = 20 if prod =='bbH' else 1.5
+        process = 'gluon-gluon fusion' if prod =='ggH' else 'b-associated production'
 
         for the_fixmass in massTofix_list:
             
@@ -411,8 +428,10 @@ def Plot1D_ScanLimits(signal_grid, thdm):
              
             flavors_data = {}
             scanning_SM  = False
-            print('available_parameters for mH = %s  ---> %s ' %(the_fixmass, available_parameters[the_fixmass]))
+            print('available_parameters for %s  ---> %s ' %(parameter_values, available_parameters[the_fixmass]))
             if not available_parameters[the_fixmass]:
+                continue
+            if len(available_parameters[the_fixmass]) ==1:
                 continue
     
             for point in available_parameters[the_fixmass]:
@@ -439,7 +458,7 @@ def Plot1D_ScanLimits(signal_grid, thdm):
                     scanning_SM = True
                 
                 if options.rescale_to_za_br:
-                    xsc, br = get_SushiXSC(cat.split('_')[0], tb , heavy, light, m_heavy, m_light)
+                    xsc, br = get_SushiXSC(prod, tb , heavy, light, m_heavy, m_light)
                     
                 for f in flavors:
                     limits = flavors_limits[f]
@@ -752,11 +771,12 @@ def Plot1D_ScanLimits(signal_grid, thdm):
 def Plot1D_StackedLimits(masses_tofix, upper_limits):
     mpl.rcParams['font.size'] = 12
 
-    for cat, flavors in catagories.items():
+    for cat, Cfg in catagories.items():
         
-        tb = 20 if 'bbH' in cat else 1.5
-        process = 'gluon-gluon fusion' if 'ggH' in cat else 'b-associated production'
-        
+        flavors, prod, region = Cfg
+        tb      = 20 if prod =='bbH' else 1.5
+        process = 'gluon-gluon fusion' if prod =='ggH' else 'b-associated production'
+
         for flav in flavors:
             
             color = colors[flav]
@@ -774,9 +794,11 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
             
             CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
             
-            for fact, m in enumerate(sorted(masses_tofix)):
+            poww = 0
+            for j, m in enumerate(sorted(upper_limits[cat].keys())):
                 
-                multi = float('10e%s'%fact)
+                multi = pow(10, poww)
+                
                 data  = upper_limits[cat][m][flav]
                 data['x'] = np.asarray(data['x'])
                 data['expected']  = np.asarray(data['expected'])* multi
@@ -816,7 +838,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                                         lw=1.5, 
                                         label="Expected 95% upper limits")[0]
                 
-                ax.annotate(r' ${}$= {} GeV (x $10^{}$)'.format(m_fix, m, fact), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]+50), fontsize=10,
+                ax.annotate(r' ${}$= {} GeV (x $10^{{}}$)'.format(m_fix, m, poww), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]), fontsize=8,
                             arrowprops=dict(arrowstyle="->",facecolor='w', connectionstyle="arc3"), horizontalalignment='left')
                 
                 # And observed
@@ -831,6 +853,9 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                                             markersize=6, 
                                             alpha=0.8, 
                                             label="Observed 95% upper limits")
+                poww  += 2
+                if region == 'boosted':
+                    poww +=1
 
             one_sigma_patch = mpatches.Patch(color='#00A859', label=r'Expected $\pm$ 1 std. deviation')
             two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'Expected $\pm$ 2 std. deviation')
@@ -851,15 +876,16 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                 ax.set_ylim(**axes_y_limits[options.scan])
             else:
                 ax.set_yscale('log')
-                ax.set_ylim(**axes_log_y_limits[options.scan])
+                ax.set_ylim(10e-3, 10e17)
             
             ax.margins(0.1, 0.1)
             ax.set_xlim(**axes_x_limits[options.scan])
-            
-            ax.get_legend().set_title(r"2HDM-II, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(tb)+"\n"+ "{}".format(process), prop={'size': 12, 'weight': 'heavy'})
+            ax.get_legend().set_title(r"2HDM-II, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(tb)+"\n"+ "{}, {}-{}".format(process, nb[prod], region), 
+                    prop={'size': 12, 'weight': 'heavy'})
             
             fig.canvas.draw()
-            plot_name = 'forJan_test_{}_{}'.format(cat, flav)
+            #plot_name = 'forJan_test_{}_{}'.format(cat, flav)
+            plot_name = '1Dstacked_limits_{}_{}_{}'.format(options.era, cat, flav)
             fig.savefig(os.path.join(output_dir, plot_name + '.pdf'), bbox_inches='tight')
             fig.savefig(os.path.join(output_dir, plot_name + '.png'), bbox_inches='tight')
             
@@ -897,6 +923,11 @@ if __name__ == '__main__':
         m1   = float(dir_.split('_')[1].split('-')[1])
         signal_grid.append((m0, m1))
     
+    # bad binning
+    #signal_grid.remove((609.21, 417.76))
+    #signal_grid.remove((500., 400.))
+    #signal_grid.remove((609.21, 505.93))
+    
     massTofix_list = []
     available_parameters={}
     for mH, mA in signal_grid:
@@ -921,8 +952,8 @@ if __name__ == '__main__':
     print( signal_grid )
     
     for thdm in ['HToZA']:#, 'AToZH']:
-        for (m0, m1) in signal_grid:
-            PlotMultipleUpperLimits(m0, m1, catagories, options.jsonpath, thdm)
+        #for (m0, m1) in signal_grid:
+        #    PlotMultipleUpperLimits(m0, m1, catagories, options.jsonpath, thdm)
     
         ToBe_Stacked = Plot1D_ScanLimits(available_parameters, thdm)    
         Plot1D_StackedLimits(massTofix_list, ToBe_Stacked)

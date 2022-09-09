@@ -126,24 +126,24 @@ print("Extracting limits...")
 
 for process, prod in {'ggH': 'gg_fusion', 
                       'bbH': 'bb_associatedProduction', 
-                      #'profiled_r_ggH'  : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating 
-                      #'profiled_r_bbH'  : 'gg_fusion_bb_associatedProduction',
-                      #'freezed_r_ggH'   : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
-                      #'freezed_r_bbH'   : 'gg_fusion_bb_associatedProduction',
+                      'profiled_r_ggH'  : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating 
+                      'profiled_r_bbH'  : 'gg_fusion_bb_associatedProduction',
+                      'freezed_r_ggH'   : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
+                      'freezed_r_bbH'   : 'gg_fusion_bb_associatedProduction',
                       }.items():
     
     if options.method == "asymptotic":
         s = '.AsymptoticLimits.mH125.root'
     elif options.method == "hybridnew":
         s = '.HybridNew.mH125.root'
-            
-    if '_r_' in process: s = '{}'.format(process) +s
-
-    for reg in ['resolved', 'boosted']:#, 'resolved_boosted']:
-        for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
+        
+    for reg in ['resolved', 'boosted', 'resolved_boosted']:
+        for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSOF', 'OSSF_MuEl']:
             
             # I don't need this for now
             if 'MuEl' in flavor:
+                continue
+            if flavor == 'OSOF':
                 continue
 
             limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, '*', '*{}'.format(s)))
@@ -151,13 +151,12 @@ for process, prod in {'ggH': 'gg_fusion',
             for f in limits_path:
                 root     =  f.split('/')[-1]
                 mH, mA   =  string_to_mass(f.split('/')[-2])
-                mode     =  f.split('/')[-3]
-                
-                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_{}'.format(prod, reg, flavor, options.mode)):
+               
+                if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_{}_'.format(prod, reg, flavor, options.mode)):
                     continue
                 
                 point_limits = getLimitsFromFile(f, options.method)
-                #print( 'working on::', f)
+                #print ( 'working on::', f)
                 #print (" working on -- MH, MA: ", mH, mA , 'template:', mode, 'flavor:', flavor)
             
                 if point_limits['expected'] == 0:

@@ -26,49 +26,27 @@ import CombineHarvester.CombineTools.ch as ch
 
 logger = Constants.ZAlogger(__name__)
 
-
 H.splitTTbarUncertBinByBin = False
 
 
-signal_grid_part0 = { 
+signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [
-                (516.94, 78.52), (500, 300), 
-                #(516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71),
-                #part0 : 21 signal samples
-                #( 200, 50), ( 200, 100), ( 200, 125), 
-                #( 250, 50), ( 250, 100),
-                #( 300, 50), ( 300, 100), ( 300, 200), 
-                #( 500, 50), ( 500, 200), ( 500, 300), ( 500, 400),
-                #( 510, 130),            
-                #( 650, 50), 
-                #( 609.21, 253.68),
-                #( 750, 610),
-                #( 800, 50), ( 800, 200), ( 800, 400),  
-                #( 800, 700),
-                #(1000, 50), (1000, 200), (1000, 500), 
-                #(2000, 1000),
-                #(3000, 2000) 
-                ],
+            'HToZA': [(500., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [ (516.94, 78.52), (500, 300) ], 
-                      #(296.1, 36.79), (230.77, 56.73), (997.14, 55.16), (209.9, 30.0), (609.21, 63.58), (717.96, 47.08), (500.0, 50.0)
+            'HToZA': [(500., 200.)], 
             'AToZH': [] }
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [ (516.94, 78.52), (500, 300) ], 
-                      #(516.94, 250.63), (190.85, 57.85), (442.63, 327.94), (846.11, 475.64), (335.4, 209.73), (209.9, 57.71)],
+            'HToZA': [(500., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [ (516.94, 78.52), (500, 300) ],
-                      #(296.1, 36.79), (230.77, 56.73), (997.14, 55.16), (209.9, 30.0), (609.21, 63.58), (717.96, 47.08), (500.0, 50.0)],
+            'HToZA': [(500., 200.)],
             'AToZH': [] }
         }
     }
-
 
 
 def mass_to_str(m, _p2f=True):
@@ -111,63 +89,99 @@ def get_hist_regex(r):
     return '^%s(__.*(up|down))?$' % r
 
 
-def CustomCardCombination(cats, proc_combination, expectSignal, dataset, unblind=False, todo=''):
+def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, prod, unblind=False, skip=None, todo=''):
     for cat in cats:
         output_dir = cat[0]
+        output_sig = cat[1]
 
         for k in ['OSSF', 'OSOF']:
             if todo == 'res_boo':
-                cmd = ['combineCards.py'] + proc_combination['resolved'][cat][k] + proc_combination['boosted'][cat][k]
+
+                if not (cat in proc_combination['resolved'].keys() or cat in proc_combination['boosted'].keys()):
+                    continue
+
+                cmd = proc_combination['resolved'][cat][k] + proc_combination['boosted'][cat][k]
                 
-                Tot_nm = cmd[1]
-                if '=' in Tot_nm:
-                    Tot_nm  = Tot_nm.split('=')[1]
-                    channel = Tot_nm.split('=')[0]
+                newCmd= ['combineCards.py']
+                for i, x in enumerate(cmd):
+                    if "=" in x :
+                        Tot_nm   = x.split('=')[1]
+                        channel  = x.split('=')[0]
+                        split_ch = channel.split('_')
+                        new_ch   = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
+                        newCmd  +=[new_ch+'='+Tot_nm]
+                    else:
+                        newCmd  +=[x]
                 
-                output_prefix = Tot_nm.replace('resolved', 'resolved_boosted').replace('.dat', '')
+                out_nm = cmd[0]
+                if '=' in out_nm:
+                    out_nm  = out_nm.split('=')[1]
+                
+                suffix        = out_nm.split(mode)[-1].replace('.dat', '')
+                output_prefix = '%sTo2L2B_%s_resolved_boosted_%s_%s%s'%( thdm, prod, k, mode, suffix)
                 datacard      = os.path.join(output_dir, output_prefix +'.dat')
-                
-                logger.info('merging %s resolved & boosted cmd::: %s'%(k, cmd))
+
+                logger.info('merging %s resolved & boosted cmd::: %s'%(k, newCmd))
                 with open( datacard, 'w') as f:
-                    subprocess.check_call(cmd, cwd=output_dir, stdout=f)
+                    subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
                 
                 workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
                 _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, dataset, unblind)
 
             elif todo == 'ggH_bbH':
+                # this should not happen but in case a signal sample does not exist in both prod mechanisms
+                # no need to continue here
+                if any( x== output_sig for x in skip):
+                    continue
+                
                 Tot_proc_reg_combine = []
-            
-                for reg in ['resolved', 'boosted']: 
-                    cmd = ['combineCards.py']
-                    
+                for j, reg in enumerate(['resolved', 'boosted']): 
+                    cmd = [] 
                     for prod in ['gg_fusion', 'bb_associatedProduction']:
                         cmd += proc_combination[prod][reg][cat][k]
                     
-                    Tot_proc_reg_combine += [x.split('=')[1] if "=" in x else x for x in cmd]
+                    newCmd = ['combineCards.py']
+                    for i, x in enumerate(cmd):
+                        if "=" in x :
+                            Tot_nm   = x.split('=')[1]
+                            channel  = x.split('=')[0]
+                            split_ch = channel.split('_')
+                            new_ch   = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
+                            newCmd  +=[new_ch+'='+Tot_nm]
+                            Tot_proc_reg_combine +=[new_ch+'='+Tot_nm]
                     
-                    Tot_nm = cmd[1]
-                    if '=' in Tot_nm:
-                        Tot_nm  = Tot_nm.split('=')[1]
-                        channel = Tot_nm.split('=')[0]
-                    
-                    output_prefix = Tot_nm.replace('gg_fusion', 'gg_fusion_bb_associatedProduction').replace('.dat', '')
+                    out_nm = newCmd[1]
+                    if "=" in out_nm:
+                        out_nm = out_nm.split('=')[1]
+
+                    suffix        = out_nm.split(mode)[-1].replace('.dat', '')
+                    output_prefix = '%sTo2L2B_gg_fusion_bb_associatedProduction_%s_%s_%s%s'%( thdm, reg, k, mode, suffix)
                     datacard      = os.path.join(output_dir, output_prefix +'.dat')
                     
-                    logger.info('merging %s %s ggH & bbH cmd::: %s'%(k, reg, cmd) )
+                    logger.info('merging %s %s ggH & bbH cmd::: %s'%(k, reg, newCmd) )
                     with open( datacard, 'w') as f:
-                        subprocess.check_call(cmd, cwd=output_dir, stdout=f)
+                        subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
                 
                     for poi in ['r_ggH', 'r_bbH']:
                         workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
                         MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind)
+                               
+                FinalCmd = ['combineCards.py']
+                for i, x in enumerate(list( set(Tot_proc_reg_combine))):
+                    if "=" in x :
+                        Tot_nm   = x.split('=')[1]
+                        channel  = x.split('=')[0]
+                        split_ch = channel.split('_')
+                        new_ch   = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
+                        FinalCmd+=[new_ch+'='+Tot_nm]
                 
-                FinalCmb = list(set(Tot_proc_reg_combine))
-                logger.info('merging %s resolved +boosted ggH & bbH cmd::: %s'%(k, FinalCmb) )
+                logger.info('merging %s resolved + boosted ggH & bbH cmd::: %s'%(k, FinalCmd) )
                 
-                output_prefix = FinalCmb[1].replace('gg_fusion_resolved', 'gg_fusion_bb_associatedProduction_resolved_boosted').replace('.dat', '')
+                suffix        = FinalCmd[1].split(mode)[-1].replace('.dat', '')
+                output_prefix = '%sTo2L2B_gg_fusion_bb_associatedProduction_resolved_boosted_%s_%s%s'%( thdm, k, mode, suffix)
                 datacard      = os.path.join(output_dir, output_prefix +'.dat')
                 with open( datacard, 'w') as f:
-                    subprocess.check_call(FinalCmb, cwd=output_dir, stdout=f)
+                    subprocess.check_call(FinalCmd, cwd=output_dir, stdout=f)
                 
                 for poi in ['r_ggH', 'r_bbH']:
                     workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
@@ -275,7 +289,43 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light) 
 
 
-def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards= False, scale= False, normalize= False, submit_to_slurm= False):
+def CreateScriptToRunCombine(output, method, mode, era):
+    output = os.path.join(output, H.get_method_group(method), mode)
+    script = """#! /bin/bash
+scripts=`find {output} -name "*_{suffix}.sh"`
+for script in $scripts; do
+    dir=$(dirname $script)
+    script=$(basename $script)
+    echo "\tComputing with ${{script}}"
+    pushd $dir &> /dev/null
+    {c}ln -s -d /home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/ .
+    . $script
+    popd &> /dev/null
+done
+""".format(output=output, suffix='run_%s'%method, c='' if era =='fullrun2' else '#')
+   
+    print( '\tThe generated script to run limits can be found in : %s/' %output)
+    
+    if   method == 'fit': suffix= 'prepost'
+    elif method == 'impacts': suffix= 'pulls'
+    elif method in ['asymptotic', 'hybridnew']: suffix= 'limits'
+    else: suffix= ''
+
+    script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
+    with open(script_name, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_name)
+    os.chmod(script_name, st.st_mode | stat.S_IEXEC)
+
+    if method=="hybridnew":
+        logger.info("All done. You can run everything by executing %r" % ('./' + script_name[:-3]+"_onSlurm.sh"))
+    else:
+        logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
+
+
+
+def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards= False, merge_ggH_bbH=False, scale= False, normalize= False, submit_to_slurm= False):
     
     luminosity  = Constants.getLuminosity(era)
     
@@ -303,15 +353,20 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 m_heavy, m_light = get_signal_parameters(split_filename)
                 
                 #==============================================================================
-                # FIXME i just need to get some work done, to  be removed later !!
-                if not m_heavy in [500.00, 609.21,]:
+                # FIXME I just need to get some work done, to  be removed later !!
+                fast_list = [125.]+list(np.arange(100., 1050., 100.))
+                if not m_heavy in fast_list:
                     continue
                 #==============================================================================
 
                 if (m_heavy, m_light) in grid_data[prod][reg][thdm] and not (m_heavy, m_light) in all_parameters[prod][reg]:
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
     
-    
+    NotIn2Prod = []    
+    for tup in all_parameters['gg_fusion']['resolved']:
+        if not tup in all_parameters['bb_associatedProduction']['resolved']:
+            NotIn2Prod.append('%s_M%s_%s_M%s_%s'%(mode, thdm[0], tup[0], thdm[-1], tup[1]))
+
     logger.info("Era and the corresponding luminosity      : %s, %s" %(era, Constants.getLuminosity(era)))
     logger.info("Input path                                : %s" % input )
     logger.info("Chosen analysis mode                      : %s" % mode)
@@ -350,6 +405,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                                                     scalefactors           = scalefactors,
                                                     scale                  = scale, 
                                                     merge_cards            = merge_cards, 
+                                                    merge_ggH_bbH          = merge_ggH_bbH, 
                                                     unblind                = unblind, 
                                                     signal_strength        = signal_strength, 
                                                     stat_only              = stat_only, 
@@ -361,51 +417,22 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             for x in Totflav_cards_allparams.keys():
                 if x not in cats: cats.append(x) 
         
-#        if method == 'asymptotic':
-#            CustomCardCombination(cats, proc_combination[prod], expectSignal, dataset, unblind, todo='res_boo')
-#
-#    if method == 'asymptotic':
-#        CustomCardCombination(cats, proc_combination, expectSignal, unblind, dataset, todo='ggH_bbH')
+        if method == 'asymptotic':
+            CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, prod=prod, skip=None, unblind=unblind, todo='res_boo')
+
+    if method == 'asymptotic' and merge_ggH_bbH:
+        CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, prod=None, skip=NotIn2Prod, unblind=unblind, todo='ggH_bbH')
         
     # Add mc stat. 
     for datacard in glob.glob(os.path.join(output, H.get_method_group(method), mode,'*/', '*.dat')):
         Constants.add_autoMCStats(datacard)
 
-    # Create helper script to run limits
-    output = os.path.join(output, H.get_method_group(method), mode)
-    script = """#! /bin/bash
-scripts=`find {output} -name "*_{suffix}.sh"`
-for script in $scripts; do
-    dir=$(dirname $script)
-    script=$(basename $script)
-    echo "\tComputing with ${{script}}"
-    pushd $dir &> /dev/null
-    . $script
-    popd &> /dev/null
-done
-""".format(output=output, suffix='run_%s'%method)
-   
-    print( '\tThe generated script to run limits can be found in : %s/' %output)
-    
-    if   method == 'fit': suffix= 'prepost'
-    elif method == 'impacts': suffix= 'pulls'
-    elif method in ['asymptotic', 'hybridnew']: suffix= 'limits'
-    else: suffix= ''
-
-    script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
-    with open(script_name, 'w') as f:
-        f.write(script)
-
-    st = os.stat(script_name)
-    os.chmod(script_name, st.st_mode | stat.S_IEXEC)
-
-    if method=="hybridnew":
-        logger.info("All done. You can run everything by executing %r" % ('./' + script_name[:-3]+"_onSlurm.sh"))
-    else:
-        logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
+    # Create helper script to run combine
+    CreateScriptToRunCombine(output, method, mode, era)
 
 
-def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reg, flavors, ellipses, mode, output, luminosity, scalefactors, scale=False, merge_cards=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
+
+def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reg, flavors, ellipses, mode, output, luminosity, scalefactors, scale=False, merge_cards=False, merge_ggH_bbH=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -465,14 +492,13 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         formatted_p = format_parameters(p)
         
         histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
-                                        '^GluGluTo{}To2L2B_*'.format(thdm), #M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
-                                        '^{}To2L2B_*'.format(thdm), #M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
+                                        '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
+                                        '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                         ]
         
         if mode == "dnn":
            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
                 'DNNOutput_ZAnode_{flavor}_{reg}_{taggerWP}_METCut_{prod}_M%s_%s_M%s_%s'%( heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
-        
         elif mode == "mllbb":
             histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{prod}')
         elif mode == "mbb":
@@ -508,13 +534,16 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                                       method              = method, 
                                       luminosity          = luminosity, 
                                       mode                = mode,
+                                      thdm                = thdm,
                                       flav_categories     = flav_categories,
                                       era                 = era, 
                                       scalefactors        = scalefactors,
+                                      merge_ggH_bbH       = merge_ggH_bbH,
                                       unblind             = unblind,
                                       normalize           = normalize)
     
     #print ( "\tsystematics : %s       :" %systematics )
+    
     processes  = [sig_process] + bkg_processes
     logger.info( "Processes       : %s" %processes)
         
@@ -567,7 +596,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             cb.cp().AddSyst(cb, 'DY_xsec', 'lnN', ch.SystMap('process') 
                     (['DY'], 1.007841991384859) )
 
-            xsc, xsc_err = Constants.get_SignalStatisticsUncer(m_heavy, m_light, sig_process, thdm)
+            xsc, xsc_err, totBR= Constants.get_SignalStatisticsUncer(m_heavy, m_light, sig_process, thdm)
             signal_uncer = 1+xsc_err/xsc
 
             cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process')
@@ -591,8 +620,11 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         # Import shapes from ROOT file
         for cat in flav_categories:
             cb.cp().channel([cat]).backgrounds().ExtractShapes(file, '$BIN/$PROCESS_%s' %cat, '$BIN/$PROCESS_%s__$SYSTEMATIC' %cat)
-            cb.cp().channel([cat]).signals().ExtractShapes(file, '$BIN/$PROCESS_M%s-%s_M%s-%s_%s'% (heavy, m_heavy, light, m_light, cat), 
+            cb.cp().channel([cat]).signals().ExtractShapes(file, 
+                                                    '$BIN/$PROCESS_M%s-%s_M%s-%s_%s'% (heavy, m_heavy, light, m_light, cat), 
                                                     '$BIN/$PROCESS_%s_%s__$SYSTEMATIC' % ('M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light), cat))
+                                                    #'$BIN/$PROCESS_%s'%cat, 
+                                                    #'$BIN/$PROCESS_%s__$SYSTEMATIC' %cat)
 
         if scale:
             cb.cp().process([sig_process]).ForEachProc(lambda x : x.set_rate(x.rate()*1000))
@@ -941,7 +973,7 @@ popd
                 
                 if prod=='bb_associatedProduction' or reg =='boosted':
                     Totflav_cards_allparams[(output_dir, cat[1])]['OSSF'].append("ch2_{}_{}_{}_OSSF=".format(mode, sig_process, reg) + 
-                                                                         "{prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=reg, flavor="OSSF", category=cat[1]))
+                            "{prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(prefix=output_prefix, prod=prod, reg=reg, flavor="OSSF", category=cat[1]))
                 
                 for mergeable_flavors in list_mergeable_flavors:
                     if all(x in flavors for x in mergeable_flavors):
@@ -950,13 +982,14 @@ popd
                         else: k = 'OSSF'
 
                         print("Merging {} datacards into a single one for {}".format(mergeable_flavors, cat[1]))
-                        args = ["{mode}_{prod}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(mode=sig_process, prefix=output_prefix, prod=prod, reg=reg, flavor=x, category=cat[1]) for x in mergeable_flavors]
+                        args = ["ch{i}_{mode}_{sig}_{reg}_{flavor}={prefix}_{prod}_{reg}_{flavor}_{category}.dat".format(
+                                 i=i+1, mode=mode, sig=sig_process, reg=reg, flavor=x, prefix=output_prefix, prod=prod, category=cat[1]) for i, x in enumerate(mergeable_flavors)]
                         cmd  = ['combineCards.py'] + args
                         
                         merged_flav_datacard = output_prefix + '_'+ prod +'_' + reg + '_'+ '_'.join(mergeable_flavors) + '_' + cat[1]
                         
                         if not mergeable_flavors in [['MuMu', 'MuEl'], ['ElEl', 'MuEl']]:
-                            Totflav_cards_allparams[(output_dir, cat[1])][k].append(merged_flav_datacard + '.dat')                                
+                            Totflav_cards_allparams[(output_dir, cat[1])][k] += args 
                         
                         with open( os.path.join(output_dir, merged_flav_datacard + '.dat'), 'w') as f:
                             subprocess.check_call(cmd, cwd=output_dir, stdout=f)
@@ -1018,70 +1051,72 @@ if __name__ == '__main__':
     
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
-   
-    if options.era == "fullrun2":
+    
+    for thdm in ['HToZA']:#, 'AToZH']:
         
-        get_bashscripts = {'fit'       : '_run_fit.sh',
-                           'asymptotic': '_run_asymptotic.sh' }
-        
-        to_combine = defaultdict()
-        outDir = os.path.join(options.output, 'bayesian_rebin_on_S', H.get_method_group(options.method), options.mode)
-        
-        for j, cat in enumerate(['gg_fusion_resolved_MuMu_ElEl_MuEl', 'gg_fusion_resolved_MuMu', 'gg_fusion_resolved_ElEl', 'gg_fusion_resolved_MuMu_ElEl']):
-            cat = cat + '_{}'.format(options.mode)
-            for year in [16, 17, 18]:
-                
-                list_path = glob.glob(os.path.join(options.input, 'work__UL{}'.format(year), 'bayesian_rebin_on_S',H.get_method_group(options.method), options.mode, '*', '*.dat'))
-                
-                for p in list_path:
-                    cardNm  = p.split('/')[-1]
-                    masses  = p.split('/')[-2]
-                    pOut    = os.path.join(options.output, 'bayesian_rebin_on_S', H.get_method_group(options.method), options.mode, masses)
-                    cardOut = '> {}/{}'.format(pOut, cardNm)
-                    if not cat in to_combine.keys():
-                        to_combine[cat] = {}
-                    if not masses in to_combine[cat].keys():
-                        to_combine[cat][masses]= ['combineCards.py', ]
-                    if not os.path.isdir(pOut):
-                        os.makedirs(pOut)
-                    
-                    if cat in cardNm: 
-                        to_combine[cat][masses].append('UL{}={}'.format(year, p))
+        if options.era == "fullrun2":
+            to_combine = defaultdict()
+            outDir = os.path.join(options.output, H.get_method_group(options.method), options.mode)
             
-            if cat in to_combine.keys():        
+            for prod in ['gg_fusion', 'bb_associatedProduction']:
+                for reg in ['resolved', 'boosted']:
+                    
+                    if prod =='bb_associatedProduction' or reg =='boosted':
+                        flavors = [['OSSF', 'MuEl'], ['OSSF'], ['MuEl']]
+                    else:
+                        flavors = [['MuMu', 'ElEl', 'MuEl'], ['MuMu', 'ElEl'], ['MuMu'], ['ElEl'], ['MuEl']]
+                    
+                    for flav in flavors:
+                        cat = '{}_{}_{}_{}'.format(prod, reg, '_'.join(flav), options.mode)
+                        to_combine[cat] = {}
+                        for j, year in enumerate([16, 17, 18]):
+                            
+                            mPath = os.path.join(outDir.replace('work__ULfullrun2', 'work__UL{}'.format(year)))
+                            for p in glob.glob(os.path.join(mPath, 'M*')):
+                                
+                                masses = p.split('/')[-1]
+                                cardNm = '{}To2L2B_{}_{}_{}_{}_{}.dat'.format(thdm, prod, reg, '_'.join(flav), options.mode, masses.replace('-','_'))
+                                shNm   = '{}To2L2B_{}_{}_{}_{}_{}_run_{}.sh'.format(thdm, prod, reg, '_'.join(flav), options.mode, masses.replace('-','_'), options.method)
+                                
+                                pOut = p.replace('work__UL{}'.format(year), 'work__ULfullrun2')
+                                if not os.path.isdir(pOut):
+                                    os.makedirs(pOut)
+                                
+                                if not os.path.exists(os.path.join(p, shNm)):
+                                    continue
+
+                                if j ==0:
+                                    shutil.copy(os.path.join(p, shNm), pOut)
+                                    Constants.overwrite_path(os.path.join(pOut, shNm))
+                                
+                                if not masses in to_combine[cat].keys():
+                                    to_combine[cat][masses]= ['combineCards.py']
+                                to_combine[cat][masses].append('UL{}={}'.format(year, os.path.join(p, cardNm)))
+
+            for cat, Cmd_per_mass in to_combine.items():        
                 for m, cmd in to_combine[cat].items():
-                    if len(cmd) ==1:
-                        continue # this means the cat does not exist 
+                    
                     if len(cmd) !=4: 
-                        logger.error("You have nasty cards playing around , this can not happened")
-                        logger.error("trying to run : ' {} ' for {}".format(" ".join(cmd), m))
+                        logger.warning("You have nasty cards playing around, this can not happened, need the 3-eras cards, we will skip!")
+                        logger.warning("Attempt to run :: ' {} ' for {}\\".format(" ".join(cmd), m))
                         continue 
-                    c_in  = cmd[1].split('/')[-1]
-                    c_out = '{}/{}/{}'.format(outDir, m, c_in)
                     
-                    sh1_in = cmd[1].split('=')[-1].replace('.dat', get_bashscripts[options.method])
-                    shutil.copy(sh1_in, os.path.join(outDir, m))
-                    Constants.overwrite_path(os.path.join(outDir, m, sh1_in.split('/')[-1]))
-                    if j!=0 and options.method == 'fit':
-                        sh2_in = cmd[1].split('=')[-1].split('_'+ options.mode)[0] +'_do_postfit.sh'
-                        shutil.copy(sh2_in, os.path.join(outDir, m))
-                        Constants.overwrite_path(os.path.join(outDir, m, sh2_in.split('/')[-1]))
-                    
+                    CardOut = '{}/{}/{}'.format(outDir, m, cmd[1].split('/')[-1])
                     try:
-                        with open(c_out, "w") as outfile:
+                        with open(CardOut, "w+") as outfile:
                             subprocess.call(cmd, stdout=outfile)
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
-    else:
-        
-        scalefactors  = H.get_normalisationScale(options.input, options.method, options.era)
-        print( 'sf:::', scalefactors ) 
-        
-        for thdm in ['HToZA']:#, 'AToZH']:
-            # for test use signal_grid_part0 instead,
+            
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.era)
+
+        else:
+            scalefactors  = H.get_normalisationScale(options.input, options.method, options.era)
+            # for test or for specific points : please use signal_grid_foTest,
+            # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
             
-            prepare_DataCards(  grid_data          = signal_grid, 
+            prepare_DataCards(  grid_data          = signal_grid_foTest, 
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 
@@ -1098,6 +1133,7 @@ if __name__ == '__main__':
                                 stat_only          = options.stat_only, 
                                 verbose            = options.verbose, 
                                 merge_cards        = True, 
+                                merge_ggH_bbH      = True, 
                                 scale              = options.scale, 
                                 normalize          = options.normalize, 
                                 submit_to_slurm    = options.submit_to_slurm)

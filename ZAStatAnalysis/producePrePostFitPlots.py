@@ -185,11 +185,12 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
 
         base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
         re   = 'reshaped' if reshape else ''
-        lumi    = Constants.getLuminosity(era)
-        hist_nm = Constants.get_Nm_for_runmode( mode)
+        lumi     = Constants.getLuminosity(era)
+        hist_nm  = Constants.get_Nm_for_runmode( mode)
+        lumi     = ("%.2f" %lumi).replace('.00', '.')
         
-        xmax_dict  = {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
-        
+        xmax_dict= {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
+
         plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode,'*/', 'plotIt_*', re))
         for fit in ['prefit', 'postfit']:
             for cat_path in plotit_histos:
@@ -240,8 +241,8 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
                             elif '  luminosity: mylumi' in line:
                                 outf.write(f"  luminosity: {lumi}\n")
                             elif 'signal-prod_fit-type_histos.root:' in line:
-                                #outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
-                                outf.write("{}\n".format(line.replace('signal-prod', 'HToZATo2L2B').replace('fit-type', fit)))
+                                outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
+                                #outf.write("{}\n".format(line.replace('signal-prod', 'HToZATo2L2B').replace('fit-type', fit)))
                             elif 'fit-type' in line:
                                 outf.write("{}\n".format(line.replace('fit-type', fit)))
                             elif '    legend: mysignal' in line:
@@ -285,9 +286,8 @@ if __name__ == '__main__':
 
     options = parser.parse_args()
     
-    #if options.reshape: # needed only for dnn mode 
-    #    reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
+    if options.reshape: # needed only for dnn mode 
+        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
     
     runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape)
-    
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

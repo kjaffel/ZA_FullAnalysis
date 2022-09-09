@@ -288,6 +288,8 @@ def get_normalisationScale(inDir=None, method=None, era=None):
     # plotit cmd get killed when there are lots of files to read and does not give the plots.yml
     # this is just a workaround
     if not os.path.exists(yaml_file):
+        yaml_file = os.path.join(plotter_p, 'config_fullrun2.yml')
+    else:
         yaml_file = os.path.join(plotter_p, 'config_{}.yml'.format(era))
     if os.path.exists(yaml_file):
         with open(yaml_file) as file:
@@ -387,7 +389,7 @@ def get_normalisationScale(inDir=None, method=None, era=None):
                                     'branching-ratio' : None 
                                 }
 
-    with open(os.path.join(inDir, "config_{}.yml".format(era)), 'w') as _f:
+    with open(os.path.join(plotter_p, "config_{}.yml".format(era)), 'w+') as _f:
         yaml.dump(dict_, _f, default_flow_style=False)
 
     return dict_ 
@@ -480,7 +482,19 @@ def call_python_version(Version, Module, Function, ArgumentList):
     return channel.receive()
 
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, flav_categories, era, scalefactors, unblind=False, normalize=False):
+def get_massParameters(smp):
+    m_heavy = float(smp.split('_')[2].replace('p', '.'))
+    m_light = float(smp.split('_')[4].replace('p', '.'))
+    
+    if '_tb_20p00_' in smp: 
+        process = 'bb{}'.format(smp[0])
+    elif '_tb_1p50_' in smp:
+        process = 'gg{}'.format(smp[8])
+    
+    return m_heavy, m_light, process
+
+
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, merge_ggH_bbH=False, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -492,6 +506,10 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     logger.info("Categories                                 : %s"%flav_categories )
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
+    
+    reco_cat = flav_categories[0].split('_')[0] +'_' + flav_categories[0].split('_')[1]
+    if reco_cat.startswith('gg'): tb =1.5 
+    else: tb =20.
 
     if not os.path.exists(os.path.dirname(output_filename)):
         os.makedirs(os.path.dirname(output_filename))
@@ -638,23 +656,24 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             if smp.startswith('__skeleton__'):
                 continue
             
-            era_ = ConfigurationEra(smp)
-            lumi = scalefactors['files'][smp]['lumi']
-            _t   = scalefactors['files'][smp]['type'] 
-            
-            if _t =='signal' or _t =='mc': 
-                sumW = scalefactors['files'][smp]['generated-events']
-                xsc  = scalefactors['files'][smp]['cross-section']
+            era_    = ConfigurationEra(smp)
+            lumi    = scalefactors['files'][smp]['lumi']
+            _t      = scalefactors['files'][smp]['type'] 
             
             smpScale = 1
             if _t =='signal':
-                smpScale = lumi/sumW
+                sumW = scalefactors['files'][smp]['generated-events']
                 
-                br   = scalefactors['files'][smp]['branching-ratio']
-                if method !='asymptotic':
-                    smpScale *= xsc*br
+                # make sure that you are using 1 single tb with the corresponding xsc and BR
+                #xsc = scalefactors['files'][smp]['cross-section']
+                #br  = scalefactors['files'][smp]['branching-ratio']
+                m_heavy, m_light, proc_ = get_massParameters(smpNm)
+                xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc_, thdm, tb)
+                smpScale = (xsc*lumi*br)/sumW
             
             elif _t == 'mc':
+                sumW = scalefactors['files'][smp]['generated-events']
+                xsc  = scalefactors['files'][smp]['cross-section']
                 smpScale = (xsc*lumi)/sumW
 
             # Build a dict key name -> key for faster access

@@ -1,3 +1,7 @@
+from decimal import *
+
+def remove_exponent(d):
+    return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
 
 def changeFont():
     """
@@ -7,7 +11,7 @@ def changeFont():
     rc('font', **{'family': 'sans-serif', 'sans-serif':['Arial', 'Helvetica', 'Nimbus Sans L', 'Liberation Sans']})
     rc('mathtext', default='regular')
 
-def applyStyle(fig, ax, lumi, extra='Preliminary', pos='out', figures=1):
+def applyStyle(fig, ax, lumi, extra='Simulation', pos='out', figures=1):
     """
     Apply CMS style to a matplotlib figure
     Parameters:
@@ -91,6 +95,9 @@ def applyStyle(fig, ax, lumi, extra='Preliminary', pos='out', figures=1):
     if not lumi:
         fmt = "(13 TeV)"
     else:
-        fmt = "{lumi:.{figures}f} $fb^{{-1}}$ (13 TeV)".format(lumi=(lumi / 1000.), figures=figures)
+        lumi  = lumi/1000.
+        #lumi = ("%.2f" %luminosity).replace('.00', '.')
+        #lumi = remove_exponent(Decimal(str(lumi)))
+        fmt   = "{lumi:.{figures}f} $fb^{{-1}}$ (13 TeV)".format(lumi=lumi, figures=figures)
 
     ax.text(lumi_text_x, lumi_text_y, fmt, transform=fig.transFigure, fontsize='large', va='baseline', ha='right')

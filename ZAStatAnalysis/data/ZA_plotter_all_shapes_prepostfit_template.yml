@@ -3,7 +3,8 @@ configuration:
   height: 800
   luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
   experiment: "CMS"
-  extra-label: "Preliminary"
+  #extra-label: "Preliminary"
+  extra-label: "Simulation"
   root: myroot_path
   luminosity: mylumi
   no-lumi-rescaling: true
@@ -33,15 +34,15 @@ files:
   SingleTop_fit-type_histos.root:
     type: mc
     group: ST
-#  SMHiggs_fit-type_histos.root:
-#    type: mc
-#    group: SM
-#  VV_fit-type_histos.root:
-#    type: mc
-#    group: VV
-#  ttV_fit-type_histos.root:
-#    type: mc
-#    group: others
+  SMHiggs_fit-type_histos.root:
+    type: mc
+    group: SM
+  VV_fit-type_histos.root:
+    type: mc
+    group: VV
+  ttV_fit-type_histos.root:
+    type: mc
+    group: others
 plots:
   histo-name:
     blinded-range: [0.6, 1.0]

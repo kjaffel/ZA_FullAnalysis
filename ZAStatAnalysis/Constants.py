@@ -123,11 +123,12 @@ def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
     return xsc, xsc_err, br_HeavytoZlight, br_lighttobb
 
 
-def get_SignalStatisticsUncer(m_heavy, m_light, process, mode):
-    
-    heavy  = mode[0]
-    light  = mode[-1]
-    tb     = 1.5 if process.startswith('gg') else 20.
+def get_SignalStatisticsUncer(m_heavy, m_light, process, mode, tb=None):
+    br_Ztoll = 0.067264 
+    heavy    = mode[0]
+    light    = mode[-1]
+    if tb is None:
+        tb     = 1.5 if process.startswith('gg') else 20.
 
     with open('data/sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb))) as f_:
         dict_ = yaml.safe_load(f_)
@@ -135,7 +136,8 @@ def get_SignalStatisticsUncer(m_heavy, m_light, process, mode):
     given_mass = dict_[mode]['M{}_{}_M{}_{}'.format(heavy, float(m_heavy), light, float(m_light))]
     br_HeavytoZlight = given_mass['branching-ratio']['{}ToZ{}'.format(heavy, light)]
     br_lighttobb     = given_mass['branching-ratio']['{}Tobb'.format(light)]
-
+    br = float(br_HeavytoZlight) * br_Ztoll* float(br_lighttobb)
+    
     if process == 'gg{}'.format(heavy):
         xsc      = given_mass['cross-section'][process].split()[0]
         xsc_err  = given_mass['cross-section'][process].split()[2]
@@ -143,14 +145,13 @@ def get_SignalStatisticsUncer(m_heavy, m_light, process, mode):
         xsc      = given_mass['cross-section'][process]['NLO'].split()[0]
         xsc_err  = given_mass['cross-section'][process]['NLO'].split()[2]
     
-    return float(xsc), float(xsc_err)
+    return float(xsc), float(xsc_err), br
 
 
 def overwrite_path(f):
     with open(f, 'r') as file :
         filedata = file.read()
-    filedata = filedata.replace('UL16', 'fullrun2')
-    
+    filedata = filedata.replace('UL16', 'ULfullrun2')
     with open(f, 'w') as file:
         file.write(filedata)
     return f
@@ -169,7 +170,7 @@ def getLuminosity(era):
     elif era == '2018':
         lumi = 59740.565201546  
     elif era == 'fullrun2':
-        lumi = 137191.592856304 
+        lumi = 138000.
     return lumi # pb
 
 
@@ -253,7 +254,6 @@ def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
 
 
 def add_autoMCStats(datacard, threshold=0, include_signal=0, hist_mode=1):
-    
     openFile=open(datacard, 'r')
     datacard_content = openFile.read()
     openFile.seek(0)
