@@ -450,8 +450,8 @@ if __name__ == "__main__":
     case      = f'_all_on_{args.scenario}' if args.submit=='all' else '_template'
     
     divideByBinWidth = False
-    get_half         = True
-    muel_onebin      = True
+    get_half         = False
+    onebin           = False
     
     if args.job =='local':
         inDir  = os.path.join(args.input, 'results/')
@@ -460,7 +460,6 @@ if __name__ == "__main__":
         list_inputs = glob.glob(os.path.join(inDir, '*.root'))
     else:
         list_inputs = [args.input] # will give one root file at the time with slurm_job id 
-
     
     plotsDIR = os.path.join(args.output, "plots")
     if not os.path.isdir(plotsDIR):
@@ -499,7 +498,7 @@ if __name__ == "__main__":
                 inDir  = os.path.join(args.input, f'generatetoys-data/{args.mode}/*')
                 inputs = glob.glob(os.path.join(inDir, '*_shapes.root'))
             elif args.asimov:
-                k    ='mc' if args.scale else 'data'    # avoid normalisation crap of mc 
+                k    = 'data' #'mc' if args.scale else 'data'    # avoid normalisation crap of mc 
                 s    ='scaled_' if args.scale else ''
                 dir_ = outDir  if args.scale else inDir #  take from the scaled otherwise bamboodir
                 # take pseudo-data: A sum of all bkg, signal stay seperate 
@@ -538,12 +537,11 @@ if __name__ == "__main__":
             smpNm = rf.split('/')[-1].split('_shapes')[0]
             
             if 'boosted' in smpNm or 'bb_associatedProduction' in smpNm:
-                # ignore the combination with MuEl 
-                # for boosted and bbH cats, accept only merged OSSF lep flavours, because of the lack of stat
+                # ignore the combination with MuEl for boosted and bbH cats, 
+                # and accept only merged OSSF lep flavours, because of the lack of stat
                 if 'OSSF_MuEl' in smpNm : continue  
             elif 'resolved' in smpNm:               
-                # split per lepton flavour 
-                # and ignore the combination 
+                # split per lepton flavour and ignore the combination 
                 if any(x in smpNm for x in ['_ElEl_MuMu_', '_MuMu_ElEl_', 'MuMu_MuEl', 'ElEl_MuEl']): continue 
 
             channels = set()
@@ -598,7 +596,6 @@ if __name__ == "__main__":
                     oldBinErrors[k]  = np_hist.s
                     oldEdges[k]      = np_hist.e
                    
-                    
                     newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( old_hist          = oldHist[k],
                                                                             mass              = mass, 
                                                                             name              = histNm,
@@ -716,26 +713,28 @@ if __name__ == "__main__":
             if smpNm.startswith('__skeleton__'):
                 continue
             
-            if not optimizer.EraFromPOG(args.era) in smpNm:
-                continue
+            if args.era != 'fullrun2':
+                if not optimizer.EraFromPOG(args.era) in smpNm:
+                    continue
             #==========================================================
-            # FIXME these are extra jobs finished later
-            #if not smpNm in ['TTToSemiLeptonic_UL18', 'TTTo2L2Nu_UL18', 'TTToHadronic_UL18', 'WZZ_UL18', 'ZZZ_UL18', 'TTZToLLNuNu_M-10_UL18', 'HZJ_HToWW_M-125_UL18', 'ggZH_HToBB_ZToLL_M-125_UL18', 'ggZH_HToBB_ZToNuNu_M-125_UL18']:
-            #    continue
             # few signals only needed
             # FIXME I just need this to get some work done to be removed later on 
-            if not any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
-                continue
-            if not any( x in smpNm for x in ['609p21','500p00']):
-                continue
-            #==========================================================
+            #if not any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
+            #    continue
+            #if not any( x in smpNm for x in ['125p00', '100p00', '200p00', '300p00', '400p00', '500p00', '600p00', '700p00', '800p00', '900p00', '1000p00']):
+            #    continue
+            ## if you are still blinded , do not waste time here !!
+            #if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+            #    continue
+            ##==========================================================
             
             print( f'==='*40) 
             print( f' working on : {rf}' ) 
 
-            rf_out  = os.path.join(args.output, suffix, f"{smpNm}.root")
-            inFile  = HT.openFileAndGet(rf)
-            outFile = HT.openFileAndGet(rf_out, "recreate")
+            curr_dir = os.path.dirname(os.path.abspath(__file__))
+            rf_out   = os.path.join(curr_dir, args.output, suffix, f"{smpNm}.root")
+            inFile   = HT.openFileAndGet(rf)
+            outFile  = HT.openFileAndGet(rf_out, "recreate")
 
             Observation[smpNm] = {}
             for key in inFile.GetListOfKeys():
@@ -768,8 +767,7 @@ if __name__ == "__main__":
                 oldHist = inFile.Get(key.GetName())
                 
                 if not isSys:
-                    channel = f"{args.mode}_{mass}_{params['process']}_{params['region']}_{params['flavor']}_{params['taggerWP']}"
-                    Observation[smpNm][channel] = []
+                    Observation[smpNm][key.GetName()]= {'sumTotal': None, 'sumPass': None}
                     binnings['histograms'][key.GetName()] = []
                     if not key.GetName() in binnings['histograms']:
                         binnings['histograms'].append(key.GetName())
@@ -801,7 +799,10 @@ if __name__ == "__main__":
                 elif args.rebin == 'bayesian':
                     # sys hist should have the same bins as nominal 
                     if params['flavor'] == 'MuEl': # this channel will help to control ttbar
-                        binning  = data['histograms'][key.GetName().split('__')[0]]['B']
+                        if onebin :
+                            binning  = [[0., 1.], [1, 51]]
+                        else:
+                            binning  = data['histograms'][key.GetName().split('__')[0]]['B']
                     else:
                         binning  = data['histograms'][key.GetName().split('__')[0]][args.scenario]
                     
@@ -826,9 +827,9 @@ if __name__ == "__main__":
                         logger.warning("sum of binContents between 2 histogram does not match\n"
                                       f"new = {nph_new.w.sum():.5e}, old = {nph_old.w.sum():.5e}")
                    
-                    Observation[smpNm][channel].append(newHist.Integral())
                 
                 if not isSys:
+                    Observation[smpNm][key.GetName()]['sumPass'] = newHist.GetEntries()
                     binnings['histograms'][key.GetName()].append([MarkedList(binning[0]), MarkedList(binning[1])])
                 
                 #print(np.sqrt(sum(list(newHist.GetSumw2())))/newHist.Integral())
@@ -844,8 +845,11 @@ if __name__ == "__main__":
             print(' rebinned histogram saved in: {} '.format(os.path.join(args.output, suffix, f"{smpNm}.root")))
         
         if args.yields: 
-            optimizer.get_yields(Observation)
-    
+            #optimizer.get_yields(Observation)
+            # dump in yaml file instead , could be useful later for plotting eff 
+            with open('event_generated_and_passed.yaml', 'w') as file:
+                yaml.dump(Observation, file)
+
     fNm = f"rebinned_edges_{args.rebin}{case}.json"
     if not args.onlypost:
         with open(os.path.join(args.output, fNm), 'w') as _f:

@@ -255,7 +255,7 @@ def get_finalbins(hist, edges):
     for x in edges:
         b = hist.FindBin(x)
         FinalBins.append(b)
-    return FinalBins
+    return FinalBins #list(set(FinalBins))
 
 
 def get_bin_Content_and_Edges(hist):
@@ -386,17 +386,16 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
     if scale:
         file_ = os.path.join(in_, 'plots.yml')
         if not os.path.exists(file_):
-            file_ = os.path.exists(os.path.join(outDir, f'config_{year}.yml'))
-    
+            file_ = os.path.join(plotter_p, f'config_{era}.yml')
         if not os.path.exists(file_):
             logger.info(f'Sorry neither Bamboo plotIt  << plots.yml >> is found \n'
-                        'neither << config_{year}.yml >> of Harvester.get_normalisationScale class, \n'
-                        'this is then gonna take sometime!\n')
+                        '\t\tneither << config_{year}.yml >> of Harvester.get_normalisationScale class, \n'
+                        '\t\tthis is then gonna take sometime!\n')
             H.get_normalisationScale(inDir, method, era)
         
         with open(file_) as _f:
             Cfg = yaml.load(_f, Loader=yaml.FullLoader)
-
+    
     for rf in inputs:
         isData = False
         smp    = rf.split('/')[-1]
@@ -408,16 +407,17 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
         if not era == 'fullrun2':
             if not EraFromPOG(era) in smpNm:
                 continue
-
-
+        # just use the sum of data, will save you sometime
+        if Cfg['files'][smp]["type"] =='mc':
+            continue
+        
         if scale: path = os.path.join(outDir, smp)
         else: path = rf 
         
         if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
             isData = True
             sorted_inputs['data'].append(path)
-            if scale:
-                shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
+            #shutil.copyfile( os.path.join(inDir, smp), os.path.join(outDir, smp))
         else:
             if scale:
                 year     = Cfg['files'][smp]["era"]
@@ -439,6 +439,7 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
                 sorted_inputs['mc'].append(path)
         
         if scale and not isData:
+            print('working on scaling ::', smp)
             resultsFile    = HT.openFileAndGet(os.path.join(inDir, smp), mode="READ")
             normalizedFile = HT.openFileAndGet(os.path.join(outDir, smp), "recreate")
             for hk in resultsFile.GetListOfKeys():
