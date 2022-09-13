@@ -182,10 +182,10 @@ def mass_to_str(m):
     return str(m).replace('.','p')
 
 
-def get_histNm_orig(mode, smpNm, mass, info=False):
+def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False):
     if not mode == 'dnn': prefix= mode
     else:
-        if 'HToZA' in smpNm: 
+        if 'HToZA' in hist_nm: 
             prefix = 'DNNOutput_ZAnode'
             thdm = 'HToZA'
         else: 
@@ -194,9 +194,6 @@ def get_histNm_orig(mode, smpNm, mass, info=False):
 
     heavy = thdm[0]
     light = thdm[-1]
-
-    m_heavy = mass_to_str(mass.split('_')[1])
-    m_light = mass_to_str(mass.split('_')[3])
 
     def returnIfExist(x, smp):
         if x in smp:
@@ -213,10 +210,21 @@ def get_histNm_orig(mode, smpNm, mass, info=False):
     opts = {}
     for k, v in dict_.items():
         for opt in v:
-            value = returnIfExist(opt, smpNm) 
+            value = returnIfExist(opt, hist_nm) 
             if value is not None:
                 opts[k] =  value
                 continue
+    
+    if fix_reco_format:
+        if 'nb2' in hist_nm:
+            opts['process'] = 'gg_fusion'
+        elif 'nb3' in hist_nm:
+            opts['process'] = 'bb_associatedProduction'
+    
+    if mass is None:
+        mass = hist_nm.split('__')[0].split(opts['process']+'_')[-1]
+    m_heavy  = mass_to_str(mass.split('_')[1])
+    m_light  = mass_to_str(mass.split('_')[3])
 
     taggerWP = 'DeepFlavourM' if opts['region'] == 'resolved' else 'DeepCSVM'
     opts.update({'mass': mass, 'taggerWP': taggerWP})

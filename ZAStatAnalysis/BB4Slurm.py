@@ -15,7 +15,7 @@ logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
 
-def SlurmRunBayesianBlocks(outputDIR, bambooDIR, era, isTest):
+def SlurmRunBayesianBlocks(outputDIR, bambooDIR, era, isTest, unblind):
     config = Configuration()
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'cp3'
@@ -40,6 +40,10 @@ def SlurmRunBayesianBlocks(outputDIR, bambooDIR, era, isTest):
         if era!='fullrun2':
             if not f"_UL{era_}" in smp:
                 continue
+        
+        if not unblind:
+            if any(x in smp for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+                continue
 
         if isTest and i!=0:
             continue
@@ -62,7 +66,8 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--input", default=None, required=True, help="bamboo stageout dir")
     parser.add_argument("--era", type=str, required=True, help="")
     parser.add_argument("--test", action='store_true', dest='isTest', default=False, help="")
+    parser.add_argument("--unblind", action='store_true', default=False, help="If set to Trur will produced histogram for data too")
     
     options = parser.parse_args()
 
-    SlurmRunBayesianBlocks(outputDIR=options.output, bambooDIR=options.input, era=options.era, isTest=options.isTest)
+    SlurmRunBayesianBlocks(outputDIR=options.output, bambooDIR=options.input, era=options.era, isTest=options.isTest, unblind=options.unblind)

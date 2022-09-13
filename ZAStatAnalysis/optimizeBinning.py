@@ -30,6 +30,7 @@ import HistogramTools as HT
 import optimizer as optimizer
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
+import utils.CMSStyle as CMSStyle
 import Rebinning as Rb
 
 
@@ -227,8 +228,11 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
         pNm   = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
         
         fig   = plt.figure(figsize=(10, 4), dpi=300)
+        ax    = fig.add_subplot(111)
         fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
         
+        CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(args.era), figures=1)
+
         for i, (p0, subplot) in enumerate(zip([p0, p0+0.01], [121, 122])):
             
             ax = fig.add_subplot(subplot)
@@ -534,16 +538,8 @@ if __name__ == "__main__":
     
     if args.toys:
         for rf in inputs:
-            smpNm = rf.split('/')[-1].split('_shapes')[0]
-            
-            if 'boosted' in smpNm or 'bb_associatedProduction' in smpNm:
-                # ignore the combination with MuEl for boosted and bbH cats, 
-                # and accept only merged OSSF lep flavours, because of the lack of stat
-                if 'OSSF_MuEl' in smpNm : continue  
-            elif 'resolved' in smpNm:               
-                # split per lepton flavour and ignore the combination 
-                if any(x in smpNm for x in ['_ElEl_MuMu_', '_MuMu_ElEl_', 'MuMu_MuEl', 'ElEl_MuEl']): continue 
-
+            smpNm    = rf.split('/')[-1].split('_shapes')[0]
+            process  = smpNm.split('_')[1] + '_' + smpNm.split('_')[2]
             channels = set()
             inFile   = HT.openFileAndGet(rf)
             for k in inFile.GetListOfKeys():
@@ -566,14 +562,15 @@ if __name__ == "__main__":
                 oldBinContent = {}
 
                 mass   = channel.replace(f'{args.mode}_', '')
-                histNm = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False)
+                histNm = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)
                 binnings['histograms'][histNm] = {}
                 
                 for key in inFile.Get(channel).GetListOfKeys():
                     
                     isSignal  = False
                     isData    = False
-                    if key.GetName().startswith('ggH') or key.GetName().startswith('bbH'): isSignal=True
+
+                    if key.GetName().startswith('gg') or key.GetName().startswith('bb'): isSignal=True
                     if 'data' in key.GetName(): isData=True 
 
                     k = 'S' if isSignal else ('B' if isData else(key.GetName()))
@@ -589,7 +586,7 @@ if __name__ == "__main__":
                     print( f'- working on : {key.GetName()}' ) 
                     
                     label    = mass if isSignal else 'B-Only toy data'
-                    datatype = 'toys_signal' if isSignal else key.GetName()
+                    datatype = "toys_signal" if isSignal else key.GetName()
                    
                     np_hist = NumpyHist.getFromRoot(oldHist[k])
                     oldBinContent[k] = np_hist.w
@@ -598,7 +595,7 @@ if __name__ == "__main__":
                    
                     newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( old_hist          = oldHist[k],
                                                                             mass              = mass, 
-                                                                            name              = histNm,
+                                                                            name              = smpNm,
                                                                             output            = plotsDIR, 
                                                                             prior             = args.prior, 
                                                                             datatype          = datatype, 
@@ -613,7 +610,7 @@ if __name__ == "__main__":
                 
                 hybridebinning_dict = {'B': newEdges['B'] }
                 
-                binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False)].update(
+                binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)].update(
                            {'B': [MarkedList(newEdges['B']), MarkedList(FinalBins['B']) ] } )
                 
                 if not any ( x in histNm for x in ['MuEl', 'ElMu'] ):
@@ -634,7 +631,7 @@ if __name__ == "__main__":
                    #                 include_overflow      = False, 
                    #                 logy                  = args.logy)
 
-                    binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False)].update(
+                    binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)].update(
                             {   'S'      : [MarkedList(newEdges['S']), MarkedList(FinalBins['S']) ],
                                 'hybride': [MarkedList(binning[0]), MarkedList(binning[1])],
                                #'BB_hybride_good_stat': [MarkedList(newEdges_with_thres_cut), MarkedList(newBins_with_thres_cut)],
@@ -655,11 +652,15 @@ if __name__ == "__main__":
             
             for rf in rf_list:
                 inFile   = HT.openFileAndGet(rf)
+                smpNm    = rf.split('/')[-1]
+                
+                if isSignal:
+                    if smpNm.stratswith('GluGluTo'): process = 'gg_fusion'
+                    else: process = 'bb_associatedProduction' 
+                
                 for key in inFile.GetListOfKeys():
                     
                     histNm   = key.GetName()
-                    if 'gg_fusion' in histNm: process = 'gg_fusion'
-                    else: process = 'bb_associatedProduction' 
                     
                     if '__' in histNm: # sys avoid
                         continue
@@ -716,16 +717,22 @@ if __name__ == "__main__":
             if args.era != 'fullrun2':
                 if not optimizer.EraFromPOG(args.era) in smpNm:
                     continue
+            
+            if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']): # my signals
+                if smpNm.startswith('GluGluTo'): process = 'gg_fusion'
+                else: process = 'bb_associatedProduction' 
+            
             #==========================================================
             # few signals only needed
             # FIXME I just need this to get some work done to be removed later on 
-            #if not any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
-            #    continue
+            if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
+                if not 'MH_500p00_MA_200p00' in smpNm:
+                    continue
             #if not any( x in smpNm for x in ['125p00', '100p00', '200p00', '300p00', '400p00', '500p00', '600p00', '700p00', '800p00', '900p00', '1000p00']):
             #    continue
             ## if you are still blinded , do not waste time here !!
-            #if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
-            #    continue
+            if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
+                continue
             ##==========================================================
             
             print( f'==='*40) 
@@ -746,20 +753,14 @@ if __name__ == "__main__":
                 if '__' in key.GetName(): isSys=True
                 if not args.sys and isSys: 
                     continue
-                
-                if 'gg_fusion' in key.GetName(): process = 'gg_fusion'
-                else: process = 'bb_associatedProduction' 
-              
+               
                 if args.rebin=='bayesian':
                     # after all conditions above , now the binning template 
                     # need to be found for these histogram ( taken from json file)
                     if not any( key.GetName().startswith(x) for x in data['histograms'].keys()): 
                         continue
                 
-                mass   = key.GetName().split(process+'_')[-1].split('__')[0]
-                sig    = mass.replace('MH_', 'MH-').replace('MA_', 'MA-')
-                histNm, params = optimizer.get_histNm_orig(args.mode, key.GetName(), mass, info=True)
-                
+                histNm, params = optimizer.get_histNm_orig(args.mode, key.GetName(), mass=None, info=True)
                 hist = inFile.Get(key.GetName())
                 if not (hist and hist.InheritsFrom("TH1")):
                     continue

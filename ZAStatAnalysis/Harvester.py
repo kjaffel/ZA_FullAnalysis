@@ -507,8 +507,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
     
-    reco_cat = flav_categories[0].split('_')[0] +'_' + flav_categories[0].split('_')[1]
-    if reco_cat.startswith('gg'): tb =1.5 
+    if signal_process.startswith('gg'): tb =1.5 
     else: tb =20.
 
     if not os.path.exists(os.path.dirname(output_filename)):
@@ -570,15 +569,19 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # contains at least one histogram (the nominal histogram), and possibly more, two per systematic (up & down variation)
     histogram_names_per_cat = {}
     for cat in flav_categories:
-        flavor   = cat.split('_')[-1]
-        reg      = cat.split('_')[-2]
+        flavor   = cat.split('_')[4]
+        reg      = cat.split('_')[3]
+        reco     = cat.split('_')[2]
         prod     = cat.split('_')[0] +'_' + cat.split('_')[1]
-        taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
         
+        taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
+        #FIXME next iteration of plots in Bamboo
+        fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
+
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
-            histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, prod=prod)
+            histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
             if type(category) is tuple:
                 hash.update(category[0])
             else:

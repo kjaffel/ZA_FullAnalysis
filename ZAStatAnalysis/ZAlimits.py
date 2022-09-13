@@ -126,17 +126,17 @@ catagories = OrderedDict({
     # means that that process left to float freely in the fit or freezed to a certain value
     'freezed_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
     'freezed_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
-    'freezed_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
-    'freezed_r_ggH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    'freezed_r_ggH_boosted'          :[['OSSF'], 'bbH', 'boosted' ],
     'freezed_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
+    'freezed_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
     'freezed_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
-    ## combination 3
-    #'profiled_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
-    #'profiled_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
-    #'profiled_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
-    #'profiled_r_ggH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
-    #'profiled_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
-    #'profiled_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
+    ### combination 3
+    'profiled_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
+    'profiled_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
+    'profiled_r_ggH_boosted'          :[['OSSF'], 'bbH', 'boosted' ],
+    'profiled_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
+    'profiled_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
+    'profiled_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
     })
 
 
@@ -838,7 +838,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                                         lw=1.5, 
                                         label="Expected 95% upper limits")[0]
                 
-                ax.annotate(r' ${}$= {} GeV (x $10^{{}}$)'.format(m_fix, m, poww), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]), fontsize=8,
+                ax.annotate(r' $%s$= %s GeV (x $10^{%s}$)'%(m_fix, m, poww), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]), fontsize=8,
                             arrowprops=dict(arrowstyle="->",facecolor='w', connectionstyle="arc3"), horizontalalignment='left')
                 
                 # And observed
@@ -876,7 +876,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                 ax.set_ylim(**axes_y_limits[options.scan])
             else:
                 ax.set_yscale('log')
-                ax.set_ylim(10e-3, 10e17)
+                ax.set_ylim(10e-3, 10e21)
             
             ax.margins(0.1, 0.1)
             ax.set_xlim(**axes_x_limits[options.scan])
@@ -925,7 +925,7 @@ if __name__ == '__main__':
     
     # bad binning
     #signal_grid.remove((609.21, 417.76))
-    #signal_grid.remove((500., 400.))
+    signal_grid.remove((500., 400.))
     #signal_grid.remove((609.21, 505.93))
     
     massTofix_list = []
