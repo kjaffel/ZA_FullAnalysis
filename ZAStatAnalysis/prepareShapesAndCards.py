@@ -306,8 +306,8 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light) 
 
 
-def CreateScriptToRunCombine(output, method, mode, era):
-    output = os.path.join(output, H.get_method_group(method), mode)
+def CreateScriptToRunCombine(output, method, mode, tanbeta, era):
+    output = os.path.join(output, H.get_method_group(method), mode, 'tanbeta_%s'%tanbeta)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
 for script in $scripts; do
@@ -342,7 +342,7 @@ done
 
 
 
-def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards= False, merge_ggH_bbH=False, scale= False, normalize= False, submit_to_slurm= False):
+def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards= False, _2POIs_r=False, scale= False, normalize= False, submit_to_slurm= False):
     
     luminosity  = Constants.getLuminosity(era)
     
@@ -424,9 +424,10 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                                                         output                 = output, 
                                                         luminosity             = luminosity, 
                                                         scalefactors           = scalefactors,
+                                                        tanbeta                = tanbeta, 
                                                         scale                  = scale, 
                                                         merge_cards            = merge_cards, 
-                                                        merge_ggH_bbH          = merge_ggH_bbH, 
+                                                        _2POIs_r               = _2POIs_r, 
                                                         unblind                = unblind, 
                                                         signal_strength        = signal_strength, 
                                                         stat_only              = stat_only, 
@@ -442,7 +443,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
         
         CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, prod=prod, reg=None, skip=None, unblind=unblind, todo='res_boo')
 
-    if method == 'asymptotic':
+    if method == 'asymptotic' and _2POIs_r:
         CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, prod=None, reg=None, skip=NotIn2Prod, unblind=unblind, todo='ggH_bbH')
         
     # Add mc stat. 
@@ -450,11 +451,11 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
         Constants.add_autoMCStats(datacard)
 
     # Create helper script to run combine
-    CreateScriptToRunCombine(output, method, mode, era)
+    CreateScriptToRunCombine(output, method, mode, tanbeta, era)
 
 
 
-def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, scale=False, merge_cards=False, merge_ggH_bbH=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
+def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, tanbeta, scale=False, merge_cards=False, _2POIs_r=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, verbose=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -516,14 +517,15 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
 
         formatted_p = format_parameters(p)
         
-        # if merge_ggH_bbH:
-        #      histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
-        #                                      '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
-        #                                      '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
-        #                                      ]
-        histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
-                                         '^{}{}To2L2B_M{}_{}_M{}_{}*'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
+        if _2POIs_r: # if so, you should not merge the signals 
+            histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
+                                             '^{}{}To2L2B_M{}_{}_M{}_{}*'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                             ]
+        #else:
+        #   histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
+        #                                    '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
+        #                                    '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
+        #]
 
         if mode == "dnn":
            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
@@ -567,7 +569,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                                       flav_categories     = flav_categories,
                                       era                 = era, 
                                       scalefactors        = scalefactors,
-                                      merge_ggH_bbH       = merge_ggH_bbH,
+                                      tanbeta             = tanbeta, 
+                                      _2POIs_r            = _2POIs_r,
                                       unblind             = unblind,
                                       normalize           = normalize)
     
@@ -669,7 +672,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #    bbb.AddBinByBin(bkgs, cb)
 
         output_prefix  = '{}To2L2B'.format(thdm)
-        output_dir     = os.path.join(output, H.get_method_group(method), mode, 'M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light))
+        output_dir     = os.path.join(output, H.get_method_group(method), mode, 'tanbeta_%s'%tanbeta, 'M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
@@ -1068,7 +1071,9 @@ if __name__ == '__main__':
                                                 help='slurm submission for long pull and impacts jobs')
     parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
                                                 help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_genEvts')
-     
+    parser.add_argument('--tanbeta',            action='store', type=float, required='--normalize' in sys.argv,
+                                                help='tanbeta value needed for BR and theory cross-section during the normalisation\n'
+                                                     'This is required so both signal are normalised using one value during the card combination\n')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required='--unblind' not in sys.argv, default=None,                             
                                                 help='if asimov:\n'
                                                         '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
@@ -1136,7 +1141,7 @@ if __name__ == '__main__':
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
-            CreateScriptToRunCombine(options.output, options.method, options.mode, options.era)
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era)
 
         else:
             scalefactors  = H.get_normalisationScale(options.input, options.method, options.era)
@@ -1156,12 +1161,13 @@ if __name__ == '__main__':
                                 method             = options.method, 
                                 node               = options.node, 
                                 scalefactors       = scalefactors,
+                                tanbeta            = options.tanbeta,
                                 unblind            = options.unblind, 
                                 signal_strength    = options.signal_strength, 
                                 stat_only          = options.stat_only, 
                                 verbose            = options.verbose, 
-                                merge_cards        = True, 
-                                merge_ggH_bbH      = False, 
+                                merge_cards        = True, # will do all lepton flavour combination of ee+mumu+mue / also resolved+boosted / also nb2+nb3 
+                                _2POIs_r           = True, # r_ggH , r_bbH or just 1 POI r
                                 scale              = options.scale, 
-                                normalize          = options.normalize, 
+                                normalize          = options.normalize,
                                 submit_to_slurm    = options.submit_to_slurm)

@@ -494,7 +494,7 @@ def get_massParameters(smp):
     return m_heavy, m_light, process
 
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, merge_ggH_bbH=False, unblind=False, normalize=False):
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, tanbeta, _2POIs_r=False, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -507,9 +507,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
     
-    if signal_process.startswith('gg'): tb =1.5 
-    else: tb =20.
-
     if not os.path.exists(os.path.dirname(output_filename)):
         os.makedirs(os.path.dirname(output_filename))
 
@@ -659,25 +656,25 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             if smp.startswith('__skeleton__'):
                 continue
             
-            era_    = ConfigurationEra(smp)
-            lumi    = scalefactors['files'][smp]['lumi']
-            _t      = scalefactors['files'][smp]['type'] 
-            
-            smpScale = 1
-            if _t =='signal':
-                sumW = scalefactors['files'][smp]['generated-events']
+            if normalize:
+                era_    = ConfigurationEra(smp)
+                lumi    = scalefactors['files'][smp]['lumi']
+                _t      = scalefactors['files'][smp]['type'] 
                 
-                # make sure that you are using 1 single tb with the corresponding xsc and BR
-                #xsc = scalefactors['files'][smp]['cross-section']
-                #br  = scalefactors['files'][smp]['branching-ratio']
-                m_heavy, m_light, proc_ = get_massParameters(smpNm)
-                xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc_, thdm, tb)
-                smpScale = (xsc*lumi*br)/sumW
-            
-            elif _t == 'mc':
-                sumW = scalefactors['files'][smp]['generated-events']
-                xsc  = scalefactors['files'][smp]['cross-section']
-                smpScale = (xsc*lumi)/sumW
+                if _t =='signal':
+                    # make sure that you are using 1 single tb with the corresponding xsc and BR
+                    #xsc = scalefactors['files'][smp]['cross-section']
+                    #br  = scalefactors['files'][smp]['branching-ratio']
+                    sumW = scalefactors['files'][smp]['generated-events']
+                    
+                    m_heavy, m_light, proc_ = get_massParameters(smpNm)
+                    xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc_, thdm, tanbeta)
+                    smpScale = (xsc*lumi*br)/sumW
+                
+                elif _t == 'mc':
+                    sumW = scalefactors['files'][smp]['generated-events']
+                    xsc  = scalefactors['files'][smp]['cross-section']
+                    smpScale = (xsc*lumi)/sumW
 
             # Build a dict key name -> key for faster access
             keys = {}
