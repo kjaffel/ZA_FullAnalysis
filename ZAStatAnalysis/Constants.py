@@ -51,6 +51,11 @@ def mass_to_str(m):
     m = '%.2f' % (float(m))
     return str(m).replace('.', 'p')
 
+def cat_to_tuplemass(c):
+    m0 = float(c.split('_')[2])
+    m1 = float(c.split('_')[4]) 
+    return (m0, m1)
+
 def loadSushiInfos(len_, fileName):
     in_dtypes = [
             ("DatasetName",  'U%s'%len_),

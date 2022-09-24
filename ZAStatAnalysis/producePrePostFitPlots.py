@@ -19,8 +19,8 @@ def CopyTH1F_to_TH1D(hist):
     return copyHist
 
 
-def reshapePrePostFitHistograms(workdir, mode):
-    for rf in  glob.glob(os.path.join(workdir, 'fit', mode, '*', 'plotIt_*', '*.root')):
+def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
+    for rf in  glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', '*.root')):
         cat    = rf.split('/')[-2]
         smp    = rf.split('/')[-1]
         p_out  = rf.split(smp)[0]
@@ -28,9 +28,6 @@ def reshapePrePostFitHistograms(workdir, mode):
         outdir = os.path.join(p_out, 'reshaped')
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        #else:
-        #    logger.warning( f'dir not empty, please rm if you want to pick up any changes: {outdir}' )  
-        #    break
 
         if smp == 'plots.root':
             continue
@@ -181,36 +178,51 @@ def EventsYields(mH, mA, workdir, mode, unblind):
         f.write(R'\end{tabular}' + '\n')
 
 
-def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
+def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_dir='2POIs_r', tb_dir=''):
 
-        base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
-        re   = 'reshaped' if reshape else ''
+        base     = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
+        re       = 'reshaped' if reshape else ''
         lumi     = Constants.getLuminosity(era)
         hist_nm  = Constants.get_Nm_for_runmode( mode)
         lumi     = ("%.2f" %lumi).replace('.00', '.')
         
         xmax_dict= {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
-
-        plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode,'*/', 'plotIt_*', re))
+        channels = {
+                    'ElEl'     : 'ee',
+                    'MuMu'     : r'$\mu\mu$',
+                    'MuEl'     : r'$\mu e$',
+                    'MuMu_ElEl': r'$\mu\mu$ + ee',
+                    'OSSF'     : r'$\mu\mu$ + ee',
+                    'ElEl_MuEl':  'ee + r$\mu e$',
+                    'MuMu_MuEl': r'$\mu\mu$ + $\mu e$',
+                    'OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
+                    'MuMu_ElEl_MuEl': r'($\mu\mu$ + ee) + $\mu e$',
+                    }
+        
+        plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', re))
         for fit in ['prefit', 'postfit']:
             for cat_path in plotit_histos:
                 
                 split_path = cat_path.split('/')
                 if '' in split_path: split_path.remove('')
                 
+                if any(x in split_path for x in ['MuMu_ElEl', 'MuMu_MuEl', 'ElEl_MuEl', 'OSSF_MuEl', 'MuMu_ElEl_MuEl']):
+                    continue # this is need to be taken care here convertPrePostfitShapesForPlotIt.py TODO
                 if reshape: p_out = split_path[-2]
                 else: p_out = split_path[-1]
                
                 output = cat_path.split()[-1]
-                
                 os.chdir(os.path.join(base, cat_path.split(output)[0]))
                 os.getcwd()
 
-                process    = 'ggH' if 'gg_fusion' in p_out else 'bbH'
+                prod       = p_out.split('_')[1] +'_'+p_out.split('_')[2]
+                flavor     = channels[p_out.split('_')[5]]
+                region     = p_out.split('_')[4]
+                reco       = p_out.split('_')[3]
                 params     = cat_path.split('/')[-3].split('_')
-                
                 heavy      = params[0].split('-')[0].replace('M', '')
                 light      = params[1].split('-')[0].replace('M', '')
+                process    = 'gg%s'%heavy if 'gg_fusion' in p_out else 'bb%s'%heavy
                 m_heavy    = '%.2f'%float(params[0].split('-')[1])
                 m_light    = '%.2f'%float(params[1].split('-')[1])
                 m_heavy    = m_heavy.replace('.00', '')
@@ -218,16 +230,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
                 x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode} (GeV)'
                 x_max      = xmax_dict[mode]
                 signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
-                flavor     = 'ee' if 'ElEl' in p_out else (r'$\mu\mu$' if 'MuMu' in p_out else( r'$\mu e$' if 'MuEl' in p_out  else (r'$\mu\mu +ee$')))
-                region     = 'resolved' if 'resolved' in p_out else 'boosted'
-                cats       = {'ggH': {
-                                 'resolved': 'nb=2, resolved',
-                                 'boosted' : 'nb=2, boosted'},
-                              'bbH': {
-                                  'resolved': 'nb=3, resolved',
-                                  'boosted' : 'nb=3, boosted'}
-                              }
-
+                
                 with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                     with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
                         for line in inf:
@@ -248,13 +251,13 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False):
                             elif '    legend: mysignal' in line:
                                 outf.write(f"    legend: '{signal_smp}'\n")
                             elif '      text: mychannel' in line:
-                                outf.write(f"      text: {cats[process][region]}, {flavor}\n")
+                                outf.write(f"      text: {reco}-{region}, {flavor}\n")
                             elif '  histo-name:' in line:
                                 outf.write(f"  {hist_nm}_{fit}:\n")
                             elif '    - x_max' in line:
                                 outf.write(f"    - {x_max}\n")
                             #elif 'Label1' in line:
-                            #    outf.write("        - {text: '%s', position: [0.22, 0.895], size: 20}\n"%cats[process][region])
+                            #    outf.write("        - {text: '%s -%s', position: [0.22, 0.895], size: 20}\n"%(reco, region))
                             #elif 'Lable2' in line:
                             #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
                             else:
@@ -287,7 +290,7 @@ if __name__ == '__main__':
     options = parser.parse_args()
     
     if options.reshape: # needed only for dnn mode 
-        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode)
+        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
     
-    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape)
+    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape, poi_dir='2POIs_r', tb_dir='')
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

@@ -13,18 +13,22 @@ parser = argparse.ArgumentParser(description='Draw 2D mass scan')
 parser.add_argument('-p', '--jsonpath', action='store', type=str, required=True, 
         help='JSON file containing the limits for all the points (Combined channel)')
 parser.add_argument('--unblind', action='store_true', default=False, help='If set, draw also observed upper limits')
-parser.add_argument('--era', type=str, default=False, required=True, help='data taking of the given limits')
+parser.add_argument('--prod', type=str, default='ggH', choices=['ggH', 'bbH'], help='production mode gg-fusion or bb-associated production')
+parser.add_argument('--era', type=str, required=True, help='data taking of the given limits')
+parser.add_argument('--tb', type=str, required=True, help='tan beta')
+
 
 options = parser.parse_args()
+
 output_dir = options.jsonpath
 plot_dir   = os.path.join(output_dir, 'paper_2D_mH_mA')
 if not os.path.isdir(plot_dir):
     os.makedirs(plot_dir)
 
 plots = [
-    #'theory',
+    'theory',
     'expected',
-    #'expected_over_theory'
+    'expected_over_theory'
     ]
 catagories ={
     'ggH_resolved' : ['MuMu_ElEl'],  
@@ -33,7 +37,7 @@ catagories ={
     'bbH_boosted'  : ['OSSF'],
     }
 
-interplolate = True
+Interpolate = True
 color  = ROOT.kLake
 #color = ROOT.kRainBow
 #color = ROOT.kAurora
@@ -42,9 +46,13 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetPalette(color)
 ROOT.TColor.InvertPalette()
 
+
+jsF = 'data/sigmaBR_HZA_type-2_tb-1p5_cba-0p01_fromAlessia.json'
+jsF = 'data/sigmaBR_HZA_type-2_tb-1p5_cba-0p01_mirroring.json'
+jsF = 'data/sigmaBR_{}_HZA_type-2_MH_MA_tb-{}_cba-0.01.json'.format(options.prod, options.tb)
+
 theory = {}
-with open('data/sigmaBR_HZA_type-2_tb-1p5_cba-0p01_fromAlessia.json') as f:
-#with open('data/sigmaBR_HZA_type-2_tb-1p5_cba-0p01_mirroring.json') as f:
+with open(jsF) as f:
     theory = json.load(f)
 
 
@@ -81,37 +89,40 @@ for plot in plots:
         c = ROOT.TCanvas("c", "c", 800, 600)
         theory_hist.Draw("COLZ")
         
-        c.SaveAs('paper_2D_mH_mA/' + plot + '_limits.png')
-        c.SaveAs('paper_2D_mH_mA/' + plot + '_limits.pdf')
+        c.SaveAs('{}/{}_limits.png'.format(plot_dir, plot))
+        c.SaveAs('{}/{}_limits.pdf'.format(plot_dir, plot))
         del c
-        theory_hist.SaveAs('paper_2D_mH_mA/' + plot + '_limits.root')
+        theory_hist.SaveAs('{}/{}_limits.root'.format(plot_dir, plot))
     
     else:
         for cat, flavors in catagories.items():
-            process = "gg-fusion" if "ggH" in cat else "b-associated production"
+
             for flav in flavors:
-                json_f = os.path.join(options.jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era))
-                if not os.path.isfile(json_f):
+                jsF = os.path.join(options.jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era))
+                jsFname = jsF.split('/')[-1].replace('.json', '') 
+                
+                process = "gg-fusion" if "ggH" in jsFname else "b-associated production"
+                tb      = '1.5' if 'ggH' in jsFname else '20.'
+                
+                if not os.path.isfile(jsF):
                     continue
-                with open(json_f) as f:
+                
+                with open(jsF) as f:
                     all_limits = json.load(f)
     
                 print ('working on %s plot :: this may take some time' % plot)
                 cc  = ROOT.TCanvas("cc", "cc", 800,800)
                 leg = ROOT.TLegend(0.63,0.76,0.85,0.88)
                 
-
                 #Open theory histo already created in theory step
                 if plot == 'expected_over_theory':
                     f_th = ROOT.TFile('{}/theory_limits.root'.format(plot_dir))
-                    #f_th.Print()
                     theory_hist = f_th.Get("theory")
                     print (theory_hist.GetEntries())
 
                 #get expected and observed histograms
                 exp_graph = ROOT.TGraph2D()
-                title     = "2HDM-II tan#beta=1.5, cos(#beta-#alpha)=0.01"
-                exp_hist  = ROOT.TH2D("exp",title,1000,0,1000,1000,0,1000)
+                exp_hist  = ROOT.TH2D("exp","",1000,0,1000,1000,0,1000)
                 
                 if options.unblind: 
                     obs_graph = ROOT.TGraph2D()
@@ -160,7 +171,7 @@ for plot in plots:
                     if options.unblind:
                         obs_graph.SetPoint(i, float(x[i]), float(y[i]), float(z_obs[i]))
                 
-                if interplolate:
+                if Interpolate:
                     for bin_x in range(1,1001):
                         for bin_y in range(1,1001):
                             exp_hist.SetBinContent(exp_hist.FindBin(bin_x,bin_y), exp_graph.Interpolate(bin_x,bin_y))
@@ -230,40 +241,53 @@ for plot in plots:
                     obs_hist.SetContour(1,contours);
                 
                 exp_hist.Draw("cont3 same");
-                exp_hist.SetLineColor(ROOT.kBlack)
-                exp_hist.SetLineStyle(1)  # 3 dash-dot
-                exp_hist.SetLineWidth(3)
+                exp_hist.SetLineColor(ROOT.kRed)
+                exp_hist.SetLineStyle(3)  # 3 dash-dot
+                exp_hist.SetLineWidth(2)
 
                 if options.unblind:
                     obs_hist.Draw("cont3 same");
                     obs_hist.SetLineColor(ROOT.kRed)
                     obs_hist.SetLineStyle(1)  # 1 solid
+                    obs_hist.SetLineWidth(2)
        
                 leg.SetLineWidth(1) 
                 leg.SetLineColor(2)
                 leg.SetFillColor(ROOT.kWhite)
                 leg.SetFillStyle(0)
                 leg.SetBorderSize(0)
-                leg.AddEntry(exp_hist,"95% Expected upper limit" +"\n"+"{}".format(process),"lp")
+                
+                leg = ROOT.TLegend(0.7,0.89,0.6,0.8)
+                leg.SetTextSize(0.025)
+                leg.SetBorderSize(0)
+                leg.SetFillStyle(0)
+                leg.SetHeader("#splitline{#it{2HDM-II, tan#beta= %s, cos(#beta-#alpha) = 0.01}}{%s, #it{H #rightarrow ZA #rightarrow llbb}}"%(tb, process),"C")
+                leg.AddEntry(exp_hist,"Expected upper limits","lp")
+                
                 if options.unblind:
                     leg.AddEntry(obs_hist,"Obs. excluded","l")
                 leg.Draw("same")
+                
                 if (ROOT.gPad):
                     ROOT.gPad.SetLeftMargin(0.12)
                     ROOT.gPad.SetRightMargin(0.135)
                     #ROOT.gPad.SetBottomMargin(0.15)
 
-                #syst_text = ROOT.TLatex(0.13, 0.96, "CMS Preliminary")
-                #syst_text.SetNDC(True)
-                #syst_text.SetTextFont(40)
-                #syst_text.SetTextSize(0.03)
-                #syst_text.Draw("same")
+                t = cc.GetTopMargin()
+                r = cc.GetRightMargin()
+                l = cc.GetLeftMargin()
+                lumiTextOffset   = 0.2
 
-                #lumi = ROOT.TLatex(0.6, 0.96, "%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(options.era)/1000.,'.2f'))
-                #lumi.SetNDC(True)
-                #syst_text.SetTextFont(40)
-                #lumi.SetTextSize(0.03)
-                #lumi.Draw("same")
+                syst_text = ROOT.TLatex(0.13, 1-t+lumiTextOffset*t, "CMS Simulation")
+                syst_text.SetNDC(True)
+                syst_text.SetTextFont(40)
+                syst_text.SetTextSize(0.03)
+                syst_text.Draw("same")
+
+                lumi = ROOT.TLatex(0.6, 1-t+lumiTextOffset*t, "%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(options.era)/1000.,'.2f'))
+                lumi.SetNDC(True)
+                lumi.SetTextSize(0.03)
+                lumi.Draw("same")
 
                 #cc.Update();
                 #palette = exp_hist.GetListOfFunctions().FindObject("palette")
@@ -276,8 +300,8 @@ for plot in plots:
 
                 if options.unblind:
                     plot +='_observed'
-                cc.SaveAs('{}/{}_limits_2d_mH_mA_{}_{}_{}.png'.format(plot_dir, plot, cat, flav, options.era))
-                cc.SaveAs('{}/{}_limits_2d_mH_mA_{}_{}_{}.pdf'.format(plot_dir, plot, cat, flav, options.era))
-                
-                #    obs_hist.SaveAs('{}/{}_limits_{}_{}_{}.png'.format(plot_dir, plot, cat, flav, options.era))
+                if Interpolate:
+                    plot += '_interpolate'
+                cc.SaveAs('{}/{}_{}.png'.format(plot_dir, plot, jsFname))
+                cc.SaveAs('{}/{}_{}.pdf'.format(plot_dir, plot, jsFname))
                 del cc

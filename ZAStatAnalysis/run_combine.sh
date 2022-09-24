@@ -5,14 +5,17 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2017'                     
+era='2016'                     
 #choices: '2016' , '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='asymptotic'
-#choices:
+do_what='pvalue'
+#choices: 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
+
+_2POIs_r=true 
+# if this false  r_ggH +r_bbH will be combined, so you need to give a tb value
 
 tanbeta=1.5
 #choices: any value you want
@@ -20,7 +23,7 @@ tanbeta=1.5
 # data/sushi1.7.0-xsc_tanbeta-20.0_2hdm-type2.yml
 
 bambooDir='ul_run2__ver19/results/'
-stageOut='ul__combinedlimits/going_for_preapproval/'
+stageOut='ul__combinedlimits/going_for_preapproval/__ver2/'
 
 #================ DO NOT CHANGE =============================
 #============================================================
@@ -76,15 +79,11 @@ outDir=$inDir
 #inDir='ul__combinedlimits/preapproval__17/'$workDir
 #outDir='ul__combinedlimits/preapproval__17/'$workDir
 
-
 #./prepareShapesAndCards.py --era $era -i $bambooDir  -o $outDir/unblind --mode $mode --method fit --expectSignal 1 --unblind --normalize
 #./run_combined_${mode}_fitprepost.sh
 
 #./prepareShapesAndCards.py --era $era -i $bambooDir  -o $outDir/unblind --mode $mode --method impacts --unblind --normalize
 #./run_combined_${mode}_impactspulls.sh
-
-#./prepareShapesAndCards.py --era $era -i $bambooDir  -o $outDir/unblind  --mode $mode --method goodness_of_fit --unblind --normalize
-#./run_combined_${mode}_goodness_of_fit.sh
 
 #./prepareShapesAndCards.py --era $era -i $bambooDir -o $outDir/uniform  --mode $mode --method asymptotic --expectSignal 0 --unblind --normalize
 #./run_combined_${mode}_asymptoticlimits.sh
@@ -99,8 +98,8 @@ outDir=$inDir
 # generate toys data only 
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
-    ./prepareShapesAndCards.py --era fullrun2 -i $bambooDir -o $outDir --dataset toys --mode $mode --method generatetoys --expectSignal 0 --normalize --stat
-    ./run_combined_${mode}_generatetoys.sh
+    ./prepareShapesAndCards.py --era fullrun2 -i $bambooDir -o $stageOut/work__ULfullrun2 --dataset toys --mode $mode --method generatetoys --expectSignal 0 --normalize --stat --slurm --_2POIs_r
+    ./run_combined_${mode}_generatetoys_onSlurm.sh
 fi
 
 #=============================================
@@ -115,8 +114,8 @@ fi
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --dataset asimov --mode $mode --method fit --expectSignal 1 --normalize
-    ./run_combined_${mode}_fitprepost.sh
+    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --dataset asimov --mode $mode --method fit --expectSignal 1 --normalize --_2POIs_r
+    #./run_combined_${mode}_fitprepost.sh
 
     #python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
     #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode
@@ -135,11 +134,15 @@ fi
 # CLs ( --expectSignal 1 )/Clsplusb (--expectSignal 0) limits 
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --dataset asimov --mode $mode --method asymptotic --expectSignal 0 --normalize --tanbeta $tanbeta
-    ./run_combined_${mode}_asymptoticlimits.sh
+    if $_2POIs_r; then
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --dataset asimov --mode $mode --method asymptotic --expectSignal 0 --normalize --_2POIs_r --slurm 
+    else 
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --dataset asimov --mode $mode --method asymptotic --expectSignal 0 --normalize --tanbeta $tanbeta --slurm
+    fi 
+    ./run_combined_${mode}_asymptoticlimits_onSlurm.sh
 
-    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era 
-    #python ZAlimits.py --jsonpath $outDir/$scenario/asymptotic-limits/jsons/$mode/ --log --era $era --rescale-to-za-br #&>logs/limits___$scenario.log
+    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era --_2POIs_r # --tanbeta $tanbeta 
+    #python ZAlimits.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --log --era $era --_2POIs_r # --rescale-to-za-br #&>logs/limits___$scenario.log
 
     #python draw2D_mH_vs_mA_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/jsons/$mode/ --era $era
     #python draw2D_tb_vs_cba_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/jsons/$mode/ --era $era --prod ggH
@@ -149,8 +152,12 @@ fi
 # pvalue/ Significance scan : expecting signal 1
 #============================================================
 if [ "$do_what" = "pvalue" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --dataset asimov --mode $mode --method pvalue --expectSignal 1 --normalize
-    ./run_combined_${mode}_pvalue.sh
+    if $_2POIs_r; then
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --dataset asimov --mode $mode --method pvalue --expectSignal 1 --normalize --_2POIs_r
+    else
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --dataset asimov --mode $mode --method pvalue --expectSignal 1 --normalize --tanbeta $tanbeta
+    fi
+    #./run_combined_${mode}_pvalue.sh
 
     #python collectPvalue.py --inputs $outDir/$scenario/
     #python plotSignificance.py --jsonpath $outDir/$scenario/pvalue-significance/$mode/jsons/ --era $era --scan mA
@@ -160,3 +167,9 @@ if [ "$do_what" = "pvalue" ]; then
 fi
 
 #=============================================================
+# Goodness of fit 
+#============================================================
+if [ "$do_what" = "goodness_of_fit" ]; then
+    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method goodness_of_fit --unblind --normalize
+    ./run_combined_${mode}_goodness_of_fit.sh
+fi 

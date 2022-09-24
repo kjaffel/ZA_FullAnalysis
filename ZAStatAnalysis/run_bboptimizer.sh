@@ -40,15 +40,15 @@
 #==============================================================
 
 era='fullrun2'
-bambooDir='ul_run2__ver19'
-stageOut='ul__combinedlimits/going_for_preapproval/'
+bambooDir='ul_run2__ver19/results/'
+stageOut='ul__combinedlimits/going_for_preapproval/__ver2/'
 
-#==================== DO NOT CHANGE ===========================
-#==============================================================
+#================ DO NOT CHANGE =============================
+#============================================================
 
 workDir='work__UL'${era/20/""}'/'
-outDir='ul__combinedlimits/going_for_preapproval/'$workDir
-
+inDir=$stageOut$workDir
+outDir=$inDir
 
 #================================================================================================================================
 # step1/ [ Template ] run on pseudo data : 

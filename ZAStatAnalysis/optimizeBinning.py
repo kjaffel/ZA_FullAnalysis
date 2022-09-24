@@ -249,6 +249,9 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
            
             if 'signal' in datatype and len( newEdges) <= 2:
                 newEdges = [0.0, 0.74, 0.94, 0.96, 0.98, 1.0]
+            if 'data' in datatype and 'boosted' in pNm:
+                newEdges = newEdges[0:1]+newEdges[3:] 
+            
             # merge last 2 bins: keep me safe from having bins with 0 to few bkg events also this will localize signal in 1 bin
             #newEdges  = newEdges[:-2] 
             
@@ -499,7 +502,7 @@ if __name__ == "__main__":
             # prepare Bayesian_Blocks/or custon binning template 
             if args.toys:
                 # take toys data 
-                inDir  = os.path.join(args.input, f'generatetoys-data/{args.mode}/*')
+                inDir  = os.path.join(args.input, f'generatetoys-data/{args.mode}/2POIs_r/*')
                 inputs = glob.glob(os.path.join(inDir, '*_shapes.root'))
             elif args.asimov:
                 k    = 'data' #'mc' if args.scale else 'data'    # avoid normalisation crap of mc 
@@ -723,16 +726,16 @@ if __name__ == "__main__":
                 else: process = 'bb_associatedProduction' 
             
             #==========================================================
-            # few signals only needed
-            # FIXME I just need this to get some work done to be removed later on 
-            if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
-                if not 'MH_500p00_MA_200p00' in smpNm:
-                    continue
+            # FIXME : I just need this to get some work done to be removed later on 
+            #         few signals only needed
+            #if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
+            #    if not 'MH_500p00_MA_200p00' in smpNm:
+            #        continue
             #if not any( x in smpNm for x in ['125p00', '100p00', '200p00', '300p00', '400p00', '500p00', '600p00', '700p00', '800p00', '900p00', '1000p00']):
             #    continue
-            ## if you are still blinded , do not waste time here !!
-            if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon']):
-                continue
+            ## If you are still blinded , do not waste time here !!
+            #if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
+            #    continue
             ##==========================================================
             
             print( f'==='*40) 

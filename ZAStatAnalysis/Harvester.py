@@ -76,13 +76,13 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         "btagSF_fixWP_deepJetM_light":"CMS_btag_light_%s"%era,
         "btagSF_fixWP_deepJetM_heavy":"CMS_btag_heavy_%s"%era,
         "L1Prefiring": "CMS_L1PreFiring_%s"%era,
-        "unclustEn": "CMS_UnclusteredEn_%s"%era,
+        "unclustEn": "CMS_UnclusteredEn_%s"%era_,        # FIXME RuntimeError: Bogus norm 0.0 for channel ch3_dnn_ggH_nb2_resolved_MuEl, process ggH, systematic CMS_eff_elid_2016-postVFP Up
         'elid_medium':"CMS_eff_elid_%s"%era,
         'lowpt_ele_reco':"CMS_eff_elreco_lowpt_%s"%era,
         'highpt_ele_reco':"CMS_eff_elreco_highpt_%s"%era,
         'muid_medium':"CMS_eff_muid_%s"%era,
         'muiso_tight':"CMS_eff_muiso_%s"%era,
-        'jesHEMIssue': "CMS_HEM_%s"%era,
+        'jesHEMIssue': "CMS_HEM_%s"%era, 
         'HLTZvtx': "CMS_HLTZvtx_%s"%era,
         
         # old naming for old histograms, will be removed  soon 
@@ -292,13 +292,14 @@ def get_normalisationScale(inDir=None, method=None, era=None):
     else:
         yaml_file = os.path.join(plotter_p, 'config_{}.yml'.format(era))
     if os.path.exists(yaml_file):
+        print( 'reading root files configuration from : ', yaml_file)
         with open(yaml_file) as file:
             scalefactors = yaml.safe_load(file)
         return scalefactors
     else:
         yaml_file  = 'data/fullanalysisRunIISummer20UL_18_17_16_nanov9.yml'
         plotit_yml = False
-    
+     
     try:
         with open(yaml_file, 'r') as inf:
             config = yaml.safe_load(inf)
@@ -416,6 +417,13 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
     # this is my first attempt, applying tth dy weights
     if 'DYReWeight' in s:
         return True
+
+    if 'cEff' in s:
+        return True
+    if 'bEff' in s:
+        return True
+    if 'lightEff' in s:
+        return True
     
     # to test the effect of DY weights on signal strength 
     #if 'DYweight_resolved_mjj_ployfit_lowmass7_highmass5' in s:
@@ -502,7 +510,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
       2) Inside each folder, there's a bunch of histogram, one per background and signal hypothesis. 
       The name of the histogram is the name of the background.
     """
-    
+    ToFIX = [] 
     logger.info("Categories                                 : %s"%flav_categories )
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
@@ -532,7 +540,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         for path in paths:
             r = re.compile(path, re.IGNORECASE)
             local_process_files = [f for f in files if r.search(os.path.basename(f))]
-            #print( process, path, local_process_files)
             if len(local_process_files) == 0:
                 logger.warning("Warning: regular expression {} do not match any file".format(path))
                 #continue
@@ -588,7 +595,10 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             histogram_names[category] = [n for n in keys if r.search(n)]
             if len(histogram_names[category]) == 0:
                 print("[{}, {}] Warning: no histogram found matching {}".format(flavor, category, histogram_name))
+                ToFIX.append(category[1])
         histogram_names_per_cat[cat] = histogram_names
+    
+    ToFIX = list( set(ToFIX))
 
     # Extract list of expand histogram name
     systematics_regex = re.compile('__(.*)(up|down)$', re.IGNORECASE)
@@ -626,7 +636,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         if stored_hash and stored_hash.GetTitle() == hash:
             print("File %r already exists and contains all the needed shapes. Skipping file generation." % output_filename)
             systematics = f.Get('systematics')
-            return output_filename, json.loads(systematics.GetTitle())
+            return output_filename, json.loads(systematics.GetTitle()), ToFIX
         else:
             print("File %r already exists but is no longer up-to-date. It'll be regenerated." % output_filename)
 
@@ -655,7 +665,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             smpNm= smp.replace('.root', '') 
             if smp.startswith('__skeleton__'):
                 continue
-            
+
+            smpScale =None
             if normalize:
                 era_    = ConfigurationEra(smp)
                 lumi    = scalefactors['files'][smp]['lumi']
@@ -666,10 +677,22 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     #xsc = scalefactors['files'][smp]['cross-section']
                     #br  = scalefactors['files'][smp]['branching-ratio']
                     sumW = scalefactors['files'][smp]['generated-events']
+                    m_heavy, m_light, proc1 = get_massParameters(smpNm)
                     
-                    m_heavy, m_light, proc_ = get_massParameters(smpNm)
-                    xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc_, thdm, tanbeta)
-                    smpScale = (xsc*lumi*br)/sumW
+                    if tanbeta is None:
+                        tanbeta = 1.5 if proc1.startswith('gg') else 20.
+                    
+                    xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tanbeta)
+                    smpScale = (lumi)/sumW
+                    if _2POIs_r:
+                        if method !='asymptotic':
+                            smpScale *= BR*xsc
+                    else:
+                        heavy = thdm[0]
+                        proc2 = 'gg%s'%heavy if proc1 =='bb%s'%heavy else 'bb%s'%heavy
+                        xsc2, xsc2_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc2, thdm, tanbeta)
+                        factor = xsc/(xsc + xsc2)
+                        smpScale *= factor
                 
                 elif _t == 'mc':
                     sumW = scalefactors['files'][smp]['generated-events']
@@ -712,7 +735,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     shapes_category         = shapes.setdefault(category, {})
                     shapes_category_process = shapes_category.setdefault(process_with_flavor, {})
                 
-
                     # Load nominal shape
                     try:
                         hist = get_hist_from_key(keys, original_histogram_name)
@@ -802,8 +824,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 processes['data_obs_{}'.format(cat)] = {'nominal': fake_data}
 
     for category, processes in shapes.items():
+        if Constants.cat_to_tuplemass(category) in ToFIX:
+            continue
         output_file.mkdir(category).cd()
-        
         for process, systematics_ in processes.items():
             for systematic, histogram in systematics_.items():
                 if process == 'data_obs' and systematic != 'nominal':
@@ -815,5 +838,4 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     output_file.Close()
     
     print("Done. File saved as %r" % output_filename)
-    
-    return output_filename, final_systematics
+    return output_filename, final_systematics, ToFIX

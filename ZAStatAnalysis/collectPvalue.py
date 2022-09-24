@@ -17,16 +17,17 @@ def string_to_mass(s):
     return mH, mA
 
 def getValuesFromFile(file):
+    val = None
     with open(file) as f:
         lines = f.readlines()
     for line in lines:
         if 'Significance:' in line:
-            val = line.split()[-1]
+            val = float(line.split()[-1])
             break
         elif 'p-value of background:' in line:
-            val = line.split()[-1]
+            val = float(line.split()[-1])
             break
-    return float(val)
+    return val
 
 pvalue_significance = defaultdict(dict)
 print("Extracting pvalue_significance...")
@@ -52,6 +53,8 @@ for prod in ['gg_fusion', 'bb_associatedProduction']:
                 else: key += 'significance'
                 
                 point_pvalue_significance = getValuesFromFile(f)
+                if point_pvalue_significance is None:
+                    continue
                 
                 print (" working on -- MH, MA: ", mH, mA , 'flavor:', flavor)
                 #print ("point_pvalue_significance: ", point_pvalue_significance)

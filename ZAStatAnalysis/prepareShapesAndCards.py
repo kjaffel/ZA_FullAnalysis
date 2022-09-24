@@ -32,18 +32,18 @@ H.splitTTbarUncertBinByBin = False
 signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [(500., 200.)],
+            'HToZA': [(750., 610.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(500., 200.)], 
+            'HToZA': [(750., 610.)], 
             'AToZH': [] }
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [(500., 200.)],
+            'HToZA': [(750., 610.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(500., 200.)],
+            'HToZA': [(750., 610.)],
             'AToZH': [] }
         }
     }
@@ -89,7 +89,7 @@ def get_hist_regex(r):
     return '^%s(__.*(up|down))?$' % r
             
 
-def check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco, unblind, what=''):
+def check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco, unblind, what='', submit_to_slurm=False):
     newCmd= ['combineCards.py']
     for i, x in enumerate(cmd):
         if "=" in x :
@@ -114,35 +114,39 @@ def check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, data
         subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
     
     workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-    _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, dataset, unblind)
+    _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, dataset, unblind, submit_to_slurm=submit_to_slurm)
     return 
 
 
-def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, prod, reg=None, skip=None, unblind=False, todo=''):
+def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod, reg=None, skip=None, submit_to_slurm=False, unblind=False, _2POIs_r=False, todo=''):
+    if method in ['fit', 'generatetoys']:
+        return 
     for cat in cats:
         
         output_dir = cat[0]
         output_sig = cat[1]
+        if Constants.cat_to_tuplemass(output_sig) in skip:
+            continue
 
-        for k in ['OSSF', 'OSOF']:
+        for k in ['OSSF', 'OSSF_MuEl']:
             
             if todo == 'nb2_nb3':
+                if not ( cat in proc_combination['nb2_%s'%reg].keys() or cat in proc_combination['nb3_%s'%reg].keys()):
+                    continue
                 cmd = proc_combination['nb2_%s'%reg][cat][k] + proc_combination['nb3_%s'%reg][cat][k]
-                check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco='nb2PLusnb3_%s'%reg, unblind=unblind, what='nb2 & nb3 %s'%reg)
+                check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco='nb2PLusnb3_%s'%reg, unblind=unblind, what='nb2 & nb3 %s'%reg, submit_to_slurm=submit_to_slurm)
 
             elif todo == 'res_boo':
                 if not (cat in proc_combination['nb2_resolved'].keys() or cat in proc_combination['nb2_boosted'].keys()
                         or cat in proc_combination['nb3_resolved'].keys() or cat in proc_combination['nb3_boosted'].keys()
                         ):
                     continue
-                
                 cmd = []
                 for reco in ['nb2_resolved', 'nb2_boosted', 'nb3_resolved', 'nb3_boosted']:
                     cmd += proc_combination[reco][cat][k]
-
-                check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco='nb2PLusnb3_resolved_boosted', unblind=unblind, what='resolved & boosted ( nb2 + nb3)')
+                check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco='nb2PLusnb3_resolved_boosted', unblind=unblind, what='resolved & boosted ( nb2 + nb3)', submit_to_slurm=submit_to_slurm)
             
-            elif todo == 'ggH_bbH':
+            elif todo == 'ggH_bbH' and method =='asymptotic':
                 # this should not happen but in case a signal sample does not exist in both prod mechanisms
                 # no need to continue here
                 if any( x== output_sig for x in skip):
@@ -178,11 +182,13 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     logger.info('merging %s nb2 + nb3 %s ggH & bbH cmd::: %s'%(k, reg, newCmd) )
                     with open( datacard, 'w') as f:
                         subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
+                    
+                    if _2POIs_r and method =='asymptotic':
+                        for poi in ['r_ggH', 'r_bbH']:
+                            workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
+                            MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind, submit_to_slurm)
                 
-                    for poi in ['r_ggH', 'r_bbH']:
-                        workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-                        MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind)
-                               
+                # A full combination of the signal cats, regions, and lepton flavour
                 FinalCmd = ['combineCards.py']
                 for i, x in enumerate(list( set(Tot_proc_reg_combine))):
                     if "=" in x :
@@ -193,22 +199,25 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                         FinalCmd+=[new_ch+'='+Tot_nm]
                 
                 logger.info('merging %s nb2 + nb3 + resolved + boosted ggH & bbH cmd::: %s'%(k, FinalCmd) )
-                
                 suffix        = FinalCmd[1].split(mode)[-1].replace('.dat', '')
                 output_prefix = '%sTo2L2B_gg_fusion_bb_associatedProduction_nb2PLusnb3_resolved_boosted_%s_%s%s'%( thdm, k, mode, suffix)
                 datacard      = os.path.join(output_dir, output_prefix +'.dat')
                 with open( datacard, 'w') as f:
                     subprocess.check_call(FinalCmd, cwd=output_dir, stdout=f)
                 
-                for poi in ['r_ggH', 'r_bbH']:
-                    workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-                    MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind)
+                workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
+                if method =='asymptotic':
+                    for poi in ['r_ggH', 'r_bbH']:
+                        MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind, submit_to_slurm)
+                elif method =='likelihood_fit': #FIXME still WIP
+                    Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit')
+
+    return 
 
 
 
-def _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, dataset, unblind):
+def _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, dataset, unblind, submit_to_slurm):
     script = """#! /bin/bash
-
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
@@ -238,9 +247,58 @@ popd
     
 
 
-def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, poi, unblind):
+def Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, mass, method):
     script = """#! /bin/bash
 
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -P HiggsAnalysis.CombinedLimit.PhysicsModel:floatingXSHiggs --PO modes=ggH,bbH -o {workspace_root}
+fi
+combine {workspace_root} -M MultiDimFit --algo grid --points 2000 --setParameterRanges r_bbH=0,10:r_ggH=0,10 -m {mass} --fastScan
+$CMSSW_BASE/../utils/plotCCC.py 
+popd
+""".format( workspace_root = workspace_file, 
+            datacard       = os.path.basename(datacard), 
+            mass           = mass, 
+            dir            = os.path.dirname(os.path.abspath(datacard))
+            )
+        
+    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
+    print( method, script_file)
+    with open(script_file, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_file)
+    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+                
+
+
+def ChannelCompatibility(workspace_file, datacard, output_prefix, output_dir, mass, method):
+    script = """#! /bin/bash
+
+pushd {dir}
+combine -M ChannelCompatibilityCheck {datacard} -m {mass} -n {name} --verbose 1 --saveFitResult &> {name}.log
+$CMSSW_BASE/../utils/plotCCC.py 
+popd
+""".format( workspace_root = workspace_file, 
+            datacard       = os.path.basename(datacard), 
+            mass           = mass, 
+            name           = output_prefix,
+            dir            = os.path.dirname(os.path.abspath(datacard))
+            )
+    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
+    print( method, script_file)
+    with open(script_file, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_file)
+    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+                
+
+
+def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, poi, unblind, submit_to_slurm):
+    script = """#! /bin/bash
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
@@ -306,8 +364,16 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light) 
 
 
-def CreateScriptToRunCombine(output, method, mode, tanbeta, era):
-    output = os.path.join(output, H.get_method_group(method), mode, 'tanbeta_%s'%tanbeta)
+def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, submit_to_slurm):
+    poi_dir = '1POIs_r'
+    if _2POIs_r:
+        poi_dir = '2POIs_r'
+    
+    tb_dir = ''
+    if tanbeta is not None:
+        tb_dir = 'tanbeta_%s'%tanbeta
+    
+    output = os.path.join(output, H.get_method_group(method), mode, poi_dir, tb_dir)
     script = """#! /bin/bash
 scripts=`find {output} -name "*_{suffix}.sh"`
 for script in $scripts; do
@@ -315,31 +381,33 @@ for script in $scripts; do
     script=$(basename $script)
     echo "\tComputing with ${{script}}"
     pushd $dir &> /dev/null
-    {c}ln -s -d /home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/ .
-    . $script
+    {c1}ln -s -d /home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/ .
+    {c2}. $script
     popd &> /dev/null
 done
-""".format(output=output, suffix='run_%s'%method, c='' if era =='fullrun2' else '#')
+{c3}python Combine4Slurm.py --cards {output}
+""".format(output=output, 
+           suffix='run_%s'%method, 
+           c1=''  if era =='fullrun2' and method != 'generatetoys' else '#',
+           c2='#' if submit_to_slurm  else '',
+           c3=''  if submit_to_slurm  else '#')
    
     print( '\tThe generated script to run limits can be found in : %s/' %output)
-    
     if   method == 'fit': suffix= 'prepost'
     elif method == 'impacts': suffix= 'pulls'
     elif method in ['asymptotic', 'hybridnew']: suffix= 'limits'
     else: suffix= ''
 
     script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
+    if submit_to_slurm:
+        script_name = script_name[:-3]+"_onSlurm.sh"
     with open(script_name, 'w') as f:
         f.write(script)
 
     st = os.stat(script_name)
     os.chmod(script_name, st.st_mode | stat.S_IEXEC)
 
-    if method=="hybridnew":
-        logger.info("All done. You can run everything by executing %r" % ('./' + script_name[:-3]+"_onSlurm.sh"))
-    else:
-        logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
-
+    logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
 def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, unblind= False, signal_strength= False, stat_only= False, verbose= False, merge_cards= False, _2POIs_r=False, scale= False, normalize= False, submit_to_slurm= False):
@@ -369,17 +437,20 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             for reg in ['resolved', 'boosted']:
                 m_heavy, m_light = get_signal_parameters(split_filename)
                 
+                if not (m_heavy, m_light) in grid_data[prod][reg][thdm]:
+                    continue
                 #==============================================================================
                 # FIXME 
                 # here I just need to get some work done, to  be removed later !!
                 #fast_list = [125.]+list(np.arange(100., 1050., 100.))
                 #if not m_heavy in fast_list:
                 #    continue
+                #if (m_heavy, m_light) in [(800., 140.), (200., 125.), (700., 200.), (500., 250.)]: # bugy 
+                #    continue
                 #==============================================================================
-
-                if (m_heavy, m_light) in grid_data[prod][reg][thdm] and not (m_heavy, m_light) in all_parameters[prod][reg]:
+                if not (m_heavy, m_light) in all_parameters[prod][reg]:
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
-    
+   
     NotIn2Prod = []    
     for tup in all_parameters['gg_fusion']['resolved']:
         if not tup in all_parameters['bb_associatedProduction']['resolved']:
@@ -389,13 +460,21 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     logger.info("Input path                                : %s" % input )
     logger.info("Chosen analysis mode                      : %s" % mode)
 
+    if _2POIs_r:
+        productions = ['gg_fusion', 'bb_associatedProduction']
+    else:
+        productions = ['gg_fusion_bb_associatedProduction']
+
     proc_combination = {}
     cats = []
-    for prod in ['gg_fusion', 'bb_associatedProduction']:
+    for prod in productions:
         
         proc_combination[prod] = {}
-        sig_process = prod.split('_')[0]+thdm[0]
-        
+        if _2POIs_r:
+            sig_process = prod.split('_')[0]+thdm[0]
+        else:
+            sig_process = 'gg'+thdm[0]+'PLusbb'+thdm[0]
+
         for reg in ['resolved', 'boosted']:
             for reco in ['nb2', 'nb3']:
                 
@@ -407,7 +486,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 logger.info("Working on %s && %s cat.     :"%(prod, reg) )
                 logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
                 
-                Totflav_cards_allparams = prepareShapes(input                  = input, 
+                Totflav_cards_allparams, ToFIX = prepareShapes(input                  = input, 
                                                         dataset                = dataset, 
                                                         thdm                   = thdm, 
                                                         sig_process            = sig_process, 
@@ -437,21 +516,19 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 
                 proc_combination[prod][reco+'_'+reg] = Totflav_cards_allparams 
                 for x in Totflav_cards_allparams.keys():
-                    if x not in cats: cats.append(x) 
+                    if x not in cats and Constants.cat_to_tuplemass(x[1]) not in ToFIX: cats.append(x) 
             
-            CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, prod=prod, reg=reg, skip=None, unblind=unblind, todo='nb2_nb3')
-        
-        CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, prod=prod, reg=None, skip=None, unblind=unblind, todo='res_boo')
-
-    if method == 'asymptotic' and _2POIs_r:
-        CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, prod=None, reg=None, skip=NotIn2Prod, unblind=unblind, todo='ggH_bbH')
+            CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=reg, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='nb2_nb3')
+        CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=None, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='res_boo')
+    if _2POIs_r:
+        CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod=None, reg=None, skip=NotIn2Prod, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='ggH_bbH')
         
     # Add mc stat. 
     for datacard in glob.glob(os.path.join(output, H.get_method_group(method), mode,'*/', '*.dat')):
         Constants.add_autoMCStats(datacard)
 
     # Create helper script to run combine
-    CreateScriptToRunCombine(output, method, mode, tanbeta, era)
+    CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, submit_to_slurm)
 
 
 
@@ -504,7 +581,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             'WJets'    : ['^WJetsToLNu*'],
             'ttV'      : ['^TT(W|Z)To*'],
             'VV'       : ['^(ZZ|WW|WZ)To*'],
-            #'VVV'     : ['^(ZZZ|WWW|WZZ|WWZ)*'],
+            'VVV'      : ['^ZZZ_*', '^WWW_*', '^WZZ_*', '^WWZ_*'],
             'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL_M-125*', '^ggZH_HToBB_ZToNuNu_M-125*', '^GluGluHToZZTo2L2Q_M125*', '^ttHTobb_M125_*', '^ttHToNonbb_M125_*']
             }
     
@@ -521,19 +598,19 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
                                              '^{}{}To2L2B_M{}_{}_M{}_{}*'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                             ]
-        #else:
-        #   histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
-        #                                    '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
-        #                                    '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
-        #]
+        else:
+            histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process, heavy, m_heavy, light, m_light), p] = [
+                                             '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
+                                             '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
+                                            ]
 
         if mode == "dnn":
            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
                 'DNNOutput_ZAnode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
         elif mode == "mllbb":
-            histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{prod}')
+            histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{fix_reco_format}')
         elif mode == "mbb":
-            histfactory_to_combine_categories[('mbb', p)]   = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mbb_{taggerWP}_{prod}')
+            histfactory_to_combine_categories[('mbb', p)]   = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mbb_{taggerWP}_{fix_reco_format}')
         
         #  !! deprecated 
         #formatted_e = format_ellipse(p, ellipses)
@@ -557,25 +634,26 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         cat = '{}_{}_{}_{}'.format(prod, reco, reg, flavor)
         flav_categories.append(cat)
 
-    file, systematics = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
-                                      categories_map      = histfactory_to_combine_categories, 
-                                      input               = input, 
-                                      output_filename     = os.path.join(output, 'shapes_{}_{}.root'.format(sig_process, reg)), 
-                                      signal_process      = sig_process,
-                                      method              = method, 
-                                      luminosity          = luminosity, 
-                                      mode                = mode,
-                                      thdm                = thdm,
-                                      flav_categories     = flav_categories,
-                                      era                 = era, 
-                                      scalefactors        = scalefactors,
-                                      tanbeta             = tanbeta, 
-                                      _2POIs_r            = _2POIs_r,
-                                      unblind             = unblind,
-                                      normalize           = normalize)
+    file, systematics, ToFIX = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
+                                             categories_map      = histfactory_to_combine_categories, 
+                                             input               = input, 
+                                             output_filename     = os.path.join(output, 'shapes_{}_{}_{}.root'.format(sig_process, reco, reg)), 
+                                             signal_process      = sig_process,
+                                             method              = method, 
+                                             luminosity          = luminosity, 
+                                             mode                = mode,
+                                             thdm                = thdm,
+                                             flav_categories     = flav_categories,
+                                             era                 = era, 
+                                             scalefactors        = scalefactors,
+                                             tanbeta             = tanbeta, 
+                                             _2POIs_r            = _2POIs_r,
+                                             unblind             = unblind,
+                                             normalize           = normalize)
     
     #print ( "\tsystematics : %s       :" %systematics )
-    
+    print( 'params to avoid ::', ToFIX)
+
     processes  = [sig_process] + bkg_processes
     logger.info( "Processes       : %s" %processes)
         
@@ -584,6 +662,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     
     Totflav_cards_allparams = {}
     for i, p in enumerate(parameters):
+        if p in ToFIX:
+            continue
         m_heavy = p[0]
         m_light = p[1]
     
@@ -672,7 +752,16 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #    bbb.AddBinByBin(bkgs, cb)
 
         output_prefix  = '{}To2L2B'.format(thdm)
-        output_dir     = os.path.join(output, H.get_method_group(method), mode, 'tanbeta_%s'%tanbeta, 'M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light))
+        
+        tb_dir = ''
+        if tanbeta is not None:
+            tb_dir = 'tanbeta_%s'%tanbeta
+        
+        poi_dir = '1POIs_r'
+        if _2POIs_r:
+            poi_dir = '2POIs_r'
+        
+        output_dir     = os.path.join(output, H.get_method_group(method), mode, poi_dir, tb_dir, 'M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
@@ -721,8 +810,8 @@ popd
             slurm          = 'srun ' if submit_to_slurm else '', 
             dir            = os.path.dirname(os.path.abspath(datacard)) )
 
-
-            if method == 'pvalue' and ( 'MuMu_ElEl' in flavor or 'OSSF' in flavor):
+            
+            if method == 'pvalue' and any( x in flavor for x in ['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']):
                 create = True
                 script ="""#!/bin/bash -l
 
@@ -785,15 +874,16 @@ popd
             flavor         = flavor, 
             mass           = mass,
             name           = 'sig__toysFreq__{}'.format(output_prefix),
-            slurm          = 'srun ' if submit_to_slurm else '', 
             seed           = random.randrange(100, 1000, 3),
             method         = H.get_combine_method(method), 
             dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')),
-            c              = '' if unblind else '#',
             verbose        = '--verbose 2' if verbose else '',
             dir            = os.path.dirname(os.path.abspath(datacard)),
             expectSignal   = expectSignal, 
-            SLURM_ARRAY_TASK_ID = '${SLURM_ARRAY_TASK_ID}' if submit_to_slurm else '')
+            slurm          = 'srun ' if submit_to_slurm else '', 
+            c              = '' if unblind else '#',
+            SLURM_ARRAY_TASK_ID = '${SLURM_ARRAY_TASK_ID}' if submit_to_slurm else ''
+            )
             
             if method == 'hybridnew':
                 create = True
@@ -822,8 +912,7 @@ popd
             
             elif method == 'asymptotic':
                 create = True
-                script = """#! /bin/bash
-
+                script = """#!/bin/bash
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
@@ -965,7 +1054,6 @@ popd
            mass           = mass, 
            method         = H.get_combine_method(method), 
            dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')) )
-
             
             if create:
                 script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
@@ -1001,7 +1089,7 @@ popd
             for i, cat in enumerate(categories_with_parameters):
                 
                 Totflav_cards_allparams[(output_dir, cat[1])] = {'OSSF': [], 
-                                                                 'OSOF': [] }
+                                                                 'OSSF_MuEl': [] }
                 
                 if prod=='bb_associatedProduction' or reg =='boosted':
                     Totflav_cards_allparams[(output_dir, cat[1])]['OSSF'].append("ch2_{}_{}_{}_{}_OSSF=".format(mode, sig_process, reco, reg) + 
@@ -1010,7 +1098,7 @@ popd
                 for mergeable_flavors in list_mergeable_flavors:
                     if all(x in flavors for x in mergeable_flavors):
                         
-                        if 'MuEl' in mergeable_flavors: k = 'OSOF'
+                        if 'MuEl' in mergeable_flavors: k = 'OSSF_MuEl'
                         else: k = 'OSSF'
 
                         print("Merging {} datacards into a single one for {}".format(mergeable_flavors, cat[1]))
@@ -1028,7 +1116,7 @@ popd
                         
                         createRunCombineScript(cat[1], mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mergeable_flavors))
 
-    return Totflav_cards_allparams
+    return Totflav_cards_allparams, ToFIX
 
 
 
@@ -1057,7 +1145,7 @@ if __name__ == '__main__':
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
     parser.add_argument('--method',             action='store', dest='method', required=True, default=None, 
-                                                choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit'],        
+                                                choices=['asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit', 'likelihood_fit'],        
                                                 help='Analysis method')
     parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
                                                 help='Unblind analysis :: use real data instead of fake pseudo-data')
@@ -1071,7 +1159,9 @@ if __name__ == '__main__':
                                                 help='slurm submission for long pull and impacts jobs')
     parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
                                                 help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_genEvts')
-    parser.add_argument('--tanbeta',            action='store', type=float, required='--normalize' in sys.argv,
+    parser.add_argument('--_2POIs_r',           action='store_true', dest='_2POIs_r', required=False, default=False,                                                  
+                                                help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
+    parser.add_argument('--tanbeta',            action='store', type=float, required=False, default=None, #FIXME'--normalize' in sys.argv,
                                                 help='tanbeta value needed for BR and theory cross-section during the normalisation\n'
                                                      'This is required so both signal are normalised using one value during the card combination\n')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required='--unblind' not in sys.argv, default=None,                             
@@ -1088,44 +1178,56 @@ if __name__ == '__main__':
     
     for thdm in ['HToZA']:#, 'AToZH']:
         
+        heavy = thdm[0]
+        light = thdm[-1]
+        
+        poi_dir = '1POIs_r'
+        if options._2POIs_r:
+            poi_dir = '2POIs_r'
+
+        tb_dir = ''
+        if options.tanbeta is not None:
+            tb_dir = 'tanbeta_%s'%options.tanbeta
+        
         if options.era == "fullrun2" and options.method != "generatetoys":
             to_combine = defaultdict()
-            outDir = os.path.join(options.output, H.get_method_group(options.method), options.mode)
+            outDir = os.path.join(options.output, H.get_method_group(options.method), options.mode, poi_dir, tb_dir)
             
             for prod in ['gg_fusion', 'bb_associatedProduction']:
-                for reg in ['resolved', 'boosted']:
-                    
-                    if prod =='bb_associatedProduction' or reg =='boosted':
-                        flavors = [['OSSF', 'MuEl'], ['OSSF'], ['MuEl']]
-                    else:
-                        flavors = [['MuMu', 'ElEl', 'MuEl'], ['MuMu', 'ElEl'], ['MuMu'], ['ElEl'], ['MuEl']]
-                    
-                    for flav in flavors:
-                        cat = '{}_{}_{}_{}'.format(prod, reg, '_'.join(flav), options.mode)
-                        to_combine[cat] = {}
-                        for j, year in enumerate([16, 17, 18]):
-                            
-                            mPath = os.path.join(outDir.replace('work__ULfullrun2', 'work__UL{}'.format(year)))
-                            for p in glob.glob(os.path.join(mPath, 'M*')):
+                for reco in ['nb2', 'nb3', 'nb2PLusnb3']:
+                    for reg in ['resolved', 'boosted', 'resolved_boosted']:
+                        
+                        if prod =='bb_associatedProduction' or reg =='boosted':
+                            flavors = [['OSSF', 'MuEl'], ['OSSF'], ['MuEl']]
+                        else:
+                            flavors = [['MuMu', 'ElEl', 'MuEl'], ['MuMu', 'ElEl'], ['MuMu'], ['ElEl'], ['MuEl'], ['OSSF'], ['OSOF']]
+                        
+                        for flav in flavors:
+                            cat = '{}_{}_{}_{}_{}'.format(prod, reco, reg, '_'.join(flav), options.mode)
+                            to_combine[cat] = {}
+                            for j, year in enumerate([16, 17, 18]):
                                 
-                                masses = p.split('/')[-1]
-                                cardNm = '{}To2L2B_{}_{}_{}_{}_{}.dat'.format(thdm, prod, reg, '_'.join(flav), options.mode, masses.replace('-','_'))
-                                shNm   = '{}To2L2B_{}_{}_{}_{}_{}_run_{}.sh'.format(thdm, prod, reg, '_'.join(flav), options.mode, masses.replace('-','_'), options.method)
-                                
-                                pOut = p.replace('work__UL{}'.format(year), 'work__ULfullrun2')
-                                if not os.path.isdir(pOut):
-                                    os.makedirs(pOut)
-                                
-                                if not os.path.exists(os.path.join(p, shNm)):
-                                    continue
+                                mPath = os.path.join(outDir.replace('work__ULfullrun2', 'work__UL{}'.format(year)))
+                                for p in glob.glob(os.path.join(mPath, 'M%s-*'%heavy)):
+                                    
+                                    masses = p.split('/')[-1]
+                                    cardNm = '{}To2L2B_{}_{}_{}_{}_{}_{}.dat'.format(thdm, prod, reco, reg, '_'.join(flav), options.mode, masses.replace('-','_'))
+                                    shNm   = '{}To2L2B_{}_{}_{}_{}_{}_{}_run_{}.sh'.format(thdm, prod, reco, reg, '_'.join(flav), options.mode, masses.replace('-','_'), options.method)
+                                    
+                                    pOut = p.replace('work__UL{}'.format(year), 'work__ULfullrun2')
+                                    if not os.path.isdir(pOut):
+                                        os.makedirs(pOut)
+                                    
+                                    if not os.path.exists(os.path.join(p, shNm)):
+                                        continue
 
-                                if j ==0:
-                                    shutil.copy(os.path.join(p, shNm), pOut)
-                                    Constants.overwrite_path(os.path.join(pOut, shNm))
-                                
-                                if not masses in to_combine[cat].keys():
-                                    to_combine[cat][masses]= ['combineCards.py']
-                                to_combine[cat][masses].append('UL{}={}'.format(year, os.path.join(p, cardNm)))
+                                    if j ==0:
+                                        shutil.copy(os.path.join(p, shNm), pOut)
+                                        Constants.overwrite_path(os.path.join(pOut, shNm))
+                                    
+                                    if not masses in to_combine[cat].keys():
+                                        to_combine[cat][masses]= ['combineCards.py']
+                                    to_combine[cat][masses].append('UL{}={}'.format(year, os.path.join(p, cardNm)))
 
             for cat, Cmd_per_mass in to_combine.items():        
                 for m, cmd in to_combine[cat].items():
@@ -1141,7 +1243,7 @@ if __name__ == '__main__':
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
-            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era)
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.submit_to_slurm)
 
         else:
             scalefactors  = H.get_normalisationScale(options.input, options.method, options.era)
@@ -1149,7 +1251,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
             
-            prepare_DataCards(  grid_data          = signal_grid_foTest, 
+            prepare_DataCards(  grid_data          = signal_grid, 
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 
@@ -1167,7 +1269,7 @@ if __name__ == '__main__':
                                 stat_only          = options.stat_only, 
                                 verbose            = options.verbose, 
                                 merge_cards        = True, # will do all lepton flavour combination of ee+mumu+mue / also resolved+boosted / also nb2+nb3 
-                                _2POIs_r           = True, # r_ggH , r_bbH or just 1 POI r
+                                _2POIs_r           = options._2POIs_r, # r_ggH , r_bbH or just 1 POI r
                                 scale              = options.scale, 
                                 normalize          = options.normalize,
                                 submit_to_slurm    = options.submit_to_slurm)

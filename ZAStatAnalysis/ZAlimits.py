@@ -110,33 +110,33 @@ channels = {
     'OSSF_MuEl': '$\mu\mu$ + ee + $\mu e$',
     'MuMu_ElEl_MuEl': '($\mu\mu$ + ee) + $\mu e$',
     }
-nb = { 'ggH': 'nb=2', 
-       'bbH': 'nb=3'
+nb = { 'ggH': '$n_{b}=2+n_{b}=3$', 
+       'bbH': '$n_{b}=2+n_{b}=3$',
     }
 catagories = OrderedDict({
-    'ggH_resolved' : [['MuMu_ElEl'], 'ggH', 'resolved'],
-    'bbH_resolved' : [['OSSF'],      'bbH', 'resolved'],             
-    'ggH_boosted'  : [['OSSF'],      'ggH', 'boosted' ],             
-    'bbH_boosted'  : [['OSSF'],      'bbH', 'boosted' ],   
+    'ggH_nb2PLusnb3_resolved' : [['MuMu_ElEl', 'MuMu_ElEl_MuEl'], 'ggH', 'resolved'],
+    'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'],      'bbH', 'resolved'],             
+    'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],      'ggH', 'boosted' ],             
+    'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],      'bbH', 'boosted' ],   
     # combination 1 reso +boo  
-    'ggH_resolved_boosted': [['OSSF'], 'ggH', 'resolved_boosted'],
-    'bbH_resolved_boosted': [['OSSF'], 'bbH', 'resolved_boosted'],
+    'ggH_nb2PLusnb3_resolved_boosted': [['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
+    'bbH_nb2PLusnb3_resolved_boosted': [['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
     # combination 2 ggH +bbH 
-    # the limits here set on r while _r_bbH or _r_ggH mentionned in the name of the file
+    # the limits here set on the opposite process while _r_bbH or _r_ggH mentionned in the name of the file
     # means that that process left to float freely in the fit or freezed to a certain value
-    'freezed_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
-    'freezed_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
-    'freezed_r_ggH_boosted'          :[['OSSF'], 'bbH', 'boosted' ],
-    'freezed_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
-    'freezed_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
-    'freezed_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
+    'freezed_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', 'boosted' ],
+    'freezed_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved'],
+    'freezed_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', 'boosted' ],
+    'freezed_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved' ],
+    'freezed_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
+    'freezed_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
     ### combination 3
-    'profiled_r_bbH_boosted'          :[['OSSF'], 'ggH', 'boosted' ],
-    'profiled_r_bbH_resolved'         :[['OSSF'], 'ggH', 'resolved'],
-    'profiled_r_ggH_boosted'          :[['OSSF'], 'bbH', 'boosted' ],
-    'profiled_r_ggH_resolved'         :[['OSSF'], 'bbH', 'resolved' ],
-    'profiled_r_bbH_resolved_boosted' :[['OSSF'], 'ggH', 'resolved_boosted'],
-    'profiled_r_ggH_resolved_boosted' :[['OSSF'], 'bbH', 'resolved_boosted'],
+    'profiled_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', 'boosted' ],
+    'profiled_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved'],
+    'profiled_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', 'boosted' ],
+    'profiled_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved' ],
+    'profiled_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
+    'profiled_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
     })
 
 
@@ -387,7 +387,7 @@ def draw_theory(ax, mH, mA, br, label=False):
     return theory_markers
 
 
-def Plot1D_ScanLimits(signal_grid, thdm):
+def Plot1D_ScanLimits(jsonpath, signal_grid, thdm):
     mpl.rcParams['font.size'] = 12
     ToBe_Stacked = {}
     
@@ -409,7 +409,7 @@ def Plot1D_ScanLimits(signal_grid, thdm):
             flavors_limits = {}
             for flav in flavors:
                 limits = flavors_limits.setdefault(flav, {})
-                json_f = os.path.join(options.jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era)) 
+                json_f = os.path.join(jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era)) 
                 
                 if not os.path.isfile(json_f):
                     continue
@@ -909,15 +909,28 @@ if __name__ == '__main__':
     parser.add_argument('--leg-pos' , action='store', type=str, dest='leg_pos', default='left', choices=['left', 'right'], help='Legend position')
     parser.add_argument('--scan'    , action='store', type=str, dest='scan', default='mA', choices=['mA', 'mH'], 
                                         help='Parameter being scanned in the x axis wihle the other is fixed for a certain value')
-    
+    parser.add_argument('--tanbeta', action='store', type=float, default=None, required=False, help='')
+    parser.add_argument('--_2POIs_r', action='store_true', dest='_2POIs_r', required=False, default=False,
+                                        help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
+
     options = parser.parse_args()
     
-    output_dir = options.jsonpath
+    
+    tb_dir = ''
+    if options.tanbeta is not None:
+        tb_dir = 'tanbeta_{}'.format(options.tanbeta)
+
+    poi_dir = '1POIs_r'
+    if options._2POIs_r:
+        poi_dir = '2POIs_r'
+
+
+    jsonpath   = os.path.join(options.jsonpath, poi_dir, tb_dir) 
+    output_dir = jsonpath
     m_fix = 'm_{H}' if options.scan =='mA' else 'm_{A}'
     
-    
     signal_grid = []
-    for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0],'dnn', '*')):
+    for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0], poi_dir, tb_dir, '*')):
         dir_ = dir_p.split('/')[-1]
         m0   = float(dir_.split('_')[0].split('-')[1])
         m1   = float(dir_.split('_')[1].split('-')[1])
@@ -925,7 +938,7 @@ if __name__ == '__main__':
     
     # bad binning
     #signal_grid.remove((609.21, 417.76))
-    signal_grid.remove((500., 400.))
+    #signal_grid.remove((500., 400.))
     #signal_grid.remove((609.21, 505.93))
     
     massTofix_list = []
@@ -953,7 +966,7 @@ if __name__ == '__main__':
     
     for thdm in ['HToZA']:#, 'AToZH']:
         #for (m0, m1) in signal_grid:
-        #    PlotMultipleUpperLimits(m0, m1, catagories, options.jsonpath, thdm)
+        #    PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm)
     
-        ToBe_Stacked = Plot1D_ScanLimits(available_parameters, thdm)    
+        ToBe_Stacked = Plot1D_ScanLimits(jsonpath, available_parameters, thdm)    
         Plot1D_StackedLimits(massTofix_list, ToBe_Stacked)
