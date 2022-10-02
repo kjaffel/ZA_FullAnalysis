@@ -57,17 +57,28 @@ do_what='fit'
 #choices: 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 _2POIs_r=true
-# if this false  r_ggH +r_bbH will be combined, so you need to give a tanbeta value
+# 2 POIs: r_ggH and r_bbH 
+# if this flagged false, r_ggH +r_bbH will be combined ( i.e. in one histogram), so you need to give a tanbeta value
 
 tanbeta=1.5
 #choices: any value you want
-# Just make sure you already run Sushi and 2HDMC, so you have the results saved in this format
-# data/sushi1.7.0-xsc_tanbeta-20.0_2hdm-type2.yml
+# Just make sure you already run Sushi and 2HDMC, so you have the results saved in 
+# data/sushi1.7.0-xsc_tanbeta-1.50_2hdm-type2.yml
 
-bambooDir='ul_run2__ver19/results/'
-stageOut='hig-22-010/datacards/'
+bambooDir='ul_run2__ver19/results/' # inputs root files before BB rebinning
+stageOut='hig-22-010/datacards/'    # output dir
+
+#================ DO NOT CHANGE =============================
+#============================================================
+workDir='work__UL'${era/20/""}'/'
+inDir=$stageOut$workDir
+outDir=$inDir
 
 ```
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` with the given inputs, the datacards and 
+combine commands will be saved in ``.sh`` files in ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``, 
+and then will launch these commands automatically with ``./run_combined_dnn_preposfit.sh``
+
 ## Systematic uncertainties naming conventions for full run2:
 
 1. **Experimental uncertainties:**
@@ -163,4 +174,4 @@ Uncorrelated per year and jet flavour.
 
 3. **MC statistics:**
 
-- I use the Barlow-Beeston-lite approach; each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
+- I use [the Barlow-Beeston-lite approach](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/#c-mc-statistical-uncertainties); each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
