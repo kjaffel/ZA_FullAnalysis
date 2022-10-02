@@ -1,5 +1,5 @@
 # HIG-22-010: Search for 2HDM neutral Higgs bosons through the H/A → Z (→ ℓℓ ) A/H (→ bb ) processes
-Original repository[here.](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/ZAStatAnalysis/README.md)
+Original most up-to-date repository is located [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/ZAStatAnalysis).
 ## CombinedLimit: CC7 release CMSSW_10_2_X - recommended version
 - Setting up the environment (once):
 ```bash
@@ -68,16 +68,16 @@ tanbeta=1.5
 bambooDir='ul_run2__ver19/results/' # inputs root files before BB rebinning
 stageOut='hig-22-010/datacards/'    # output dir
 
-#================ DO NOT CHANGE =============================
-#============================================================
+#================ PLEASE DO NOT CHANGE =============================
+#===================================================================
 workDir='work__UL'${era/20/""}'/'
 inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
 - ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` with the given inputs, the datacards and 
-combine commands will be saved in ``.sh`` files in ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``, 
-and then will launch these commands automatically with ``./run_combined_dnn_preposfit.sh``
+combine commands will be saved in ``.sh`` files in ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx`` with the given inputs above, 
+and then will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
 
 ## Systematic uncertainties naming conventions for full run2:
 
