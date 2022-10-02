@@ -28,17 +28,21 @@ Pileup uncertainty is uncorrelated across years. Corrections is taken from[cms-n
 
 - **Jet Energy Scale(JES), (shape):**
 JES uncertainties are uncorrelated across years.
+
 For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):
     - ``CMS_scale_j_ToTal_<era>``
 , `` __ToTal`` means one source/no split per eta regions.
+
 For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):
     - ``CMS_scale_j_fatjet_<era>``
 
 - **Jet Rnergy resolution(JER), (shape):**
 JER uncertainties are uncorrelated across years.
+
 For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):
     - ``CMS_res_j_Total_<era>``
 , `` __ToTal`` means one source/no split per eta regions.
+
 For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):
     - ``CMS_res_j_fatjet_<era>``
 
@@ -55,33 +59,44 @@ Uncorrelated across year, for both electrons and muons.
 - **2018 HEM issue, (shape):**
 Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html)
     - ``CMS_HEM_2018``
+
 - **MET, (shape):**
     - ``CMS_UnclusteredEn_<era>``
+
 - **Drell-Yan reweighting, (shape):**
+Uncorrelated accross year, lepton flavours, and signal regions.
+
 For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):
     - ``DYweight_resolved_elel_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
     - ``DYweight_resolved_mumu_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
     - ``DYweight_resolved_muel_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
+
 For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):
     - ``DYweight_boosted_elel_ployfit_lowmass<ploy-fit-order_n>_<era>``
     - ``DYweight_boosted_mumu_ployfit_lowmass<ploy-fit-order_n>_<era>``
     - ``DYweight_boosted_muel_ployfit_lowmass<ploy-fit-order_n>_<era>``
 
-- ``<ploy-fit-order_n>`` = 7 if <era>=='2017' else 6
+``<ploy-fit-order_n>`` = 7 if <era>=='2017' else 6
+
 - **Trigger efficiencies, (shape):**
+
 - **L1 pre-firing, (shape):**
 Uncorrelated per year, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe)
     - ``CMS_L1PreFiring_<era>``
-- **HLT Z_vtx, (shape):**
+
+- **HLT Z-vtx, (shape):**
+
 - **B-tagging efficiencies, (shape):**
 Uncorrelated per year and jet flavour.
 
 For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):
     - ``CMS_btag_light_<era>``
     - ``CMS_btag_heavy_<era>``
+
 For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):
     - ``CMS_btag_subjet_light_<era>``
     - ``CMS_btag_subjet_heavy_<era>``
+
 2. **Theory uncertainties:**
 -----
 
@@ -97,4 +112,5 @@ For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``)
 
 3. **MC statistics:**
 -----
+
 - We use the Barlow-Beeston-lite approach; each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
