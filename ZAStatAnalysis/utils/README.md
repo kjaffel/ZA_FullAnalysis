@@ -13,11 +13,12 @@ cmsenv
 1. normalisation ( lnN):
 
 - *Luminosity*
+<!-- TABLE_GENERATE_START -->
 | Nuissance parameter                   | 2016 | 2017 | 2018  |
 | ------------------------------------- | ---- | ---- | ----- |
 | ``lumi_uncorrelated_13TeV_$era``      | 1.01 | 1.02 | 1.015 |
 | ``lumi_correlated_13TeV_$era``        | 1.006| 1.009| 1.020 |
-
+<!-- TABLE_GENERATE_END -->
 Following the latest recommendation, [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [/physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1)
 2. shape: 
 - Pileup: 
