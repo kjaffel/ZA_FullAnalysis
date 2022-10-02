@@ -75,9 +75,9 @@ inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
-- ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` with the given inputs, the datacards and 
-combine commands will be saved in ``.sh`` files in ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx`` with the given inputs above, 
-and then will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``, with the given inputs above  
+combine commands will be saved in ``.sh`` files in the directory ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx`` also the datacards, 
+and then the script will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
 
 ## Systematic uncertainties naming conventions for full run2:
 
@@ -91,10 +91,10 @@ and then will launch these commands automatically with ``./run_combined_${mode}_
 | ``lumi_uncorrelated_13TeV_<era>``      | 1.01 | 1.02 | 1.015 |
 | ``lumi_correlated_13TeV_<era>``        | 1.006| 1.009| 1.020 |
 <!-- TABLE_GENERATE_END -->
-Following the latest recommendation, [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [/physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1)
+Following the latest recommendation, [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1)
 
 - **Pileup, (shape):** 
-Pileup uncertainty is uncorrelated across years. Corrections is taken from[cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
+Pileup uncertainty is uncorrelated across years. Corrections is taken from [cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
     - ``CMS_pileup_<era>``
 
 - **Jet Energy Scale(JES), (shape):**
@@ -143,7 +143,7 @@ Uncorrelated accross year, lepton flavours, and signal regions.
 - **Trigger efficiencies, (shape):**
 
 - **L1 pre-firing, (shape):**
-Uncorrelated per year, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD[branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
+Uncorrelated per year, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
     - ``CMS_L1PreFiring_2016-preVFP``
     - ``CMS_L1PreFiring_2016-postVFP``
     - ``CMS_L1PreFiring_2017``
