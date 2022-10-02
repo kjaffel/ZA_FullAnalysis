@@ -27,23 +27,17 @@ Pileup uncertainty is uncorrelated across years. Corrections is taken from[cms-n
     - ``CMS_pileup_<era>``
 
 - **Jet Energy Scale(JES), (shape):**
-JES uncertainties are uncorrelated across years. \
-
-For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``): \
-    - ``CMS_scale_j_ToTal_<era>``
-, `` __ToTal`` means one source/no split per eta regions.
-
-For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``): \
+JES uncertainties are uncorrelated across years. 
+    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):**
+    - ``CMS_scale_j_ToTal_<era>``, `` __ToTal`` means one source/no split per eta regions.
+    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):**
     - ``CMS_scale_j_fatjet_<era>``
 
 - **Jet Rnergy resolution(JER), (shape):**
-JER uncertainties are uncorrelated across years. \
-
-For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):\
-    - ``CMS_res_j_Total_<era>`` 
-, `` __ToTal`` means one source/no split per eta regions.\
-
-For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``): \
+JER uncertainties are uncorrelated across years.
+    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):**
+    - ``CMS_res_j_Total_<era>`` , `` __ToTal`` means one source/no split per eta regions.
+    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):**
     - ``CMS_res_j_fatjet_<era>``
 
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
@@ -64,18 +58,17 @@ Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.
     - ``CMS_UnclusteredEn_<era>``
 
 - **Drell-Yan reweighting, (shape):**
-Uncorrelated accross year, lepton flavours, and signal regions. \
-For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``): \
+Uncorrelated accross year, lepton flavours, and signal regions.
+    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):**
     - ``DYweight_resolved_elel_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
     - ``DYweight_resolved_mumu_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
     - ``DYweight_resolved_muel_ployfit_lowmass<ploy-fit-order_n>_highmass5_<era>``
-
-For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``): \
+    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):**
     - ``DYweight_boosted_elel_ployfit_lowmass<ploy-fit-order_n>_<era>``
     - ``DYweight_boosted_mumu_ployfit_lowmass<ploy-fit-order_n>_<era>``
     - ``DYweight_boosted_muel_ployfit_lowmass<ploy-fit-order_n>_<era>``
 
-``<ploy-fit-order_n>`` = 7 if <era>=='2017' else 6
+``<ploy-fit-order_n>`` = 7 if ``<era>``==2017 else 6
 
 - **Trigger efficiencies, (shape):**
 
@@ -86,11 +79,11 @@ Uncorrelated per year, more details [here](https://twiki.cern.ch/twiki/bin/viewa
 - **HLT Z-vtx, (shape):**
 
 - **B-tagging efficiencies, (shape):**
-Uncorrelated per year and jet flavour. \
-For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``): \
+Uncorrelated per year and jet flavour.
+    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3- resolved``):**
     - ``CMS_btag_light_<era>``
     - ``CMS_btag_heavy_<era>``
-For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``): \
+    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3- boosted``):** 
     - ``CMS_btag_subjet_light_<era>``
     - ``CMS_btag_subjet_heavy_<era>``
 
