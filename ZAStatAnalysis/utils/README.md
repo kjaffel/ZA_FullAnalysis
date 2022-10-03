@@ -141,12 +141,14 @@ Uncorrelated accross year, lepton flavours, and signal regions.
     - ``DYweight_boosted_muel_ployfit_lowmass<ploy-fit-order_n>_<era>``
 
 - **Trigger efficiencies, (shape):**
+Uncorrelated per year, lepton flavours.
+- ``CMS_elel_trigSF_<era>``
+- ``CMS_mumu_trigSF_<era>``
+- ``CMS_muel_trigSF_<era>``
 
 - **L1 pre-firing, (shape):**
-Uncorrelated per year, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
-    - ``CMS_L1PreFiring_2016-preVFP``
-    - ``CMS_L1PreFiring_2016-postVFP``
-    - ``CMS_L1PreFiring_2017``
+Correlated, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
+    - ``CMS_L1PreFiring``
 
 - **HLT Z-vtx, (shape):**
     - ``CMS_HLTZvtx_2017``
@@ -169,8 +171,8 @@ Uncorrelated per year and jet flavour.
     - ``ISR_<process>``
     - ``FSR_<process>``
 - **Renormalization and factorization scale, (shape):**
-    - ``muR_<process>``
-    - ``muF_<process>``
+    - ``qcdmuR_<process>``
+    - ``qcdmuF_<process>``
 
 3. **MC statistics:**
 
