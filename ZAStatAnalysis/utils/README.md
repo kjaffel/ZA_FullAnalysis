@@ -1,5 +1,6 @@
 # HIG-22-010: Search for 2HDM neutral Higgs bosons through the H/A → Z (→ ℓℓ ) A/H (→ bb ) processes
-Original most up-to-date repository is located [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/ZAStatAnalysis).
+The most up-to-date original repository can be found [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/ZAStatAnalysis).
+
 ## CombinedLimit: CC7 release CMSSW_10_2_X - recommended version
 - Setting up the environment (once):
 ```bash
@@ -75,9 +76,9 @@ inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
-- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``. With the given inputs above (fit == pre-/post-fit) 
-, Combine commands files ``*.sh`` and the datacards ``*.dat``  will be saved in the directory ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``. 
-Then the script will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``. With the given inputs above ( ``fit == pre-/post-fit``) 
+, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. Both will be saved in the directory :``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``. 
+Then the script will automatically launch these commands from ``./run_combined_${mode}_preposfit.sh``
 
 ## Running Combine Tools:
 To briefly summarize the commands used for each Combine task;
@@ -155,7 +156,7 @@ JER uncertainties are uncorrelated across years.
     - **Electrons:**
     - ``CMS_eff_elid``
     - ``CMS_eff_elreco_lowpt``    →  RecoBelow20
-    - ``CMS_eff_elreco_highpt``   →  RecoAove20
+    - ``CMS_eff_elreco_highpt``   →  RecoAbove20
     - **Muons:**
     - ``CMS_eff_muiso``
     - ``CMS_eff_muid``
