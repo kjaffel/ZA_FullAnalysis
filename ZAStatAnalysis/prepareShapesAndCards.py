@@ -32,18 +32,18 @@ H.splitTTbarUncertBinByBin = False
 signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [(500., 300.), (800., 200.)],
+            'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(500., 300.), (800., 200.)], 
+            'HToZA': [(500., 300.), (500., 50.), (800., 200.)], 
             'AToZH': [] }
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [(500., 300.), (800., 200.)],
+            'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(500., 300.), (800., 200.)],
+            'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
             'AToZH': [] }
         }
     }
@@ -705,9 +705,9 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             
             lumi_correlations = Constants.getLuminosityUncertainty()
             processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['uncorrelated'][era]))
-            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_$ERA', 'lnN', ch.SystMap('era')(['16_17_18_13TeV'], lumi_correlations['correlated_16_17_18'][era]))
+            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2016_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_16_17_18'][era]))
             if era in ['2017', '2018']:
-                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_$ERA', 'lnN', ch.SystMap('era')(['17_18_13TeV'], lumi_correlations['correlated_17_18'][era]))
+                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_17_18'][era]))
 
 
             if not H.splitTTbarUncertBinByBin:
@@ -1181,7 +1181,7 @@ if __name__ == '__main__':
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    for thdm in ['AToZH', 'HToZA']:
+    for thdm in ['HToZA']: #['AToZH', 'HToZA']:
         
         heavy = thdm[0]
         light = thdm[-1]
@@ -1256,7 +1256,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
             
-            prepare_DataCards(  grid_data          = signal_grid, 
+            prepare_DataCards(  grid_data          = signal_grid_foTest, 
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 

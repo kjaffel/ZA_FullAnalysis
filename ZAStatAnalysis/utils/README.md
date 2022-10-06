@@ -142,7 +142,7 @@ Pileup uncertainty is correlated across years. Corrections is taken from [cms-na
 - **Jet Energy Scale(JES), (shape):**
 JES uncertainties are uncorrelated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-    - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split per eta regions.
+    - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one NP/no split between uncertainty sources.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
     - ``CMS_scale_j_fatjet_<era'>``
 
@@ -216,11 +216,11 @@ Uncorrelated per year and jet flavour.
     - ``qcdmuF_<process>``
 - **Cross-section uncertainty, (lnN):**
     - **Signals, (lnN):**
-One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
+One NP for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
     - H → ZA : ``ggH_xsc``, ``bbH_xsc``
     - A → ZH : ``ggA_xsc``, ``bbA_xsc``
     - **Backgrounds, (lnN):**
-One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
+One NP progated on to the main background processes, fully correlated between year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
     - ``SingleTop_xsc: 0.97541``
     - ``DY_xsc: 1.00784 ``
     - ``ttbar_xsc: 1.00153``
