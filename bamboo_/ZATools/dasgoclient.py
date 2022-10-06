@@ -37,18 +37,21 @@ def getSamplesFromDAS(era, smp, dataType= None, rm_nlo= False):
         filter_smp1 = [ smpNm for smpNm in all_smp if not (str.encode('2017G') in smpNm or str.encode('2017H') in smpNm)]
     
     if dataType == 'mc':
-        filter_smp1 = [ smpNm for smpNm in all_smp if not str.encode('JMENano') in smpNm]
-        filter_smp2 = [ smpNm for smpNm in filter_smp1 if not str.encode('PUForMUOVal') in smpNm]
-        filter_smp3 = [ smpNm for smpNm in filter_smp2 if not str.encode('FSUL18_FSUL18_') in smpNm]
-        return filter_smp3
+        filter_smp0 = [ smpNm for smpNm in all_smp if not str.encode('PUForTRK_TRK_106X') in smpNm]
+        filter_smp1 = [ smpNm for smpNm in filter_smp0 if not str.encode('-PU35ForTRK_TRK_106X_') in smpNm]
+        filter_smp2 = [ smpNm for smpNm in filter_smp1 if not str.encode('JMENano') in smpNm]
+        filter_smp3 = [ smpNm for smpNm in filter_smp2 if not str.encode('PUForMUOVal') in smpNm]
+        filter_smp4 = [ smpNm for smpNm in filter_smp3 if not str.encode('FSUL18_FSUL18_') in smpNm]
+        return filter_smp4
     elif dataType == 'signal':
         if rm_nlo: 
             filter_smp1 = [ smpNm for smpNm in all_smp if not str.encode('_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8') in smpNm]
-            return filter_smp1
+            return filter_smp0
         else:
             return all_smp
     else:
-        return filter_smp1 if era ==17 else all_smp
+        return filter_smp0 if era ==17 else all_smp
+
 
 def writeToFile(fNm, list):
     with open(fNm,"w") as outf:
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     
     look_for = {
         'signal' : ['GluGluToHToZATo2L2B', 'HToZATo2L2B', 'GluGluToAToZHTo2L2B', 'AToZHTo2L2B'],
-        'mc'     : [ 
+        'mc'     : [
                # dy
                'DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8', 
                'DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8', 
@@ -137,24 +140,31 @@ if __name__ == "__main__":
         }
     
     suffix   = ''
-    request  = [218, 232, 8, 13]
-    all_processes = []
+    all_processes    = []
     
-    for era in [17]:#18, 17, 16]:
-        suffix += f'_{era}'
+    for era in [18, 17, 16]:
+        suffix += f'{era}_'
         
         for dtype, listsmp in look_for.items():
-            #if dtype != 'signal':
-            #    continue
+            
             if era ==17 and dtype=='data':
                 listsmp.remove('SingleElectron')
                 listsmp.remove('SingleMuon')
             
             for smp in listsmp:
-                all_processes += getSamplesFromDAS(era, smp, dataType=dtype, rm_nlo=True)
+                processes = getSamplesFromDAS(era, smp, dataType=dtype, rm_nlo=True)
         
+                # take few for quick test !
+                if dtype == 'signal':
+                    for p in processes:
+                        if any(mass in p.decode('utf-8') for mass in ['MH-250p00_MA-50p00', 'MH-500p00_MA-50p00', 'MH-500p00_MA-300p00', 'MH-250p00_MA-125p00', 'MH-800p00_MA-200p00']):
+                            all_processes.append(p)
+                else:
+                    all_processes += processes
+
+        #request  = [218, 232, 8, 13]
         #checklocalfiles(era, all_processes, tot_req= 471)
     
-    fNm = f'fullanalysisRunIISummer20UL{suffix}_nanov9.txt'
+    fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9.txt'
     writeToFile(fNm, all_processes)
     print(f'All das path are saved in: {fNm}')

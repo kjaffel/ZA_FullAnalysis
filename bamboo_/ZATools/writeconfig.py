@@ -155,8 +155,8 @@ def get_mcNmConvention_and_group(smpNm):
                   'ggZH_HToBB_ZToLL_M-125'   : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
                   'ggZH_HToBB_ZToNuNu_M-125' : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
                   'GluGluHToZZTo2L2Q_M125'   : ['SM', 28.87,       0.02027, 'ggh, tth, Zh',  '#43294D',  2],
-                  'ttHTobb'                  : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
-                  'ttHToNonbb'               : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHTobb_M125_'            : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHToNonbb_M125_'         : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
                   'WWW_4F'          : ['others', 0.2086,    0.,         'VVV, ttV',   '#9370DB',  1],
                   'WWZ_4F'          : ['others', 0.1651,    0.,         'VVV, ttV',   '#9370DB',  1],
                   'WZZ'             : ['others', 0.05565,   0.,         'VVV, ttV',   '#9370DB',  1],
@@ -446,13 +446,13 @@ if __name__ == "__main__":
                     run_range = run2_ranges[era][run]
                     # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
                     cert = certification[era.split('-')[0]] 
-                    split  = 4
+                    split  = 20
                     search = smpNm
 
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
                     Nm = Nm + VFP
-                    split = 150
+                    split = 400
                     search = smpNm
                     if group not in groups.keys(): 
                         groups[group] = {}

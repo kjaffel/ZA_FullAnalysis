@@ -26,6 +26,9 @@ def finalize():
     tasks_notfinalized =  getTasks(bambooDir, analysisCfgs)
     print( 'missing outputs :', tasks_notfinalized ) 
     
+    if not tasks_notfinalized:
+        logger.info("All tasks finalized")
+        return 
     os.chdir(outputs)
     cwd = os.getcwd()
     aProblem = False
@@ -35,6 +38,10 @@ def finalize():
         outFiles = []     
         for rf in glob.glob(os.path.join(cwd, '*', f'{tsk_name}.root')): 
             outFiles.append(rf)
+        
+        if not outFiles:
+            logger.info( 'no outputs forund for {}'.format(tsk_name))
+            continue
         
         os.chdir(bambooDir)
         haddCmd = ["hadd", "-f", os.path.join(bambooDir, "results/{}.root".format(tsk_name))]+outFiles 
@@ -50,14 +57,17 @@ def finalize():
     else:
         logger.info("All tasks finalized")
     
-    with open(os.path.join(bambooDir, 'results/README'), 'w') as outf:
-        outf.write(outFiles)
+    with open(os.path.join(bambooDir, 'results/README'), 'w+') as outf:
+        outf.write(''.format(outFiles))
         outf.write('These outputs are hadded manually, please remove and finalize again when all jobs are finished !!')
 
 if __name__ == '__main__':
-    era          = '2018'
-    analysisCfgs ='../config/fullanalysisRunIISummer20UL16_17_18_nanov9.yml'
-    bambooDir    ='/nfs/scratch/fynu/kjaffel/run2Ulegay_results/forHIG/ul_run2__ver19/'
+    era          = '2017'
+    #analysisCfgs ='../config/fullanalysisRunIISummer20UL16_17_18_nanov9.yml'
+    #bambooDir    ='/nfs/scratch/fynu/kjaffel/run2Ulegay_results/forHIG/ul_run2__ver19/'
+    
+    analysisCfgs ='../config/splitJES_JER_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml'
+    bambooDir    ='/nfs/scratch/fynu/kjaffel/run2Ulegay_results/forHIG/ul_run2__ver20_splitJES_JER2/'
     outputs      =os.path.join(bambooDir, 'batch/output')
     
     finalize()
