@@ -32,18 +32,18 @@ H.splitTTbarUncertBinByBin = False
 signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [(750., 610.)],
+            'HToZA': [(500., 300.), (800., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(750., 610.)], 
+            'HToZA': [(500., 300.), (800., 200.)], 
             'AToZH': [] }
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [(750., 610.)],
+            'HToZA': [(500., 300.), (800., 200.)],
             'AToZH': [] },
         'boosted': {
-            'HToZA': [(750., 610.)],
+            'HToZA': [(500., 300.), (800., 200.)],
             'AToZH': [] }
         }
     }
@@ -146,9 +146,11 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     cmd += proc_combination[reco][cat][k]
                 check_call_DataCard(cmd, thdm, prod, k, mode, output_dir, expectSignal, dataset, reco='nb2PLusnb3_resolved_boosted', unblind=unblind, what='resolved & boosted ( nb2 + nb3)', submit_to_slurm=submit_to_slurm)
             
-            elif todo == 'ggH_bbH' and method =='asymptotic':
+            elif todo == 'ggH_bbH':
+                if not method in ['likelihood_fit', 'asymptotic']:
+                    continue
                 # this should not happen but in case a signal sample does not exist in both prod mechanisms
-                # no need to continue here
+                # then there is no need to continue here
                 if any( x== output_sig for x in skip):
                     continue
                 
@@ -183,10 +185,9 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     with open( datacard, 'w') as f:
                         subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
                     
-                    if _2POIs_r and method =='asymptotic':
-                        for poi in ['r_ggH', 'r_bbH']:
-                            workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-                            MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind, submit_to_slurm)
+                    for poi in ['r_ggH', 'r_bbH']:
+                        workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
+                        MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, unblind, submit_to_slurm)
                 
                 # A full combination of the signal cats, regions, and lepton flavour
                 FinalCmd = ['combineCards.py']
@@ -218,6 +219,7 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
 
 def _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, dataset, unblind, submit_to_slurm):
     script = """#! /bin/bash
+
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
@@ -299,6 +301,7 @@ popd
 
 def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, poi, unblind, submit_to_slurm):
     script = """#! /bin/bash
+
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
@@ -373,15 +376,17 @@ def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, submi
     if tanbeta is not None:
         tb_dir = 'tanbeta_%s'%tanbeta
     
-    output = os.path.join(output, H.get_method_group(method), mode, poi_dir, tb_dir)
+    output        = os.path.join(output, H.get_method_group(method), mode, poi_dir, tb_dir)
+    symbolic_path = os.path.abspath(os.path.dirname(output.split('/')[0]))+'/'+output.split('/')[0]
     script = """#! /bin/bash
+
 scripts=`find {output} -name "*_{suffix}.sh"`
 for script in $scripts; do
     dir=$(dirname $script)
     script=$(basename $script)
     echo "\tComputing with ${{script}}"
     pushd $dir &> /dev/null
-    {c1}ln -s -d /home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/ .
+    {c1}ln -s -d {symbolic_path} .
     {c2}. $script
     popd &> /dev/null
 done
@@ -390,7 +395,9 @@ done
            suffix='run_%s'%method, 
            c1=''  if era =='fullrun2' and method != 'generatetoys' else '#',
            c2='#' if submit_to_slurm  else '',
-           c3=''  if submit_to_slurm  else '#')
+           c3=''  if submit_to_slurm  else '#',
+           symbolic_path = symbolic_path
+           )
    
     print( '\tThe generated script to run limits can be found in : %s/' %output)
     if   method == 'fit': suffix= 'prepost'
@@ -444,8 +451,6 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 # here I just need to get some work done, to  be removed later !!
                 #fast_list = [125.]+list(np.arange(100., 1050., 100.))
                 #if not m_heavy in fast_list:
-                #    continue
-                #if (m_heavy, m_light) in [(800., 140.), (200., 125.), (700., 200.), (500., 250.)]: # bugy 
                 #    continue
                 #==============================================================================
                 if not (m_heavy, m_light) in all_parameters[prod][reg]:
@@ -520,8 +525,8 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             
             CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=reg, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='nb2_nb3')
         CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=None, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='res_boo')
-    if _2POIs_r:
-        CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod=None, reg=None, skip=NotIn2Prod, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='ggH_bbH')
+    #if _2POIs_r:
+    #    CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod=None, reg=None, skip=NotIn2Prod, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='ggH_bbH')
         
     # Add mc stat. 
     for datacard in glob.glob(os.path.join(output, H.get_method_group(method), mode,'*/', '*.dat')):
@@ -606,7 +611,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
 
         if mode == "dnn":
            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
-                'DNNOutput_ZAnode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
+                'DNNOutput_Z%snode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
         elif mode == "mllbb":
             histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{fix_reco_format}')
         elif mode == "mbb":
@@ -697,7 +702,13 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         if not stat_only:
             processes_without_weighted_data = cb.cp()
             processes_without_weighted_data.FilterProcs(lambda p: 'data' in p.process())
-            processes_without_weighted_data.AddSyst(cb, 'lumi_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], Constants.getLuminosityUncertainty(era)))
+            
+            lumi_correlations = Constants.getLuminosityUncertainty()
+            processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['uncorrelated'][era]))
+            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_$ERA', 'lnN', ch.SystMap('era')(['16_17_18_13TeV'], lumi_correlations['correlated_16_17_18'][era]))
+            if era in ['2017', '2018']:
+                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_$ERA', 'lnN', ch.SystMap('era')(['17_18_13TeV'], lumi_correlations['correlated_17_18'][era]))
+
 
             if not H.splitTTbarUncertBinByBin:
                 cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')
@@ -939,24 +950,18 @@ popd
                 fNm    = '{}_realdataset'.format( flavor) if unblind else '{}_expectSignal{}_{}dataset'.format( flavor, expectSignal, dataset)
                 script = """#! /bin/bash
 
-#SBATCH --time=1:59:00
-#SBATCH --mem-per-cpu=1500
-#SBATCH --partition=cp3
-#SBATCH --qos=cp3
-
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 # Run combined
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --doInitialFit --robustFit 1 &> {name}_doInitialFit.log
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --robustFit 1 --doFits --parallel 30 &> {name}_robustFit.log
-{slurm}combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}_impacts.log
-{slurm}plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm}
+combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --doInitialFit --robustFit 1 &> {name}_doInitialFit.log
+combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} --robustFit 1 --doFits --parallel 30 &> {name}_robustFit.log
+combineTool.py {method} -d {workspace_root} -m 125 {dataset} {expectSignal} -o impacts__{fNm}.json &> {name}_impacts.log
+plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm}
 popd
 """.format( workspace_root = workspace_file, 
-            slurm          = 'srun ' if submit_to_slurm else '',
             name           = output_prefix,
             fNm            = fNm, 
             datacard       = os.path.basename(datacard), 
@@ -1176,7 +1181,7 @@ if __name__ == '__main__':
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    for thdm in ['HToZA']:#, 'AToZH']:
+    for thdm in ['AToZH', 'HToZA']:
         
         heavy = thdm[0]
         light = thdm[-1]
@@ -1244,7 +1249,7 @@ if __name__ == '__main__':
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
             CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.submit_to_slurm)
-
+        
         else:
             scalefactors  = H.get_normalisationScale(options.input, options.method, options.era)
             # for test or for specific points : please use signal_grid_foTest,

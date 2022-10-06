@@ -77,18 +77,18 @@ outDir=$inDir
 
 ```
 - ``run_combine.sh`` will call ``./prepareShapesAndCards.py``. With the given inputs above ( ``fit == pre-/post-fit``) 
-, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. Both will be saved in the directory :``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``. 
+, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. Both will be saved in the directory :``${stageOut}/${workDir}/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``. 
 Then the script will automatically launch these commands from ``./run_combined_${mode}_preposfit.sh``
 
 ## Running Combine Tools:
 To briefly summarize the commands used for each Combine task;
 ```bash
 
-#==================================  H → ZA =================================
+#=======================  H →  ZA →  llbb ===================================
 #============================================================================
 do_what='fit'
 
-combine -M FitDiagnostics --rMax 20 -m 125 -t -1 --saveWithUncertainties --ignoreCovWarning -n HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0 HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0_combine_workspace.root --plots
+combine -M FitDiagnostics --rMax 20 -m 125 -t -1 --saveWithUncertainties --ignoreCovWarning -n HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root --plots
 
 CAT=dnn_MH_${mH}_MA_${mA}
 
@@ -123,33 +123,35 @@ plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_a
 
 1. **Experimental uncertainties:**
 `` _<era>`` means nuissance parameters are uncorrelated per year; 2016-preVFP, 2016-postVFP, 2017, 2018.
+`` _<era'>`` means nuissance parameters are uncorrelated per year; 2016, 2017, 2018.
 
 - **Luminosity, normalisation (lnN):**
 <!-- TABLE_GENERATE_START -->
 | Nuissance parameter                    | 2016 | 2017 | 2018  |
 | -------------------------------------  | ---- | ---- | ----- |
 | ``lumi_uncorrelated_13TeV_<era>``      | 1.01 | 1.02 | 1.015 |
-| ``lumi_correlated_13TeV_<era>``        | 1.006| 1.009| 1.020 |
+| ``lumi_correlated_16_17_18_13TeV``     | 1.006| 1.009| 1.020 |
+| ``lumi_correlated_17_18_13TeV``        | -    | 1.006| 1.002 |
 <!-- TABLE_GENERATE_END -->
 Following the latest recommendation, [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1)
 
 - **Pileup, (shape):** 
-Pileup uncertainty is uncorrelated across years. Corrections is taken from [cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
-    - ``CMS_pileup_<era>``
+Pileup uncertainty is correlated across years. Corrections is taken from [cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
+    - ``CMS_pileup``
 
 - **Jet Energy Scale(JES), (shape):**
 JES uncertainties are uncorrelated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-    - ``CMS_scale_j_ToTal_<era>``, `` __ToTal`` means one source/no split per eta regions.
+    - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split per eta regions.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-    - ``CMS_scale_j_fatjet_<era>``
+    - ``CMS_scale_j_fatjet_<era'>``
 
 - **Jet Rnergy resolution(JER), (shape):**
 JER uncertainties are uncorrelated across years.
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-    - ``CMS_res_j_Total_<era>`` , `` __ToTal`` means one source/no split per eta regions.
+    - ``CMS_res_j_Total_<era'>`` , `` __ToTal`` means one source/no split per eta regions.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-    - ``CMS_res_j_fatjet_<era>``
+    - ``CMS_res_j_fatjet_<era'>``
 
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
 100% correlated across year, for both electrons and muons. Following latest EGamma recommendation on [ combining systematics](https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#A_note_on_Combining_Systematics).
@@ -166,7 +168,7 @@ Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.
     - ``CMS_HEM_2018``
 
 - **MET, (shape):**
-    - ``CMS_UnclusteredEn_<era>``
+    - ``CMS_UnclusteredEn``
 
 - **Drell-Yan reweighting, (shape):**
 Uncorrelated accross year, lepton flavours, and signal regions.
@@ -195,15 +197,14 @@ Correlated, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1P
 
 - **B-tagging efficiencies, (shape):**
 Uncorrelated per year and jet flavour.
-    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
+    - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):** Fix, medium working point, DeepJet tagger
     - ``CMS_btag_light_<era>``
     - ``CMS_btag_heavy_<era>``
-    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):** 
+    - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):** Fix, medium working point, DeepCSV tagger
     - ``CMS_btag_subjet_light_<era>``
     - ``CMS_btag_subjet_heavy_<era>``
 
 2. **Theory uncertainties:**
-
 ``_<process>`` means nuissance parameters are uncorrelated per process, for both signal and background.
 - **Parton distribution functions, (shape):**
     - ``pdf_<process>``
@@ -224,5 +225,4 @@ One for the main backgrounds, correlated across year. Taken from the [summary ta
     - ``DY_xsc: 1.00784 ``
     - ``ttbar_xsc: 1.00153``
 3. **MC statistics:**
-
 - We use [the Barlow-Beeston-lite approach](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/#c-mc-statistical-uncertainties); each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.

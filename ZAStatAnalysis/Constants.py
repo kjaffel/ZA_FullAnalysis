@@ -47,14 +47,17 @@ def get_Nm_for_runmode(mode):
                   'mjj_and_mlljj': 'mjj_and_mlljj_combined_bins', }
     return Nm_formode[mode]
 
+
 def mass_to_str(m):
     m = '%.2f' % (float(m))
     return str(m).replace('.', 'p')
+
 
 def cat_to_tuplemass(c):
     m0 = float(c.split('_')[2])
     m1 = float(c.split('_')[4]) 
     return (m0, m1)
+
 
 def loadSushiInfos(len_, fileName):
     in_dtypes = [
@@ -85,6 +88,7 @@ def loadSushiInfos(len_, fileName):
         arr["BRA___bb"][:,None]
         ))
 
+
 def get_xsc_br_fromSushi(smpNm, arr):
     for lis in arr:
         if not smpNm == lis[0]: continue
@@ -96,7 +100,7 @@ def get_xsc_br_fromSushi(smpNm, arr):
 
 
 def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
-    
+    # depreacted !!    
     base   = "/home/ucl/cp3/kjaffel/ZAPrivateProduction/data/"
     heavy  = mode[0]
     light  = mode[-1]
@@ -187,16 +191,17 @@ def getLuminosityForEraForRun(era, run):
     return lumis[era][run]*1000 # pb 
 
 
-def getLuminosityUncertainty(era):
-    era = str(era)
-    if era == '2016': # uncorrelated
-        uncer = 1.01 
-    elif era == '2017':
-        uncer = 1.02
-    elif era == '2018':
-        uncer= 1.015
-    elif era == 'fullrun2': # correlated 16/17/18
-        uncer = 1.035
+def getLuminosityUncertainty():
+    uncer =  {'uncorrelated'  : { 
+                        '2016': 1.01,
+                        '2017': 1.02,
+                        '2018': 1.015
+                        },
+              'correlated_16_17_18': {
+                        '2016': 1.006, '2017': 1.009, '2018': 1.020}, 
+              'correlated_17_18': {
+                        '2017': 1.006, '2018': 1.002 }
+                  }
     return uncer
 
 
@@ -276,5 +281,23 @@ def add_autoMCStats(datacard, threshold=0, include_signal=0, hist_mode=1):
     openFile=open(datacard, 'w')
     openFile.write(datacard_content + add_autoMCStats)
     openFile.close()
-    return 
+    return
 
+
+def add_Correlation(datacard):
+    openFile=open(datacard, 'r')
+    
+    datacard_content2 = ""
+    for line in openFile.readlines():
+        if 'lumi_uncorrelated_13TeV' in line:
+            era = line.split()[0].split('_')[-1]
+            lumi_uncorrelated = getLuminosityUncertainty(era)
+            lumi_correlated   = getLuminosityUncertainty('fullrun2')['correlated_16_17_18'][era]
+            line = line.replace(str(lumi_uncorrelated), str(lumi_correlated))
+            line = line.replace('lumi_correlated_13TeV', 'lumi_uncorrelated_13TeV')
+        datacard_content2 +=line +"\n"
+
+    openFile=open(datacard, 'w')
+    openFile.write(datacard_content2)
+    openFile.close()
+    return

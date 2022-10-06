@@ -69,22 +69,26 @@ def CMSNamingConvention(origName=None, era=None, process=None):
 
     other = {
         # new names in the histograms  
-        "btagSF_fixWP_subjetdeepcsvM_light":"CMS_btag_light_%s"%era,
-        "btagSF_fixWP_subjetdeepcsvM_heavy":"CMS_btag_heavy_%s"%era,
-        "btagSF_fixWP_deepcsvM_light":"CMS_btag_light_%s"%era,
-        "btagSF_fixWP_deepcsvM_heavy":"CMS_btag_heavy_%s"%era,
-        "btagSF_fixWP_deepJetM_light":"CMS_btag_light_%s"%era,
-        "btagSF_fixWP_deepJetM_heavy":"CMS_btag_heavy_%s"%era,
-        "L1Prefiring": "CMS_L1PreFiring_%s"%era,
-        "unclustEn": "CMS_UnclusteredEn_%s"%era_,        # FIXME RuntimeError: Bogus norm 0.0 for channel ch3_dnn_ggH_nb2_resolved_MuEl, process ggH, systematic CMS_eff_elid_2016-postVFP Up
-        'elid_medium':"CMS_eff_elid_%s"%era,
-        'lowpt_ele_reco':"CMS_eff_elreco_lowpt_%s"%era,
-        'highpt_ele_reco':"CMS_eff_elreco_highpt_%s"%era,
-        'muid_medium':"CMS_eff_muid_%s"%era,
-        'muiso_tight':"CMS_eff_muiso_%s"%era,
+        # correlated
+        "btagSF_deepCSV_subjet_fixWP_light":"CMS_btag_subjet_light_%s"%era,
+        "btagSF_deepCSV_subjet_fixWP_heavy":"CMS_btag_subjet_heavy_%s"%era,
+        "btagSF_deepJet_fixWP_light":"CMS_btag_light_%s"%era,
+        "btagSF_deepJet_fixWP_heavy":"CMS_btag_heavy_%s"%era,
+        "unclustEn": "CMS_UnclusteredEn_%s"%era,        
         'jesHEMIssue': "CMS_HEM_%s"%era, 
         'HLTZvtx': "CMS_HLTZvtx_%s"%era,
+        'elel_trigSF': "CMS_elel_trigSF_%s"%era,
+        'mumu_trigSF': "CMS_mumu_trigSF_%s"%era,
+        'muel_trigSF': "CMS_muel_trigSF_%s"%era,
         
+        # uncorrelated
+        'L1PreFiring': "CMS_L1PreFiring",
+        'elid_medium':"CMS_eff_elid",
+        'lowpt_ele_reco':"CMS_eff_elreco_lowpt",
+        'highpt_ele_reco':"CMS_eff_elreco_highpt",
+        'muid_medium':"CMS_eff_muid",
+        'muiso_tight':"CMS_eff_muiso",
+
         # old naming for old histograms, will be removed  soon 
         'puweights2016_Moriond17': "CMS_pileup_%s"%era,
         'elid' :"CMS_eff_el_%s"%era,
@@ -100,7 +104,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         'HHMoriond17_mueltrig':"CMS_eff_trigMuEl_%s"%era,
         
         # some not in use anymore
-        "chMisID": "CMS_chargeMisID_%s"%era,
+        #"chMisID": "CMS_chargeMisID_%s"%era,
         }
    
     # remove mass _MX-... duplicate in the datacards 
@@ -119,22 +123,23 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     elif origName in theo_perProc:
         return "{}".format(theo_perProc[origName])
     elif origName.startswith("jes"):
-        return "CMS_scale_j_{}_{}".format(origName[3:], era)
-    elif origName.startswith("jer"):
-        return "CMS_res_j_Total_{}".format(era)
+        decor_era = ''
+        if '_' in origName: decor_era = '_'.format(origName.split('_')[-1])
+        return "CMS_scale_j_{}{}".format(origName[3:], decor_era)
     elif origName.startswith("jms"):
         return "CMS_scale_fatjet_{}".format(era_)
     elif origName.startswith("jmr"):
         return "CMS_res_fatjet_{}".format(era_)
-    #   if len(origName) == 3:
-    #       return "CMS_res_j_{}".format(era)
-    #   else:
-    #       jerReg = jerRegions[int(origName[3:])]
-    #       return "CMS_res_j_{}_{}".format(jerReg, era)
+    elif origName.startswith("jer"):
+        if len(origName) == 3:
+            return "CMS_res_j_Total_{}".format(era_)
+        else:
+            jerReg = jerRegions[int(origName[3:])]
+            return "CMS_res_j_{}_{}".format(jerReg, era_)
     elif origName.startswith("pileup"):
-        return "CMS_pileup_{}".format(era_)   
+        return "CMS_pileup"
     else:
-        return origName+'_{}'.format(era)
+        return origName
 
 
 def get_hist_from_key(keys=None, key=None):
@@ -167,7 +172,7 @@ def get_listofsystematics(files, flavorCat):
                 continue
             if not 'down' in key.GetName():
                 continue
-            if 'Jet_mulmtiplicity' in key.GetName(): # nm of histogram contain add __ this isn't sys, ignore until i fix it again in the new vers 
+            if 'Jet_mulmtiplicity' in key.GetName(): # nm of histogram contain __ by mistake, confused with sys ignore until i fix it again in the new vers 
                 continue
 
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
@@ -338,7 +343,6 @@ def get_normalisationScale(inDir=None, method=None, era=None):
                     '2018': 59740.565201546}}
 
             if smpCfg.get("type")== "mc" or smpCfg.get("type")=="signal":
-                #if  smpCfg.get("type")=="signal" and not '500p00_' in smp: do_SumW=False
                 if do_SumW:
                     inFile = openFileAndGet(inPath)
                     hists  = dict()
@@ -424,13 +428,18 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
         return True
     if 'lightEff' in s:
         return True
-    
+   
+    # not supported yet !FIXME in bamboo first
+    if '_fixWP_statistic_' in s:
+        return True
     # to test the effect of DY weights on signal strength 
     #if 'DYweight_resolved_mjj_ployfit_lowmass7_highmass5' in s:
     #    return True
     #if 'DYweight_boosted_mjj_ployfit_lowmass5' in s:
     #    return True
     
+    if 'unclustEn' in s: ## sth wrong with sys 
+        return True 
     else:
         return False
 
@@ -579,7 +588,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         prod     = cat.split('_')[0] +'_' + cat.split('_')[1]
         
         taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
-        #FIXME next iteration of plots in Bamboo
+        #FIXME in next iteration of plots in Bamboo
         fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
 
         hash.update(cat)
@@ -685,8 +694,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tanbeta)
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
+                        smpScale *= BR
                         if method !='asymptotic':
-                            smpScale *= BR*xsc
+                            smpScale *= xsc
                     else:
                         heavy = thdm[0]
                         proc2 = 'gg%s'%heavy if proc1 =='bb%s'%heavy else 'bb%s'%heavy
@@ -724,6 +734,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     #masspoint = category.split(mode)[-1]
                     #if not original_histogram_name.endswith(masspoint):
                     #    continue
+                    
                     if category_specific_to_signal_hypo and process_specific_to_signal_hypo:
                         if category_specific_to_signal_hypo != process_specific_to_signal_hypo:
                             continue
@@ -771,16 +782,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             for key, value in d.items():
                 d[key] = list(value)
 
-    # Alessia version of code: In 'fit' mode, scale the signal to 1 pb
-    # Khawla version of code : everything already in pb 
-    #if method == 'fit':
-    #    for category, processes in shapes.items():
-    #        for process, systematics_dict in processes.items():
-    #            if not process.startswith(signal_process):
-    #                continue
-    #            for name, shape in systematics_dict.items():
-    #                shape.Scale(1000)
-    
     # Store hash
     output_file = ROOT.TFile.Open(output_filename, 'recreate')
     file_hash = ROOT.TNamed('hash', hash)
@@ -807,19 +808,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     else:
                         fake_data.Add(systematics_dict['nominal'], scale)
                     print( 'data_obs (fake):: ', fake_data.Integral(), cat, category, process)
-                #create fake excess
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_3":
-                #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_6":
-                #    fake_data.SetBinContent(2, fake_data.GetBinContent(2)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_9":
-                #    fake_data.SetBinContent(3, fake_data.GetBinContent(3)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_ElEl_hZA_lljj_deepCSV_btagM_mll_and_met_cut_10":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_12":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
-                #if fake_data.GetName() == "rho_steps_histo_MuMu_hZA_lljj_deepCSV_btagM_mll_and_met_cut_19":
-                #    fake_data.SetBinContent(1, fake_data.GetBinContent(1)*1.4)
                 
                 processes['data_obs_{}'.format(cat)] = {'nominal': fake_data}
 
