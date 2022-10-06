@@ -83,7 +83,8 @@ Then the script will launch these commands automatically with ``./run_combined_$
 To briefly summarize the commands used for each Combine task;
 ```bash
 
-#===================================================================
+#==================================  H → ZA =================================
+#============================================================================
 do_what='fit'
 
 combine -M FitDiagnostics --rMax 20 -m 125 -t -1 --saveWithUncertainties --ignoreCovWarning -n HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0 HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0_combine_workspace.root --plots
@@ -102,12 +103,12 @@ fit_what=fit_b
 PostFitShapesFromWorkspace -w HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.dat -o fit_shapes_${CAT}_${fit_what}.root -f fitDiagnosticsHToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.root:${fit_what} -m 125 --postfit --sampling --covariance --total-shapes --print
 $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${CAT}_${fit_what}.root -o plotIt_${process}_${cat}_${region}_${flavor}_${fit_what} --signal-process HToZATo2L2B -n dnn_scores
 
-#===================================================================
+#============================================================================
 do_what='asymptotic'
 
 combine -M AsymptoticLimits --rMax 20 -m 125 -n HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root --noFitAsimov --rule CLsplusb --run blind
 
-#===================================================================
+#============================================================================
 do_what='impacts'
 
 combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -m 125 -t -1 --expectSignal 0 --doInitialFit --robustFit 1 
@@ -115,7 +116,7 @@ combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_
 combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -m 125 -t -1 --expectSignal 0 -o impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset.json
 plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset.json -o impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset
 
-#===================================================================
+#============================================================================
 ```
 ## Systematic uncertainties naming conventions for full run2:
 
@@ -214,8 +215,8 @@ Uncorrelated per year and jet flavour.
 - **Cross-section uncertainty, (lnN):**
     - **Signals, (lnN):**
 One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
-    - ``ggH_xsc``
-    - ``bbH_xsc``
+    - H → ZA : ``ggH_xsc``, ``bbH_xsc``
+    - A → ZH : ``ggA_xsc``, ``bbA_xsc``
     - **Backgrounds, (lnN):**
 One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
     - ``SingleTop_xsc: 0.97541``
