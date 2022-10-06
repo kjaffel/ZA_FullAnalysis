@@ -75,10 +75,48 @@ inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
-- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``, with the given inputs above  
-combine commands will be saved in ``.sh`` files in the directory ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx`` also the datacards, 
-and then the script will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``. With the given inputs above (fit == pre-/post-fit) 
+, Combine commands files ``*.sh`` and the datacards ``*.dat``  will be saved in the directory ``${stageOut}/${workDir}$/${scenario}/fit/${mode}/2POIs_r/MH-xxx_MA-xxx``. 
+Then the script will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
 
+## Running Combine Tools:
+To summarize briefly the commands used:
+```bash
+
+#===================================================================
+do_what='fit'
+
+combine -M FitDiagnostics --rMax 20 -m 125 -t -1 --saveWithUncertainties --ignoreCovWarning -n HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0 HToZATo2L2B_bb_associatedProduction_nb2_resolved_OSSF_dnn_MH_500.0_MA_50.0_combine_workspace.root --plots
+
+CAT=dnn_MH_${mH}_MA_${mA}
+
+#fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
+#fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
+
+# Create pre/post-fit shapes 
+fit_what=fit_s
+PostFitShapesFromWorkspace -w HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.dat -o fit_shapes_${CAT}_${fit_what}.root -f fitDiagnosticsHToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.root:${fit_what} -m 125 --postfit --sampling --covariance --total-shapes --print
+$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${CAT}_${fit_what}.root -o plotIt_${process}_${cat}_${region}_${flavor}_${fit_what} --signal-process HToZATo2L2B -n dnn_scores
+
+fit_what=fit_b
+PostFitShapesFromWorkspace -w HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.dat -o fit_shapes_${CAT}_${fit_what}.root -f fitDiagnosticsHToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}.root:${fit_what} -m 125 --postfit --sampling --covariance --total-shapes --print
+$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${CAT}_${fit_what}.root -o plotIt_${process}_${cat}_${region}_${flavor}_${fit_what} --signal-process HToZATo2L2B -n dnn_scores
+
+#===================================================================
+do_what='asymptotic'
+
+combine -M AsymptoticLimits --rMax 20 -m 125 -n HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root --noFitAsimov --rule CLsplusb --run blind
+
+#===================================================================
+do_what='impacts'
+
+combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -m 125 -t -1 --expectSignal 0 --doInitialFit --robustFit 1 
+combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -m 125 -t -1 --expectSignal 0 --robustFit 1 --doFits --parallel 30 
+combineTool.py -M Impacts --rMin -20 --rMax 20 -d HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA} HToZATo2L2B_${process}_${cat}_${region}_${flavor}_dnn_MH_${mH}_MA_${mA}_combine_workspace.root -m 125 -t -1 --expectSignal 0 -o impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset.json
+plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset.json -o impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_asimovdataset
+
+#===================================================================
+```
 ## Systematic uncertainties naming conventions for full run2:
 
 1. **Experimental uncertainties:**
@@ -112,14 +150,14 @@ JER uncertainties are uncorrelated across years.
     - ``CMS_res_j_fatjet_<era>``
 
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
-Uncorrelated across year, for both electrons and muons.
+100% correlated across year, for both electrons and muons. Following latest EGamma recommendation on [ combining systematics](https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#A_note_on_Combining_Systematics).
     - **Electrons:**
-    - ``CMS_eff_elid_<era>``
-    - ``CMS_eff_elreco_lowpt_<era>``    →  RecoBelow20
-    - ``CMS_eff_elreco_highpt_<era>``   →  RecoAove20
+    - ``CMS_eff_elid``
+    - ``CMS_eff_elreco_lowpt``    →  RecoBelow20
+    - ``CMS_eff_elreco_highpt``   →  RecoAove20
     - **Muons:**
-    - ``CMS_eff_muiso_<era>``
-    - ``CMS_eff_muid_<era>``
+    - ``CMS_eff_muiso``
+    - ``CMS_eff_muid``
 
 - **2018 HEM issue, (shape):**
 Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html)
@@ -142,9 +180,9 @@ Uncorrelated accross year, lepton flavours, and signal regions.
 
 - **Trigger efficiencies, (shape):**
 Uncorrelated per year, lepton flavours.
-- ``CMS_elel_trigSF_<era>``
-- ``CMS_mumu_trigSF_<era>``
-- ``CMS_muel_trigSF_<era>``
+    - ``CMS_elel_trigSF_<era>``
+    - ``CMS_mumu_trigSF_<era>``
+    - ``CMS_muel_trigSF_<era>``
 
 - **L1 pre-firing, (shape):**
 Correlated, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
@@ -173,7 +211,15 @@ Uncorrelated per year and jet flavour.
 - **Renormalization and factorization scale, (shape):**
     - ``qcdmuR_<process>``
     - ``qcdmuF_<process>``
-
+- **Signals, (lnN):**
+One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
+    - ``ggH_xsc``
+    - ``bbH_xsc``
+- **Backgrounds, (lnN):**
+One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
+    - ``SingleTop_xsc: 0.97541``
+    - ``DY_xsc: 1.00784 ``
+    - ``ttbar_xsc: 1.00153``
 3. **MC statistics:**
 
-- I use [the Barlow-Beeston-lite approach](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/#c-mc-statistical-uncertainties); each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
+- We use [the Barlow-Beeston-lite approach](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/#c-mc-statistical-uncertainties); each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
