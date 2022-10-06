@@ -80,7 +80,7 @@ outDir=$inDir
 Then the script will launch these commands automatically with ``./run_combined_${mode}_preposfit.sh``
 
 ## Running Combine Tools:
-To summarize briefly the commands used:
+To briefly summarize the commands used for each Combine task;
 ```bash
 
 #===================================================================
@@ -211,11 +211,12 @@ Uncorrelated per year and jet flavour.
 - **Renormalization and factorization scale, (shape):**
     - ``qcdmuR_<process>``
     - ``qcdmuF_<process>``
-- **Signals, (lnN):**
+- **Cross-section uncertainty, (lnN):**
+    - **Signals, (lnN):**
 One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
     - ``ggH_xsc``
     - ``bbH_xsc``
-- **Backgrounds, (lnN):**
+    - **Backgrounds, (lnN):**
 One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
     - ``SingleTop_xsc: 0.97541``
     - ``DY_xsc: 1.00784 ``
