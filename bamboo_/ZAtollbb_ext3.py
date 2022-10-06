@@ -66,7 +66,7 @@ class NanoHtoZABase(NanoAODModule):
         
         self.doPass_bTagEventWeight = True
         self.CleanJets_fromPileup   = False
-        self.doDDBvsL               = True
+        self.doDDBvsL               = False
         self.BTV_discrCuts          = False
         self.doDY_reweighting       = True        # using poly fit degree 6 on mjj mass  
         self.doOnlylightflav        = False       # DY reweighting will be applied on light flavour jets only 
@@ -76,8 +76,8 @@ class NanoHtoZABase(NanoAODModule):
         self.doProduceSummedPlots   = False
         self.doSaveQCDVars          = True
         self.SplitSignalPoints      = False       # Distribute generated signal mass points between resolved and boosted
-        self.doPassNbr_subjets      = "atleast_1subjet" # discri cut on fat jet options: or both_subjets_pass, fatjet_pass 
-        self.WorkingPoints          = ["L", "M", "T"] 
+        self.doPassNbr_subjets      = "both_subjets" # discri cut on fat jet options: atleast_1subjet or both_subjets, fatjet 
+        self.WorkingPoints          = ["M"]       # ["L", "M", "T"]
         self.rebin                  = "uniform"   # bayesian or uniform (50 bins) : for the DNN template that will be given to combine
         self.reweightDY             = "split"     # comb or "split" lepton flavour
         self.doCorrect              = "subjets"   # "fatjet" or subjets : when applying btagging SFs 
@@ -232,12 +232,14 @@ class NanoHtoZABase(NanoAODModule):
         # just apply to data
         if isMC:
             configureJets(tree._Jet, "AK4PFchs", **cmJMEArgs)
-            configureJets(tree._FatJet, "AK8PFPuppi", mcYearForFatJets=(era if "VFP" not in era else "2016"), **cmJMEArgs)
             
             if self.doMETT1Smear: 
                 configureType1MET(getattr(tree, f"_{metName}T1Smear"), isT1Smear=True, **cmJMEArgs)
             else:
                 configureType1MET(getattr(tree, f"_{metName}"), **cmJMEArgs)
+            
+            cmJMEArgs["jesUncertaintySources"] = ["Total"]
+            configureJets(tree._FatJet, "AK8PFPuppi", mcYearForFatJets=(era if "VFP" not in era else "2016"), **cmJMEArgs)
         
         #del cmJMEArgs["uName"]
         #configureType1MET(getattr(tree, f"_{metName}T1"), enableSystematics=((lambda v : not v.startswith("jer")) if isMC else None), uName=f"{sample}NoSmear", **cmJMEArgs)
@@ -601,7 +603,7 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         
         
-        jetType = { 'resolved': { 
+        bjetType = { 'resolved': { 
                         'DeepCSV': {
                             'jet':  self.cleaned_AK4JetsByDeepFlav, 
                             'workingPoints': ['L', 'M', 'T']       },
@@ -621,10 +623,10 @@ class NanoHtoZABase(NanoAODModule):
             for flav in ['b']:#, 'light']:
                 tagged_jets[region][flav] = {}
                 
-                for tagger in jetType[region].keys():
+                for tagger in bjetType[region].keys():
                     tagged_jets[region][flav][tagger] = {}
                                 
-                    for wp in sorted(jetType[region][tagger]['workingPoints']):
+                    for wp in sorted(bjetType[region][tagger]['workingPoints']):
         
                         idx = getIDX(wp)
                         if region == 'resolved':
@@ -639,17 +641,17 @@ class NanoHtoZABase(NanoAODModule):
                             "resolved": {
                                 "DeepFlavour": { 
                                     'b'    : (lambda j : j.btagDeepFlavB >= wpdiscr_cut),
-                                    'light': (lambda j : j.btagDeepFlavB < wpdiscr_cut) }, 
-                                "DeepCSV": {
+                                    'light': (lambda j : j.btagDeepFlavB < wpdiscr_cut)  }, 
+                                "DeepCSV": { 
                                     'b'    : (lambda j : j.btagDeepB >= wpdiscr_cut ),
-                                    'light': (lambda j : j.btagDeepB < wpdiscr_cut ) } },
+                                    'light': (lambda j : j.btagDeepB < wpdiscr_cut )     } },
                             "boosted": {
                                 "DeepCSV": {
                                     'b'    : subjets_btag_req['b'].get(self.doPassNbr_subjets+'_pass'),
                                     'light': subjets_btag_req['light'].get(self.doPassNbr_subjets+'_notpass') }}
                                 }
-
-                        passed_jets = op.select(jetType[region][tagger]['jet'], lambdas[region][tagger][flav])
+                        
+                        passed_jets = op.select(bjetType[region][tagger]['jet'], lambdas[region][tagger][flav])
                         tagged_jets[region][flav][tagger][wp] = passed_jets
         
         bjets_boosted  = tagged_jets['boosted']['b']
@@ -816,10 +818,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 idx = getIDX(wp)
                 systMapping = {}
                 full_scheme = False
-                decorr_eras = False # FIXME len(config['configuration']['eras'].keys())!=1 
-                if self.doSysts:
-                    full_scheme = False ## FIXME
-                    systMapping = {}
+                decorr_eras = True
+                if self.doSysts and full_scheme:
                     __not_yet_systMapping = {
                             "pileup"  : "pileup", # correlated with "pileup" uncertainty
                             "isr"     : None,     # uncorrelated, standalone b-tag uncertainty
@@ -887,19 +887,19 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         jlenOpts       = { "inclusive": 
                                     { "resolved": ' $\ge$ 2 ',
                                       "boosted" : ' $\ge$ 1 '},
-                            "exclusive": {"ggH": 
+                            "exclusive": {"nb2": 
                                              { "resolved": ' == 2 ' ,
                                                "boosted" : ' == 1 '},
-                                          "bbH": 
+                                          "nb3": 
                                              { "resolved": ' $\ge$ 3 ',
                                                "boosted" : ' $>$ 1 ' } 
                                         }
                         }
 
-        optimizeMETcut  =  {"gg_fusion": 
+        optimizeMETcut  =  {"nb2": 
                                 { "resolved": 80.,
                                   "boosted" : 80. },
-                            "bb_associatedProduction": 
+                            "nb3": 
                                 { "resolved": 80.,
                                   "boosted" : 80. } 
                         }
@@ -954,8 +954,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         ]
         
         # basic distribution for control region
-        make_ZpicPlots              = False
-        make_JetsPlusLeptonsPlots   = True
+        make_ZpicPlots              = True
+        make_JetsPlusLeptonsPlots   = False
         make_JetmultiplictyPlots    = False
         make_METPlots               = False
         make_METPuppiPlots          = False
@@ -966,16 +966,16 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots    = True
+        make_FinalSelControlPlots    = False
         make_PlotsforCombinedLimits  = False
         
         # plots for the studies
-        make_DiscriminatorPlots      = True
+        make_DiscriminatorPlots      = False
         make_BJetEnRegressionPlots   = False
         make_ttbarEstimationPlots    = False
         
         # the follow are mainly for debugging purposes 
-        make_BoostedBtagPlots        = True    
+        make_BoostedBtagPlots        = False    
         make_DYReweightingPlots      = False
         make_tau2tau1RatioPlots      = False
         make_deltaRPlots             = False 
@@ -1007,7 +1007,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 plots.extend(cp.makeControlPlotsForZpic(catSel, dilepton, 'oslepSel', channel, 'inclusive'))
                 
                 inclusiveSel = catSel.refine(f"TwoJet_{channel}_inclusiveSel",cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) >= 0])
-                plots.extend(cp.makeControlPlotsForBasicSel(inclusiveSel,lljj_jets, dilepton, channel, 'inclusive'))
+                plots.extend(cp.makeControlPlotsForBasicSel(inclusiveSel, lljj_jets, dilepton, channel, 'inclusive'))
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # Jets multiplicty  
@@ -1095,7 +1095,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             if make_recoVerticesPlots:
                 plots.extend( cp.makePrimaryANDSecondaryVerticesPlots(t, catSel, channel))
            
-
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                 # Control Plots in boosted and resolved  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1169,7 +1168,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 
                 
                 if make_BoostedBtagPlots and wp !='T':
-                    weight = None
+                    weight = { 'nb3-boosted': None,
+                               'nb2-boosted': None,
+                               }
                     if self.doPass_bTagEventWeight and isMC:
                         weight = { 'nb3-boosted': [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)],
                                                     run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepCSV{}'.format(wp)] 
@@ -1252,47 +1253,46 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                                                 weight = None)} ) 
 
 
-                llbbSelections_noMETCut = { "gg_fusion":{ 
+                llbbSelections_noMETCut = { "nb2":{ 
                                                     "resolved": LeptonsPlusBjets_NoMETCut_bTagEventWeight_Res["gg_fusion"],
                                                     "boosted" : LeptonsPlusBjets_NoMETCut_bTagEventWeight_Boo["gg_fusion"] },
-                                             "bb_associatedProduction":{ 
+                                             "nb3":{ 
                                                     "resolved": LeptonsPlusBjets_NoMETCut_bTagEventWeight_Res["bb_associatedProduction"], 
                                                     "boosted" : LeptonsPlusBjets_NoMETCut_bTagEventWeight_Boo["bb_associatedProduction"] }
                                             }
                 if self.doYields:
-                    for process, allsel_fortaggerWP_per_reg_and_process in llbbSelections_noMETCut.items():
-                        reco_cat, prod = getProduction(process)
+                    for reco, allsel_fortaggerWP_per_reg_and_reco in llbbSelections_noMETCut.items():
                         met_pt_cut  = '$p_{T}^{miss}$ cut'
                         
-                        for reg,  dic_selections in allsel_fortaggerWP_per_reg_and_process.items():
+                        for reg,  dic_selections in allsel_fortaggerWP_per_reg_and_reco.items():
                             for taggerWP, sel in dic_selections.items():
                                 
                                 taggerWP = taggerWP.replace('DeepFlavour', 'DeepJet')
                                 
                                 yield_object.addYields(sel, f"has2Lep_2{reg}BJets_NoMETCut_{channel}_{taggerWP}_{prod}",
-                                        f"{reco_cat} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets {reg} ( {taggerWP} ) + no {met_pt_cut}")
+                                        f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets {reg} ( {taggerWP} ) + no {met_pt_cut}")
                                 
-                                selections_for_cutflowreport.add(sel, f"{reco_cat} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets {reg} ( {taggerWP} ) + no {met_pt_cut}") 
+                                selections_for_cutflowreport.add(sel, f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets {reg} ( {taggerWP} ) + no {met_pt_cut}") 
                 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  refine previous selections for SR : with MET cut  < 80. 
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                llbbSelections = { process: 
+                llbbSelections = { reco: 
                                         { reg:
-                                            { key: selNoMET.refine(f"TwoLeptonsTwoBjets_METCut_bTagEventWeight_{key}_{channel}_{reg}_{process}", cut=[ corrMET.pt < optimizeMETcut[process][reg] ])
+                                            { key: selNoMET.refine(f"TwoLeptonsTwoBjets_METCut_bTagEventWeight_{key}_{channel}_{reco}_{reg}", cut=[ corrMET.pt < optimizeMETcut[reco][reg] ])
                                             for key, selNoMET in noMETSels.items() }
-                                        for reg, noMETSels in llbbSelections_noMETCut_per_process.items() }
-                                    for process, llbbSelections_noMETCut_per_process in llbbSelections_noMETCut.items() 
+                                        for reg, noMETSels in llbbSelections_noMETCut_per_reco.items() }
+                                    for reco, llbbSelections_noMETCut_per_reco in llbbSelections_noMETCut.items() 
                                 }
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                 # make Skimmer
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if self.doSkim:
-                    for process , Selections_per_process in llbbSelections.items():
-                        reco_cat, prod = getProduction(process)
-                        for reg, Selections_per_taggerWP in Selections_per_process.items():
+                    for reco, Selections_per_reco in llbbSelections.items():
+                        for reg, Selections_per_taggerWP in Selections_per_reco.items():
                             for taggerWP, FinalSel in Selections_per_taggerWP.items():
 
+                                prod = 'ggH' if reco == 'nb2' else 'bbH'
                                 if reg =="resolved":
                                     bJets  = bjets_resolved[taggerWP.replace(wp, "")][wp]
                                     llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4+bJets[1].p4).M()
@@ -1343,9 +1343,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # you should get them for both signal && bkg  
                     if make_METPlots:
-                        for process , Selections_noMETCut_per_process in llbbSelections_noMETCut.items():
-                            for reg, sel in Selections_noMETCut_per_process.items():
-                                plots.extend(cp.MakeMETPlots(sel, dilepton, corrMET, MET, channel, reg, process))
+                        for reco, Selections_noMETCut_per_reco in llbbSelections_noMETCut.items():
+                            for reg, sel in Selections_noMETCut_per_reco.items():
+                                plots.extend(cp.MakeMETPlots(sel, dilepton, corrMET, MET, channel, reg, reco))
                     
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                             # Evaluate the training  
@@ -1353,30 +1353,27 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     if self.doEvaluate:
                         
                         outdir   = os.path.abspath(os.path.join(zaPath, 'config' ))
-                        dict_allmasspoints = utils.getSignalMassPoints(outdir)
-                        
+                        dict_allmasspoints = utils.getSignalMassPoints(outdir, all_=True)
+
                         plotOptions = utils.getOpts(channel)
                         if self.doBlinded:
                             plotOptions["blinded-range"] = [0.6, 1.0] 
 
-                        for process, Selections_per_process in llbbSelections.items():
-                            for region, selections_per_region in Selections_per_process.items(): 
+                        for reco, Selections_per_reco in llbbSelections.items():
+                            for region, selections_per_region in Selections_per_reco.items(): 
                                 for tag_plus_wp, sel in selections_per_region.items():
-                                    
-                                    reco_cat, prod = getProduction(process) 
+                                   
+                                    prod     = 'ggH' if reco == 'nb2' else 'bbH'
                                     bjets_   = lljj_bJets[region][tag_plus_wp.replace(wp,'')][wp]
                                     jj_p4    = ( (bjets_[0].p4 + bjets_[1].p4) if region=="resolved" else( bjets_[0].p4))
                                     lljj_p4  = ( dilepton[0].p4 + dilepton[1].p4 + jj_p4)
                                     
                                     bb_M     = jj_p4.M()
                                     llbb_M   = lljj_p4.M()
-                                    
-                                    for mode in [ 'HToZA', 'AToZH']:
-                                        if self.SplitSignalPoints: # Between resolved and boosted !
-                                            masses_seen_forEvaluation = dict_allmasspoints[process][region][mode]
-                                        else:
-                                            masses_seen_forEvaluation = dict_allmasspoints[process]['resolved'][mode] + dict_allmasspoints[process]['boosted'][mode]
-
+                                   
+                                    for mode in [ 'HToZA']:#, 'AToZH']:
+                                        masses_seen_forEvaluation = [(250., 50.), (500., 50.), (500., 300.), (250., 125.), (800., 200.)]
+                                        #masses_seen_forEvaluation = dict_allmasspoints[mode]
                                         
                                         signal_grid = { 'seen_byDNN'   : masses_seen_forEvaluation,
                                                         'notseen_byDNN': masses_notseen }
@@ -1387,12 +1384,12 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                     nm = 'ZA'
                                                     mH = parameters[0]
                                                     mA = parameters[1]
-                                                    histNm = f"DNNOutput_{nm}node_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
+                                                    histNm = f"DNNOutput_{nm}node_{channel}_{reco}_{region}_{tag_plus_wp}_METCut_MH_{mass_to_str(mH)}_MA_{mass_to_str(mA)}"
                                                 else:
                                                     nm = 'ZH'
                                                     mA = parameters[0]
                                                     mH = parameters[1]
-                                                    histNm = f"DNNOutput_{nm}node_{channel}_{region}_{tag_plus_wp}_METCut_{process}_MA_{mass_to_str(mA)}_MH_{mass_to_str(mH)}"
+                                                    histNm = f"DNNOutput_{nm}node_{channel}_{reco}_{region}_{tag_plus_wp}_METCut_MA_{mass_to_str(mA)}_MH_{mass_to_str(mH)}"
                                                 
                                                 inputsCommon = {'l1_pdgId'        : dilepton[0].pdgId               ,
                                                                 'myera'           : op.c_int(int(era_))             ,
@@ -1409,18 +1406,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                                 'isbbH'           : op.c_bool(prod == 'bbH')    ,
                                                                 }
                                                 
-                                                if self.rebin == 'bayesian':
-                                                    # I did not optimize the bayesian blocks for these catagories yet !!# FIXME
-                                                    look_for = histNm
-                                                    if region == 'boosted':
-                                                        look_for = look_for.replace('boosted', 'resolved')
-                                                    if process == 'bb_associatedProduction':
-                                                        look_for = look_for.replace('bb_associatedProduction', 'gg_fusion')
-                                                    
-                                                    print(f"working on rebinning of {histNm} :: bayesian blocks {bayesian_blocks_binnings['histograms'][look_for][0][0]}") 
-                                                    binning = VarBin(bayesian_blocks_binnings['histograms'][look_for][0][0])
-                                                
-                                                elif self.rebin == 'uniform':
+                                                if self.rebin == 'uniform':
                                                     binning = EqB(50, 0., 1.)
     
                                                 DNN_Inputs   = [op.array("float",val) for val in inputStaticCast(inputsCommon,"float")]
@@ -1450,14 +1436,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if make_ttbarEstimationPlots:
                         # High met is Only included in this part for ttbar studies 
-                        for process, Selections_per_process in llbbSelections.items():
+                        for reco, Selections_per_reco in llbbSelections.items():
                             for metReg, sel in {
-                                    "METCut" : Selections_per_process["resolved"],
-                                    "HighMET": {key: selNoMET.refine("TwoLeptonsTwoBjets_{}_{}_Resolved_with_inverted_METcut_{}".format(key, channel, process),
-                                        cut=[ corrMET.pt > optimizeMETcut[process]['resolved'] ])
-                                        for key, selNoMET in llbbSelections_noMETCut[process]["resolved"].items() }
+                                    "METCut" : Selections_per_reco["resolved"],
+                                    "HighMET": {key: selNoMET.refine("TwoLeptonsTwoBjets_{}_{}_{}_resolved_with_inverted_METcut".format(key, channel, reco),
+                                        cut=[ corrMET.pt > optimizeMETcut[reco]['resolved'] ])
+                                        for key, selNoMET in llbbSelections_noMETCut[reco]["resolved"].items() }
                                     }.items():
-                                plots.extend(cp.makeHistosForTTbarEstimation(sel, dilepton, bjets_resolved, corrMET, MET, channel, "resolved", metReg, process, self.BTV_discrCuts))
+                                plots.extend(cp.makeHistosForTTbarEstimation(sel, dilepton, bjets_resolved, corrMET, MET, channel, "resolved", metReg, reco, self.BTV_discrCuts))
                     
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                         #  Control Plots for  Final selections
@@ -1475,15 +1461,13 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         metCutNm_   = f"{metCutNm}_{bJER_status}_{bTagtWeight_status}"
                         met_pt_cut  = '$p_{T}^{miss}$ cut' if metCutNm == 'METCut' else ''
                         
-                        for process, metCutSelections_llbb_per_process in metCutSelections_llbb.items():
-                            reco_cat, prod =getProduction(process)
-
-                            for reg, selDict in metCutSelections_llbb_per_process.items():
+                        for reco, metCutSelections_llbb_per_reco in metCutSelections_llbb.items():
+                            for reg, selDict in metCutSelections_llbb_per_reco.items():
                                 bjets = lljj_bJets[reg]
                                 
                                 if make_FinalSelControlPlots:
-                                    final_cp, final_cpToSum = cp.makeControlPlotsForFinalSel(selDict, bjets, dilepton, channel, reg, metCutNm_, process, self.doProduceSummedPlots, self.BTV_discrCuts)
-                                    bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, channel, reg, metCutNm_, era, process, self.doProduceSummedPlots, self.BTV_discrCuts)
+                                    final_cp, final_cpToSum = cp.makeControlPlotsForFinalSel(selDict, bjets, dilepton, channel, reg, metCutNm_, reco, self.doProduceSummedPlots, self.BTV_discrCuts)
+                                    bjets_cp, bjets_cpToSum = cp.makeBJetPlots(selDict, bjets, channel, reg, metCutNm_, era, reco, self.doProduceSummedPlots, self.BTV_discrCuts)
                                     
                                     plots.extend(final_cp)
                                     plots.extend(bjets_cp)
@@ -1492,18 +1476,18 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     plots_ToSum2.update(bjets_cpToSum)
 
                                 if make_PlotsforCombinedLimits:
-                                    plots.extend(makerhoPlots(selDict, bjets, dilepton, self.ellipses, self.ellipse_params, reg, metCutNm_, wp, channel, self.doBlinded, process))
+                                    plots.extend(makerhoPlots(selDict, bjets, dilepton, self.ellipses, self.ellipse_params, reg, metCutNm_, wp, channel, self.doBlinded, reco))
 
                                 if make_BJetEnRegressionPlots and reg == 'resolved':
-                                    plots.extend(cp.MakeBJERcorrComparaisonPlots(selDict, bjets, dilepton, channel, reg, metCutNm_, process, self.BTV_discrCuts))
+                                    plots.extend(cp.MakeBJERcorrComparaisonPlots(selDict, bjets, dilepton, channel, reg, metCutNm_, reco, self.BTV_discrCuts))
                                 
                                 if self.doYields and metCutNm == 'METCut':
                                     for key, sel in selDict.items():
                                         key = key.replace('DeepFlavour', 'DeepJet')
-                                        yield_object.addYields(sel, f"has2Lep_2{reg}BJets_{metCutNm_}_{channel}_{key}_{prod}",
-                                                f"{reco_cat} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets {reg} ({key}) + {met_pt_cut}")
+                                        yield_object.addYields(sel, f"has2Lep_2{reg}BJets_{metCutNm_}_{channel}_{key}_{reco}_{reg}",
+                                                f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][reco][reg]} {jetType[reg]} b-jets {reg} ({key}) + {met_pt_cut}")
                                         
-                                        selections_for_cutflowreport.add(sel, f"{reco_cat} -{reg}: {optstex} + {jlenOpts['exclusive'][prod][reg]} {jetType[reg]} b-jets ({key}) + {met_pt_cut}")
+                                        selections_for_cutflowreport.add(sel, f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][reco][reg]} {jetType[reg]} b-jets ({key}) + {met_pt_cut}")
                     
         
         if self.doYields:

@@ -229,9 +229,8 @@ def getRunEra(sample):
     return result.group(1)
 
 
-def getSignalMassPoints(outdir):
-    
-    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL16_17_18_nanov9.yml')) as _f:
+def getSignalMassPoints(outdir, all_=True):
+    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
     
     points = {'gg_fusion': 
@@ -241,6 +240,9 @@ def getSignalMassPoints(outdir):
                 { 'resolved': {'HToZA': [], 'AToZH': [] },
                   'boosted' : {'HToZA': [], 'AToZH': [] } },
             }
+
+    all_points = { 'HToZA': [], 
+                   'AToZH': [] }
     
     for f in plotConfig['samples']:
         key = 'HToZA'
@@ -254,16 +256,23 @@ def getSignalMassPoints(outdir):
         m0 = float(split_f[2].replace('p', '.'))
         m1 = float(split_f[4].replace('p', '.'))
         
-        if m0 > 4*m1:
-            region = 'boosted'
-
-        if 'GluGluTo' in f: 
-            if not (m0, m1) in points['gg_fusion'][region][key]:
-                points['gg_fusion'][region][key].append( (m0, m1))
+        if all_:
+            if not (m0, m1) in all_points[key]:
+                all_points[key].append((m0, m1))
         else:
-            if not (m0, m1) in points['bb_associatedProduction'][region][key]:
-                points['bb_associatedProduction'][region][key].append( (m0, m1))
-    return points 
+            if m0 > 4*m1:
+                region = 'boosted'
+    
+            if 'GluGluTo' in f: 
+                if not (m0, m1) in points['gg_fusion'][region][key]:
+                    points['gg_fusion'][region][key].append( (m0, m1))
+            else:
+                if not (m0, m1) in points['bb_associatedProduction'][region][key]:
+                    points['bb_associatedProduction'][region][key].append( (m0, m1))
+    if all_:
+        return all_points
+    else:
+        return points 
 
 
 def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
