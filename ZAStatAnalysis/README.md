@@ -62,7 +62,7 @@ scram b -j7
 ## Optimize Binning: 
 - Commands for the Bayesian Blocks method can be found in ``run_bboptimizer.sh``
 ```python
-python optimizeBinning.py -i $bambooDir -o $outDir --rebin bayesian --era $era --mode dnn --asimov --scale --logy
+python optimizeBinning.py -i $bambooDir -o $outDir --rebin bayesian --era $era --mode dnn --scale --logy
 ```
 - ``-i``/``--inputs``    : Bamboo results dir 
 - ``-o``/``--outputs``   : Path to the output dir of the new rebinned histogram. 
@@ -73,12 +73,12 @@ python optimizeBinning.py -i $bambooDir -o $outDir --rebin bayesian --era $era -
 - ``-p0``/``--prior``    : False positive probability betwee 0 and 1 which is the relative frequency with which the algorithm falsely reports detection of change-point in data with no signal present. 
 - ``--toys``/``--asimov``:
 - ``--sys``              : Rebin ssytematic histograms as well.
-- ``--submit``           : Choices ``['all','test']`` first will rebin all histogram found in the input files, second weill do only a test. Useful for debugging.
+- ``--submit``           : Choices ``['all','test']`` first will rebin all histogram found in the input files, second will do only a test (useful for debugging).
 ### For plotting: 
-- ``--onlypost``         : Do just plotting. 
-- ``--plotit``           : Do plots after rebining.
-- ``--logy``             : log scale for plotit.
-- ``--mode``             : Choices ``['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'rho', 'dnn']``.
+- ``--onlypost``         : Do just plots. 
+- ``--plotit``           : Do run plotIt after rebining.
+- ``--logy``             : log scale for plotIt.
+- ``--mode``             : Choices ``['mjj_vs_mlljj', 'mjj_and_mlljj', 'mjj', 'mlljj', 'rho', 'dnn']``. 
 - ``--normalized``       : normalize histogram for plotting. 
 ### For Custom rebinning: 
 - ``--uncertainty``      : max stat. uncertainty needed in each bin.

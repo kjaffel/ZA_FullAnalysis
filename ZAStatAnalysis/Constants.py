@@ -2,7 +2,6 @@ import os, sys
 sys.dont_write_bytecode = True
 import yaml
 import math
-import numpy as np
 
 
 def ZAlogger(nm):
@@ -60,6 +59,7 @@ def cat_to_tuplemass(c):
 
 
 def loadSushiInfos(len_, fileName):
+    import numpy as np
     in_dtypes = [
             ("DatasetName",  'U%s'%len_),
             ("Sushi_xsc@NLO[pb]", float),
@@ -101,6 +101,7 @@ def get_xsc_br_fromSushi(smpNm, arr):
 
 def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
     # depreacted !!    
+    import numpy as np
     base   = "/home/ucl/cp3/kjaffel/ZAPrivateProduction/data/"
     heavy  = mode[0]
     light  = mode[-1]

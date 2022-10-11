@@ -34,9 +34,8 @@ if version.parse(mpl.__version__) >= version.parse('2.0.0'):
     mpl.rcParams['lines.dotted_pattern']  = [1, 3]
     mpl.rcParams['lines.scale_dashes']    = False
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/utils')
 import Constants as Constants
-import CMSStyle as CMSStyle
+import utils.CMSStyle as CMSStyle
 
 
 th_files = [
@@ -110,33 +109,42 @@ channels = {
     'OSSF_MuEl': '$\mu\mu$ + ee + $\mu e$',
     'MuMu_ElEl_MuEl': '($\mu\mu$ + ee) + $\mu e$',
     }
-nb = { 'ggH': '$n_{b}=2+n_{b}=3$', 
-       'bbH': '$n_{b}=2+n_{b}=3$',
-    }
 catagories = OrderedDict({
-    'ggH_nb2PLusnb3_resolved' : [['MuMu_ElEl', 'MuMu_ElEl_MuEl'], 'ggH', 'resolved'],
-    'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'],      'bbH', 'resolved'],             
-    'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],      'ggH', 'boosted' ],             
-    'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],      'bbH', 'boosted' ],   
+    'ggH_nb2_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb2$-',        'resolved'],
+    'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted'],
+    'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb3$-',        'resolved'],
+    'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted'],
+    'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'resolved'],
+    'ggH_nb2PLusnb3_boosted'  : [['OSSF_MuEl'],         'ggH', '$nb2+nb3$, ',   'boosted' ],             
+    
+    'bbH_nb2_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'resolved'],
+    'bbH_nb2_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'boosted'],
+    'bbH_nb3_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'resolved'],
+    'bbH_nb3_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'boosted'],
+    'bbH_nb2PLusnb3_resolved' : [['OSSF_MuEl'],         'bbH', '$nb2+nb3$, ',   'resolved'],             
+    'bbH_nb2PLusnb3_boosted'  : [['OSSF_MuEl'],         'bbH', '$nb2+nb3$, ',   'boosted' ],   
+    
     # combination 1 reso +boo  
-    'ggH_nb2PLusnb3_resolved_boosted': [['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
-    'bbH_nb2PLusnb3_resolved_boosted': [['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
+    #'ggH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
+    #'bbH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
+    
     # combination 2 ggH +bbH 
-    # the limits here set on the opposite process while _r_bbH or _r_ggH mentionned in the name of the file
-    # means that that process left to float freely in the fit or freezed to a certain value
-    'freezed_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', 'boosted' ],
-    'freezed_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved'],
-    'freezed_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', 'boosted' ],
-    'freezed_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved' ],
-    'freezed_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
-    'freezed_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
-    ### combination 3
-    'profiled_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', 'boosted' ],
-    'profiled_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved'],
-    'profiled_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', 'boosted' ],
-    'profiled_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved' ],
-    'profiled_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', 'resolved_boosted'],
-    'profiled_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', 'resolved_boosted'],
+        # the limits here set on the opposite process while _r_bbH or _r_ggH mentionned in the name of the file
+        # means that that process left to float freely in the fit or freezed to a certain value
+    #'freezed_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'boosted' ],
+    #'freezed_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved'],
+    #'freezed_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'boosted' ],
+    #'freezed_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved' ],
+    #'freezed_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
+    #'freezed_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
+    
+    # combination 3
+    #'profiled_r_bbH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'boosted' ],
+    #'profiled_r_bbH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved'],
+    #'profiled_r_ggH_nb2PLusnb3_boosted'          :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'boosted' ],
+    #'profiled_r_ggH_nb2PLusnb3_resolved'         :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved' ],
+    #'profiled_r_bbH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
+    #'profiled_r_ggH_nb2PLusnb3_resolved_boosted' :[['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
     })
 
 
@@ -152,7 +160,7 @@ def get_SushiXSC(process, tb , heavy, light, m_heavy, m_light):
     br_lighttobb     = given_mass['branching-ratio']['{}Tobb'.format(light)]
     br = float(br_HeavytoZlight)* float(br_lighttobb)* br_Ztoll
     
-    if process == 'ggH': xsc  = given_mass['cross-section'][process].split()[0]
+    if process in ['ggH', 'ggA']: xsc  = given_mass['cross-section'][process].split()[0]
     else: xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
     return float(xsc), br 
 
@@ -182,9 +190,11 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
     th_lmax  = 0.
     for cat, Cfg in catagories.items():
         
-        flavors, prod, region = Cfg
+        flavors, prod, nb, region = Cfg
 
         for flav in flavors:
+            if not 'MuEl' in flav:
+                continue
             for era in [2016, 2017, 2018, 'fullrun2']:
                 
                 th_lmax += 2.5
@@ -212,9 +222,9 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
         theory_line.update({process: {}})
         
         if era =='fullrun2':
-            ticklabel = 'combined\n' + '%s-%s\n'%(nb[process], region)+'%s'%channels[flav]
+            ticklabel = 'combined\n' + '%s%s\n'%(nb, region)+'%s'%channels[flav]
         else:
-            ticklabel = 'UL%s\n'%era.replace('20','') + '%s-%s\n'%(nb[process], region)+'%s'%channels[flav]
+            ticklabel = 'UL%s\n'%era.replace('20','') + '%s%s\n'%(nb, region)+'%s'%channels[flav]
 
         yaxis_set_ticklabels.append(ticklabel)
         fact = 2
@@ -387,20 +397,29 @@ def draw_theory(ax, mH, mA, br, label=False):
     return theory_markers
 
 
-def Plot1D_ScanLimits(jsonpath, signal_grid, thdm):
+def TwistedSenarios(nm, thdm):
+    if thdm =='AToZH':
+        nm = nm.replace('ggH', 'ggA')
+        nm = nm.replace('bbH', 'bbA')
+    return nm
+
+
+def Plot1D_ScanLimits(jsonpath, signal_grid, thdm, do_PLot=False):
     mpl.rcParams['font.size'] = 12
     ToBe_Stacked = {}
     
     for cat, Cfg in catagories.items():
-        
+               
+        cat = TwistedSenarios(cat, thdm)
         ToBe_Stacked[cat] = {}
         cba     = 0.01
         heavy   = thdm[0]
         light   = thdm[-1]
-        flavors, prod, region = Cfg
-        tb      = 20 if prod =='bbH' else 1.5
-        process = 'gluon-gluon fusion' if prod =='ggH' else 'b-associated production'
-
+        flavors, prod, nb, region = Cfg
+        prod    = TwistedSenarios(prod, thdm)
+        tb      = 20 if prod in ['bbH', 'bbA'] else 1.5
+        process = 'gluon-gluon fusion' if prod in ['ggH', 'ggA'] else 'b-associated production'
+        
         for the_fixmass in massTofix_list:
             
             if options.scan =='mA': parameter_values = {"mH": the_fixmass}
@@ -449,7 +468,7 @@ def Plot1D_ScanLimits(jsonpath, signal_grid, thdm):
                    continue
                 
                 if not point in limits.keys():
-                   print("No limits provided for point %s !" % str(point) )
+                   print("\t => No limits provided for point %s , %s !" %(str(point), cat) )
                    continue
                 print("Working on point %s" % str(point))
             
@@ -506,283 +525,287 @@ def Plot1D_ScanLimits(jsonpath, signal_grid, thdm):
     
             ToBe_Stacked[cat][the_fixmass] = flavors_data
             
-            # Create a figure instance
-            #==============================
-            CMSStyle.changeFont()
-            fig = plt.figure(1, figsize=(7, 7), dpi=300)
-            fig.tight_layout()
-            
-            # Create an axes instance
-            ax = fig.add_subplot(111)
-            ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, ZA)$ (fb)')
-            ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
-            if options.rescale_to_za_br:
-                ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, H) \times\, BR(H \rightarrow\, ZA) \times\, BR(A \rightarrow\, b\bar{b})$ (fb)')
-            #ax.grid()
-            
-            CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
-            
-            expected_lines = {}
-            for f in flavors:
+            if do_PLot:
+                # Create a figure instance
+                #==============================
+                CMSStyle.changeFont()
+                fig = plt.figure(1, figsize=(7, 7), dpi=300)
+                fig.tight_layout()
                 
-                color = colors[f]
-                data  = flavors_data[f]
+                # Create an axes instance
+                ax = fig.add_subplot(111)
+                ax.set_ylabel(r'95% C.L. limit on $\sigma(pp \rightarrow\, Z{})$ (fb)'.format(light))
+                ax.set_xlabel('${}$'.format(parameter_axis_legend[options.scan]), fontsize='large', x=0.85)
+                if options.rescale_to_za_br:
+                    ax.set_ylabel(r'95% C.L. limit on '+r'$\sigma(pp \rightarrow\, %s) \times\, BR(H \rightarrow\, Z%s) \times\, BR(%s \rightarrow\, b\bar{b})$ (fb)'%(heavy, light, light))
+                #ax.grid()
                 
-                data['x'] = np.asarray(data['x'])
-                data['expected']  = np.asarray(data['expected'])
-                data['observed']  = np.asarray(data['observed'])
-                data['one_sigma'] = np.asarray(data['one_sigma'])
-                data['two_sigma'] = np.asarray(data['two_sigma'])
-            
-                print ( 'expected  : %s' %data['expected'])
-                print ( 'observed  : %s' %data['observed'])
-                print ( 'one_sigma : %s' %data['one_sigma'])
-                print ( 'two_sigma : %s' %data['two_sigma'])
+                CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
                 
-                data['x'] = np.array(data['x'], dtype=float)
-                # Plot 2 sigma
-                ax.fill_between(data['x'], 
-                                data['expected'] - data['two_sigma'][0], 
-                                data['expected'] + data['two_sigma'][1], 
-                                facecolor='#FFCC29', lw=0, label=r'Expected $\pm$ 2 std. deviation', interpolate=True) 
-                # Plot 1 sigma
-                ax.fill_between(data['x'], 
-                                data['expected'] - data['one_sigma'][0], 
-                                data['expected'] + data['one_sigma'][1], 
-                                facecolor='#00A859', lw=0, label=r'Expected $\pm$ 1 std. deviation', interpolate=True)
-                # Plot expected limit
-                expected_line = ax.plot(data['x'], 
-                                        data['expected'], 
-                                        ls='dashed', solid_capstyle='round', color=color, ms=6, 
-                                        marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected 95% upper limits ({})".format(channels[f]))[0]
+                expected_lines = {}
+                for f in flavors:
+                    color = colors[f]
+                    data  = flavors_data[f]
+                    
+                    data['x'] = np.asarray(data['x'])
+                    data['expected']  = np.asarray(data['expected'])
+                    data['observed']  = np.asarray(data['observed'])
+                    data['one_sigma'] = np.asarray(data['one_sigma'])
+                    data['two_sigma'] = np.asarray(data['two_sigma'])
                 
-                expected_lines[channels[f]] = expected_line 
+                    print ( 'expected  : %s' %data['expected'])
+                    print ( 'observed  : %s' %data['observed'])
+                    print ( 'one_sigma : %s' %data['one_sigma'])
+                    print ( 'two_sigma : %s' %data['two_sigma'])
+                    
+                    data['x'] = np.array(data['x'], dtype=float)
+                    # Plot 2 sigma
+                    ax.fill_between(data['x'], 
+                                    data['expected'] - data['two_sigma'][0], 
+                                    data['expected'] + data['two_sigma'][1], 
+                                    facecolor='#FFCC29', lw=0, label=r'Expected $\pm$ 2 std. deviation', interpolate=True) 
+                    # Plot 1 sigma
+                    ax.fill_between(data['x'], 
+                                    data['expected'] - data['one_sigma'][0], 
+                                    data['expected'] + data['one_sigma'][1], 
+                                    facecolor='#00A859', lw=0, label=r'Expected $\pm$ 1 std. deviation', interpolate=True)
+                    # Plot expected limit
+                    expected_line = ax.plot(data['x'], 
+                                            data['expected'], 
+                                            ls='dashed', solid_capstyle='round', color=color, ms=6, 
+                                            marker='o' if show_markers[options.scan] else '', lw=1.5, label="Expected 95% upper limits ({})".format(channels[f]))[0]
+                    
+                    expected_lines[channels[f]] = expected_line 
+                    
+                    # And observed
+                    if options.unblind:
+                        observed_markers = ax.plot(data['x'], 
+                                                   data['observed'], 
+                                                   ls='solid', marker='o' if show_markers[options.scan] else '', color=color, 
+                                                   mec=color, lw=1.5, markersize=6, alpha=0.8, label="Observed 95% upper limits ({})".format(channels[f]))
+                # And theory
+                if options.theory:
+                    # Increase a bit the range of the theory curve to cover rectangles width
+                    #x_axis_length = ax.get_xlim()[1] - ax.get_xlim()[0]
+                    #x = np.linspace(min(data['x']) - x_axis_length * 0.01, max(data['x']) + x_axis_length * 0.01, 200)
+                    x  = np.linspace(min(data['x']), max(data['x']), 200)
                 
-                # And observed
-                if options.unblind:
-                    observed_markers = ax.plot(data['x'], 
-                                               data['observed'], 
-                                               ls='solid', marker='o' if show_markers[options.scan] else '', color=color, 
-                                               mec=color, lw=1.5, markersize=6, alpha=0.8, label="Observed 95% upper limits ({})".format(channels[f]))
-            # And theory
-            if options.theory:
-                # Increase a bit the range of the theory curve to cover rectangles width
-                #x_axis_length = ax.get_xlim()[1] - ax.get_xlim()[0]
-                #x = np.linspace(min(data['x']) - x_axis_length * 0.01, max(data['x']) + x_axis_length * 0.01, 200)
-                x  = np.linspace(min(data['x']), max(data['x']), 200)
-            
-                if options.scan == "mH":
-                    for mA in [1, 2]:
+                    if options.scan == "mH":
+                        for mA in [1, 2]:
+                            params = [0, 0]
+                            for p, i in parameter_index.items():
+                                if p == options.scan:
+                                    params[i] = x * mA
+                                else:
+                                    params[i] = mA
+                
+                            theory_markers = draw_theory(ax, *params, label=True)
+                    else:
                         params = [0, 0]
                         for p, i in parameter_index.items():
                             if p == options.scan:
-                                params[i] = x * mA
+                                params[i] = x
                             else:
-                                params[i] = mA
-            
-                        theory_markers = draw_theory(ax, *params, label=True)
+                                params[i] = parameter_values[p]
+                
+                        theory_markers = draw_theory(ax, *params)
+                
+                # Set Y axis range
+                if not options.log:
+                    ax.set_ylim(**axes_y_limits[options.scan])
                 else:
-                    params = [0, 0]
-                    for p, i in parameter_index.items():
+                    ax.set_yscale('log')
+                    ax.set_ylim(**axes_log_y_limits[options.scan])
+                
+                # Set x axis range
+                ax.margins(0.05, 0.1)
+                ax.set_xlim(**axes_x_limits[options.scan])
+                
+                # Legends
+                one_sigma_patch = mpatches.Patch(color='#00A859', label=r'Expected $\pm$ 1 std. deviation')
+                two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'Expected $\pm$ 2 std. deviation')
+                
+                handles = [l for l in expected_lines.values()] + [one_sigma_patch, two_sigma_patch]
+                labels  = [r'Expected 95% upper limit ({})'.format(k) for k in  expected_lines.keys()] + [r'Expected $\pm$ 1 std. deviation', r'Expected $\pm$ 2 std. deviation']
+                
+                if options.unblind:
+                    handles = observed_markers + handles
+                    labels = ['Observed 95% upper limit'] + labels
+                
+                # Create theory label
+                if options.theory:
+                    parameters_formatted_text = []
+                    for p in parameters:
                         if p == options.scan:
-                            params[i] = x
+                            continue
+                    
+                        parameter_value = parameter_values[p]
+                        if parameter_value == default_values[p]:
+                            parameter_value = parameter_legend[p] + '^{SM}'
+                        parameters_formatted_text.append("${} = {}$".format(parameter_legend[p], parameter_value))
+                    parameters_text = ', '.join(parameters_formatted_text)
+                    
+                    #label = "Theory ($%s$, %s)" % (parameter_legend[options.scan], parameters_text)
+                    for i, f in enumerate(th_files):
+                        # expect a file format of the type: sigmaBR_HZA_type-2_tb-1p0_cba-0p01.json
+                        tb = [x for x in f.split('_') if 'tb-' in x][0].strip('tb-').replace('p', '.')
+                        tb = float(tb)
+                        label = r'$\sigma_{th}$ (tan($\beta$) = %s)' % (tb)
+                        theory_line  = mlines.Line2D([], [], color=th_colors[i], marker=None, linewidth=2)
+                        theory_patch = mpatches.Patch(color=th_colors[i], hatch=th_hatches[i], alpha=0.5)
+                        handles = handles + [(theory_line, theory_patch)]
+                        labels  = labels + [label]
+                
+                # Format legend text...
+                # text = ""
+                # text_elements = range(5)
+                # for p, i in parameter_index.items():
+                    # if p == options.scan:
+                        # continue
+                    # text_elements[i] = "$" + parameter_legend[p] + "$ = {}, ".format(parameter_values[p])
+                # for p in [ x for x in text_elements if isinstance(x, str) ]:
+                    # text += p
+                # text = text[:len(text)-2]
+                
+                legend_y_anchor = 1
+                legend_x_anchor = 0.035 if options.leg_pos == 'left' else 1
+                loc = 2 if options.leg_pos == 'left' else 1
+                lgd = ax.legend(handles, labels, loc=loc, numpoints=1, fontsize='medium', frameon=False, bbox_to_anchor=(legend_x_anchor, legend_y_anchor), ncol=1)
+                #lgd = ax.legend(loc=loc, numpoints=1, fontsize='medium', frameon=False, bbox_to_anchor=(legend_x_anchor, legend_y_anchor), ncol=2)
+                
+                #ax.text(0.06, 0.8, r"$m_H = {:d}$ GeV, 2HDM Type-II, tan$\beta$= {}, cos($\beta-\alpha$) = {}".format(int(the_fixmass), tb, cba), transform=ax.transAxes, ha='left', va='baseline')
+                #ax.minorticks_on()
+                ax.get_legend().set_title(r"2HDM-II, ${}$= {} GeV, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(m_fix, round(the_fixmass,2), tb)+"\n"+ "{}, {}{}".format(process, nb, region), 
+                        prop={'size': 12, 'weight': 'heavy'})
+                
+                # Actually draw the figure to have access to legend size
+                fig.canvas.draw()
+                
+                # Detect if the plot content overlap with the legend
+                # Get legend height and width
+                inv_data_trans = ax.transData.inverted()
+                
+                legend_pos_display = lgd.get_window_extent(renderer=fig.canvas.get_renderer())
+                legend_pos_data    = inv_data_trans.transform(legend_pos_display)
+                
+                # Find maximum in the legend range
+                slicing = (data["x"] >= legend_pos_data[0][0]) & (data["x"] <= legend_pos_data[1][0])
+                values  = (data['expected'] + data['two_sigma'][1])[slicing]
+                if len(values):
+                    maximum = max((data['expected'] + data['two_sigma'][1])[slicing])
+                
+                    for l in ax.lines:
+                        x = l.get_xdata()
+                        slicing = (x >= legend_pos_data[0][0]) & (x <= legend_pos_data[1][0])
+                        values = np.asarray(l.get_ydata())[slicing]
+                        if len(values) > 0:
+                            maximum = max(maximum, max(values))
+                
+                    for c in ax.collections:
+                        for p in c.get_paths():
+                            for v in p.vertices:
+                                if v[0] >= legend_pos_data[0][0] and v[0] <= legend_pos_data[1][0]:
+                                    maximum = max(maximum, v[1])
+                    delta = legend_pos_data[0][1] - maximum
+                
+                    if delta < 0:
+                        # Overlap between the legend and the plot content
+                        print("Legend overlap with the plot content, make room for the legend")
+                        if options.log:
+                            import math
+                            op = math.log10
+                            inv_op = lambda t: math.pow(10, t)
                         else:
-                            params[i] = parameter_values[p]
-            
-                    theory_markers = draw_theory(ax, *params)
-            
-            # Set Y axis range
-            if not options.log:
-                ax.set_ylim(**axes_y_limits[options.scan])
-            else:
-                ax.set_yscale('log')
-                ax.set_ylim(**axes_log_y_limits[options.scan])
-            
-            # Set x axis range
-            ax.margins(0.05, 0.1)
-            ax.set_xlim(**axes_x_limits[options.scan])
-            
-            # Legends
-            one_sigma_patch = mpatches.Patch(color='#00A859', label=r'Expected $\pm$ 1 std. deviation')
-            two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'Expected $\pm$ 2 std. deviation')
-            
-            handles = [l for l in expected_lines.values()] + [one_sigma_patch, two_sigma_patch]
-            labels  = [r'Expected 95% upper limit ({})'.format(k) for k in  expected_lines.keys()] + [r'Expected $\pm$ 1 std. deviation', r'Expected $\pm$ 2 std. deviation']
-            
-            if options.unblind:
-                handles = observed_markers + handles
-                labels = ['Observed 95% upper limit'] + labels
-            
-            # Create theory label
-            if options.theory:
-                parameters_formatted_text = []
-                for p in parameters:
+                            op = lambda t: t
+                            inv_op = lambda t: t
+                
+                        y_lim = ax.get_ylim()
+                
+                        delta = op(legend_pos_data[0][1]) - op(maximum)
+                        padding_top = op(y_lim[1]) - op(maximum)
+                
+                        new_top = op(y_lim[1]) - delta + padding_top
+                        ax.set_ylim(top=inv_op(new_top))
+                
+                # Build plot name
+                plot_name = 'limits_{}_1Dscan_{}_'.format(cat, options.scan)
+                name_elements = list(range(5))
+                for p, i in parameter_index.items():
                     if p == options.scan:
                         continue
+                    name_elements[i] = "{}={}_".format(p, parameter_values[p])
                 
-                    parameter_value = parameter_values[p]
-                    if parameter_value == default_values[p]:
-                        parameter_value = parameter_legend[p] + '^{SM}'
-                    parameters_formatted_text.append("${} = {}$".format(parameter_legend[p], parameter_value))
-                parameters_text = ', '.join(parameters_formatted_text)
+                for p in [ x for x in name_elements if isinstance(x, str) ]:
+                    plot_name += p
+                plot_name = plot_name[:len(plot_name)-1]
                 
-                #label = "Theory ($%s$, %s)" % (parameter_legend[options.scan], parameters_text)
-                for i, f in enumerate(th_files):
-                    # expect a file format of the type: sigmaBR_HZA_type-2_tb-1p0_cba-0p01.json
-                    tb = [x for x in f.split('_') if 'tb-' in x][0].strip('tb-').replace('p', '.')
-                    tb = float(tb)
-                    label = r'$\sigma_{th}$ (tan($\beta$) = %s)' % (tb)
-                    theory_line  = mlines.Line2D([], [], color=th_colors[i], marker=None, linewidth=2)
-                    theory_patch = mpatches.Patch(color=th_colors[i], hatch=th_hatches[i], alpha=0.5)
-                    handles = handles + [(theory_line, theory_patch)]
-                    labels  = labels + [label]
-            
-            # Format legend text...
-            # text = ""
-            # text_elements = range(5)
-            # for p, i in parameter_index.items():
-                # if p == options.scan:
-                    # continue
-                # text_elements[i] = "$" + parameter_legend[p] + "$ = {}, ".format(parameter_values[p])
-            # for p in [ x for x in text_elements if isinstance(x, str) ]:
-                # text += p
-            # text = text[:len(text)-2]
-            
-            legend_y_anchor = 1
-            legend_x_anchor = 0.035 if options.leg_pos == 'left' else 1
-            loc = 2 if options.leg_pos == 'left' else 1
-            lgd = ax.legend(handles, labels, loc=loc, numpoints=1, fontsize='medium', frameon=False, bbox_to_anchor=(legend_x_anchor, legend_y_anchor), ncol=1)
-            #lgd = ax.legend(loc=loc, numpoints=1, fontsize='medium', frameon=False, bbox_to_anchor=(legend_x_anchor, legend_y_anchor), ncol=2)
-            
-            #ax.text(0.06, 0.8, r"$m_H = {:d}$ GeV, 2HDM Type-II, tan$\beta$= {}, cos($\beta-\alpha$) = {}".format(int(the_fixmass), tb, cba), transform=ax.transAxes, ha='left', va='baseline')
-            #ax.minorticks_on()
-            ax.get_legend().set_title(r"2HDM-II, ${}$= {} GeV, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(m_fix, round(the_fixmass,2), tb)+"\n"+ "{}".format(process), prop={'size': 12, 'weight': 'heavy'})
-            
-            
-            # Actually draw the figure to have access to legend size
-            fig.canvas.draw()
-            
-            # Detect if the plot content overlap with the legend
-            # Get legend height and width
-            inv_data_trans = ax.transData.inverted()
-            
-            legend_pos_display = lgd.get_window_extent(renderer=fig.canvas.get_renderer())
-            legend_pos_data    = inv_data_trans.transform(legend_pos_display)
-            
-            # Find maximum in the legend range
-            slicing = (data["x"] >= legend_pos_data[0][0]) & (data["x"] <= legend_pos_data[1][0])
-            values  = (data['expected'] + data['two_sigma'][1])[slicing]
-            if len(values):
-                maximum = max((data['expected'] + data['two_sigma'][1])[slicing])
-            
-                for l in ax.lines:
-                    x = l.get_xdata()
-                    slicing = (x >= legend_pos_data[0][0]) & (x <= legend_pos_data[1][0])
-                    values = np.asarray(l.get_ydata())[slicing]
-                    if len(values) > 0:
-                        maximum = max(maximum, max(values))
-            
-                for c in ax.collections:
-                    for p in c.get_paths():
-                        for v in p.vertices:
-                            if v[0] >= legend_pos_data[0][0] and v[0] <= legend_pos_data[1][0]:
-                                maximum = max(maximum, v[1])
-                delta = legend_pos_data[0][1] - maximum
-            
-                if delta < 0:
-                    # Overlap between the legend and the plot content
-                    print("Legend overlap with the plot content, make room for the legend")
-                    if options.log:
-                        import math
-                        op = math.log10
-                        inv_op = lambda t: math.pow(10, t)
-                    else:
-                        op = lambda t: t
-                        inv_op = lambda t: t
-            
-                    y_lim = ax.get_ylim()
-            
-                    delta = op(legend_pos_data[0][1]) - op(maximum)
-                    padding_top = op(y_lim[1]) - op(maximum)
-            
-                    new_top = op(y_lim[1]) - delta + padding_top
-                    ax.set_ylim(top=inv_op(new_top))
-            
-            # Build plot name
-            plot_name = 'limits_{}_1Dscan_{}_'.format(cat, options.scan)
-            name_elements = range(5)
-            for p, i in parameter_index.items():
-                if p == options.scan:
-                    continue
-                name_elements[i] = "{}={}_".format(p, parameter_values[p])
-            
-            for p in [ x for x in name_elements if isinstance(x, str) ]:
-                plot_name += p
-            plot_name = plot_name[:len(plot_name)-1]
-            
-            if options.rescale_to_za_br:
-                plot_name += '_rescaled_to_ZA_BR'
-            
-            if not options.no_latex:
-                with open('%s/%s.tex' % (output_dir, plot_name), 'w') as f:
-                    f.write(R'\begin{tabular}{@{}ccccc@{}} \toprule' + '\n')
-                    f.write(R'\hline' + '\n')
-                    f.write(R'\\' + '\n')
-                    f.write('${}$'.format(parameter_legend[options.scan]) + 
-                            R' & Observed (fb) & Expected (fb) & $\mp$ 1 Standard deviation (fb) & $\mp$ 2 Standard deviation (fb) \\ \midrule' + '\n')
-                    f.write(R'\\' + '\n')
-                    f.write(R'\hline' + '\n')
-                    f.write(R'\\' + '\n')
-            
-                    for index in range(len(data['x'])):
-                        fmt = R"%.1f & " + ("$%.2e}$" if options.unblind else "%s") + R" & $%.2e}$ & $-%.2e}$ / $+%.2e}$ & $-%.2e}$ / $+%.2e}$ \\"
-                        f.write( (fmt % (data['x'][index], 
-                                         data['observed'][index] if options.unblind else '-', 
-                                         data['expected'][index], 
-                                         data['one_sigma'][0][index], 
-                                         data['one_sigma'][1][index], 
-                                         data['two_sigma'][0][index], 
-                                         data['two_sigma'][1][index]) + '\n').replace('e+0', R'\,.\,10^{').replace('e-0', R'\,.\,10^{') )
+                if options.rescale_to_za_br:
+                    plot_name += '_rescaled_to_Z{}_BR'.format(light)
+                
+                if not options.no_latex:
+                    with open('%s/%s.tex' % (output_dir, plot_name), 'w') as f:
+                        f.write(R'\begin{tabular}{@{}ccccc@{}} \toprule' + '\n')
+                        f.write(R'\hline' + '\n')
                         f.write(R'\\' + '\n')
-                    f.write(R'\hline' + '\n')
-                    f.write(R'\bottomrule' + '\n')
-                    f.write(R'\end{tabular}' + '\n')
-                print('LaTeX table saved as %r' % ('%s/%s.tex' % (output_dir, plot_name)))
-            
-            if options.log:
-                plot_name = plot_name + "_logy"
-            if options.unblind:
-                plot_name = plot_name + "_unblind"
-            
-            fig.savefig(os.path.join(output_dir, plot_name + '.pdf'), bbox_inches='tight')
-            fig.savefig(os.path.join(output_dir, plot_name + '.png'), bbox_inches='tight')
-            
-            print("Plot saved as %r") % os.path.join(output_dir, plot_name + '.pdf')
-            print("Plot saved as %r") % os.path.join(output_dir, plot_name + '.png')
-            print("="*40)
-            
-            # clean the figure before next plot
-            plt.gcf().clear() 
+                        f.write('${}$'.format(parameter_legend[options.scan]) + 
+                                R' & Observed (fb) & Expected (fb) & $\mp$ 1 Standard deviation (fb) & $\mp$ 2 Standard deviation (fb) \\ \midrule' + '\n')
+                        f.write(R'\\' + '\n')
+                        f.write(R'\hline' + '\n')
+                        f.write(R'\\' + '\n')
+                
+                        for index in range(len(data['x'])):
+                            fmt = R"%.1f & " + ("$%.2e}$" if options.unblind else "%s") + R" & $%.2e}$ & $-%.2e}$ / $+%.2e}$ & $-%.2e}$ / $+%.2e}$ \\"
+                            f.write( (fmt % (data['x'][index], 
+                                             data['observed'][index] if options.unblind else '-', 
+                                             data['expected'][index], 
+                                             data['one_sigma'][0][index], 
+                                             data['one_sigma'][1][index], 
+                                             data['two_sigma'][0][index], 
+                                             data['two_sigma'][1][index]) + '\n').replace('e+0', R'\,.\,10^{').replace('e-0', R'\,.\,10^{') )
+                            f.write(R'\\' + '\n')
+                        f.write(R'\hline' + '\n')
+                        f.write(R'\bottomrule' + '\n')
+                        f.write(R'\end{tabular}' + '\n')
+                    print('LaTeX table saved as %r' % ('%s/%s.tex' % (output_dir, plot_name)))
+                
+                if options.log:
+                    plot_name = plot_name + "_logy"
+                if options.unblind:
+                    plot_name = plot_name + "_unblind"
+                
+                fig.savefig(os.path.join(output_dir, plot_name + '.pdf'), bbox_inches='tight')
+                fig.savefig(os.path.join(output_dir, plot_name + '.png'), bbox_inches='tight')
+               
+                print("Plot saved as %r"% os.path.join(output_dir, plot_name + '.pdf'))
+                print("Plot saved as %r"% os.path.join(output_dir, plot_name + '.png'))
+                print("="*40)
+                
+                # clean the figure before next plot
+                plt.gcf().clear() 
 
     return ToBe_Stacked
 
 
 
-def Plot1D_StackedLimits(masses_tofix, upper_limits):
+def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
     mpl.rcParams['font.size'] = 12
 
     for cat, Cfg in catagories.items():
         
-        flavors, prod, region = Cfg
-        tb      = 20 if prod =='bbH' else 1.5
-        process = 'gluon-gluon fusion' if prod =='ggH' else 'b-associated production'
+        cat = TwistedSenarios(cat, thdm)
+        
+        flavors, prod, nb, region = Cfg
+        prod = TwistedSenarios(prod, thdm)
+        
+        region  = ', resolved + boosted' if region == 'resolved_boosted' else '-'+region
+        tb      = 20 if prod in ['bbH', 'bbA'] else 1.5
+        process = 'gluon-gluon fusion' if prod in ['ggH', 'ggA'] else 'b-associated production'
 
         for flav in flavors:
-            
             color = colors[flav]
             # Create a figure instance
             CMSStyle.changeFont()
-            fig = plt.figure(1, figsize=(7, 7), dpi=300)
+            fig = plt.figure(1, figsize=(8, 7), dpi=300)
             fig.tight_layout()
             
             # Create an axes instance
@@ -798,30 +821,43 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
             for j, m in enumerate(sorted(upper_limits[cat].keys())):
                 
                 multi = pow(10, poww)
-                
+
                 data  = upper_limits[cat][m][flav]
-                data['x'] = np.asarray(data['x'])
+                data['x'] = np.array(data['x'])
                 data['expected']  = np.asarray(data['expected'])* multi
                 data['observed']  = np.asarray(data['observed'])* multi
                 data['one_sigma'] = np.asarray(data['one_sigma'])* multi
                 data['two_sigma'] = np.asarray(data['two_sigma'])* multi
-                data['x'] = np.array(data['x'], dtype=float)
                 
+                data['x'] = np.array(data['x'], dtype=float)
+               
+                exp_plus_1sigma  = data['expected'] + data['one_sigma'][1]
+                exp_minus_1sigma = data['expected'] - data['one_sigma'][0]
+                exp_plus_2sigma  = data['expected'] + data['two_sigma'][1]
+                exp_minus_2sigma = data['expected'] - data['two_sigma'][0]
+                
+                exp_plus_1sigma  = np.array(exp_plus_1sigma, dtype=float)
+                exp_minus_1sigma = np.array(exp_minus_1sigma, dtype=float)
+                exp_plus_2sigma  = np.array(exp_plus_2sigma, dtype=float)
+                exp_minus_2sigma = np.array(exp_minus_2sigma, dtype=float)
+                
+                print( m , exp_plus_1sigma, exp_minus_1sigma, exp_plus_2sigma, exp_minus_2sigma, data['x']) 
+                print( '==============='*10)
                 # keep always sigma 2 first, otherwise won't appear in the plot
                 # because will be hidden by sigma 1
                 # Plot 2 sigma
                 ax.fill_between(data['x'], 
-                                data['expected'] - data['two_sigma'][0], 
-                                data['expected'] + data['two_sigma'][1], 
+                                exp_minus_2sigma, 
+                                exp_plus_2sigma, 
                                 facecolor='#FFCC29', 
                                 lw=0, 
                                 label=r'Expected $\pm$ 2 std. deviation', 
                                 interpolate=True) 
-            
+                
                 # Plot 1 sigma
                 ax.fill_between(data['x'], 
-                                data['expected'] - data['one_sigma'][0], 
-                                data['expected'] + data['one_sigma'][1], 
+                                exp_minus_1sigma, 
+                                exp_plus_1sigma, 
                                 facecolor='#00A859', 
                                 lw=0, 
                                 label=r'Expected $\pm$ 1 std. deviation', 
@@ -853,10 +889,11 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                                             markersize=6, 
                                             alpha=0.8, 
                                             label="Observed 95% upper limits")
-                poww  += 2
+                poww  += 3
                 if region == 'boosted':
                     poww +=1
 
+            
             one_sigma_patch = mpatches.Patch(color='#00A859', label=r'Expected $\pm$ 1 std. deviation')
             two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'Expected $\pm$ 2 std. deviation')
             
@@ -876,15 +913,14 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits):
                 ax.set_ylim(**axes_y_limits[options.scan])
             else:
                 ax.set_yscale('log')
-                ax.set_ylim(10e-3, 10e21)
+                ax.set_ylim(10e-3, 10e90)
             
             ax.margins(0.1, 0.1)
             ax.set_xlim(**axes_x_limits[options.scan])
-            ax.get_legend().set_title(r"2HDM-II, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(tb)+"\n"+ "{}, {}-{}".format(process, nb[prod], region), 
+            ax.get_legend().set_title(r"2HDM-II, cos($\beta$ -$\alpha$) = 0.01, tan$\beta$= {}".format(tb)+"\n"+ "{}, {}{}".format(process, nb, region), 
                     prop={'size': 12, 'weight': 'heavy'})
             
             fig.canvas.draw()
-            #plot_name = 'forJan_test_{}_{}'.format(cat, flav)
             plot_name = '1Dstacked_limits_{}_{}_{}'.format(options.era, cat, flav)
             fig.savefig(os.path.join(output_dir, plot_name + '.pdf'), bbox_inches='tight')
             fig.savefig(os.path.join(output_dir, plot_name + '.png'), bbox_inches='tight')
@@ -929,44 +965,62 @@ if __name__ == '__main__':
     output_dir = jsonpath
     m_fix = 'm_{H}' if options.scan =='mA' else 'm_{A}'
     
-    signal_grid = []
-    for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0], poi_dir, tb_dir, '*')):
-        dir_ = dir_p.split('/')[-1]
-        m0   = float(dir_.split('_')[0].split('-')[1])
-        m1   = float(dir_.split('_')[1].split('-')[1])
-        signal_grid.append((m0, m1))
-    
-    # bad binning
-    #signal_grid.remove((609.21, 417.76))
-    #signal_grid.remove((500., 400.))
-    #signal_grid.remove((609.21, 505.93))
-    
-    massTofix_list = []
-    available_parameters={}
-    for mH, mA in signal_grid:
-        if options.scan == 'mA':
-            if not mH in massTofix_list:
-                massTofix_list.append(mH)
-                available_parameters[mH]= []
-        else:
-            if not mA in massTofix_list:
-                massTofix_list.append(mA)
-                available_parameters[mA]= []
-    
-    for m in massTofix_list:
-        for tup in sorted(signal_grid):
-            if options.scan=='mA':
-                if m ==tup[0]: available_parameters[m].append((str(tup[0]),str(tup[1])))
+    for thdm in ['HToZA']: #'AToZH', 'HToZA']:
+       
+        heavy = thdm[0]
+        light = thdm[-1]
+        signal_grid = []
+        for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0], poi_dir, tb_dir, 'M{}*'.format(heavy))):
+            dir_ = dir_p.split('/')[-1]
+            m0   = float(dir_.split('_')[0].split('-')[1])
+            m1   = float(dir_.split('_')[1].split('-')[1])
+            if not (m0, m1) in signal_grid:
+                signal_grid.append((m0, m1))
+   
+        # bad binning
+        #if thdm == 'HToZA':
+        #    signal_grid.remove((650., 50.))
+        #    signal_grid.remove((780., 680.))
+        #    signal_grid.remove((240., 130.))
+        if thdm == 'AToZH':
+            signal_grid.remove((200., 125.))
+            signal_grid.remove((300., 135.))
+            signal_grid.remove((510., 130.))
+            signal_grid.remove((700., 200.))
+            signal_grid.remove((750., 610.))
+            signal_grid.remove((500., 250.))
+            signal_grid.remove((220., 127.))
+            signal_grid.remove((670., 500.))
+        
+        #signal_grid =[(200., 125), (240., 130.), (500., 125.), (200., 125), (240., 130.), (800., 140.,), (500., 250.), (780., 680.)]
+        
+        massTofix_list = []
+        available_parameters={}
+        for mH, mA in signal_grid:
+            if options.scan == 'mA':
+                if not mH in massTofix_list:
+                    massTofix_list.append(mH)
+                    available_parameters[mH]= []
             else:
-                if m ==tup[1]: available_parameters[m].append((str(tup[0]),str(tup[1])))
+                if not mA in massTofix_list:
+                    massTofix_list.append(mA)
+                    available_parameters[mA]= []
+        
+        for m in massTofix_list:
+            for tup in sorted(signal_grid):
+                if options.scan=='mA':
+                    if m ==tup[0]: available_parameters[m].append((str(tup[0]),str(tup[1])))
+                else:
+                    if m ==tup[1]: available_parameters[m].append((str(tup[0]),str(tup[1])))
 
-    # for test
-    #signal_grid = [(500., 300.)] 
-    print( signal_grid )
-    
-    for thdm in ['HToZA']:#, 'AToZH']:
+        print( signal_grid )
+        print( available_parameters )
+        print( massTofix_list )
+        
+        #massTofix_list = [800.0, 1000.0, 500.0, 700.0, 300.0, 200.0, 750.0, 650.0] 
+        
         #for (m0, m1) in signal_grid:
-        #    PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm)
+        #   PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm)
     
-        ToBe_Stacked = Plot1D_ScanLimits(jsonpath, available_parameters, thdm)    
-        Plot1D_StackedLimits(massTofix_list, ToBe_Stacked)
+        ToBe_Stacked = Plot1D_ScanLimits(jsonpath, available_parameters, thdm, do_PLot=False)    
+        Plot1D_StackedLimits(massTofix_list, ToBe_Stacked, thdm)

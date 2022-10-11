@@ -21,6 +21,8 @@ import numpy as np
 import ROOT as R
 R.gROOT.SetBatch(True)
 
+from numpy_hist import NumpyHist
+
 import Harvester as H
 import HistogramTools as HT
 import Constants as Constants
@@ -204,7 +206,7 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
     dict_ = { 'flavor'  : [ 'ElEl','MuMu', 'MuEl', 'ElMu', 'OSSF'],
               'process' : ['gg_fusion', 'bb_associatedProduction'],
               'region'  : ['resolved', 'boosted'],
-              #'taggerWP': ['DeepFlavourM', 'DeepCSVM'], 
+              'reco'    : ['nb2', 'nb3'],
               }
                 
     opts = {}
@@ -222,15 +224,22 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
             opts['process'] = 'bb_associatedProduction'
     
     if mass is None:
-        mass = hist_nm.split('__')[0].split(opts['process']+'_')[-1]
+        if fix_reco_format:
+            mass = hist_nm.split('__')[0].split(opts['process']+'_')[-1]
+        else:
+            mass = hist_nm.split('__')[0].split('METCut_')[-1]
+
     m_heavy  = mass_to_str(mass.split('_')[1])
     m_light  = mass_to_str(mass.split('_')[3])
 
     taggerWP = 'DeepFlavourM' if opts['region'] == 'resolved' else 'DeepCSVM'
     opts.update({'mass': mass, 'taggerWP': taggerWP})
     
-    histNm  = f"{prefix}_{opts['flavor']}_{opts['region']}_{opts['taggerWP']}_METCut_{opts['process']}_M{heavy}_{m_heavy}_M{light}_{m_light}"
-    
+    if fix_reco_format:
+        histNm  = f"{prefix}_{opts['flavor']}_{opts['region']}_{opts['taggerWP']}_METCut_{opts['process']}_M{heavy}_{m_heavy}_M{light}_{m_light}"
+    else:
+        histNm  = f"{prefix}_{opts['flavor']}_{opts['reco']}_{opts['region']}_{opts['taggerWP']}_METCut_M{heavy}_{m_heavy}_M{light}_{m_light}"
+
     if info:
         return histNm, opts
     else:
@@ -256,6 +265,22 @@ def no_extra_binedges(newEdges, oldEdges):
                 else:
                     print(x, 'is a very narrow bin width will be removed ' )
     return cleanEdges
+
+
+def no_zero_binContents(nph, newEdges, crossNm):
+    edges   = np.array(newEdges)
+    newHist = nph.rebin(edges).fillHistogram(crossNm)
+    np_newhist  = NumpyHist.getFromRoot(newHist)
+    
+    if 0. in np_newhist.w:
+        result  = np.where(np_newhist.w == 0.)
+        result  = np.array(result)
+        result2 = np.where(result == 0, 1, result)
+        FinalEdges  = np.delete(edges, result2)
+        print( newEdges, FinalEdges, np_newhist.w , result2, 'okkkkkkkkkkkkkkkkk')
+        return  np.array(FinalEdges)
+    else:
+        return np.array(newEdges)
 
 
 def get_finalbins(hist, edges):

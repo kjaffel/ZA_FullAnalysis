@@ -30,8 +30,8 @@ def SlurmRunBayesianBlocks(outputDIR, bambooDIR, era, isTest, unblind):
     config.sbatch_qos = 'cp3'
     config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
     config.sbatch_chdir = os.path.join(outputDIR, 'slurm')
-    config.sbatch_time = '00:59:00'
-    sbatch_memPerCPU = '2000'
+    config.sbatch_time = '03:59:00'
+    config.sbatch_memPerCPU = '5000'
     #config.environmentType = 'cms'
     config.inputSandboxContent = ["run_bboptimizer.sh"]
     config.stageoutFiles = ['*.root']

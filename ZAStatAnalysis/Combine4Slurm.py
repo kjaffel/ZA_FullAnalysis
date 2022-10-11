@@ -12,7 +12,7 @@ def SlurmCombine(cardDir):
     config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
     config.sbatch_chdir = os.path.join(config.cmsswDir, 'combine4slurm')
     config.sbatch_time = '01:59:00'
-    sbatch_memPerCPU = '2000'
+    config.sbatch_memPerCPU = '2000'
     #config.environmentType = "cms"
     #config.inputSandboxContent = [""]
     config.stageoutFiles = ['*.root']

@@ -123,9 +123,6 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
     plt.close(fig)
     plt.gcf().clear()
 
-    fig = plt.figure(figsize=(12, 4), dpi=300)
-    fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
-    
     for i, subplot in enumerate([121, 122]):
         ax = fig.add_subplot(subplot)
         if i ==0:
@@ -173,7 +170,7 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
         #        histtype='step', stacked=True, density=False, fill=False, label=f"Bayesian blocks: hybride +safe stat.")
         if logy:
             ax.set_yscale('log')
-            ax.set_ylim([10e-4, 10e3])
+            #ax.set_ylim([10e-4, 10e3])
         ax.legend(prop=dict(size=10), loc='best')
         ax.set_xlabel('DNN_output ZA')
         ax.set_ylabel('Probability density function')
@@ -228,15 +225,14 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
         pNm   = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
         
         fig   = plt.figure(figsize=(10, 4), dpi=300)
-        ax    = fig.add_subplot(111)
         fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
         
-        CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(args.era), figures=1)
 
         for i, (p0, subplot) in enumerate(zip([p0, p0+0.01], [121, 122])):
             
-            ax = fig.add_subplot(subplot)
             print ( 'working on :', old_hist, pNm , p0)
+            ax    = fig.add_subplot(subplot)
+            CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(args.era), figures=1)
             
             # this will protect me from exiting the bayesian blocks algo when bin content is 0. 
             #newEdges = stats.bayesian_blocks(oldEdges, np_arr_oldhist, fitness='measures', p0=p0, ncp_prior=None) 
@@ -246,21 +242,21 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             newEdges  = bayesian_blocks(oldEdges[:-1], safe_arr, p0=p0)
             newEdges  = optimizer.no_extra_binedges(newEdges, oldEdges)
             newEdges  = [float(format(e,'.2f')) for e in newEdges]
-           
+            
             if 'signal' in datatype and len( newEdges) <= 2:
                 newEdges = [0.0, 0.74, 0.94, 0.96, 0.98, 1.0]
             if 'data' in datatype and 'boosted' in pNm:
                 newEdges = newEdges[0:1]+newEdges[3:] 
             
+            if not 1.0 in newEdges: FinalEdges = newEdges+[1.0]
+            else: FinalEdges = newEdges
+            
             # merge last 2 bins: keep me safe from having bins with 0 to few bkg events also this will localize signal in 1 bin
-            #newEdges  = newEdges[:-2] 
+            #newEdges   = newEdges[:-2] 
+            crossNm     = old_hist.GetName()+name+"_crossCheck_%.2f"%p0
+            FinalEdges  = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
             
-            if not 1.0 in newEdges: final_edge = newEdges+[1.0]
-            else: final_edge = newEdges
-
-            edges   = np.array(final_edge)
-            newHist = nph.rebin(edges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
-            
+            newHist        = nph.rebin(FinalEdges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
             np_newhist     = NumpyHist.getFromRoot(newHist)
             np_arr_newhist = np_newhist.w
             newEdges       = np_newhist.e
@@ -276,7 +272,7 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
                     histtype='step', density=True, label=f"Bayesian blocks: prior = {'%.2f' % (float(p0))}")
             
             ax.legend(prop=dict(size=10), loc='best')
-            ax.set_ylim([10e-4, 10e3])
+            #ax.set_ylim([10e-4, 10e3])
             
             ax.set_xlabel('DNN_output ZA')
             ax.set_ylabel('Probability density function')
@@ -287,13 +283,13 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             pNm += '_logy'
         
         fig.savefig(os.path.join(priorDir, pNm+'.png')) 
-        fig.savefig(os.path.join(priorDir, pNm+'.pdf'))
+        #fig.savefig(os.path.join(priorDir, pNm+'.pdf'))
         plt.close(fig)
         plt.gcf().clear()
         print(f" plots saved in : {output}" )
     
     print( "newBinContents : ",  np_arr_newhist, len(np_arr_newhist))
-    print( "newEdges       : ",  newEdges ,      len(newEdges))
+    print( "newEdges       : ",  newEdges ,      len(newEdges), FinalEdges)
     print( "newBins        : ",  FinalBins )
     return newHist, newEdges, FinalBins
 
@@ -459,6 +455,7 @@ if __name__ == "__main__":
     divideByBinWidth = False
     get_half         = False
     onebin           = False
+    fix_reco_format  = True
     
     if args.job =='local':
         inDir  = os.path.join(args.input, 'results/')
@@ -565,7 +562,7 @@ if __name__ == "__main__":
                 oldBinContent = {}
 
                 mass   = channel.replace(f'{args.mode}_', '')
-                histNm = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)
+                histNm = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)
                 binnings['histograms'][histNm] = {}
                 
                 for key in inFile.Get(channel).GetListOfKeys():
@@ -613,7 +610,7 @@ if __name__ == "__main__":
                 
                 hybridebinning_dict = {'B': newEdges['B'] }
                 
-                binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)].update(
+                binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)].update(
                            {'B': [MarkedList(newEdges['B']), MarkedList(FinalBins['B']) ] } )
                 
                 if not any ( x in histNm for x in ['MuEl', 'ElMu'] ):
@@ -634,7 +631,7 @@ if __name__ == "__main__":
                    #                 include_overflow      = False, 
                    #                 logy                  = args.logy)
 
-                    binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=True)].update(
+                    binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)].update(
                             {   'S'      : [MarkedList(newEdges['S']), MarkedList(FinalBins['S']) ],
                                 'hybride': [MarkedList(binning[0]), MarkedList(binning[1])],
                                #'BB_hybride_good_stat': [MarkedList(newEdges_with_thres_cut), MarkedList(newBins_with_thres_cut)],

@@ -26,9 +26,9 @@ def transform_param(p):
 def string_to_mass(s):
     # looks sth like this : s = MH-200_MA-50
     s = s.split('_')
-    mH = s[0].split('-')[-1]
-    mA = s[1].split('-')[-1]
-    return mH, mA
+    mHeavy = s[0].split('-')[-1]
+    mLight = s[1].split('-')[-1]
+    return mHeavy, mLight
 
 
 def getLimitsFromFile(input_file, method):
@@ -137,9 +137,11 @@ def beautify(process, reco, reg, flavor):
     return '${}: {}, {}$, {}'.format(process, reco, reg, channels[flavor])
 
 
-def WriteLatexTableComparasion(limits, mH, mA, tanbeta, rescale_to_za_br=False, _2POI=False, unblind=False):
+def WriteLatexTableComparasion(limits, mHeavy, mLight, tanbeta, thdm, rescale_to_za_br=False, _2POI=False, unblind=False):
+    heavy = thdm[0]
+    light = thdm[-1]
     print(R'\begin{table}[!htb]')
-    print(R'     \caption{ Observed and Expected 2HDM-TypeII limits for ($m_{H}$, $m_{A}$)= (%s, %s) GeV tan$\beta$= %s.}'%(mH, mA, tanbeta))
+    print(R'     \caption{ Observed and Expected 2HDM-TypeII limits for ($m_{%s}$, $m_{%s}$)= (%s, %s) GeV tan$\beta$= %s.}'%(heavy, light, mHeavy, mLight, tanbeta))
     print(R' \label{table:limits_tab}')
     print(R' \small')
     print(R' \resizebox{\textwidth}{!}{')
@@ -150,20 +152,21 @@ def WriteLatexTableComparasion(limits, mH, mA, tanbeta, rescale_to_za_br=False, 
     print(R' \hline')
     print(R' \\')
     
-    tanbeta_ggH = tanbeta_bbH = tanbeta
-    if tanbeta is None:
-        tanbeta_ggH = 1.5
-        tanbeta_bbH = 20.
 
-    xsc_ggH, xsc_ggH_err, br = Constants.get_SignalStatisticsUncer(float(mH), float(mA), 'ggH', 'HToZA', tanbeta_ggH)
-    xsc_bbH, xsc_bbH_err, br = Constants.get_SignalStatisticsUncer(float(mH), float(mA), 'bbH', 'HToZA', tanbeta_bbH)
+    tanbeta_gluonfusion = tanbeta_bassociated = tanbeta
+    if tanbeta is None:
+        tanbeta_gluonfusion= 1.5
+        tanbeta_bassociated= 20.
+
+    xsc_gluonfusion, xsc_gluonfusion_err, br = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'gg{}'.format(heavy), thdm, tanbeta_gluonfusion)
+    xsc_bassociated, xsc_bassociated_err, br = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'bb{}'.format(heavy), thdm, tanbeta_bassociated)
     
-    sigma_tot  = xsc_ggH + xsc_bbH
+    sigma_tot  = xsc_gluonfusion + xsc_bassociated
     for k, limits_for_key in sorted(limits.items()):
         if not limits_for_key:
             continue
         for v in limits_for_key:
-            if not v['parameters']==(mH, mA):
+            if not v['parameters']==(mHeavy, mLight):
                 continue
         
             expected     = round(v['limits']['expected']*1000, 3)
@@ -173,6 +176,7 @@ def WriteLatexTableComparasion(limits, mH, mA, tanbeta, rescale_to_za_br=False, 
             plus_2sigma  = round(v['limits']['two_sigma'][1]*1000, 3)
             minus_2sigma = round(v['limits']['two_sigma'][0]*1000, 3)
        
+            print( thdm, expected, br )
             if rescale_to_za_br:
                 expected     *= br
                 observed     *= br 
@@ -198,6 +202,7 @@ def WriteLatexTableComparasion(limits, mH, mA, tanbeta, rescale_to_za_br=False, 
                     plus_1sigma, minus_1sigma,
                     plus_2sigma, minus_2sigma )
                 )
+    
     print(R'\hline')
     print(R'\bottomrule')
     print(R'\end{tabular}')
@@ -230,69 +235,84 @@ if __name__ == '__main__':
     if options._2POIs_r:
         poi_dir = '2POIs_r'
     
-    limits = defaultdict(dict)
-    print("Extracting limits...")
-    crap_points = []
-    for process, prod in {'ggH': 'gg_fusion', 
-                          'bbH': 'bb_associatedProduction', 
-                          #'profiled_r_ggH'  : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating 
-                          #'profiled_r_bbH'  : 'gg_fusion_bb_associatedProduction', #         -    ggH    -  bbH         -
-                          #'freezed_r_ggH'   : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
-                          #'freezed_r_bbH'   : 'gg_fusion_bb_associatedProduction', #          -   ggH    -  bbH         -  
-                          }.items():
-        
-        if options.method == "asymptotic":
-            s = '.AsymptoticLimits.mH125.root'
-        elif options.method == "hybridnew":
-            s = '.HybridNew.mH125.root'
-        
-        for reco in ['nb2PLusnb3', 'nb2', 'nb3']:
-            for reg in ['resolved', 'boosted', 'resolved_boosted']:
-                for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
-                    
-                    # I don't need this for now
-                    # too much details I don't need 
-                    if flavor in ['ElEl_MuEl', 'MuMu_MuEl', 'ElEl', 'MuMu', 'MuEl']: 
-                        continue
-                    
-                    limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, poi_dir, tb_dir, '*', '*{}'.format(s)))
-                    latex_k = beautify(process, reco, reg, flavor)
-                    limits[('{}_{}_{}_{}'.format(process, reco, reg, flavor), latex_k)] = []
-                    for f in limits_path:
-                        root     =  f.split('/')[-1]
-                        mH, mA   =  string_to_mass(f.split('/')[-2])
-                       
-                        if not root.startswith('higgsCombineHToZATo2L2B_{}_{}_{}_{}_{}_'.format(prod, reco, reg, flavor, options.mode)):
-                            continue
-                        
-                        point_limits = getLimitsFromFile(f, options.method)
-                        #print ( 'working on::', f)
-                        #print (" working on -- MH, MA: ", mH, mA , 'template:', options.mode, 'flavor:', flavor)
-                    
-                        if point_limits is None:
-                            print("Warning: limits not found for {}, skipping point".format('{}_{}_{}_{}'.format(process, reco, reg, flavor)))
-                            crap_points += [(float(mH), float(mA))]
-                            continue
-                        if point_limits['expected'] == 0:
-                            print("Warning: expected is 0, skipping point")
-                            continue
-                        
-                        limits[('{}_{}_{}_{}'.format(process, reco, reg, flavor), latex_k)].append({
-                            'parameters': (mH, mA),
-                            'limits'    : point_limits
-                            })
-    limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, 'jsons', poi_dir, tb_dir)
-    if not os.path.exists(limits_out):
-        os.makedirs(limits_out)
     
-    for k, v in limits.items():
-        if not v:
-            continue
-        
-        output_file = os.path.join(limits_out, 'combinedlimits_{}_UL{}.json'.format(k[0], options.era))
-        with open(output_file, 'w') as jf:
-            json.dump(v, jf, indent=4)
-        print("Limits saved as %s" % output_file)
+    for thdm in ['HToZA', 'AToZH']:
 
-    logger.info(' issues with these points no limit is found : %s'%list(set(crap_points)))
-    WriteLatexTableComparasion(limits, "500.0", "400.0", options.tanbeta, rescale_to_za_br=False, _2POI=options._2POIs_r, unblind=False)
+        print("Extracting %s limits..."%thdm)
+        limits = defaultdict(dict)
+        crap_points = {}
+        
+        heavy = thdm[0]
+        light = thdm[-1]
+
+        for process, prod in {'gg{}'.format(heavy): 'gg_fusion', 
+                              'bb{}'.format(heavy): 'bb_associatedProduction', 
+                              #'profiled_r_gg{}'.format(heavy): 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating  if thdm == HToZA
+                              #'profiled_r_bb{}'.format(heavy): 'gg_fusion_bb_associatedProduction', #         -    ggH    -  bbH         -
+                              #'freezed_r_gg{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
+                              #'freezed_r_bb{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', #          -   ggH    -  bbH         -  
+                              }.items():
+            
+            if options.method == "asymptotic":
+                s = '.AsymptoticLimits.mH125.root'
+            elif options.method == "hybridnew":
+                s = '.HybridNew.mH125.root'
+            
+            for reco in ['nb2PLusnb3', 'nb2', 'nb3']:
+                for reg in ['resolved', 'boosted', 'resolved_boosted']:
+                    for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
+                        
+                        # I don't need this for now
+                        # too much details I don't need 
+                        if flavor in ['ElEl_MuEl', 'MuMu_MuEl', 'ElEl', 'MuMu', 'MuEl']: 
+                            continue
+                        
+                        limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, poi_dir, tb_dir, '*', '*{}'.format(s)))
+                        latex_k = beautify(process, reco, reg, flavor)
+                        limits[('{}_{}_{}_{}'.format(process, reco, reg, flavor), latex_k)] = []
+                        for f in limits_path:
+                            root     =  f.split('/')[-1]
+
+                            mHeavy, mLight   =  string_to_mass(f.split('/')[-2])
+                           
+                            if not root.startswith('higgsCombine{}To2L2B_{}_{}_{}_{}_{}_'.format(thdm, prod, reco, reg, flavor, options.mode)):
+                                continue
+                            
+                            point_limits = getLimitsFromFile(f, options.method)
+                            #print ( 'working on::', f)
+                            #print ( 'working on -- M%s, M%s:'%(heavy, light), mHeavy, mLight , 'template:', options.mode, 'flavor:', flavor)
+                        
+                            if point_limits is None:
+                                k = '{}_{}_{}_{}'.format(process, reco, reg, flavor)
+                                m = (float(mHeavy), float(mLight))
+                                if not k in crap_points.keys(): crap_points[k]= []
+                                if not m in crap_points[k]: crap_points[k].append(m)
+                                print("Warning: limits not found for {} in {}, skipping point".format(m, k))
+                                continue
+
+                            if point_limits['expected'] == 0:
+                                print("Warning: expected is 0, skipping point")
+                                continue
+                            
+                            limits[('{}_{}_{}_{}'.format(process, reco, reg, flavor), latex_k)].append({
+                                'parameters': (mHeavy, mLight),
+                                'limits'    : point_limits
+                                })
+        
+        limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, 'jsons', poi_dir, tb_dir)
+        if not os.path.exists(limits_out):
+            os.makedirs(limits_out)
+        
+        for k, v in limits.items():
+            if not v:
+                continue
+            
+            output_file = os.path.join(limits_out, 'combinedlimits_{}_UL{}.json'.format(k[0], options.era))
+            with open(output_file, 'w') as jf:
+                json.dump(v, jf, indent=4)
+            print("Limits saved as %s" % output_file)
+
+        logger.info(' issues with these %s points no limit is found : %s'%(thdm, crap_points))
+        
+        WriteLatexTableComparasion(limits, "780.0", "680.0", options.tanbeta, thdm, rescale_to_za_br=True, _2POI=options._2POIs_r, unblind=False)
+

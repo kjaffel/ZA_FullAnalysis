@@ -6,6 +6,7 @@ import json
 import glob
 import subprocess
 import re, hashlib
+import shutil
 
 from cppyy import gbl
 
@@ -76,9 +77,10 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         'unclustEn'                         : "CMS_UnclusteredEn_%s"%era,        
         'jesHEMIssue'                       : "CMS_HEM_%s"%era, 
         'HLTZvtx'                           : "CMS_HLTZvtx_%s"%era,
-        'elel_trigSF'                       : "CMS_elel_trigSF_%s"%era,
-        'mumu_trigSF'                       : "CMS_mumu_trigSF_%s"%era,
-        'muel_trigSF'                       : "CMS_muel_trigSF_%s"%era,
+        'elel_trigSF'                       : "CMS_elel_trigSF_%s"%newEra,
+        'mumu_trigSF'                       : "CMS_mumu_trigSF_%s"%newEra,
+        'muel_trigSF'                       : "CMS_muel_trigSF_%s"%newEra,
+        'mu_trigger'                        : "CMS_mu_trigger_%s"%newEra,
         
         # correlated
         'pileup'            : "CMS_pileup",
@@ -110,13 +112,15 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     
     # btag;  good names do  not overwrite
     elif 'btag' in origName:
+        return 'CMS_'+origName
+
+    # DY reweighting, correlated across year
+    elif 'DYweight_' in origName:
         return origName
 
     # jes 
     elif origName.startswith("jes"):
-        decor_era = ''
-        if '_' in origName: decor_era = '_'.format(origName.split('_')[-1])
-        return "CMS_scale_j_{}{}".format(origName[3:], decor_era)
+        return "CMS_scale_j_{}".format(origName[3:])
     elif origName.startswith("jms"):
         return "CMS_scale_fatjet_{}".format(newEra)
     
@@ -279,16 +283,29 @@ def get_Observed_HIG_18_012(m):
 def get_normalisationScale(inDir=None, method=None, era=None):
     dict_ = {}
     wEra  = EraFromPOG(era)
-    plotter_p = inDir.split('work__UL')[0]
-    yaml_file = os.path.join(plotter_p, 'work_{}/plots.yml'.format(wEra))
     plotit_yml= True
-    # just make things faster reading an yml file, rather than opening xx root files
+    
+    bamboo_p    = inDir.replace('results', '')
+    plotter_p   = inDir.split('work__UL')[0]
+    yaml_file   = os.path.join(bamboo_p, 'plots.yml')
+    
+    # just make things faster reading an yml file, rather than opening hundred of root files
     # plotit cmd get killed when there are lots of files to read and does not give the plots.yml
-    # this is just a workaround
+    # this is just a workaround !
+    if not os.path.exists(yaml_file):
+        yaml_file = os.path.join(plotter_p, 'work_{}/plots.yml'.format(wEra))
+    else:
+        shutil.copyfile( os.path.join(bamboo_p, yaml_file), os.path.join(plotter_p, yaml_file))
+    
     if not os.path.exists(yaml_file):
         yaml_file = os.path.join(plotter_p, 'config_fullrun2.yml')
-    else:
+    
+    if not os.path.exists(yaml_file):
         yaml_file = os.path.join(plotter_p, 'config_{}.yml'.format(era))
+    
+    if not os.path.exists(yaml_file):
+        yaml_file = os.path.join(plotter_p, 'plots.yml')
+    
     if os.path.exists(yaml_file):
         print( 'reading root files configuration from : ', yaml_file)
         with open(yaml_file) as file:
@@ -422,7 +439,11 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
     if 'lightEff' in s:
         return True
     if 'UnclusteredEn' in s: ## this vars is very small and causes problem in the fit
-        return True 
+        return True
+    if 'scale_j_Total' in s: # FIXME just for now 
+        return True
+    if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
+        return True
 
 
 def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, destination=None, luminosity=None, normalize=False):
@@ -464,6 +485,16 @@ def merge_histograms(smp=None, smpScale=None, process=None, histogram=None, dest
         d.Add(histogram)
     zeroNegativeBins(d)
     return d
+
+
+def add_decorPrePosVFPSytstematics(listFiles):
+    otherFiles= []
+    for f in listFiles:
+        if f.endswith('postVFP.root'):
+            otherFiles.append(f.replace('UL16postVFP.root', 'UL16preVFP.root'))
+        elif f.endswith('preVFP.root'):
+            otherFiles.append(f.replace('UL16preVFP.root', 'UL16postVFP.root'))
+    return otherFiles
 
 
 def call_python_version(Version, Module, Function, ArgumentList):
@@ -543,9 +574,13 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     
     # I am assuming you will be able to get full list of sys from these 2 
     files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0] ]
+    if era == '2016':
+        otherFiles = add_decorPrePosVFPSytstematics(files_tolistsysts)
+        files_tolistsysts += otherFiles
     systematics = {f: get_listofsystematics(files_tolistsysts, f)[:] for f in flav_categories}
+    print("Systematics are taken from main backgrounds files:: {}".format(files_tolistsysts))
     print(systematics)
-
+    
     # Use a TT file as reference to extract the list of histograms
     ref_file = processes_files['ttbar'][0]
     print("Extract histogram names from {}".format(ref_file))
@@ -575,7 +610,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
-            histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
+            #histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
+            histogram_name = histogram_name.format(flavor=flavor, reco=reco, reg=reg, taggerWP=taggerWP)
             if type(category) is tuple:
                 hash.update(category[0])
             else:
@@ -658,9 +694,13 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
 
             smpScale =None
             if normalize:
-                newEra    = ConfigurationEra(smp)
-                lumi    = scalefactors['files'][smp]['lumi']
+                newEra  = ConfigurationEra(smp)
                 _t      = scalefactors['files'][smp]['type'] 
+                try:
+                    lumi= scalefactors['files'][smp]['lumi']
+                except:
+                    era = scalefactors['files'][smp]['era']
+                    lumi= scalefactors["configuration"]["luminosity"][era]
                 
                 if _t =='signal':
                     # make sure that you are using 1 single tb with the corresponding xsc and BR
@@ -738,9 +778,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     for systematic in systematics[cat]:
                         
                         cms_systematic = CMSNamingConvention(systematic, newEra, process)
-                        if ignoreSystematic(smp, s=cms_systematic):
+                        if ignoreSystematic(smp=smp, flavor=None, process=None, s=cms_systematic):
                             continue
-
+                        
                         has_both = True
                         for variation in ['up', 'down']:
                             key = cms_systematic + variation.capitalize()

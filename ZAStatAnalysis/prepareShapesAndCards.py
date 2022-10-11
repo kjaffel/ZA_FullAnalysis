@@ -18,7 +18,7 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from collections import defaultdict
 
-import numpy as np
+#import numpy as np
 
 import Harvester as H
 import Constants as Constants
@@ -33,18 +33,18 @@ signal_grid_foTest = {
     'gg_fusion': { 
         'resolved': { 
             'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
-            'AToZH': [] },
+            'AToZH': [(300., 135.)] },
         'boosted': {
             'HToZA': [(500., 300.), (500., 50.), (800., 200.)], 
-            'AToZH': [] }
+            'AToZH': [(300., 135.)] }
         },
     'bb_associatedProduction': { 
         'resolved': { 
             'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
-            'AToZH': [] },
+            'AToZH': [(300., 135.)] },
         'boosted': {
             'HToZA': [(500., 300.), (500., 50.), (800., 200.)],
-            'AToZH': [] }
+            'AToZH': [(300., 135.)] }
         }
     }
 
@@ -481,8 +481,8 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             sig_process = 'gg'+thdm[0]+'PLusbb'+thdm[0]
 
         for reg in ['resolved', 'boosted']:
+            ToFIX = []
             for reco in ['nb2', 'nb3']:
-                
                 if prod =='bb_associatedProduction' or reg =='boosted':
                     flavors = ['OSSF', 'MuEl']
                 else:
@@ -491,7 +491,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 logger.info("Working on %s && %s cat.     :"%(prod, reg) )
                 logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
                 
-                Totflav_cards_allparams, ToFIX = prepareShapes(input                  = input, 
+                Totflav_cards_allparams, buggy = prepareShapes(input           = input, 
                                                         dataset                = dataset, 
                                                         thdm                   = thdm, 
                                                         sig_process            = sig_process, 
@@ -519,10 +519,14 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                                                         verbose                = verbose,
                                                         submit_to_slurm        = submit_to_slurm)
                 
+                ToFIX += buggy
                 proc_combination[prod][reco+'_'+reg] = Totflav_cards_allparams 
                 for x in Totflav_cards_allparams.keys():
                     if x not in cats and Constants.cat_to_tuplemass(x[1]) not in ToFIX: cats.append(x) 
             
+            # remove duplicate 
+            ToFIX = list(dict.fromkeys(ToFIX))
+
             CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=reg, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='nb2_nb3')
         CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, prod=prod, reg=None, skip=ToFIX, submit_to_slurm=submit_to_slurm, unblind=unblind, _2POIs_r=_2POIs_r, todo='res_boo')
     #if _2POIs_r:
@@ -574,7 +578,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     else : look_for = ''
     
     # FIXME next iteration of plots in Bamboo
-    fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
+    #fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
+    fix_reco_format = reco 
 
     histfactory_to_combine_categories = {}
     histfactory_to_combine_processes  = {
@@ -611,7 +616,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
 
         if mode == "dnn":
            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
-                'DNNOutput_Z%snode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
+                #'DNNOutput_Z%snode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
+                'DNNOutput_Z%snode_{flavor}_{reco}_{reg}_{taggerWP}_METCut_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
         elif mode == "mllbb":
             histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{fix_reco_format}')
         elif mode == "mbb":
@@ -642,7 +648,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     file, systematics, ToFIX = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
                                              categories_map      = histfactory_to_combine_categories, 
                                              input               = input, 
-                                             output_filename     = os.path.join(output, 'shapes_{}_{}_{}.root'.format(sig_process, reco, reg)), 
+                                             output_filename     = os.path.join(output, H.get_method_group(method), 'shapes_{}_{}_{}.root'.format(sig_process, reco, reg)), 
                                              signal_process      = sig_process,
                                              method              = method, 
                                              luminosity          = luminosity, 
@@ -735,7 +741,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                             print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, cat, process))
                         for s in systematics[cat][category_with_parameters][process]:
                             s = str(s)
-                            if H.ignoreSystematic(cat, process, s):
+                            if H.ignoreSystematic(smp=None, flavor=cat, process=process, s=s):
                                 print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
                                 continue
                             cb.cp().channel([cat]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
@@ -1181,7 +1187,7 @@ if __name__ == '__main__':
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    for thdm in ['HToZA']: #['AToZH', 'HToZA']:
+    for thdm in ['HToZA']: #'AToZH']:
         
         heavy = thdm[0]
         light = thdm[-1]
@@ -1256,7 +1262,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
             
-            prepare_DataCards(  grid_data          = signal_grid_foTest, 
+            prepare_DataCards(  grid_data          = signal_grid, 
                                 thdm               = thdm,
                                 dataset            = options.dataset, 
                                 expectSignal       = options.expectSignal, 
