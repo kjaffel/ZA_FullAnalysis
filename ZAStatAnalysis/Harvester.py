@@ -16,7 +16,7 @@ logger = Constants.ZAlogger(__name__)
 
 sys.dont_write_bytecode  = True
 splitTTbarUncertBinByBin = False
-
+splitJECs = False
 
 
 def openFileAndGet(path, mode="read"):
@@ -25,6 +25,36 @@ def openFileAndGet(path, mode="read"):
     if not tf or not tf.IsOpen():
         raise Exception("Could not open file {}".format(path))
     return tf
+
+
+def drop_onesided_systs(syst):
+    #  same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) ) and syst.type() in 'shape'
+    same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) or (abs(syst.value_u()-1.)>0.3 and abs(syst.value_d()-1.)<0.05)  or (abs(syst.value_d()-1.)>0.3 and abs(syst.value_u()-1.)<0.05) ) and syst.type() in 'shape'
+    if(same_yield):
+        print ('Dropping one-sided systematic with large normalisation effect',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', sys)
+
+
+def matching_proc(p,s):
+    return ((p.bin()==s.bin()) and (p.process()==s.process()) and (p.signal()==s.signal()) 
+            and (p.analysis()==s.analysis()) and  (p.era()==s.era()) 
+            and (p.channel()==s.channel()) and (p.bin_id()==s.bin_id()) and (p.mass()==s.mass()))
+
+
+def drop_zero_procs(chob,proc):
+    if proc.signal(): # never drop signals 
+        return False
+    else:
+        null_yield = not (proc.rate() > 1e-6)
+        if(null_yield):
+            chob.FilterSysts(lambda sys: matching_proc(proc,sys))
+        return null_yield
+
+
+def drop_zero_systs(syst):
+    null_yield = (not (syst.value_u() > 0. and syst.value_d()>0.) ) and syst.type() in 'shape'
+    if(null_yield):
+        print ('Dropping systematic ',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', syst.value_u() , ' and down norm is ', syst.value_d())
+    return null_yield
 
 
 def readRecursiveDirContent(content, currTDir, resetDir=True):
@@ -98,21 +128,22 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         process = process.split('_')[0]
     
     # theory 
-    theo_perProc = {"qcdScale": "QCDscale_%s"%process, 
-                    "qcdMuF"  : "qcdMuF_%s"%process, 
-                    "qcdMuR"  : "qcdMuR_%s"%process, 
-                    "psISR"   : "ISR_%s"%process, 
-                    "psFSR"   : "FSR_%s"%process, 
-                    "pdf"     : "pdf_%s"%process}
+    theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
+                    "qcdMuF"   : "qcdMuF_%s"%process, 
+                    "qcdMuR"   : "qcdMuR_%s"%process, 
+                    "psISR"    : "ISR_%s"%process, 
+                    "psFSR"    : "FSR_%s"%process,
+                    "pdfAlphaS": "pdf_alphaS_%s"%process,
+                    "pdf"      : "pdf_%s"%process}
 
     if origName in other:
         return other[origName]
     elif origName in theo_perProc:
         return "{}".format(theo_perProc[origName])
     
-    # btag;  good names do  not overwrite
+    # btag;  good names do not overwrite
     elif 'btag' in origName:
-        return 'CMS_'+origName
+        return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
 
     # DY reweighting, correlated across year
     elif 'DYweight_' in origName:
@@ -181,15 +212,21 @@ def get_listofsystematics(files, flavorCat):
             else: avoid += ll
             
             if cat == 'boosted':
-                avoid += [ 'btagSF_deepJet_fixWP', 'DYweight_resolved_'] 
+                avoid += [ 'btagSF_deepJet_fixWP', 'DYweight_resolved_', 'jer']
             elif cat == 'resolved':
                 avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
+            
+            if splitJECs:
+                avoid += ['jesTotal']
+            else:
+                avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
             
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
                     systematics.append(syst)
         
         open_f.Close()
+        systematics += ['pdfAlphaS']
     return systematics
 
 
@@ -236,9 +273,9 @@ def get_method_group(method):
 
 
 def get_combine_method(method):
-            # --rMin -50 --rMax 50 --robustFit=1' 
-            # --X-rtd MINIMIZER_analytic'
-            # --X-rtd MINIMIZER_no_analytic 
+            # --X-rtd MINIMIZER_analytic
+            # --X-rtd MINIMIZER_no_analytic
+            # --rMax 500 --X-rtd MINIMIZER_analytic
     if method == 'fit':
         return '-M FitDiagnostics --rMax 20'   
     elif method == 'asymptotic':
@@ -280,31 +317,22 @@ def get_Observed_HIG_18_012(m):
         return None
 
 
-def get_normalisationScale(inDir=None, method=None, era=None):
+def get_normalisationScale(inDir=None, outDir=None, method=None, era=None):
     dict_ = {}
     wEra  = EraFromPOG(era)
     plotit_yml= True
     
     bamboo_p    = inDir.replace('results', '')
-    plotter_p   = inDir.split('work__UL')[0]
+    plotter_p   = outDir.split('work__UL')[0]
     yaml_file   = os.path.join(bamboo_p, 'plots.yml')
     
     # just make things faster reading an yml file, rather than opening hundred of root files
     # plotit cmd get killed when there are lots of files to read and does not give the plots.yml
     # this is just a workaround !
     if not os.path.exists(yaml_file):
-        yaml_file = os.path.join(plotter_p, 'work_{}/plots.yml'.format(wEra))
+        yaml_file = os.path.join(plotter_p, "config_{}.yml".format(wEra))
     else:
-        shutil.copyfile( os.path.join(bamboo_p, yaml_file), os.path.join(plotter_p, yaml_file))
-    
-    if not os.path.exists(yaml_file):
-        yaml_file = os.path.join(plotter_p, 'config_fullrun2.yml')
-    
-    if not os.path.exists(yaml_file):
-        yaml_file = os.path.join(plotter_p, 'config_{}.yml'.format(era))
-    
-    if not os.path.exists(yaml_file):
-        yaml_file = os.path.join(plotter_p, 'plots.yml')
+        shutil.copyfile( yaml_file, os.path.join(plotter_p, "config_{}.yml".format(wEra)))
     
     if os.path.exists(yaml_file):
         print( 'reading root files configuration from : ', yaml_file)
@@ -404,13 +432,13 @@ def get_normalisationScale(inDir=None, method=None, era=None):
                                     'branching-ratio' : None 
                                 }
 
-    with open(os.path.join(plotter_p, "config_{}.yml".format(era)), 'w+') as _f:
+    with open(os.path.join(plotter_p, "config_{}.yml".format(wEra)), 'w+') as _f:
         yaml.dump(dict_, _f, default_flow_style=False)
 
     return dict_ 
 
 
-def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
+def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
     """
         If some systematics cause problems, 
         return True and they will be ignored in the statistic test
@@ -418,7 +446,8 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
     """
     if not s:
         return False
-    
+    if not _type=='signal' and s =='pdfAlphaS':
+        return True
     if smp:
         # do not propagate DYrewigthing to non DY samples !
         if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
@@ -440,7 +469,7 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None):
         return True
     if 'UnclusteredEn' in s: ## this vars is very small and causes problem in the fit
         return True
-    if 'scale_j_Total' in s: # FIXME just for now 
+    if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
         return True
@@ -523,7 +552,21 @@ def get_massParameters(smp):
     return m_heavy, m_light, process
 
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, tanbeta, _2POIs_r=False, unblind=False, normalize=False):
+def get_keys(cat, multi_signal=False):
+    if not multi_signal:
+        k=1
+    else:
+        k=4
+    flavor   = cat.split('_')[-1]
+    reg      = cat.split('_')[-2]
+    reco     = cat.split('_')[-3]
+    sprod    = cat.split('_')[0:k]
+    prod     = '_'.join(sprod)
+    taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
+    return flavor, reg, reco, prod, taggerWP
+
+
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, tanbeta, _2POIs_r=False, multi_signal=False, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -571,7 +614,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         else:
             hash.update(process)
         map(hash.update, process_files)
-    
+   
     # I am assuming you will be able to get full list of sys from these 2 
     files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0] ]
     if era == '2016':
@@ -598,12 +641,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # contains at least one histogram (the nominal histogram), and possibly more, two per systematic (up & down variation)
     histogram_names_per_cat = {}
     for cat in flav_categories:
-        flavor   = cat.split('_')[4]
-        reg      = cat.split('_')[3]
-        reco     = cat.split('_')[2]
-        prod     = cat.split('_')[0] +'_' + cat.split('_')[1]
         
-        taggerWP = 'DeepFlavourM' if reg == 'resolved' else 'DeepCSVM'
+        flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
         #FIXME in next iteration of plots in Bamboo
         fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
 
@@ -681,8 +720,12 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         # Process name used in datacard for the signal is different from
         # the one used here (no mass or parameters in the name)
         systematic_process = process
-        if signal_process in systematic_process:
-            systematic_process = signal_process
+        
+        for sig in signal_process:
+            if sig in systematic_process:
+                systematic_process = sig
+        #if signal_process in systematic_process:
+        #    systematic_process = signal_process
 
         for process_file in process_files:
             f = ROOT.TFile.Open(process_file)
@@ -715,7 +758,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tanbeta)
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
-                        smpScale *= BR
+                        #smpScale *= BR
                         if method !='asymptotic':
                             smpScale *= xsc
                     else:
@@ -778,7 +821,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     for systematic in systematics[cat]:
                         
                         cms_systematic = CMSNamingConvention(systematic, newEra, process)
-                        if ignoreSystematic(smp=smp, flavor=None, process=None, s=cms_systematic):
+                        if ignoreSystematic(smp=smp, flavor=None, process=None, s=cms_systematic, _type=_t ):
                             continue
                         
                         has_both = True
@@ -817,7 +860,8 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 category  = category
                 fake_data = None
                 for process, systematics_dict in processes.items():
-                    if process.startswith(signal_process):
+                    #if process.startswith(signal_process):
+                    if any(process.startswith(x) for x in signal_process):
                         continue
                     if not process.endswith("_" + cat):
                         continue
