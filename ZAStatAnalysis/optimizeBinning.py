@@ -244,10 +244,11 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             newEdges  = [float(format(e,'.2f')) for e in newEdges]
             
             if 'signal' in datatype and len( newEdges) <= 2:
-                newEdges = [0.0, 0.74, 0.94, 0.96, 0.98, 1.0]
+                newEdges = [0.0, 0.74, 0.94, 0.96, 1.0]
             if 'data' in datatype and 'boosted' in pNm:
                 newEdges = newEdges[0:1]+newEdges[3:] 
             
+            if 0.98 in newEdges: newEdges.remove(0.98)
             if not 1.0 in newEdges: FinalEdges = newEdges+[1.0]
             else: FinalEdges = newEdges
             
@@ -455,7 +456,7 @@ if __name__ == "__main__":
     divideByBinWidth = False
     get_half         = False
     onebin           = False
-    fix_reco_format  = True
+    fix_reco_format  = False
     
     if args.job =='local':
         inDir  = os.path.join(args.input, 'results/')
@@ -760,7 +761,7 @@ if __name__ == "__main__":
                     if not any( key.GetName().startswith(x) for x in data['histograms'].keys()): 
                         continue
                 
-                histNm, params = optimizer.get_histNm_orig(args.mode, key.GetName(), mass=None, info=True)
+                histNm, params = optimizer.get_histNm_orig(args.mode, key.GetName(), mass=None, info=True, fix_reco_format=fix_reco_format)
                 hist = inFile.Get(key.GetName())
                 if not (hist and hist.InheritsFrom("TH1")):
                     continue

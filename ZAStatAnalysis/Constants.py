@@ -37,6 +37,22 @@ def ZAlogger(nm):
 logger = ZAlogger(__name__)
 
 
+def locate_outputs(method, _2POIs_r, tb, expectSignal):
+    poi_dir = '1POIs_r'
+    if _2POIs_r: poi_dir = '2POIs_r'
+    
+    tb_dir = ''
+    if tb is not None: tb_dir = 'tanbeta_%s'%options.tanbeta
+    
+    if method in ['asymptotic', 'impacts']:
+        if expectSignal==1: CL_dir = 'CLs'
+        elif expectSignal==0: CL_dir = 'CLsplusb'
+    else:
+        CL_dir =''
+    
+    return poi_dir, tb_dir, CL_dir
+
+
 def get_Nm_for_runmode(mode): 
     Nm_formode = {'ellipse':'rho_steps',
                   'dnn'    :'dnn_scores',

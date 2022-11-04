@@ -36,12 +36,24 @@
 #workDir='work__UL'${era/20/""}'/'
 #outDir='ul__combinedlimits/preapproval__17/'$workDir
 
+#bambooDir='ul_run2__ver19/results/'
+#stageOut='ul__combinedlimits/going_for_preapproval/__ver2/'
+
 #=================  YOUR INPUTS ===============================
 #==============================================================
 
 era='fullrun2'
-bambooDir='ul_run2__ver19/results/'
-stageOut='ul__combinedlimits/going_for_preapproval/__ver2/'
+#bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
+#stageOut='AtoZH_vs_HtoZA/'
+
+#bambooDir='ul_run2__ver19/results/'
+#stageOut='hig-22-010/datacards/'
+
+#bambooDir='ul_run2__ver20_splitJES_JER2/results/'
+#stageOut='hig-22-010/jesjer_split/'
+
+bambooDir='ul_run2__ver20_splitJES_JER2/results/'
+stageOut='hig-22-010/jesjer_split__ver2/'
 
 #================ DO NOT CHANGE =============================
 #============================================================

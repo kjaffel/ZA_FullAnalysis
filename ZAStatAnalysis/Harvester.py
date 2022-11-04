@@ -8,6 +8,7 @@ import subprocess
 import re, hashlib
 import shutil
 
+from math import sqrt
 from cppyy import gbl
 
 import Constants as Constants
@@ -15,9 +16,8 @@ logger = Constants.ZAlogger(__name__)
 
 
 sys.dont_write_bytecode  = True
-splitTTbarUncertBinByBin = False
-splitJECs = False
-
+splitJECs = True
+FixbuggyFormat = False
 
 def openFileAndGet(path, mode="read"):
     """Open ROOT file in a mode, check if open properly, and return TFile handle."""
@@ -27,11 +27,38 @@ def openFileAndGet(path, mode="read"):
     return tf
 
 
-def drop_onesided_systs(syst):
-    #  same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) ) and syst.type() in 'shape'
-    same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) or (abs(syst.value_u()-1.)>0.3 and abs(syst.value_d()-1.)<0.05)  or (abs(syst.value_d()-1.)>0.3 and abs(syst.value_u()-1.)<0.05) ) and syst.type() in 'shape'
-    if(same_yield):
-        print ('Dropping one-sided systematic with large normalisation effect',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', sys)
+def checkSizeOfShapeEffect(syst,proc):
+    """
+    nuisance parameter will have shape effects (using shape) and rate effects (using lnN) 
+    we use a single line for the systemstic uncertainty with shape?. 
+    This will tell combine to fist look for Up/Down systematic templates for that process and if it doesnt find them, 
+    it will interpret the number that you put for the process as a lnN instead. 
+    """
+    #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
+    hist_nom = proc.ShapeAsTH1F()
+    hist_nom.Scale(proc.rate())
+    hist_u = syst.ShapeUAsTH1F()
+    hist_u.Scale(hist_nom.Integral()*syst.value_u())
+    hist_d = syst.ShapeDAsTH1F()
+    hist_d.Scale(hist_nom.Integral()*syst.value_d())
+    value_d = syst.value_d();value_u = syst.value_u();
+    up_diff=0;down_diff=0
+    for i in range (hist_u.GetNbinsX()):
+        if(abs(hist_u.GetBinContent(i))+abs(hist_nom.GetBinContent(i))>0):
+            up_diff+=2*abs(hist_u.GetBinContent(i)-hist_nom.GetBinContent(i))/(abs(hist_u.GetBinContent(i))+abs(hist_nom.GetBinContent(i)));
+        if(abs(hist_d.GetBinContent(i))+abs(hist_nom.GetBinContent(i))>0):
+            down_diff+=2*abs(hist_d.GetBinContent(i)-hist_nom.GetBinContent(i))/(abs(hist_d.GetBinContent(i))+abs(hist_nom.GetBinContent(i)));
+    if down_diff<0.001 and up_diff<0.001: #taken from combine validation
+        syst.set_type("lnN")
+        up_is_larger = (value_u>value_d)
+        if (up_is_larger):
+            value_u = sqrt(abs(value_u*value_d));
+            value_d = 1.0 / value_u;
+        else:
+            value_d = sqrt(abs(value_u*value_d));
+            value_u = 1.0 / value_d;
+        syst.set_value_u(value_u);
+        syst.set_value_d(value_d);
 
 
 def matching_proc(p,s):
@@ -39,6 +66,19 @@ def matching_proc(p,s):
             and (p.analysis()==s.analysis()) and  (p.era()==s.era()) 
             and (p.channel()==s.channel()) and (p.bin_id()==s.bin_id()) and (p.mass()==s.mass()))
 
+    
+def symmetrise_smooth_syst(chob,syst):
+  if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j")): 
+      chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: symm_and_smooth(syst,x) if (matching_proc(x,syst)) else None)
+      chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: checkSizeOfShapeEffect(syst,x) if (matching_proc(x,syst)) else None)# doesn't do much, just helps the fit to converge faster
+
+
+def drop_onesided_systs(syst):
+    #  same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) ) and syst.type() in 'shape'
+    same_yield = ((syst.value_u() < .7 and syst.value_d()< .7) or (syst.value_u() > 1.3 and syst.value_d() > 1.3) or (abs(syst.value_u()-1.)>0.3 and abs(syst.value_d()-1.)<0.05)  or (abs(syst.value_d()-1.)>0.3 and abs(syst.value_u()-1.)<0.05) ) and syst.type() in 'shape'
+    if(same_yield):
+        print ('Dropping one-sided systematic with large normalisation effect',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', sys)
+    return same_yield
 
 def drop_zero_procs(chob,proc):
     if proc.signal(): # never drop signals 
@@ -55,6 +95,52 @@ def drop_zero_systs(syst):
     if(null_yield):
         print ('Dropping systematic ',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', syst.value_u() , ' and down norm is ', syst.value_d())
     return null_yield
+
+
+def smooth_lowess_tgraph(h):
+    g=ROOT.TGraph()
+    for i in range(h.GetNbinsX()): g.SetPoint(i,h.GetBinCenter(i+1), h.GetBinContent(i+1))
+    smooth = ROOT.TGraphSmooth("normal")
+    gout = smooth.SmoothLowess(g,"",0.5)
+    hist_out = ROOT.TH1F('hist_out','hist_out',h.GetNbinsX(),h.GetXaxis().GetXbins().GetArray())
+    for i in range(h.GetNbinsX()):
+        x,y = ROOT.Double(0), ROOT.Double(0)
+        gout.GetPoint(i,x,y)
+        hist_out.Fill(x,y)
+    return hist_out
+    
+
+def symm_and_smooth(syst,proc):
+    #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
+    print 'smoothing: ', syst
+    nominal = proc.shape()
+    nominal.Scale(proc.rate())
+    hist_u = syst.shape_u()
+    hist_u.Scale(nominal.Integral()*syst.value_u())
+    up_rate = nominal.Integral()*syst.value_u()
+    hist_u.Divide(nominal)
+    if nominal.GetNbinsX()>3:
+        hist_u.Smooth(2)
+        #hist_u = smooth_lowess_tgraph(hist_u)
+    hist_u.Multiply(nominal)
+    if hist_u.Integral()>0:hist_u.Scale(up_rate/hist_u.Integral())
+    hist_d = nominal.Clone()
+    hist_d.Scale(2)
+    hist_d.Add(hist_u,-1)
+    if hist_u.Integral()>1e-5 and hist_d.Integral()>1e-5:
+        syst.set_shapes(hist_u,hist_d,nominal)
+    else:
+        syst.set_shapes(nominal,nominal,nominal)
+   # else:
+   #     nominal = proc.ShapeAsTH1F()
+   #     nominal.Scale(proc.rate())
+   #     hist_u = syst.ShapeUAsTH1F()
+   #     hist_u.Scale(nominal.Integral()*syst.value_u())
+   #     #symmetrise down variation
+   #     hist_d = nominal.Clone()
+   #     hist_d.Scale(2)
+   #     hist_d.Add(hist_u,-1)
+   #     syst.set_shapes(hist_u,hist_d,nominal)
 
 
 def readRecursiveDirContent(content, currTDir, resetDir=True):
@@ -131,6 +217,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
                     "qcdMuF"   : "qcdMuF_%s"%process, 
                     "qcdMuR"   : "qcdMuR_%s"%process, 
+                    "qcdMuRF"  : "qcdMuRF_%s"%process,
                     "psISR"    : "ISR_%s"%process, 
                     "psFSR"    : "FSR_%s"%process,
                     "pdfAlphaS": "pdf_alphaS_%s"%process,
@@ -143,7 +230,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     
     # btag;  good names do not overwrite
     elif 'btag' in origName:
-        return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
+        return 'CMS_'+origName #.replace('preVFP', '').replace('postVFP', '')
 
     # DY reweighting, correlated across year
     elif 'DYweight_' in origName:
@@ -177,12 +264,10 @@ def get_hist_from_key(keys=None, key=None):
     return None
 
 
-def get_listofsystematics(files, flavorCat):
+def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False):
     
-    flavor = flavorCat.split('_')[-1]
-    cat    = None
-    if len( flavorCat.split('_') ) >= 2:
-        cat    = flavorCat.split('_')[-2]
+    if cat is not None:
+        flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal=multi_signal)
     
     muel  = [ 'elmu_trigSF', 'muel_trigSF', 'mu_trigger']
     mumu  = [ 'muid_medium', 'mumu_trigSF', 'muiso_tight', 'mu_trigger']
@@ -200,8 +285,6 @@ def get_listofsystematics(files, flavorCat):
                 continue
             if not 'down' in key.GetName():
                 continue
-            if 'Jet_mulmtiplicity' in key.GetName(): # nm of histogram contain __ by mistake, confused with sys ignore until i fix it again in the new vers 
-                continue
 
             syst = key.GetName().split('__')[1].replace('up','').replace('down','')
             syst = syst.replace('pile', 'pileup')
@@ -211,22 +294,22 @@ def get_listofsystematics(files, flavorCat):
             elif flavor == 'OSSF': avoid += muel 
             else: avoid += ll
             
-            if cat == 'boosted':
+            if reg == 'boosted':
                 avoid += [ 'btagSF_deepJet_fixWP', 'DYweight_resolved_', 'jer']
-            elif cat == 'resolved':
+                avoid += [ 'Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample', 'jesTotal']
+            elif reg == 'resolved':
                 avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
-            
-            if splitJECs:
-                avoid += ['jesTotal']
-            else:
-                avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
+                if splitJECs:
+                    avoid += ['jesTotal']
+                else:
+                    avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
             
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
                     systematics.append(syst)
         
         open_f.Close()
-        systematics += ['pdfAlphaS']
+    systematics += ['pdfAlphaS']
     return systematics
 
 
@@ -254,14 +337,10 @@ def ConfigurationEra(smp):
 
 
 def get_method_group(method):
-    if method == 'fit':
-        return 'fit'
-    elif method == 'impacts':
+    if method == 'impacts':
         return 'pulls-impacts'
     elif method == 'generatetoys':
         return 'generatetoys-data'
-    elif method == 'signal_strength':
-        return 'signal_strength'
     elif method == 'pvalue':
         return 'pvalue-significance'
     elif method == 'goodness_of_fit':
@@ -270,9 +349,13 @@ def get_method_group(method):
         return 'asymptotic-limits'
     elif method == 'hybridnew':
         return 'hybridnew-limits'
+    else:
+        return method
 
 
 def get_combine_method(method):
+            #  The analytic minimisation is enabled by default starting in combine v8.2.0:
+            # https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/#analytic-minimisation
             # --X-rtd MINIMIZER_analytic
             # --X-rtd MINIMIZER_no_analytic
             # --rMax 500 --X-rtd MINIMIZER_analytic
@@ -333,6 +416,9 @@ def get_normalisationScale(inDir=None, outDir=None, method=None, era=None):
         yaml_file = os.path.join(plotter_p, "config_{}.yml".format(wEra))
     else:
         shutil.copyfile( yaml_file, os.path.join(plotter_p, "config_{}.yml".format(wEra)))
+    
+    if not os.path.exists(yaml_file):
+        yaml_file = os.path.join(plotter_p, "config__ULfullrun2.yml")
     
     if os.path.exists(yaml_file):
         print( 'reading root files configuration from : ', yaml_file)
@@ -442,7 +528,7 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
     """
         If some systematics cause problems, 
         return True and they will be ignored in the statistic test
-        please give them in the using the CMS naming convention
+        please give them in the CMS naming convention
     """
     if not s:
         return False
@@ -458,8 +544,7 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
         if 'preVFP' in smp and 'postVFP' in s: 
             return True
     
-    # this is my first attempt, applying tth dy weights
-    if 'DYReWeight' in s:
+    if 'DYReWeight' in s: # this is my first attempt, applying tth dy weights
         return True
     if 'cEff' in s:
         return True
@@ -467,7 +552,7 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
         return True
     if 'lightEff' in s:
         return True
-    if 'UnclusteredEn' in s: ## this vars is very small and causes problem in the fit
+    if 'UnclusteredEn' in s: # this vars is very small and causes problem in the fit
         return True
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
@@ -540,7 +625,7 @@ def call_python_version(Version, Module, Function, ArgumentList):
     return channel.receive()
 
 
-def get_massParameters(smp):
+def get_SignalmassParameters(smp):
     m_heavy = float(smp.split('_')[2].replace('p', '.'))
     m_light = float(smp.split('_')[4].replace('p', '.'))
     
@@ -609,6 +694,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 #continue
             process_files += local_process_files
         processes_files[process] = process_files
+        #print( processes_files[process], process, '*** \n')
         if type(process) is tuple:
             hash.update(process[0])
         else:
@@ -620,7 +706,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     if era == '2016':
         otherFiles = add_decorPrePosVFPSytstematics(files_tolistsysts)
         files_tolistsysts += otherFiles
-    systematics = {f: get_listofsystematics(files_tolistsysts, f)[:] for f in flav_categories}
+    systematics = {f: get_listofsystematics(files_tolistsysts, f, multi_signal)[:] for f in flav_categories}
     print("Systematics are taken from main backgrounds files:: {}".format(files_tolistsysts))
     print(systematics)
     
@@ -649,8 +735,12 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
-            #histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
-            histogram_name = histogram_name.format(flavor=flavor, reco=reco, reg=reg, taggerWP=taggerWP)
+            
+            if FixbuggyFormat:
+                histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
+            else:
+                histogram_name = histogram_name.format(flavor=flavor, reco=reco, reg=reg, taggerWP=taggerWP)
+            
             if type(category) is tuple:
                 hash.update(category[0])
             else:
@@ -685,7 +775,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     histograms[category] = nominal_name
         histograms_per_cat[cat] = histograms
 
-    cms_systematics = {f: [CMSNamingConvention(s, era) for s in v] for f, v in systematics.items()}
+    cms_systematics = {f: [CMSNamingConvention(origName=s, era=era, process=None) for s in v] for f, v in systematics.items()}
     
     for cat in flav_categories:
         hash.update(cat)
@@ -750,7 +840,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     #xsc = scalefactors['files'][smp]['cross-section']
                     #br  = scalefactors['files'][smp]['branching-ratio']
                     sumW = scalefactors['files'][smp]['generated-events']
-                    m_heavy, m_light, proc1 = get_massParameters(smpNm)
+                    m_heavy, m_light, proc1 = get_SignalmassParameters(smpNm)
                     
                     if tanbeta is None:
                         tanbeta = 1.5 if proc1.startswith('gg') else 20.
@@ -767,6 +857,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                         xsc2, xsc2_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc2, thdm, tanbeta)
                         factor = xsc/(xsc + xsc2)
                         smpScale *= factor
+                    print(smp, "*** smpScale:", smpScale, "xsc:", xsc, "BR:", BR, "lumi:", lumi, "sumW:", sumW, ' ***\n')
                 
                 elif _t == 'mc':
                     sumW = scalefactors['files'][smp]['generated-events']
@@ -820,7 +911,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     # Load systematics shapes
                     for systematic in systematics[cat]:
                         
-                        cms_systematic = CMSNamingConvention(systematic, newEra, process)
+                        cms_systematic = CMSNamingConvention(origName=systematic, era=newEra, process=process)
                         if ignoreSystematic(smp=smp, flavor=None, process=None, s=cms_systematic, _type=_t ):
                             continue
                         

@@ -277,7 +277,6 @@ def no_zero_binContents(nph, newEdges, crossNm):
         result  = np.array(result)
         result2 = np.where(result == 0, 1, result)
         FinalEdges  = np.delete(edges, result2)
-        print( newEdges, FinalEdges, np_newhist.w , result2, 'okkkkkkkkkkkkkkkkk')
         return  np.array(FinalEdges)
     else:
         return np.array(newEdges)
