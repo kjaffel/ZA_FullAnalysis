@@ -72,7 +72,7 @@ tanbeta=1.5
 expectSignal=1
 validation_datacards=true
 unblind=false
-submit_to_slurm=true
+submit_to_slurm=false
 normalize=true
 verbose=false
 scale=false
@@ -90,12 +90,18 @@ inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
-- ``run_combine.sh`` will call ``./prepareShapesAndCards.py``. With the given inputs above ( ``asymptotic``) 
-, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. Both will be saved in the directory :``${stageOut}/${workDir}/${scenario}/asymptotic-limits/${mode}/CLs/2POIs_r/MH-xxx_MA-xxx``. 
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` to preaper the datcards and the workspaces. With the given inputs above ( ``asymptotic``) 
+, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. 
+
+Both will be saved in the directory :``${stageOut}/${workDir}/${scenario}/asymptotic-limits/${mode}/CLs/2POIs_r/MH-xxx_MA-xxx``. 
 Then the script will automatically launch these commands from ``./run_combined_dnn_asymptotic.sh``
 
+- If you want to run Combine Tools limits without over-writing the datacards. Please run;
+    - Asymptotic-Limit: ``./run_combined_dnn_asymptotic.sh``
+    - Pre-/Post-fit   : ``./run_combined_dnn_prepostfit.sh``
+
 ## Running Combine Tools:
-To briefly summarize the commands used for each Combine task;
+- To briefly summarize the commands used for each Combine task;
 ```bash
 
 #=======================  H →  ZA →  llbb ===================================
@@ -140,6 +146,7 @@ plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_a
 `` _<era'>`` means nuissance parameters are uncorrelated per year; 2016, 2017, 2018.
 
 - **Luminosity, normalisation (lnN):**
+-----
 <!-- TABLE_GENERATE_START -->
 | Nuissance parameter                    | 2016 | 2017 | 2018  |
 | -------------------------------------  | ---- | ---- | ----- |
@@ -147,33 +154,38 @@ plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_a
 | ``lumi_correlated_16_17_18_13TeV``     | 1.006| 1.009| 1.020 |
 | ``lumi_correlated_17_18_13TeV``        | -    | 1.006| 1.002 |
 <!-- TABLE_GENERATE_END -->
-We use minimal correlations (RECOMMENDED) for 2016−2018 [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/LumiRecommendationsRun2#Combination_and_correlations), [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1).
+    - We use minimal correlations (RECOMMENDED) for 2016−2018 [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/LumiRecommendationsRun2#Combination_and_correlations), [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1).
 
 - **Pileup, (shape):** 
+-----
 Pileup uncertainty is correlated across years. Corrections is taken from [cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
     - ``CMS_pileup``
 
 - **Jet Energy Scale(JES), (shape):**
+-----
 JES uncertainties are uncorrelated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
     - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
     - ``CMS_scale_fatjet_<era'>``
 
-**(Under test, not in use yet !)** Run 2 reduced set of uncertainty sources, breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
+=> **(Under test, not in use yet !)** Run 2 reduced set of uncertainty sources, breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
     - JES 2018: ``Absolute``, ``Absolute_2018``, ``BBEC1``, ``BBEC1_2018``, ``EC2``, ``EC2_2018``, ``FlavorQCD``, ``HF``, ``HF_2018``, ``RelativeBal``, ``RelativeSample_2018``
     - JES 2017: ``Absolute``, ``Absolute_2017``, ``BBEC1``, ``BBEC1_2017``, ``EC2``, ``EC2_2017``, ``FlavorQCD``, ``HF``, ``HF_2017``, ``RelativeBal``, ``RelativeSample_2017``
     - JES 2016: ``Absolute``, ``Absolute_2016``, ``BBEC1``, ``BBEC1_2016``, ``EC2``, ``EC2_2016``, ``FlavorQCD``, ``HF``, ``HF_2016``, ``RelativeBal``, ``RelativeSample_2016``
 
 - **Jet Rnergy resolution(JER), (shape):**
+-----
 JER uncertainties are correlated across years.
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
     - ``CMS_res_j_Total`` , `` __ToTal`` means one source/no split per eta regions.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
     - ``CMS_res_fatjet``
 
-**(Under test, not in use yet !)** JER correlated across year and splittted per eta region: ``barrel``, ``endcap1``, ``endcap2lowpt``, ``endcap2highpt``, ``forwardlowpt``, ``forwardhighpt``
+=> **(Under test, not in use yet !)** JER correlated across year and splittted per eta region: ``barrel``, ``endcap1``, ``endcap2lowpt``, ``endcap2highpt``, ``forwardlowpt``, ``forwardhighpt``
+
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
+-----
 100% correlated across year, for both electrons and muons. Following latest EGamma recommendation on [ combining systematics](https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#A_note_on_Combining_Systematics).
     - **Electrons:**
     - ``CMS_eff_elid``
@@ -184,14 +196,17 @@ JER uncertainties are correlated across years.
     - ``CMS_eff_muid``
 
 - **2018 HEM issue, (shape):**
+-----
 Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html)
     - ``CMS_HEM_2018``
 
 - **MET, (shape):**
+-----
     - ``CMS_UnclusteredEn``
 
 - **Drell-Yan reweighting, (shape):**
-correlated accross year, lepton flavours, and signal regions.
+-----
+Correlated accross year, lepton flavours, and signal regions.
 ``<ploy-fit-order_n>`` = 7 if ``<era>``==2017 else 6
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
     - ``DYweight_resolved_elel_ployfit_lowmass<ploy-fit-order_n>_highmass5``
@@ -201,19 +216,23 @@ correlated accross year, lepton flavours, and signal regions.
     - ``DYweight_boosted_mumu_ployfit_lowmass<ploy-fit-order_n>``
 
 - **Trigger efficiencies, (shape):**
+-----
 Uncorrelated per year, lepton flavours.
     - ``CMS_elel_trigSF_<era>``
     - ``CMS_mumu_trigSF_<era>``
     - ``CMS_muel_trigSF_<era>``
 
 - **L1 pre-firing, (shape):**
+-----
 Correlated, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
     - ``CMS_L1PreFiring``
 
 - **HLT Z-vtx, (shape):**
+-----
     - ``CMS_HLTZvtx_2017``
 
 - **B-tagging efficiencies, (shape):** More details in [cms-nanoaod-integration.web.cern.ch/commonJSONSFs](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/)
+-----
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):** Fix, medium working point, DeepJet tagger (``deepJet_mujets``)
     - ``CMS_btagSF_deepJet_fixWP_light_<era>`` : uncorrelated
     - ``CMS_btagSF_deepJet_fixWP_heavy_<era>`` : uncorrelated
