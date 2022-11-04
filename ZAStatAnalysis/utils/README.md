@@ -161,22 +161,22 @@ Pileup uncertainty is correlated across years. Corrections is taken from [cms-na
     - ``CMS_pileup``
 
 - **Jet Energy Scale(JES), (shape):**
-JES uncertainties are uncorrelated across years. 
+JES uncertainties are correlated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-        - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split.
+        - ``CMS_scale_j_ToTal``, `` __ToTal`` means one source/no split.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-        - ``CMS_scale_fatjet_<era'>``
+        - ``CMS_scale_fatjet``
 
     > *Open item, still in discussion with HIG conveners*
-    > - Run 2 reduced set of uncertainty sources, breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
+    > - Run 2 reduced set of uncertainty sources (V2), breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
     >    - ``Absolute``, ``Absolute_<era'>``, ``BBEC1``, ``BBEC1_<era'>``, ``EC2``, ``EC2_<era'>``, ``FlavorQCD``, ``HF``, ``HF_<era'>``, ``RelativeBal``, ``RelativeSample_<era'>``
 
 - **Jet Rnergy resolution(JER), (shape):**
-JER uncertainties are correlated across years.
+JER uncertainties are uncorrelated across years.
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-        - ``CMS_res_j_Total`` , `` __ToTal`` means one source/no split per eta regions.
+        - ``CMS_res_j_Total_<era'>`` , `` __ToTal`` means one source/no split per eta regions.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-        - ``CMS_res_fatjet``
+        - ``CMS_res_fatjet_<era'>``
 
     > *Open item, still in discussion with HIG conveners*
     > - JER uncorrelated across year and splittted per eta region: 
