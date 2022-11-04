@@ -157,12 +157,10 @@ plotImpacts.py -i impacts__${process}_${cat}_${region}_${flavor}_expectSignal0_a
     - We use minimal correlations (RECOMMENDED) for 2016−2018 [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/LumiRecommendationsRun2#Combination_and_correlations), [TWikiLUM](https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM?rev=167#LumiComb), [physics-announcements-HN](https://hypernews.cern.ch/HyperNews/CMS/get/physics-announcements/6191.html?inline=-1).
 
 - **Pileup, (shape):** 
------
 Pileup uncertainty is correlated across years. Corrections is taken from [cms-nanoaod-integration.web](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/)
     - ``CMS_pileup``
 
 - **Jet Energy Scale(JES), (shape):**
------
 JES uncertainties are uncorrelated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
     - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split.
@@ -175,7 +173,6 @@ JES uncertainties are uncorrelated across years.
     - JES 2016: ``Absolute``, ``Absolute_2016``, ``BBEC1``, ``BBEC1_2016``, ``EC2``, ``EC2_2016``, ``FlavorQCD``, ``HF``, ``HF_2016``, ``RelativeBal``, ``RelativeSample_2016``
 
 - **Jet Rnergy resolution(JER), (shape):**
------
 JER uncertainties are correlated across years.
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
     - ``CMS_res_j_Total`` , `` __ToTal`` means one source/no split per eta regions.
@@ -185,7 +182,6 @@ JER uncertainties are correlated across years.
 => **(Under test, not in use yet !)** JER correlated across year and splittted per eta region: ``barrel``, ``endcap1``, ``endcap2lowpt``, ``endcap2highpt``, ``forwardlowpt``, ``forwardhighpt``
 
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
------
 100% correlated across year, for both electrons and muons. Following latest EGamma recommendation on [ combining systematics](https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#A_note_on_Combining_Systematics).
     - **Electrons:**
     - ``CMS_eff_elid``
@@ -196,16 +192,13 @@ JER uncertainties are correlated across years.
     - ``CMS_eff_muid``
 
 - **2018 HEM issue, (shape):**
------
 Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html)
     - ``CMS_HEM_2018``
 
 - **MET, (shape):**
------
     - ``CMS_UnclusteredEn``
 
 - **Drell-Yan reweighting, (shape):**
------
 Correlated accross year, lepton flavours, and signal regions.
 ``<ploy-fit-order_n>`` = 7 if ``<era>``==2017 else 6
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
@@ -216,23 +209,19 @@ Correlated accross year, lepton flavours, and signal regions.
     - ``DYweight_boosted_mumu_ployfit_lowmass<ploy-fit-order_n>``
 
 - **Trigger efficiencies, (shape):**
------
 Uncorrelated per year, lepton flavours.
     - ``CMS_elel_trigSF_<era>``
     - ``CMS_mumu_trigSF_<era>``
     - ``CMS_muel_trigSF_<era>``
 
 - **L1 pre-firing, (shape):**
------
 Correlated, more details [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1PrefiringWeightRecipe), available in NanoAOD [branches](https://cms-nanoaod-integration.web.cern.ch/integration/cms-swCMSSW_10_6_19/mc106Xul17_doc.html#L1PreFiringWeight)
     - ``CMS_L1PreFiring``
 
 - **HLT Z-vtx, (shape):**
------
     - ``CMS_HLTZvtx_2017``
 
 - **B-tagging efficiencies, (shape):** More details in [cms-nanoaod-integration.web.cern.ch/commonJSONSFs](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/)
------
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):** Fix, medium working point, DeepJet tagger (``deepJet_mujets``)
     - ``CMS_btagSF_deepJet_fixWP_light_<era>`` : uncorrelated
     - ``CMS_btagSF_deepJet_fixWP_heavy_<era>`` : uncorrelated
@@ -263,5 +252,6 @@ One for the main backgrounds, correlated across year. Taken from the [summary ta
     - ``SingleTop_xsc: 0.97541``
     - ``DY_xsc: 1.00784 ``
     - ``ttbar_xsc: 1.00153``
+
 3. **MC statistics:**
 - We use [the Barlow-Beeston-lite approach](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/#c-mc-statistical-uncertainties); each sample receives a NP in each bin which multiplies the bin yield and is constrained according to the pdf of the number of expected events.
