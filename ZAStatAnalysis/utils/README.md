@@ -163,34 +163,34 @@ Pileup uncertainty is correlated across years. Corrections is taken from [cms-na
 - **Jet Energy Scale(JES), (shape):**
 JES uncertainties are uncorrelated across years. 
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-    - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split.
+        - ``CMS_scale_j_ToTal_<era'>``, `` __ToTal`` means one source/no split.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-    - ``CMS_scale_fatjet_<era'>``
+        - ``CMS_scale_fatjet_<era'>``
 
-> *Open item, still in discussion with HIG conveners*
-> - Run 2 reduced set of uncertainty sources, breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
->    - ``Absolute``, ``Absolute_<era'>``, ``BBEC1``, ``BBEC1_<era'>``, ``EC2``, ``EC2_<era'>``, ``FlavorQCD``, ``HF``, ``HF_<era'>``, ``RelativeBal``, ``RelativeSample_<era'>``
+    > *Open item, still in discussion with HIG conveners*
+    > - Run 2 reduced set of uncertainty sources, breakdown JES uncertainties into 11 sources follows the recommendations of the [JME-POG](https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#Run_2_reduced_set_of_uncertainty)  
+    >    - ``Absolute``, ``Absolute_<era'>``, ``BBEC1``, ``BBEC1_<era'>``, ``EC2``, ``EC2_<era'>``, ``FlavorQCD``, ``HF``, ``HF_<era'>``, ``RelativeBal``, ``RelativeSample_<era'>``
 
 - **Jet Rnergy resolution(JER), (shape):**
 JER uncertainties are correlated across years.
     - **For resolved signal regions categories ( .i.e ``nb2 -resolved``, ``nb3 -resolved``):**
-    - ``CMS_res_j_Total`` , `` __ToTal`` means one source/no split per eta regions.
+        - ``CMS_res_j_Total`` , `` __ToTal`` means one source/no split per eta regions.
     - **For boosted signal regions categories ( .i.e ``nb2 -boosted``, ``nb3 -boosted``):**
-    - ``CMS_res_fatjet``
+        - ``CMS_res_fatjet``
 
-> *Open item, still in discussion with HIG conveners*
-> - JER uncorrelated across year and splittted per eta region: 
->    - ``CMS_res_j_barrel_<era'>``, ``CMS_res_j_endcap1_<era'>``, ``CMS_res_j_endcap2lowpt_<era'>``, ``CMS_res_j_endcap2highpt_<era'>``, ``CMS_res_j_forwardlowpt_<era'>``, ``CMS_res_j_forwardhighpt_<era'>``
-
+    > *Open item, still in discussion with HIG conveners*
+    > - JER uncorrelated across year and splittted per eta region: 
+    >    - ``CMS_res_j_barrel_<era'>``, ``CMS_res_j_endcap1_<era'>``, ``CMS_res_j_endcap2lowpt_<era'>``, ``CMS_res_j_endcap2highpt_<era'>``, ``CMS_res_j_forwardlowpt_<era'>``, ``CMS_res_j_forwardhighpt_<era'>``
+    
 - **Lepton identification, reconstruction and isolation, ID/ISO/RECO (shape):**
 100% correlated across year, for both electrons and muons. Following latest EGamma recommendation on [ combining systematics](https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#A_note_on_Combining_Systematics).
     - **Electrons:**
-    - ``CMS_eff_elid``
-    - ``CMS_eff_elreco_lowpt``    →  RecoBelow20
-    - ``CMS_eff_elreco_highpt``   →  RecoAbove20
+        - ``CMS_eff_elid``
+        - ``CMS_eff_elreco_lowpt``    →  RecoBelow20
+        - ``CMS_eff_elreco_highpt``   →  RecoAbove20
     - **Muons:**
-    - ``CMS_eff_muiso``
-    - ``CMS_eff_muid``
+        - ``CMS_eff_muiso``
+        - ``CMS_eff_muid``
 
 - **2018 HEM issue, (shape):**
 Treatment of the HEM15/16 region in 2018 data , see [HN](https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html)
@@ -245,15 +245,12 @@ More details in [cms-nanoaod-integration.web.cern.ch/commonJSONSFs](https://cms-
     - **Renormalization and factorization scale, (shape):**
         - ``qcdmuR_<process>``
         - ``qcdmuF_<process>``
-    - **Cross-section uncertainty, (lnN):**
-        - **Signals, (lnN):**
-
+    
     - **2HDM Signal cross-section uncertainties, (lnN)**: One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
         - H → ZA : ``ggH_xsc``, ``bbH_xsc``
         - A → ZH : ``ggA_xsc``, ``bbA_xsc``
 
-    - **The main backgrounds cross-section uncertainties, (lnN):**
-One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
+    - **The main backgrounds cross-section uncertainties, (lnN):** One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
         - ``SingleTop_xsc: 0.97541``
         - ``DY_xsc: 1.00784 ``
         - ``ttbar_xsc: 1.00153``
