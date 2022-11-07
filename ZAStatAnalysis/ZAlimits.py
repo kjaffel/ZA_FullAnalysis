@@ -114,7 +114,7 @@ catagories = OrderedDict({
     'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted'],
     'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb3$-',        'resolved'],
     'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted'],
-    'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'resolved'],
+    'ggH_nb2PLusnb3_resolved' : [['OSSF_MuEl'],         'ggH', '$nb2+nb3$, ',   'resolved'],
     'ggH_nb2PLusnb3_boosted'  : [['OSSF_MuEl'],         'ggH', '$nb2+nb3$, ',   'boosted' ],             
     
     'bbH_nb2_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'resolved'],
@@ -165,7 +165,7 @@ def get_SushiXSC(process, tb , heavy, light, m_heavy, m_light):
     return float(xsc), br 
 
 
-def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
+def PlotMultipleUpperLimits(cl, m0, m1, catagories, jsonpath, thdm):
     mpl.rcParams['font.size'] = 10
     CMSStyle.changeFont()
     
@@ -198,7 +198,7 @@ def PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm):
             for era in [2016, 2017, 2018, 'fullrun2']:
                 
                 th_lmax += 2.5
-                js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, era))
+                js_path = os.path.join(jsonpath, 'combinedlimits_{}_{}_{}_UL{}.json'.format(cat, flav, cl, era))
                 if not os.path.isfile(js_path):
                     continue
                 
@@ -404,7 +404,7 @@ def TwistedSenarios(nm, thdm):
     return nm
 
 
-def Plot1D_ScanLimits(jsonpath, signal_grid, thdm, do_PLot=False):
+def Plot1D_ScanLimits(cl, jsonpath, signal_grid, thdm, do_PLot=False):
     mpl.rcParams['font.size'] = 12
     ToBe_Stacked = {}
     
@@ -428,7 +428,7 @@ def Plot1D_ScanLimits(jsonpath, signal_grid, thdm, do_PLot=False):
             flavors_limits = {}
             for flav in flavors:
                 limits = flavors_limits.setdefault(flav, {})
-                json_f = os.path.join(jsonpath, 'combinedlimits_{}_{}_UL{}.json'.format(cat, flav, options.era)) 
+                json_f = os.path.join(jsonpath, 'combinedlimits_{}_{}_{}_UL{}.json'.format(cat, flav, cl, options.era)) 
                 
                 if not os.path.isfile(json_f):
                     continue
@@ -945,22 +945,15 @@ if __name__ == '__main__':
     parser.add_argument('--leg-pos' , action='store', type=str, dest='leg_pos', default='left', choices=['left', 'right'], help='Legend position')
     parser.add_argument('--scan'    , action='store', type=str, dest='scan', default='mA', choices=['mA', 'mH'], 
                                         help='Parameter being scanned in the x axis wihle the other is fixed for a certain value')
-    parser.add_argument('--tanbeta', action='store', type=float, default=None, required=False, help='')
+    parser.add_argument('--expectSignal', action='store', required=False, type=int, default=1, choices=[0, 1],
+                                        help=' Is this S+B or B-Only fit? ')
+    parser.add_argument('--tanbeta' , action='store', type=float, default=None, required=False, help='')
     parser.add_argument('--_2POIs_r', action='store_true', dest='_2POIs_r', required=False, default=False,
                                         help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
 
     options = parser.parse_args()
     
-    
-    tb_dir = ''
-    if options.tanbeta is not None:
-        tb_dir = 'tanbeta_{}'.format(options.tanbeta)
-
-    poi_dir = '1POIs_r'
-    if options._2POIs_r:
-        poi_dir = '2POIs_r'
-
-
+    poi_dir, tb_dir, cl = Constants.locate_outputs(options._2POIs_r, options.tanbeta, options.expectSignal)    
     jsonpath   = os.path.join(options.jsonpath, poi_dir, tb_dir) 
     output_dir = jsonpath
     m_fix = 'm_{H}' if options.scan =='mA' else 'm_{A}'
@@ -970,7 +963,7 @@ if __name__ == '__main__':
         heavy = thdm[0]
         light = thdm[-1]
         signal_grid = []
-        for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0], poi_dir, tb_dir, 'M{}*'.format(heavy))):
+        for dir_p in glob.glob(os.path.join(output_dir.split('jsons')[0], cl, poi_dir, tb_dir, 'M{}*'.format(heavy))):
             dir_ = dir_p.split('/')[-1]
             m0   = float(dir_.split('_')[0].split('-')[1])
             m1   = float(dir_.split('_')[1].split('-')[1])
@@ -1019,8 +1012,8 @@ if __name__ == '__main__':
         
         #massTofix_list = [800.0, 1000.0, 500.0, 700.0, 300.0, 200.0, 750.0, 650.0] 
         
-        #for (m0, m1) in signal_grid:
-        #   PlotMultipleUpperLimits(m0, m1, catagories, jsonpath, thdm)
+        for (m0, m1) in signal_grid:
+            PlotMultipleUpperLimits(cl, m0, m1, catagories, jsonpath, thdm)
     
-        ToBe_Stacked = Plot1D_ScanLimits(jsonpath, available_parameters, thdm, do_PLot=False)    
-        Plot1D_StackedLimits(massTofix_list, ToBe_Stacked, thdm)
+        ToBe_Stacked = Plot1D_ScanLimits(cl, jsonpath, available_parameters, thdm, do_PLot=True)    
+        #Plot1D_StackedLimits(massTofix_list, ToBe_Stacked, thdm)

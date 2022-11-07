@@ -27,29 +27,29 @@ tanbeta=1.5
 # data/sushi1.7.0-xsc_tanbeta-20.0_2hdm-type2.yml
 
 expectSignal=1
+verbose=0 #Verbosity level (-1 = very quiet; 0 = quiet, 1 = verbose, 2+ = debug)
 validation_datacards=true
 unblind=false
 submit_to_slurm=true
 normalize=true
-verbose=false
 scale=false
 x_branchingratio=false
 splitJECs=false
-FixbuggyFormat=true
+FixbuggyFormat=false
 
-bambooDir='ul_run2__ver19/results/'
-stageOut='hig-22-010/datacards/'
+#bambooDir='ul_run2__ver19/results/'
+#stageOut='hig-22-010/datacards/'
 
-#bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
-#stageOut='AtoZH_vs_HtoZA/'
+bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
+stageOut='AtoZH_vs_HtoZA/'
 
 #bambooDir='ul_run2__ver20_splitJES_JER2/results/'
 #stageOut='hig-22-010/jesjer_split__ver2/'
 
 #================ + flags  ==================================
 #============================================================
-if [ "$method"==likelihood_fit ]; then
-     multi_signal=true
+if [ "$do_what" = "likelihood_fit" ]; then
+    multi_signal=true
 fi 
 
 
@@ -66,6 +66,7 @@ if $unblind; then
 fi 
 
 plus_args+=' --expectSignal '${expectSignal}
+plus_args+=' --verbose ' ${verbose}
 plus_args2=$plus_args
 
 if $multi_signal; then
@@ -76,12 +77,6 @@ fi
 if $submit_to_slurm; then
     plus_args+=' --slurm'
 fi
-
-
-if $verbose; then
-    plus_args+=' --verbose'
-fi
-
 
 if $normalize; then
     plus_args+=' --normalize'
@@ -157,10 +152,10 @@ fi
 #=============================================
 if [ "$do_what" = "fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
-    ./run_combined_${mode}_fitprepost.sh
+    #./run_combined_${mode}_fitprepost.sh
 
-    python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
-    python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode
+    #python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
+    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode
 fi 
 
 #=====================================================================
@@ -176,13 +171,13 @@ fi
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
-    ./run_combined_${mode}_asymptoticlimits.sh
+    #./run_combined_${mode}_asymptoticlimits.sh
 
-    python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era --expectSignal $expectSignal $plus_args2 
-    python ZAlimits.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --log --era $era --rescale-to-za-br $plus_args2
+    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era --expectSignal $expectSignal $plus_args2 
+    #python ZAlimits.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --log --era $era --rescale-to-za-br $plus_args2
 
-    python draw2D_mH_vs_mA_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
-    python draw2D_tb_vs_cba_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
+    #python draw2D_mH_vs_mA_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
+    #python draw2D_tb_vs_cba_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
 fi
 
 #============================================================

@@ -90,15 +90,15 @@ inDir=$stageOut$workDir
 outDir=$inDir
 
 ```
-- ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` to preaper the datcards and the workspaces. With the given inputs above ( ``asymptotic``) 
-, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat``. 
+- ``run_combine.sh`` will call ``./prepareShapesAndCards.py`` to prepare the datacards and the workspaces. With the given task/inputs above (``asymptotic``) 
+, Combine commands will be written to ``*.sh`` and the datacards to ``*.dat`` files in all lepton flavours and signal region categories. 
 
-Both will be saved in the directory :``${stageOut}/${workDir}/${scenario}/asymptotic-limits/${mode}/CLs/2POIs_r/MH-xxx_MA-xxx``. 
+All files will be saved in the directory :``${stageOut}/${workDir}/${scenario}/asymptotic-limits/${mode}/CLs/2POIs_r/MH-xxx_MA-xxx``. 
 Then the script will automatically launch these commands from ``./run_combined_dnn_asymptotic.sh``
 
 - If you want to run Combine Tools limits without over-writing the datacards. Please run;
-    - Asymptotic-Limit: ``./run_combined_dnn_asymptotic.sh``
-    - Pre-/Post-fit   : ``./run_combined_dnn_prepostfit.sh``
+    - Asymptotic-Limit: ``./run_combined_dnn_asymptoticlimits.sh``
+    - Pre-/Post-fit   : ``./run_combined_dnn_fitprepost.sh``
 
 ## Running Combine Tools:
 - To briefly summarize the commands used for each Combine task;
@@ -243,14 +243,14 @@ More details in [cms-nanoaod-integration.web.cern.ch/commonJSONSFs](https://cms-
         - ``ISR_<process>``
         - ``FSR_<process>``
     - **Renormalization and factorization scale, (shape):**
-        - ``qcdmuR_<process>``
-        - ``qcdmuF_<process>``
+        - ``QCDmuR_<process>``
+        - ``QCDmuF_<process>``
     
     - **2HDM Signal cross-section uncertainties, (lnN)**: One for each generated signal sample, correlated across year. Taken from [Sushi](https://sushi.hepforge.org/), which varies depending on the assumed ``(mH, mA)``, ``tanbeta``, and ``cos( beta-alpha)``.
         - H → ZA : ``ggH_xsc``, ``bbH_xsc``
         - A → ZH : ``ggA_xsc``, ``bbA_xsc``
 
-    - **The main backgrounds cross-section uncertainties, (lnN):** One for the main backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
+    - **The main backgrounds cross-section uncertainties, (lnN):** One NP for the main irreducible backgrounds, correlated across year. Taken from the [summary table](https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns), [cross-section database](https://cms-gen-dev.cern.ch/xsdb).
         - ``SingleTop_xsc: 0.97541``
         - ``DY_xsc: 1.00784 ``
         - ``ttbar_xsc: 1.00153``

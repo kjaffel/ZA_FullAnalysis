@@ -129,69 +129,103 @@ channels = {
     'OSSF_MuEl': '$\mu\mu + ee + \mu e$',
     'MuMu_ElEl_MuEl': '$\mu\mu + ee + \mu e$',
                                             }
+
 def beautify(process, reco, reg, flavor):
-    if reco == 'nb2PLusn3':
+    if reco == 'nb2PLusnb3':
         reco = 'nb2+nb3'
     if reg == 'resolved_boosted':
         reg = 'resolved+boosted'
+    if '_r_' in process:
+        process = process.replace('_', '\_')
     return '${}: {}, {}$, {}'.format(process, reco, reg, channels[flavor])
 
+    
+def get_rescale_to_za_br(k, br_gg, br_bb):
+    if '_r_' in k:
+        if 'gg' in k:
+            return br_bb
+        else:
+            return br_gg
+    else:
+        if 'gg' in k:
+            return br_gg
+        else:
+            return br_bb
 
-def WriteLatexTableComparasion(limits, mHeavy, mLight, tanbeta, thdm, rescale_to_za_br=False, _2POI=False, unblind=False):
-    heavy = thdm[0]
-    light = thdm[-1]
+
+def WriteLatexTableComparasion(limits, cl, mHeavy, mLight, tanbeta, thdm, era, rescale_to_za_br=False, _2POI=False, unblind=False):
+    mHeavy = str(float(mHeavy))
+    mLight = str(float(mLight))
+
+    heavy  = thdm[0]
+    light  = thdm[-1]
+    cl = '$CL_{s}$' if cl == 'CLs' else '$CL_{s+b}$'
+    tanbeta_gluonfusion = tanbeta_bassociated = tanbeta
+    
+    tb = R', tan$\beta$= %s'%tanbeta
+    if tanbeta is None:
+        tb = R''
+        tanbeta_gluonfusion= 1.5
+        tanbeta_bassociated= 20.
+    
     print(R'\begin{table}[!htb]')
-    print(R'     \caption{ Observed and Expected 2HDM-TypeII limits for ($m_{%s}$, $m_{%s}$)= (%s, %s) GeV tan$\beta$= %s.}'%(heavy, light, mHeavy, mLight, tanbeta))
+    print(R'     \caption{ 95\% '+ R'%s upper limits on %s $\rightarrow$ Z%s $\rightarrow$ llbb production cross section times branching ratio for ($m_{%s}$, $m_{%s}$)= (%s, %s) GeV%s, 2HDM-II, %s data.}'%(cl, heavy, light, heavy, light, mHeavy, mLight, tb, era))
     print(R' \label{table:limits_tab}')
     print(R' \small')
     print(R' \resizebox{\textwidth}{!}{')
     print(R' \begin{tabular}{@{}lcccc@{}} \toprule')
     print(R' \hspace{1cm}')
     print(R' \\')
-    print(R'Cat. & Observed (fb) & Expected (fb) & 1 Standard deviation (fb) & 2 Standard deviations (fb) \\')
+    print(R'Cat. & Observed (fb) & Expected (fb) & $\pm$1 Standard deviation (fb) & $\pm$2 Standard deviations (fb) \\')
     print(R' \hline')
     print(R' \\')
     
-
-    tanbeta_gluonfusion = tanbeta_bassociated = tanbeta
-    if tanbeta is None:
-        tanbeta_gluonfusion= 1.5
-        tanbeta_bassociated= 20.
-
-    xsc_gluonfusion, xsc_gluonfusion_err, br = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'gg{}'.format(heavy), thdm, tanbeta_gluonfusion)
-    xsc_bassociated, xsc_bassociated_err, br = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'bb{}'.format(heavy), thdm, tanbeta_bassociated)
+    xsc_gluonfusion, xsc_gluonfusion_err, br1 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'gg{}'.format(heavy), thdm, tanbeta_gluonfusion)
+    xsc_bassociated, xsc_bassociated_err, br2 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'bb{}'.format(heavy), thdm, tanbeta_bassociated)
     
     sigma_tot  = xsc_gluonfusion + xsc_bassociated
+    
     for k, limits_for_key in sorted(limits.items()):
+        if 'MuEl' not in k[0]:
+            continue
         if not limits_for_key:
             continue
+        
+        br = get_rescale_to_za_br(k=k[0], br_gg=br1, br_bb=br2)
+
         for v in limits_for_key:
             if not v['parameters']==(mHeavy, mLight):
                 continue
         
-            expected     = round(v['limits']['expected']*1000, 3)
-            observed     = round(v['limits']['observed']*1000, 3)
-            plus_1sigma  = round(v['limits']['one_sigma'][1]*1000, 3)
-            minus_1sigma = round(v['limits']['one_sigma'][0]*1000, 3)
-            plus_2sigma  = round(v['limits']['two_sigma'][1]*1000, 3)
-            minus_2sigma = round(v['limits']['two_sigma'][0]*1000, 3)
-       
-            print( thdm, expected, br )
+            expected     = v['limits']['expected']*1000 # from pb to fb
+            observed     = v['limits']['observed']*1000
+            _1sigma_up   = v['limits']['one_sigma'][1]*1000
+            _1sigma_down = v['limits']['one_sigma'][0]*1000
+            _2sigma_up   = v['limits']['two_sigma'][1]*1000
+            _2sigma_down = v['limits']['two_sigma'][0]*1000
+
             if rescale_to_za_br:
                 expected     *= br
                 observed     *= br 
-                plus_1sigma  *= br
-                minus_1sigma *= br
-                plus_2sigma  *= br
-                minus_2sigma *= br
+                _1sigma_up   *= br
+                _1sigma_down *= br
+                _2sigma_up   *= br
+                _2sigma_down *= br
             
             if not _2POI:
                 expected     /= sigma_tot
                 observed     /= sigma_tot
-                plus_1sigma  /= sigma_tot
-                minus_1sigma /= sigma_tot
-                plus_2sigma  /= sigma_tot
-                minus_2sigma /= sigma_tot
+                _1sigma_up   /= sigma_tot
+                _1sigma_down /= sigma_tot
+                _2sigma_up   /= sigma_tot
+                _2sigma_down /= sigma_tot
+            
+            expected     = round(expected,3)
+            observed     = round(observed,3)
+            _1sigma_up   = round(_1sigma_up,3)
+            _1sigma_down = round(_1sigma_down,3)
+            _2sigma_up   = round(_2sigma_up,3)
+            _2sigma_down = round(_2sigma_down,3)
 
             if not unblind:
                 observed = '-'
@@ -199,10 +233,11 @@ def WriteLatexTableComparasion(limits, mHeavy, mLight, tanbeta, thdm, rescale_to
             print (R"%s & %s & %s & %s $\pm$ %s & %s $\pm$ %s \\"%(
                     k[1], 
                     observed,  expected, 
-                    plus_1sigma, minus_1sigma,
-                    plus_2sigma, minus_2sigma )
+                    _1sigma_up, _1sigma_down,
+                    _2sigma_up, _2sigma_down )
                 )
     
+    print(R'\\')
     print(R'\hline')
     print(R'\bottomrule')
     print(R'\end{tabular}')
@@ -223,18 +258,15 @@ if __name__ == '__main__':
     parser.add_argument('--tanbeta', action='store', type=float, default=None, required=False, help='')
     parser.add_argument('--_2POIs_r', action='store_true', dest='_2POIs_r', required=False, default=False,
                     help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
+    parser.add_argument('--expectSignal', action='store', required=False, type=int, default=1, choices=[0, 1],
+                    help=' Is this S+B or B-Only fit? ')
+    parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br',
+                    help='If flagged True, limits in HToZA mode will be x to BR( Z -> ll) x BR(A -> bb ) x (H -> ZA)')
 
     options = parser.parse_args()
     
     
-    tb_dir = ''
-    if options.tanbeta is not None:
-        tb_dir = 'tanbeta_{}'.format(options.tanbeta)
-    
-    poi_dir = '1POIs_r'
-    if options._2POIs_r:
-        poi_dir = '2POIs_r'
-    
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(options._2POIs_r, options.tanbeta, options.expectSignal)
     
     for thdm in ['HToZA', 'AToZH']:
 
@@ -247,34 +279,38 @@ if __name__ == '__main__':
 
         for process, prod in {'gg{}'.format(heavy): 'gg_fusion', 
                               'bb{}'.format(heavy): 'bb_associatedProduction', 
-                              #'profiled_r_gg{}'.format(heavy): 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating  if thdm == HToZA
-                              #'profiled_r_bb{}'.format(heavy): 'gg_fusion_bb_associatedProduction', #         -    ggH    -  bbH         -
-                              #'freezed_r_gg{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
-                              #'freezed_r_bb{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', #          -   ggH    -  bbH         -  
+                              'profiled_r_gg{}'.format(heavy): 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH left floating  if thdm == HToZA
+                              'profiled_r_bb{}'.format(heavy): 'gg_fusion_bb_associatedProduction', #         -    ggH    -  bbH         -
+                              'freezed_r_gg{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', # limit set on bbH while ggH set to certain value
+                              'freezed_r_bb{}'.format(heavy) : 'gg_fusion_bb_associatedProduction', #          -   ggH    -  bbH         -  
                               }.items():
             
+            s0 =''
+            if '_r_' in process: s0 = process 
+
             if options.method == "asymptotic":
-                s = '.AsymptoticLimits.mH125.root'
+                s = '{}.AsymptoticLimits.mH125.root'.format(s0)
             elif options.method == "hybridnew":
-                s = '.HybridNew.mH125.root'
+                s = '{}.HybridNew.mH125.root'.format(s0)
             
-            for reco in ['nb2PLusnb3', 'nb2', 'nb3']:
-                for reg in ['resolved', 'boosted', 'resolved_boosted']:
-                    for flavor in ['MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
+            for reco in ['nb2PLusnb3']:#, 'nb2', 'nb3']:
+                for reg in ['resolved', 'boosted']:#, 'resolved_boosted']:
+                    for flavor in ['OSSF_MuEl', 'MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
                         
                         # I don't need this for now
                         # too much details I don't need 
                         if flavor in ['ElEl_MuEl', 'MuMu_MuEl', 'ElEl', 'MuMu', 'MuEl']: 
                             continue
                         
-                        limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, poi_dir, tb_dir, '*', '*{}'.format(s)))
+                        limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, CL_dir, poi_dir, tb_dir, '*', '*{}'.format(s)))
+                        
                         latex_k = beautify(process, reco, reg, flavor)
                         limits[('{}_{}_{}_{}'.format(process, reco, reg, flavor), latex_k)] = []
                         for f in limits_path:
                             root     =  f.split('/')[-1]
 
                             mHeavy, mLight   =  string_to_mass(f.split('/')[-2])
-                           
+               
                             if not root.startswith('higgsCombine{}To2L2B_{}_{}_{}_{}_{}_'.format(thdm, prod, reco, reg, flavor, options.mode)):
                                 continue
                             
@@ -307,12 +343,12 @@ if __name__ == '__main__':
             if not v:
                 continue
             
-            output_file = os.path.join(limits_out, 'combinedlimits_{}_UL{}.json'.format(k[0], options.era))
+            output_file = os.path.join(limits_out, 'combinedlimits_{}_{}_UL{}.json'.format(k[0], CL_dir, options.era))
             with open(output_file, 'w') as jf:
                 json.dump(v, jf, indent=4)
             print("Limits saved as %s" % output_file)
 
         logger.info(' issues with these %s points no limit is found : %s'%(thdm, crap_points))
         
-        WriteLatexTableComparasion(limits, "780.0", "680.0", options.tanbeta, thdm, rescale_to_za_br=True, _2POI=options._2POIs_r, unblind=False)
+        WriteLatexTableComparasion(limits, CL_dir, 500., 50., options.tanbeta, thdm, options.era, rescale_to_za_br=options.rescale_to_za_br, _2POI=options._2POIs_r, unblind=False)
 

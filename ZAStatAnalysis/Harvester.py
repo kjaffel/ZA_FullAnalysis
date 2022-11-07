@@ -215,9 +215,9 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     
     # theory 
     theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
-                    "qcdMuF"   : "qcdMuF_%s"%process, 
-                    "qcdMuR"   : "qcdMuR_%s"%process, 
-                    "qcdMuRF"  : "qcdMuRF_%s"%process,
+                    "qcdMuF"   : "QCDMuF_%s"%process, 
+                    "qcdMuR"   : "QCDMuR_%s"%process, 
+                    "qcdMuRF"  : "QCDMuRF_%s"%process,
                     "psISR"    : "ISR_%s"%process, 
                     "psFSR"    : "FSR_%s"%process,
                     "pdfAlphaS": "pdf_alphaS_%s"%process,
@@ -240,7 +240,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     elif origName.startswith("jes"):
         return "CMS_scale_j_{}".format(origName[3:])
     elif origName.startswith("jms"):
-        return "CMS_scale_fatjet_{}".format(newEra)
+        return "CMS_scale_fatjet"#_{}".format(newEra)
     
     # jer
     elif origName.startswith("jer"):
