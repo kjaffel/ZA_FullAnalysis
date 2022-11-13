@@ -19,7 +19,9 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 import CMSStyle as CMSStyle
 import CombineHarvester.CombineTools.ch as ch
-
+sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis')
+import Constants as Constants
+logger = Constants.ZAlogger(__name__)
 
 def format_float(value):
     if value * 100 < 0.1:
@@ -59,6 +61,7 @@ def format_latex_table_line_3(name, v, w):
 
 
 def beautify(s):
+    # names
     if s == 'ttbar':
         return r'ttbar'
     if s == 'DY':
@@ -72,46 +75,107 @@ def beautify(s):
     if s == 'others':
         return 'other backgrounds'
     if s == 'HToZATo2L2B':
-        return 'signal'
-    if s == 'CMS_eff_b_heavy':
-        return 'Jet b-tagging (heavy)'
-    if s == 'CMS_eff_b_light':
-        return 'Jet b-tagging (light)'
-    if 'CMS_eff_trigger' in s:
-        return 'Trigger efficiency'
-    if s == 'CMS_scale_j':
-        return 'Jet energy scale'
-    if s == 'CMS_res_j':
-        return 'Jet energy resolution'
-    if s == 'CMS_eff_e':
-        return 'Electron ID \\& Reco'
-    if s == 'CMS_eff_mu':
-        return 'Muon ID'
-    if s == 'CMS_iso_mu':
-        return 'Muon ISO'
-    if s == 'CMS_pu':
-        return 'Pileup'
-    if s == 'pdf':
-        return 'Parton distributions'
-    if 'lumi_13TeV' in s:
-        return 'Luminosity'
-    if s == 'ttbar_modeling':
-        return r'ttbar modeling'
-    if s == 'ttbar_xsec':
-        return r'ttbar cross-section'
-    if s == 'dy_mc_modeling':
-        return r'Drell-Yan modeling'
-    if s == 'dy_mc_xsec':
-        return r'Drell-Yan cross-section'
-    if s == 'SingleTop_modeling':
-        return r'Single top modeling'
-    if s == 'SingleTop_xsec':
-        return r'Single top cross-section'
-    if s == 'MC_stat':
-        return 'MC stat.'
-    if 'QCDscale' in s:
-        return 'QCD scale'
+        return r'$H \rightarrow ZA$ signal'
+    if s == 'AToZHTo2L2B':
+        return r'$A \rightarrow ZH$ signal'
+    
+    # systs
+    # b-tagging
+    if s.startswith('CMS_btagSF_'):
+        era = s.split('_')[-1]
+
+    if s.startswith('CMS_btagSF_deepJet_fixWP_heavy'):
+        return 'Heavy flavour jet b-tagging (DeepJetM)'
+    if s.startswith('CMS_btagSF_deepJet_fixWP_light'):
+        return 'Light flavour jet b-tagging (DeepJetM)'
+    
+    if s.startswith('CMS_btagSF_deepCSV_subjet_fixWP_heavy'):
+        return 'Heavy flavour subjet b-tagging (DeepCSVM)'
+    if s.startswith('CMS_btagSF_deepCSV_subjet_fixWP_light'):
+        return 'Light flavour subjet b-tagging (DeepCSVM)'
+
+    # correlated 
+    if s.startswith("CMS_UnclusteredEn"):
+        return "Unclustered energy" 
+    if s.startswith("CMS_HEM"):
+        return "CMS event veto for 2018 HEM15/16 failure"
+    if s.startswith("CMS_HLTZvtx"):
+        return "EGamma HLT Z region inefficiency"
+    if s.startswith("CMS_elel_trigSF"):
+        return "DoubleEG triggers scale factor"
+    if s.startswith("CMS_mumu_trigSF"):
+        return "DoubleMuon trigger scale factor"
+    if s.startswith("CMS_muel_trigSF"):
+        return "MuonEG trigger scale factor"
+    if s.startswith("CMS_mu_trigger"):
+        return "SingleMuon trigger scale factor"
+    if s.startswith("CMS_pileup"):
+        return "Pileup"
+    if s.startswith("CMS_L1PreFiring"):
+        return "Level 1 ECAL and Muon prefiring"
+    if s.startswith("CMS_eff_elid"):
+        return "Electron identification"
+    if s.startswith("CMS_eff_elreco_lowpt"):
+        return "Electron reconstruction at low pT ( < 20 \GeV)"
+    if s.startswith("CMS_eff_elreco_highpt"):
+        return "Electron reconstruction at high pT ( > 20 \GeV)"
+    if s.startswith("CMS_eff_muid"):
+        return "Muon identification"
+    if s.startswith("CMS_eff_muiso"):
+        return "Muon isolation"
+
+    #theory
+    if s.startswith('QCDscale_'):
+        return "QCD scale uncertainty"
+    if s.startswith('QCDMuR_'):
+        return "QCD renormalisation scale ($\mu_{R}$) uncertainty"
+    if s.startswith('QCDMuF_'):
+        return "QCD factorization scale ($\mu_{F}$) uncertainty"
+    if s.startswith('ISR_'):
+        return "Parton shower initial state (ISR) uncertainty"
+    if s.startswith('FSR_'):
+        return "Parton shower final state (FSR) uncertainty"
+    if s.startswith('pdf_'):
+        return "Parton distribution functions (PDFs) uncertainty"
+
+    
+    if s.startswith('DYweight_'):
+        region  = s.split('_')[1]
+        channel = s.split('_')[2]
+        channel = '$e^{\pm}e^{\mp}$' if channel =='elel' else '$\mu^{\pm}\mu^{\pm}$'
+        return "Drell-Yan+jets reweighting %s, (%s)"%( region, channel)
+
+    if s.startswith("CMS_scale_j_"):
+        corr = s.split("_")[-1]
+        return "Jet energy scale %s uncertainty"%corr
+    if s.startswith("CMS_res_j_"):
+        corr = s.split("_")[-1]
+        return "Jet energy resolution %s uncertainty"%corr
+
+    if s.startswith("CMS_scale_fatjet_"):
+        corr = s.split("_")[-1]
+        return "Fatjet energy scale %s uncertainty"%corr
+    if s.startswith("CMS_res_fatjet_"):
+        corr = s.split("_")[-1]
+        return "Fatjet energy resolution %s uncertainty"%corr
+
+    if s.startswith('lumi_correlated_13TeV_2016_2017_2018'):
+        return 'Correlated luminosity 2016,2017,2018'
+    if s.startswith('lumi_correlated_13TeV_2017_2018'):
+        return 'Correlated luminosity 2017,2018'
+    if s.startswith('lumi_uncorrelated'):
+        era = s.split('_')[-1]
+        return 'Uncorrelated luminosity %s'%era
+    
+    if s.startswith('MC_stat'):
+        return 'MC statistics'
+    
+    if 'xsc' in s:
+        p = s.split('_')[0]
+        return "%s cross-section uncertainty"%p
+
     return s.replace('_', '\_')
+
 
 def fill_table(bkg_, sig_, table):
     # Remove statistical systematic uncertainty shapes
@@ -142,7 +206,6 @@ def fill_table(bkg_, sig_, table):
             p = set()
             c.ForEachSyst(lambda s: p.add(s.process()))
 
-            p = [x for x in p if not 'nobtag_to_btagM' in x]
             if 'data' in p:
                 p.remove('data')
 
@@ -152,8 +215,6 @@ def fill_table(bkg_, sig_, table):
                 continue
 
             std_syst = s
-            if 'CMS_eff_trigger' in s:
-                std_syst = 'CMS_eff_trigger'
 
             flavor_bkg_systematics.setdefault(std_syst, []).append(c.GetUncertainty() / c.GetRate())
             c = sig[i].cp().syst_name([s])
@@ -170,14 +231,20 @@ def fill_table(bkg_, sig_, table):
     for s in systematics:
         bkg_systematics.append((min(flavor_bkg_systematics[s]), max(flavor_bkg_systematics[s])))
         sig_systematics.append((min(flavor_sig_systematics[s]), max(flavor_sig_systematics[s])))
-    for i in range(len(bkg_systematics)):
+    
+    max_syst_ToPrint = len(bkg_systematics)
+    if len(bkg_systematics) > 10:
+        max_syst_ToPrint = 10
+
+    for i in range(max_syst_ToPrint):
         table = table + format_latex_table_line_3(beautify(systematics[i]), bkg_systematics[i], sig_systematics[i])
 
     table = table + r'''\midrule
     '''
     return table, common_systematics
 
-def fill_affecting_only_bkg_table(name=None, bkgs=None, already_included_systs=None, table=None, processes=None, title="Affecting only {} ({} of the total bkg.)"):
+
+def fill_affecting_only_bkg_table(name=None, bkgs=None, already_included_systs=None, table=None, processes=None, title="Affecting only %s (%s of the total bkg.)"):
     if not processes:
         processes = [name]
 
@@ -219,7 +286,7 @@ def fill_affecting_only_bkg_table(name=None, bkgs=None, already_included_systs=N
     for s in systematics:
         systematics_values.append((min(flavor_systematics_values[s]), max(flavor_systematics_values[s])))
 
-    title = title.format(beautify(name), format_value((min(proportions), max(proportions))))
+    title = title%(beautify(name), format_value((min(proportions), max(proportions))))
     table = table + r'''\multicolumn{{3}}{{c}}{{{}}} \\
     '''.format(title)
 
@@ -228,7 +295,7 @@ def fill_affecting_only_bkg_table(name=None, bkgs=None, already_included_systs=N
 
     return table
 
-def fill_affecting_only_signal_table(sigs, signal_process, already_included_systs, table, title="Affecting only {} ({} of the total bkg.)"):
+def fill_affecting_only_signal_table(sigs, signal_process, already_included_systs, table, title="Affecting only %s (%s of the total bkg.)"):
     sigs = [x.cp() for x in sigs]
 
     def extract_values(process):
@@ -270,33 +337,41 @@ def fill_affecting_only_signal_table(sigs, signal_process, already_included_syst
     for s in systematics:
         systematics_values.append((min(flavor_systematics_values[s]), max(flavor_systematics_values[s])))
 
-    table = table + r'''\multicolumn{3}{c}{Affecting only signal} \\
-    '''
+    table = table + r'''\multicolumn{3}{c}{Affecting only %s signal} \\
+    '''%signal_process
     for i in range(len(systematics_values)):
         table = table + format_latex_table_line_2(beautify(systematics[i]), systematics_values[i])
 
     return table
 
-def get_table(bkg=None, sig=None, signal_process=None):
-    table = r'''
-\begin{tabular}{@{}lcc@{}} \torule
-Source & Background yield variation & %s \\
-\midrule
-\hline
-''' % signal_title
 
+def get_table(bkg=None, sig=None, signal_process=None, label=''):
+    table = r'''
+\begin{table}[!htb]
+    \caption{ }
+    \label{table:systs_%s}
+    \small
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{@{}lcc@{}}
+        \hline
+        \\
+        \textbf{Source} & \textbf{Background yield variation} & \textbf{%s} \\
+        \\ 
+        \hline
+        ''' % (label, signal_title)
+    
     table, systematics = fill_table(bkg, sig, table)
 
-    table = fill_affecting_only_bkg_table('DY', bkg, systematics, table, title=r"Affecting only {} ({} of the total bkg.)")
-    table = table + r'''\midrule
-    \hline
+    table = fill_affecting_only_bkg_table('DY', bkg, systematics, table, title=r"\textbf{Affecting only %s (%s of the total bkg.)}")
+    table = table + r'''\\
+        \hline
     '''
     table = fill_affecting_only_bkg_table('ttbar', bkg, systematics, table)
-    table = table + r'''\midrule
+    table = table + r'''\\
     \hline
     '''
     table = fill_affecting_only_bkg_table('SingleTop', bkg, systematics, table)
-    table = table + r'''\midrule
+    table = table + r'''\\
     \hline
     '''
     #table = fill_affecting_only_bkg_table('ZZ', bkg, systematics, table)
@@ -312,23 +387,34 @@ Source & Background yield variation & %s \\
     #\hline
     #'''
     table = fill_affecting_only_signal_table(sig, signal_process, systematics, table)
-    table = table + r'''\bottomrule
-\hline
-\end{tabular}
+    table = table + r'''\\
+    \hline
+    \end{tabular}
+    }
+\end{table}
 '''
     return table
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create LaTeX table of systematics impact on background')
-    parser.add_argument('-i', '--inputs', action='store', required=True, help='path to data cards')
-    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], help='Analysis mode')
+    parser.add_argument('-i', '--inputs', action='store', required=True, 
+            help='path to data cards')
+    parser.add_argument('--mode', action='store', required=True, choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], 
+            help='Analysis mode')
+    parser.add_argument('--expectSignal', action='store', required=False, type=int, default=1, choices=[0, 1],
+            help=' Is this S+B or B-Only fit? ')
+    parser.add_argument('--tanbeta', action='store', type=float, default=None, required=False, help='')
+    parser.add_argument('--_2POIs_r', action='store_true', dest='_2POIs_r', required=False, default=False,
+            help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
     options = parser.parse_args()
     
-    # Extract mass from name. We can't let CH do it for us
-    signal_title = "Signal yield variation"
 
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs('fit', options._2POIs_r, options.tanbeta, options.expectSignal)
     
-    inputs_list = glob.glob(os.path.join(options.inputs, 'fit',options.mode, '*', '*.dat'))
+    signal_title = "Signal yield variation"
+    inputs_list  = glob.glob(os.path.join(options.inputs, 'fit', options.mode, CL_dir, poi_dir, tb_dir, '*', '*.dat'))
+    
+    
     for f in inputs_list:
         
         cbs = []
@@ -339,14 +425,24 @@ if __name__ == '__main__':
         if not os.path.isdir(outputDir):
             os.makedirs(outputDir)
             
-        if not any( x in f.split('/')[-1] for x in [ 'OSSF', 'MuMu', 'ElEl']):
-            continue # avoid  MuEl cat. 
+        if not any( x in f.split('/')[-1] for x in [ 'OSSF', 
+                                                     'OSSF_MuEl',
+                                                     'MuMu', 
+                                                     'ElEl', 
+                                                     'MuMu_ElEl', 
+                                                     'MuMu_ElEl_MuEl']):
+            continue # avoid  MuEl solo cat. 
+            
+        mass  = f.split('/')[-2].replace('-','_')
+        cat   = f.split('/')[-1].replace('.dat', '.tex')
+        thdm  = f.split('/')[-1].split('_')[0].split('To2L2B')[0]
+        heavy = thdm[0]
+        signal_process = 'gg%s'%heavy if 'gg_fusion' in cat else 'bb%s'%heavy
+        label = cat.split('_dnn')[0].split('To2L2B_')[-1]
 
-        mass = f.split('/')[-2].replace('-','_')
-        cat  = f.split('/')[-1].replace('.dat', '.tex')
-        signal_process = 'ggH' if 'gg_fusion' in cat else 'bbH'
         print( 'working on ::', cat)
-
+        
+        # Extract mass from name. We can't let CH do it for us
         cb = ch.CombineHarvester()
         cb.ParseDatacard(f, mass="125")
 
@@ -355,7 +451,7 @@ if __name__ == '__main__':
         
         cbs.append(cb)
         
-        latex_table = get_table(backgrounds, signals, signal_process)
+        latex_table = get_table(backgrounds, signals, signal_process, label)
         with open(os.path.join(outputDir, cat), 'w') as f_:
             f_.write(latex_table)
         
