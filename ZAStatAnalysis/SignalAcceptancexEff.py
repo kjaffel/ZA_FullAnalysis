@@ -40,7 +40,7 @@ def get_SignalParams(rf):
 
 if __name__ == "__main__":
 
-    era         = 2017
+    era         = 2018
     mode        = 'HToZA'
     dict_       = {'mH':500, 'mA': 300}
     m_tofix     = 'mH'
@@ -51,7 +51,8 @@ if __name__ == "__main__":
     light       = mode[-1]
     colors      = ['darkblue', 'orange']
     nomet       = 'no $p_{T}^{miss}$ cut' # will be ignored
-    inDir       = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/forHIG/ul_2017_ver45'
+    #inDir       = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/forHIG/ul_2017_ver45'
+    inDir       = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/llbbtests/atozh_vs_htoza2'
     plotit_yml  = os.path.join(inDir, 'plots.yml')
     
     dict_yields = {'ggH':{
@@ -135,6 +136,8 @@ if __name__ == "__main__":
             ls = 'solid' if 'nb=2' in k else 'dashed'
             xl = yieldForcat[k]['x'] 
             yl = yieldForcat[k]['y'] 
+            if not xl or not yl:
+                continue
             xl, yl = zip(*sorted(zip(xl, yl)))
             plt.plot(xl, yl, marker='o', linestyle=ls, color=colors[i], label=f'{r}: {k}'+r' ($\mu\mu$ + ee)')
         

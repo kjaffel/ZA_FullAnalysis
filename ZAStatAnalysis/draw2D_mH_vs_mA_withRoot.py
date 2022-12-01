@@ -20,6 +20,8 @@ parser.add_argument('--_2POIs_r', action='store_true', dest='_2POIs_r', required
     help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
 parser.add_argument('--expectSignal', action='store', required=False, type=int, default=1, choices=[0, 1],
     help=' Is this S+B or B-Only fit? ')
+parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br',
+    help='If flagged True, limits in HToZA mode will be x to BR( Z -> ll) x BR(A -> bb ) x (H -> ZA)')
 
 
 options = parser.parse_args()
@@ -31,19 +33,19 @@ plots = [
     ]
 
 catagories = OrderedDict({
-   # 'ggH_nb2_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb2$-',        'resolved'],
-   # 'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted'],
-   # 'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb3$-',        'resolved'],
-   # 'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted'],
-    'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'],  'ggH', 'nb2+nb3, ',   'resolved'],
-    'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],  'ggH', 'nb2+nb3, ',   'boosted' ],             
+   # 'ggH_nb2_resolved'        : [['MuMu_ElEl_MuEl'],     'ggH', '$nb2$-',        'resolved'],
+   # 'ggH_nb2_boosted'         : [['OSSF_MuEl'],          'ggH', '$nb2$-',        'boosted' ],
+   # 'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],     'ggH', '$nb3$-',        'resolved'],
+   # 'ggH_nb3_boosted'         : [['OSSF_MuEl'],          'ggH', '$nb3$-',        'boosted' ],
+    'ggH_nb2PLusnb3_resolved'  : [['OSSF', 'OSSF_MuEl'],  'ggH', 'nb2+nb3, ',     'resolved'],
+    'ggH_nb2PLusnb3_boosted'   : [['OSSF', 'OSSF_MuEl'],  'ggH', 'nb2+nb3, ',     'boosted' ],             
     
-   # 'bbH_nb2_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'resolved'],
-   # 'bbH_nb2_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'boosted'],
-   # 'bbH_nb3_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'resolved'],
-   # 'bbH_nb3_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'boosted'],
-    'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'],  'bbH', 'nb2+nb3, ',   'resolved'],             
-    'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'],  'bbH', 'nb2+nb3, ',   'boosted' ],   
+   # 'bbH_nb2_resolved'        : [['OSSF_MuEl'],          'bbH', '$nb2$-',        'resolved'],
+   # 'bbH_nb2_boosted'         : [['OSSF_MuEl'],          'bbH', '$nb2$-',        'boosted' ],
+   # 'bbH_nb3_resolved'        : [['OSSF_MuEl'],          'bbH', '$nb3$-',        'resolved'],
+   # 'bbH_nb3_boosted'         : [['OSSF_MuEl'],          'bbH', '$nb3$-',        'boosted' ],
+    'bbH_nb2PLusnb3_resolved'  : [['OSSF', 'OSSF_MuEl'],  'bbH', 'nb2+nb3, ',     'resolved'],             
+    'bbH_nb2PLusnb3_boosted'   : [['OSSF', 'OSSF_MuEl'],  'bbH', 'nb2+nb3, ',     'boosted' ],   
     
     # combination 1 reso +boo  
     'ggH_nb2PLusnb3_resolved_boosted': [['OSSF', 'OSSF_MuEl'], 'ggH', 'nb2+nb3, ', 'resolved + boosted'],
@@ -92,7 +94,10 @@ for plot in plots:
         print ('working on %s plot :: this may take some time' % plot)
         x = theory['mA']
         y = theory['mH']
-        z = [theory['sigma'][i] * 1000. * theory['BR'][i] for i,z in enumerate(theory['sigma'])]
+        if  options.rescale_to_za_br:
+            z = [theory['sigma'][i] * 1000. * theory['BR'][i] for i,z in enumerate(theory['sigma'])]
+        else:
+            z = [theory['sigma'][i] * 1000. for i,z in enumerate(theory['sigma'])]
 
         x = np.asarray(x)
         y = np.asarray(y)
@@ -150,7 +155,7 @@ for plot in plots:
                     all_limits = json.load(f)
                 
                 logger.info('=============='*10)
-                logger.info('working on %s plot :: this may take some time' % plot)
+                logger.info('Working on {} plot ... '.format(plot))
                 print( jsF )
                 cc  = ROOT.TCanvas(jsFname, jsFname, 800,800)
                 leg = ROOT.TLegend(0.63,0.76,0.85,0.88)
@@ -174,7 +179,7 @@ for plot in plots:
                 exp_hist.GetYaxis().SetTitle("m_{H} (GeV)")
                 exp_hist.GetXaxis().SetRangeUser(29., 1000.)
                 exp_hist.GetYaxis().SetRangeUser(29., 1000.)
-                exp_hist.GetZaxis().SetRangeUser(10e-3, 10e3)
+                #exp_hist.GetZaxis().SetRangeUser(10e-3, 10e3)
                 exp_hist.GetXaxis().SetTitleOffset(1.7)
                 exp_hist.GetYaxis().SetTitleOffset(1.7)
                 exp_hist.GetZaxis().SetTitleOffset(1.4)
@@ -183,18 +188,28 @@ for plot in plots:
                 if plot == 'expected_over_theory':
                     exp_hist.GetZaxis().SetTitle("#sigma_{95%}/#sigma_{th}")
                 else:
-                    exp_hist.GetZaxis().SetTitle('95% C.L. limit on #sigma(pp #rightarrow H)')
+                    if options.rescale_to_za_br:
+                        exp_hist.GetZaxis().SetTitle('95% C.L. limit on #sigma(pp #rightarrow H) x B(Z #rightarrow l^{+}l^{-}) x B(A #rightarrow b#bar{b}) (fb)')
+                    else:
+                        exp_hist.GetZaxis().SetTitle('95% C.L. limit on #sigma(pp #rightarrow H) (fb)')
 
                 x = []
                 y = []
                 z = []
                 z_obs = []
                 for l in all_limits:
-                    x.append(l['parameters'][1])
-                    y.append(l['parameters'][0])
-                    z.append(l['limits']['expected'] *1000) # from pb to fb
+                    mLight = l['parameters'][1]
+                    mHeavy = l['parameters'][0]
+                    x.append(mLight)
+                    y.append(mHeavy)
+                    
+                    br =1.
+                    if options.rescale_to_za_br:
+                        th_xsc, th_xsc_err, br = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), prod, 'HToZA', tb) 
+                    
+                    z.append(l['limits']['expected'] *1000*br) # from pb to fb
                     if options.unblind:
-                        z_obs.append(l['limits']['observed']*1000) # from pb to fb
+                        z_obs.append(l['limits']['observed']*1000*br) # from pb to fb
                     
                     #Mirror the plane:
                     #x.append(l['parameters'][0])

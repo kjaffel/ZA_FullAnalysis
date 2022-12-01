@@ -69,10 +69,14 @@ def createGraphAndHisto(input_dir, era):
             y.append(m[0])
             z.append(p)
 
+        crazy = min(z) 
+        idx_crazy = z.index(crazy) 
+        print( crazy, 'heyyyyyyyyyyyyyyyy', idx_crazy )
+        print(  process, 'p-value=', crazy, 'mH = ', y[ idx_crazy], 'mA = ',x[idx_crazy ] )
+
         x = np.asarray(x)
         y = np.asarray(y)
         z = np.asarray(z)
-
         for i in range(0,len(x)):
             pvalue_graph.SetPoint(i, float(x[i]), float(y[i]), float(z[i]))
         print ("graph filled" )

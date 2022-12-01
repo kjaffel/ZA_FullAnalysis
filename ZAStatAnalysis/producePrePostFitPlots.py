@@ -178,7 +178,7 @@ def EventsYields(mH, mA, workdir, mode, unblind):
         f.write(R'\end{tabular}' + '\n')
 
 
-def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_dir='2POIs_r', tb_dir=''):
+def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_dir='2POIs_r', tb_dir='', rescale_to_za_br=None):
 
         base     = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
         re       = 'reshaped' if reshape else ''
@@ -227,14 +227,18 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                 m_light    = '%.2f'%float(params[1].split('-')[1])
                 m_heavy    = m_heavy.replace('.00', '')
                 m_light    = m_light.replace('.00', '')
-                x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode} (GeV)'
+                x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode}'
                 x_max      = xmax_dict[mode]
                 signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
+                tb         = float(tb_dir.split('_')[1]) if tb_dir !='' else None
+
+                if tb is None:
+                    tb = 1.5 if 'gg_fusion' in p_out else 20.
+                xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
                 
                 with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                     with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
                         for line in inf:
-                            
                             if '    blinded-range: [0.6, 1.0]' in line:
                                 outf.write("{}    blinded-range: [0.6, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
                             elif '    x-axis:' in line:
@@ -250,6 +254,8 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                 outf.write("{}\n".format(line.replace('fit-type', fit)))
                             elif '    legend: mysignal' in line:
                                 outf.write(f"    legend: '{signal_smp}'\n")
+                            elif '    Branching-ratio: ' in line:
+                                outf.write(f"    Branching-ratio: {br}\n")
                             elif '      text: mychannel' in line:
                                 outf.write(f"      text: {reco}-{region}, {flavor}\n")
                             elif '  histo-name:' in line:
@@ -286,11 +292,13 @@ if __name__ == '__main__':
                 help='unblind data in dnn score template')
     parser.add_argument('--reshape', action='store_true', default=False, 
                 help='bin histograms will be divide by the bin width')
+    parser.add_argument('-r', '--rescale-to-za-br', action='store_true', dest='rescale_to_za_br',
+                help='If flagged True, limits in HToZA mode will be x to BR( Z -> ll) x BR(A -> bb ) x (H -> ZA)')
 
     options = parser.parse_args()
     
     if options.reshape: # needed only for dnn mode 
         reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
     
-    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape, poi_dir='2POIs_r', tb_dir='')
+    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape, poi_dir='2POIs_r', tb_dir='', rescale_to_za_br=options.rescale_to_za_br)
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
