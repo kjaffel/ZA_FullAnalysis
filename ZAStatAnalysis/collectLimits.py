@@ -38,7 +38,6 @@ def getLimitsFromFile(input_file, method):
     data = {}
     if method == 'asymptotic':
         f = ROOT.TFile.Open(input_file)
-        print( input_file)
         if not f or f.IsZombie() or f.TestBit(ROOT.TFile.kRecovered):
             return None
 
@@ -153,12 +152,18 @@ def get_rescale_to_za_br(k, br_gg, br_bb):
             return br_bb
 
 
-def WriteLatexTableComparasion(limits, cl, mHeavy, mLight, tanbeta, thdm, era, rescale_to_za_br=False, _2POI=False, unblind=False):
+def WriteLatexTableComparasion(limits, limits_pathOut, cl, mHeavy, mLight, tanbeta, thdm, era, rescale_to_za_br=False, _2POI=False, unblind=False):
     mHeavy = str(float(mHeavy))
     mLight = str(float(mLight))
+    
+    xbr = ''
+    if rescale_to_za_br:
+        xbr = 'xbr'
 
     heavy  = thdm[0]
     light  = thdm[-1]
+    
+    sys.stdout = open(os.path.join(limits_pathOut, 'xsc_{}_{}_m{}-{}_m{}-{}_{}_UL{}.tex'.format(xbr, thdm, heavy, mHeavy, light, mLight, cl, era)), "w+")
     cl = '$CL_{s}$' if cl == 'CLs' else '$CL_{s+b}$'
     tanbeta_gluonfusion = tanbeta_bassociated = tanbeta
     
@@ -167,6 +172,8 @@ def WriteLatexTableComparasion(limits, cl, mHeavy, mLight, tanbeta, thdm, era, r
         tb = R''
         tanbeta_gluonfusion= 1.5
         tanbeta_bassociated= 20.
+    
+    
     
     print(R'\begin{table}[!htb]')
     print(R'     \caption{ 95\% '+ R'%s upper limits on %s $\rightarrow$ Z%s $\rightarrow$ llbb production cross section times branching ratio for ($m_{%s}$, $m_{%s}$)= (%s, %s) GeV%s, 2HDM-II, %s data.}'%(cl, heavy, light, heavy, light, mHeavy, mLight, tb, era))
@@ -179,19 +186,21 @@ def WriteLatexTableComparasion(limits, cl, mHeavy, mLight, tanbeta, thdm, era, r
     print(R'Cat. & Observed (fb) & Expected (fb) & $\pm$1 Standard deviation (fb) & $\pm$2 Standard deviations (fb) \\')
     print(R' \hline')
     print(R' \\')
-    
-    xsc_gluonfusion, xsc_gluonfusion_err, br1 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'gg{}'.format(heavy), thdm, tanbeta_gluonfusion)
-    xsc_bassociated, xsc_bassociated_err, br2 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'bb{}'.format(heavy), thdm, tanbeta_bassociated)
-    
-    sigma_tot  = xsc_gluonfusion + xsc_bassociated
+
+    if rescale_to_za_br:
+        xsc_gluonfusion, xsc_gluonfusion_err, br1 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'gg{}'.format(heavy), thdm, tanbeta_gluonfusion)
+        xsc_bassociated, xsc_bassociated_err, br2 = Constants.get_SignalStatisticsUncer(float(mHeavy), float(mLight), 'bb{}'.format(heavy), thdm, tanbeta_bassociated)
+        
+        sigma_tot  = xsc_gluonfusion + xsc_bassociated
     
     for k, limits_for_key in sorted(limits.items()):
-        if 'MuEl' not in k[0]:
-            continue
+        #if 'MuEl' not in k[0]:
+        #    continue
         if not limits_for_key:
             continue
         
-        br = get_rescale_to_za_br(k=k[0], br_gg=br1, br_bb=br2)
+        if rescale_to_za_br:
+            br = get_rescale_to_za_br(k=k[0], br_gg=br1, br_bb=br2)
 
         for v in limits_for_key:
             if not v['parameters']==(mHeavy, mLight):
@@ -266,11 +275,11 @@ if __name__ == '__main__':
     options = parser.parse_args()
     
     
-    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(options._2POIs_r, options.tanbeta, options.expectSignal)
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(options.method, options._2POIs_r, options.tanbeta, options.expectSignal)
     
     for thdm in ['HToZA', 'AToZH']:
 
-        print("Extracting %s limits..."%thdm)
+        #print("Extracting %s limits..."%thdm)
         limits = defaultdict(dict)
         crap_points = {}
         
@@ -293,8 +302,8 @@ if __name__ == '__main__':
             elif options.method == "hybridnew":
                 s = '{}.HybridNew.mH125.root'.format(s0)
             
-            for reco in ['nb2PLusnb3']:#, 'nb2', 'nb3']:
-                for reg in ['resolved', 'boosted']:#, 'resolved_boosted']:
+            for reco in ['nb2PLusnb3', 'nb2', 'nb3']:
+                for reg in ['resolved', 'boosted', 'resolved_boosted']:
                     for flavor in ['OSSF_MuEl', 'MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
                         
                         # I don't need this for now
@@ -335,20 +344,22 @@ if __name__ == '__main__':
                                 'limits'    : point_limits
                                 })
         
-        limits_out = os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, 'jsons', poi_dir, tb_dir)
-        if not os.path.exists(limits_out):
-            os.makedirs(limits_out)
+        limits_pathOut = os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, 'jsons', poi_dir, tb_dir)
+        if not os.path.exists(limits_pathOut):
+            os.makedirs(limits_pathOut)
         
         for k, v in limits.items():
             if not v:
                 continue
             
-            output_file = os.path.join(limits_out, 'combinedlimits_{}_{}_UL{}.json'.format(k[0], CL_dir, options.era))
+            output_file = os.path.join(limits_pathOut, 'combinedlimits_{}_{}_UL{}.json'.format(k[0], CL_dir, options.era))
             with open(output_file, 'w') as jf:
                 json.dump(v, jf, indent=4)
             print("Limits saved as %s" % output_file)
 
         logger.info(' issues with these %s points no limit is found : %s'%(thdm, crap_points))
-        
-        WriteLatexTableComparasion(limits, CL_dir, 500., 50., options.tanbeta, thdm, options.era, rescale_to_za_br=options.rescale_to_za_br, _2POI=options._2POIs_r, unblind=False)
+       
+        # not computed yet : (550.0, 300.0), (670.0, 500.0), (300.0, 135.0), (250.0, 125.0), (220.0, 127.0),
+        for (m_heavy, m_light) in [(240.0, 130.0), (700.0, 200.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0)]:
+            WriteLatexTableComparasion(limits, limits_pathOut, CL_dir, m_heavy, m_light, options.tanbeta, thdm, options.era, rescale_to_za_br=options.rescale_to_za_br, _2POI=options._2POIs_r, unblind=False)
 

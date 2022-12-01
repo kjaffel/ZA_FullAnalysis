@@ -92,7 +92,7 @@ show_markers = {
 colors = {
     'MuMu'     : '#7040f5',
     'ElEl'     : '#ff7f0e',
-    'OSSF'     : 'black',
+    'OSSF'     : '#d37506',
     'MuMu_ElEl': 'black',
     'MuMu_MuEl': 'black',
     'ElEl_MuEl': 'black',
@@ -111,22 +111,22 @@ channels = {
     }
 catagories = OrderedDict({
     'ggH_nb2_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb2$-',        'resolved'],
-    'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted'],
+    'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted' ],
     'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb3$-',        'resolved'],
-    'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted'],
-    'ggH_nb2PLusnb3_resolved' : [['OSSF_MuEl'],         'ggH', '$nb2+nb3$, ',   'resolved'],
-    'ggH_nb2PLusnb3_boosted'  : [['OSSF_MuEl'],         'ggH', '$nb2+nb3$, ',   'boosted' ],             
+    'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted' ],
+    'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'resolved'],
+    'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'boosted' ],             
     
     'bbH_nb2_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'resolved'],
-    'bbH_nb2_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'boosted'],
+    'bbH_nb2_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'boosted' ],
     'bbH_nb3_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'resolved'],
-    'bbH_nb3_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'boosted'],
-    'bbH_nb2PLusnb3_resolved' : [['OSSF_MuEl'],         'bbH', '$nb2+nb3$, ',   'resolved'],             
-    'bbH_nb2PLusnb3_boosted'  : [['OSSF_MuEl'],         'bbH', '$nb2+nb3$, ',   'boosted' ],   
+    'bbH_nb3_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'boosted' ],
+    'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'resolved'],             
+    'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'boosted' ],   
     
     # combination 1 reso +boo  
-    #'ggH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
-    #'bbH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
+    'ggH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
+    'bbH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
     
     # combination 2 ggH +bbH 
         # the limits here set on the opposite process while _r_bbH or _r_ggH mentionned in the name of the file
@@ -424,6 +424,18 @@ def Plot1D_ScanLimits(cl, jsonpath, signal_grid, thdm, do_PLot=False):
             
             if options.scan =='mA': parameter_values = {"mH": the_fixmass}
             else: parameter_values = {"mA": the_fixmass}
+            
+            #available_parameters = flavors_limits[flavors[0]].keys() # just needed to get the keys 
+            #available_parameters = [tuple(map(lambda x: x.encode('utf-8'), tup)) for tup in available_parameters]
+            #available_parameters = [ (float(i), float(j)) for i,j in available_parameters]
+            #available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
+            #available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
+
+            print('available_parameters for %s  ---> %s ' %(parameter_values, available_parameters[the_fixmass]))
+            if not available_parameters[the_fixmass]:
+                continue
+            if len(available_parameters[the_fixmass]) ==1:
+                continue
 
             flavors_limits = {}
             for flav in flavors:
@@ -431,64 +443,50 @@ def Plot1D_ScanLimits(cl, jsonpath, signal_grid, thdm, do_PLot=False):
                 json_f = os.path.join(jsonpath, 'combinedlimits_{}_{}_{}_UL{}.json'.format(cat, flav, cl, options.era)) 
                 
                 if not os.path.isfile(json_f):
+                    print('%s , requested json file does not exist !'%json_f)
                     continue
 
                 with open(json_f) as f:
                     print('working on ::', json_f )
                     limits_ = json.load(f)
-                    for l in limits_:
-                        limits[tuple(l['parameters'])] = l['limits']
+                
+                for l in limits_:
+                    limits[tuple(l['parameters'])] = l['limits']
             
-            #available_parameters = flavors_limits[flavors[0]].keys() # just needed to get the keys 
-            #available_parameters = [tuple(map(lambda x: x.encode('utf-8'), tup)) for tup in available_parameters]
-            #available_parameters = [ (float(i), float(j)) for i,j in available_parameters]
-            #available_parameters = sorted(available_parameters, key=lambda v: v[parameter_index[options.scan]])#, reverse=True)
-            #available_parameters = [ (str(i).replace('.0', ''), str(j).replace('.0', '')) for i,j in available_parameters]
-             
             flavors_data = {}
-            scanning_SM  = False
-            print('available_parameters for %s  ---> %s ' %(parameter_values, available_parameters[the_fixmass]))
-            if not available_parameters[the_fixmass]:
-                continue
-            if len(available_parameters[the_fixmass]) ==1:
-                continue
-    
             for point in available_parameters[the_fixmass]:
                 next_point = False
                 
                 m_heavy = point[0]
                 m_light = point[1]
-                
+            
                 ## Only keep points request by the user for the scan
                 for name, value in parameter_values.items():
                     if float(point[parameter_index[name]]) != float(value):
                         next_point = True
                         break
                 if next_point:
-                   continue
-                
-                if not point in limits.keys():
-                   print("\t => No limits provided for point %s , %s !" %(str(point), cat) )
-                   continue
-                print("Working on point %s" % str(point))
-            
-                # If we're including the SM point, draw dotted vertical line
-                if point == (1, 1):
-                    scanning_SM = True
+                    continue
                 
                 if options.rescale_to_za_br:
                     xsc, br = get_SushiXSC(prod, tb , heavy, light, m_heavy, m_light)
-                    
-                for f in flavors:
-                    limits = flavors_limits[f]
-                    data   = flavors_data.setdefault(f, {})
+                
+                for flav in flavors:
+                    limits = flavors_limits[flav]
+                    if not point in limits.keys():
+                        print( limits.keys() )
+                        print("\t => No limits provided for point %s, %s for flavor %s !" %(str(point), cat, flav) )
+                        continue
+                    print("Working on point %s" % str(point))
+
+                    data   = flavors_data.setdefault(flav, {})
                     x = data.setdefault('x', [])
                     
                     one_sigma = data.setdefault('one_sigma', [[], []])
                     two_sigma = data.setdefault('two_sigma', [[], []])
                     expected  = data.setdefault('expected', [])
                     observed  = data.setdefault('observed', [])
-           
+            
                     param_val = point[parameter_index[options.scan]]
                     x.append(param_val)
             
@@ -519,7 +517,7 @@ def Plot1D_ScanLimits(cl, jsonpath, signal_grid, thdm, do_PLot=False):
                     one_sigma[0].append(exp_minus_1sigma)
                     two_sigma[1].append(exp_plus_2sigma)
                     two_sigma[0].append(exp_minus_2sigma)
-           
+            
             if not flavors_data:
                 continue
     
@@ -544,6 +542,8 @@ def Plot1D_ScanLimits(cl, jsonpath, signal_grid, thdm, do_PLot=False):
                 
                 expected_lines = {}
                 for f in flavors:
+                    if not f in flavors_data.keys():
+                        continue
                     color = colors[f]
                     data  = flavors_data[f]
                     
@@ -797,7 +797,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
         flavors, prod, nb, region = Cfg
         prod = TwistedSenarios(prod, thdm)
         
-        region  = ', resolved + boosted' if region == 'resolved_boosted' else '-'+region
+        region  = 'resolved + boosted' if region == 'resolved_boosted' else region
         tb      = 20 if prod in ['bbH', 'bbA'] else 1.5
         process = 'gluon-gluon fusion' if prod in ['ggH', 'ggA'] else 'b-associated production'
 
@@ -816,12 +816,16 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
                 ax.set_ylabel(r'$\sigma(pp \rightarrow\, H) B(H \rightarrow\, ZA \rightarrow\, ll b\bar{b})$ (fb)')
             
             CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(options.era), figures=1)
-            
+           
+            notAvai = False
             poww = 0
             for j, m in enumerate(sorted(upper_limits[cat].keys())):
                 
-                multi = pow(10, poww)
+                if not flav in upper_limits[cat][m].keys():
+                    notAvai = True
+                    continue
 
+                multi = pow(10, poww)
                 data  = upper_limits[cat][m][flav]
                 data['x'] = np.array(data['x'])
                 data['expected']  = np.asarray(data['expected'])* multi
@@ -874,7 +878,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
                                         lw=1.5, 
                                         label="Expected 95% upper limits")[0]
                 
-                ax.annotate(r' $%s$= %s GeV (x $10^{%s}$)'%(m_fix, m, poww), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]), fontsize=8,
+                ax.annotate(r' $%s$= %s GeV (x $10^{%s}$)'%(m_fix, int(m), poww), xy=(data['x'][-1], data['expected'][-1]), xytext=(data['x'][-1]+50, data['expected'][-1]), fontsize=8,
                             arrowprops=dict(arrowstyle="->",facecolor='w', connectionstyle="arc3"), horizontalalignment='left')
                 
                 # And observed
@@ -889,11 +893,12 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
                                             markersize=6, 
                                             alpha=0.8, 
                                             label="Observed 95% upper limits")
-                poww  += 3
+                poww  += 4
                 if region == 'boosted':
                     poww +=1
 
-            
+            if notAvai:
+                continue
             one_sigma_patch = mpatches.Patch(color='#00A859', label=r'Expected $\pm$ 1 std. deviation')
             two_sigma_patch = mpatches.Patch(color='#FFCC29', label=r'Expected $\pm$ 2 std. deviation')
             
@@ -913,7 +918,7 @@ def Plot1D_StackedLimits(masses_tofix, upper_limits, thdm):
                 ax.set_ylim(**axes_y_limits[options.scan])
             else:
                 ax.set_yscale('log')
-                ax.set_ylim(10e-3, 10e90)
+                ax.set_ylim(10e-3, 10e120)
             
             ax.margins(0.1, 0.1)
             ax.set_xlim(**axes_x_limits[options.scan])
@@ -953,7 +958,7 @@ if __name__ == '__main__':
 
     options = parser.parse_args()
     
-    poi_dir, tb_dir, cl = Constants.locate_outputs(options._2POIs_r, options.tanbeta, options.expectSignal)    
+    poi_dir, tb_dir, cl = Constants.locate_outputs('asymptotic', options._2POIs_r, options.tanbeta, options.expectSignal)    
     jsonpath   = os.path.join(options.jsonpath, poi_dir, tb_dir) 
     output_dir = jsonpath
     m_fix = 'm_{H}' if options.scan =='mA' else 'm_{A}'
@@ -1012,8 +1017,8 @@ if __name__ == '__main__':
         
         #massTofix_list = [800.0, 1000.0, 500.0, 700.0, 300.0, 200.0, 750.0, 650.0] 
         
-        for (m0, m1) in signal_grid:
-            PlotMultipleUpperLimits(cl, m0, m1, catagories, jsonpath, thdm)
+        #for (m0, m1) in signal_grid:
+        #    PlotMultipleUpperLimits(cl, m0, m1, catagories, jsonpath, thdm)
     
         ToBe_Stacked = Plot1D_ScanLimits(cl, jsonpath, available_parameters, thdm, do_PLot=True)    
-        #Plot1D_StackedLimits(massTofix_list, ToBe_Stacked, thdm)
+        Plot1D_StackedLimits(massTofix_list, ToBe_Stacked, thdm)
