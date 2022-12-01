@@ -19,6 +19,7 @@ files:
   signal-prod_fit-type_histos.root:
     type: signal
     legend: mysignal
+    Branching-ratio: 1.
     line-color: '#FF0A2A'
     line-type: 8
     line-width: 3
