@@ -243,12 +243,12 @@ def BayesianBlocks(old_hist, mass, name, output, prior, datatype, label, logy=Fa
             newEdges  = optimizer.no_extra_binedges(newEdges, oldEdges)
             newEdges  = [float(format(e,'.2f')) for e in newEdges]
             
-            if 'signal' in datatype and len( newEdges) <= 2:
-                newEdges = [0.0, 0.74, 0.94, 0.96, 1.0]
-            if 'data' in datatype and 'boosted' in pNm:
-                newEdges = newEdges[0:1]+newEdges[3:] 
+            #if 'signal' in datatype and len( newEdges) <= 2:
+            #    newEdges = [0.0, 0.74, 0.94, 0.96, 1.0]
+            #if 'data' in datatype and 'boosted' in pNm:
+            #    newEdges = newEdges[0:1]+newEdges[3:] 
             
-            if 0.98 in newEdges: newEdges.remove(0.98)
+            #if 0.98 in newEdges: newEdges.remove(0.98)
             if not 1.0 in newEdges: FinalEdges = newEdges+[1.0]
             else: FinalEdges = newEdges
             
@@ -438,7 +438,7 @@ if __name__ == "__main__":
     parser.add_argument('--rebin', action='store', choices= ['custom', 'standalone', 'bayesian'], required=True, 
                             help='compute new binning by setting some treshold on the uncer and number of events\n'
                                  'or just re-arrange the oldbins to merge few bins into one, starting from the left to the right\n')
-    parser.add_argument('--scenario', action='store', choices= ['hybride', 'S', 'B', 'BB_hybride_good_stat'], required=False, 
+    parser.add_argument('--scenario', action='store', choices= ['hybride', 'S', 'B'], required=False, 
                             help='')
     
     args = parser.parse_args()
@@ -455,9 +455,10 @@ if __name__ == "__main__":
     
     divideByBinWidth = False
     get_half         = False
-    onebin           = False
+    force_onebin     = False
+    force_samebin    = True
     fix_reco_format  = False
-    
+   
     if args.job =='local':
         inDir  = os.path.join(args.input, 'results/')
         if not inDir:
@@ -635,7 +636,7 @@ if __name__ == "__main__":
                     binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)].update(
                             {   'S'      : [MarkedList(newEdges['S']), MarkedList(FinalBins['S']) ],
                                 'hybride': [MarkedList(binning[0]), MarkedList(binning[1])],
-                               #'BB_hybride_good_stat': [MarkedList(newEdges_with_thres_cut), MarkedList(newBins_with_thres_cut)],
+                                # deprecated: 'BB_hybride_good_stat': [MarkedList(newEdges_with_thres_cut), MarkedList(newBins_with_thres_cut)],
                             })
 
             inFile.Close()
@@ -702,7 +703,7 @@ if __name__ == "__main__":
     else: 
         # this step will do the rebinning on bamboo output using the rebining already saved in the json template
         if not os.path.isdir(os.path.join(args.output, suffix)):
-            os.makedirs(os.path.join(args.output, suffix))
+            os.makedirs(os.path.join(args.output, suffix), exist_ok=True)
         
         if args.submit=='all':
             files= list_inputs
@@ -799,14 +800,29 @@ if __name__ == "__main__":
                     name    += '_standalone'
                 
                 elif args.rebin == 'bayesian':
+                    
+                    look_for_hist = key.GetName().split('__')[0]
+                    if force_samebin:
+                        hist_ = look_for_hist
+                        if 'ZA' in hist_:
+                            hist_ = hist_.replace('ZA', 'ZH')
+                            op    = hist_.split('METCut_')
+                            m1    = op[-1].split('_')[1]
+                            m2    = op[-1].split('_')[3]
+                            
+                            hist_ToForce  = op[0]+ 'METCut_MA_'+ m1 +'_MH_' +m2
+                            if hist_ToForce in  data['histograms'].keys():
+                                look_for_hist = hist_ToForce
+                                #print( 'Force using histogram :: ' , hist_ToForce )
+
                     # sys hist should have the same bins as nominal 
                     if params['flavor'] == 'MuEl': # this channel will help to control ttbar
-                        if onebin :
+                        if force_onebin :
                             binning  = [[0., 1.], [1, 51]]
                         else:
-                            binning  = data['histograms'][key.GetName().split('__')[0]]['B']
+                            binning  = data['histograms'][look_for_hist]['B']
                     else:
-                        binning  = data['histograms'][key.GetName().split('__')[0]][args.scenario]
+                        binning  = data['histograms'][look_for_hist][args.scenario]
                     
                     nph_old = NumpyHist.getFromRoot(oldHist)
                     
