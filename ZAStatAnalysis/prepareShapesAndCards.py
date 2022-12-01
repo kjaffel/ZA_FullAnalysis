@@ -264,7 +264,7 @@ fi
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --doInitialFit --robustFit 1 --verbose {verbose} &> {name}_doInitialFit.log
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --robustFit 1 --doFits --parallel 60 --verbose {verbose} &> {name}_robustFit.log
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} -o impacts__{fNm}.json --verbose {verbose} &> {name}_impacts.log
-plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm}
+plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} --blind
 
 run_validation={run_validation}
 if $run_validation; then 
@@ -523,7 +523,7 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light) 
 
 
-def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, submit_to_slurm):
+def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, sbatch_time, sbatch_memPerCPU, submit_to_slurm):
     
     poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal)
     
@@ -534,28 +534,37 @@ def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expec
 WorkEra='{WorkEra}'
 scripts=`find {output} -name "*_{suffix}.sh"`
 base="$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+echo $base
 
 for script in $scripts; do
     dir=$(dirname $script)
     script=$(basename $script)
     echo "\tComputing with ${{script}}"
-    pushd $dir &> /dev/nul
+    echo "\tworking dir ${{dir}}"
+    
+    pushd $dir &> /dev/null
     if [ "$WorkEra" = "work__ULfullrun2" ]; then
-        ln -s -d {symbolic_path} .
+        if [ ! -d {symbol} ]; then
+            ln -s -d {symbolic_path} .
+        fi
     fi
     {c1}. $script
     popd &> /dev/null
+
 done
 
 # for slurm submission instead!
-{c2}python Combine4Slurm.py -c {output} -o {slurm_dir}
-""".format(output    = output.replace('work_'+ H.EraFromPOG(era), '$WorkEra'),
-           WorkEra   = 'work_' + H.EraFromPOG(era),
-           slurm_dir = output.split('work__UL')[0], 
-           suffix    ='run_%s'%method, 
-           c1        ='#' if submit_to_slurm  else '',
-           c2        =''  if submit_to_slurm  else '#',
-           symbolic_path = symbolic_path
+{c2}python Combine4Slurm.py -c {output} -o {slurm_dir} --time {sbatch_time} --mem-per-cpu {sbatch_memPerCPU}
+""".format(output           = output.replace('work_'+ H.EraFromPOG(era), '$WorkEra'),
+           WorkEra          = 'work_' + H.EraFromPOG(era),
+           slurm_dir        = output.split('work__UL')[0], 
+           suffix           = 'run_%s'%method,
+           sbatch_time      = sbatch_time,
+           sbatch_memPerCPU = sbatch_memPerCPU,
+           c1               = '#' if submit_to_slurm  else '',
+           c2               = ''  if submit_to_slurm  else '#',
+           symbol           = symbolic_path.split('/')[-1],
+           symbolic_path    = symbolic_path
            )
    
     print( '\tThe generated script to run limits can be found in : %s/' %output)
@@ -564,7 +573,7 @@ done
     elif method in ['asymptotic', 'hybridnew']: suffix= 'limits'
     else: suffix= ''
 
-    script_name = "run_combined_%s_%s%s.sh" % (mode, method, suffix)
+    script_name = "run_combine_%s_%s%s.sh" % (mode, method, suffix)
     with open(script_name, 'w') as f:
         f.write(script)
 
@@ -574,7 +583,7 @@ done
     logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, verbose, unblind= False, signal_strength= False, stat_only= False, merge_cards= False, _2POIs_r=False, multi_signal=False, scale= False, normalize= False, run_validation=False, submit_to_slurm= False):
+def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, verbose, sbatch_time, sbatch_memPerCPU, unblind= False, stat_only= False, merge_cards= False, _2POIs_r=False, multi_signal=False, scale= False, normalize= False, run_validation=False, submit_to_slurm= False):
     
     luminosity  = Constants.getLuminosity(era)
     
@@ -606,7 +615,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             
             for reg in ['resolved', 'boosted']:
                 m_heavy, m_light = get_signal_parameters(split_filename)
-               
+
                 if prefix =='full':
                     if not (m_heavy, m_light) in grid_data['gg_fusion'][reg][thdm] and not (m_heavy, m_light) in grid_data['bb_associatedProduction'][reg][thdm]:
                         continue
@@ -617,6 +626,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 if not (m_heavy, m_light) in all_parameters[prod][reg]:
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
     
+
     NotIn2Prod = []    
     for tup in all_parameters['gg_fusion']['resolved']:
         if not tup in all_parameters['bb_associatedProduction']['resolved']:
@@ -681,7 +691,6 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                                                         _2POIs_r               = _2POIs_r, 
                                                         multi_signal           = multi_signal,
                                                         unblind                = unblind, 
-                                                        signal_strength        = signal_strength, 
                                                         stat_only              = stat_only, 
                                                         normalize              = normalize,
                                                         run_validation         = run_validation,
@@ -706,11 +715,11 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
         Constants.add_autoMCStats(datacard)
 
     # Create helper script to run combine
-    CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, submit_to_slurm)
+    CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, sbatch_time, sbatch_memPerCPU, submit_to_slurm)
 
 
 
-def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, tanbeta, verbose, scale=False, merge_cards=False, _2POIs_r=False, multi_signal=False, unblind=False, signal_strength=False, stat_only=False, normalize=False, run_validation=False, submit_to_slurm=False):
+def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, tanbeta, verbose, scale=False, merge_cards=False, _2POIs_r=False, multi_signal=False, unblind=False, stat_only=False, normalize=False, run_validation=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -1011,7 +1020,7 @@ popd
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}{SLURM_ARRAY_TASK_ID}.root
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}.root
 fi
 
 #=============================================
@@ -1169,7 +1178,7 @@ fi
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --doInitialFit --robustFit 1 --verbose {verbose} &> {name}_doInitialFit.log
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --robustFit 1 --doFits --parallel 60 --verbose {verbose} &> {name}_robustFit.log
 combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} -o impacts__{fNm}.json --verbose {verbose} &> {name}_impacts.log
-plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm}
+plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} --blind
 
 run_validation={run_validation}
 if $run_validation; then 
@@ -1279,6 +1288,11 @@ if [ ! -f {workspace_root} ]; then
     text2workspace.py {datacard} -m {mass} -o {workspace_root}
 fi
 
+# print yield tables
+if [ ! -d YieldTables ]; then
+    mkdir YieldTables;
+fi
+
 # Run combined
 # Fit the {name} distribution
 combine {method} -m {mass} {dataset} --saveWithUncertainties --ignoreCovWarning -n {name} {workspace_root} --plots --verbose {verbose} &> {name}.log
@@ -1288,18 +1302,25 @@ CAT={CAT}
 #fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
 #fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
 
+
 # Create pre/post-fit shapes 
 {c}fit_what=fit_s
 {c}PostFitShapesFromWorkspace -w {workspace_root} -d {datacard} -o fit_shapes_${{CAT}}_${{fit_what}}.root -f fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+
 {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_${{fit_what}}.root -o plotIt_{flavor}_${{fit_what}} --signal-process HToZATo2L2B -n {name2}
+{c}$CMSSW_BASE/../utils/printYieldTables.py -w {workspace_root} -f fitDiagnostics{prefix}.root -b {bin} --fit ${{fit_what}}
 
 fit_what=fit_b
 PostFitShapesFromWorkspace -w {workspace_root} -d {datacard} -o fit_shapes_${{CAT}}_${{fit_what}}.root -f fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+
 $CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i fit_shapes_${{CAT}}_${{fit_what}}.root -o plotIt_{flavor}_${{fit_what}} --signal-process HToZATo2L2B -n {name2}
+$CMSSW_BASE/../utils/printYieldTables.py -w {workspace_root} -f fitDiagnostics{prefix}.root -b {bin} -s {signal} --fit ${{fit_what}}
+
 
 # Generate JSON for interactive covariance viewer
 # https://cms-hh.web.cern.ch/tools/inference/scripts.html#generate-json-for-interactive-covariance-viewer
 $CMSSW_BASE/../utils/extract_fitresult_cov.json.py fitDiagnostics{prefix}.root
+
 
 run_validation={run_validation}
 if $run_validation; then 
@@ -1313,7 +1334,9 @@ popd
 """.format(workspace_root = workspace_file, 
            prefix         = output_prefix, 
            flavor         = flavor, 
-           CAT            = cat, 
+           bin            = cat, 
+           signal         = sig_process[0],  
+           CAT            = flavor+'_'+cat, 
            dir            = os.path.abspath(output_dir),
            name           = output_prefix, 
            name2          = Constants.get_Nm_for_runmode(mode),
@@ -1354,7 +1377,7 @@ popd
                 # cb_shallow_copy = cb.cp()
                 writeCard( cb.cp().bin([cat[1]]).channel([flavor]), mass, output_dir, cat_output_prefix, flavor, i + 1 == len(categories_with_parameters))
             
-        if merge_cards and method != 'generatetoys':
+        if merge_cards and method not in ['generatetoys', 'fit']:
             list_mergeable_flavors = [['MuMu', 'ElEl'], ['MuMu', 'ElEl', 'MuEl'], ['OSSF', 'MuEl'], ['MuMu', 'MuEl'], ['ElEl', 'MuEl']] 
             
             for i, cat in enumerate(categories_with_parameters):
@@ -1395,54 +1418,62 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Create shape datacards ready for combine')
     
+    # must 
     parser.add_argument('-i', '--input',        action='store', dest='input', type=str, required=True, default=None, 
                                                 help='HistFactory input path: those are the histograms for signal/data/backgrounds that pass through all the following\n'
-                                                     'steps: 1/- final selection ( 2l+bjets pass btagging discr cut + met + corrections + etc... )\n'
+                                                     'steps: 1/- final selection ( 2lep+2bjets pass btagging discr cut + met + corrections + etc... )\n'
                                                      '       2/- do skim\n'
                                                      '       3/- DNN trained using these skimmed trees\n'
-                                                     '       4/- run bamboo to produce your dnn outputs(prefit plots) with all systematics variations using the model you get from training.\n')
+                                                     '       4/- run bamboo to produce your dnn outputs(prefit plots) with all systematics variations using the model you get from training.\n'
+                                                     '       5/- Bayesian Blocks rebinning ( if requestd)\n')
     parser.add_argument('-o', '--output',       action='store', dest='output', required=True, default=None,        
                                                 help='Output directory')
-    parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
-                                                help='Do not consider systematic uncertainties')
-    parser.add_argument('-v', '--verbose',      action='store', required=False, type=int, default=0, 
-                                                help='For debugging purposes , you may consider this argument !')
+    parser.add_argument('--bambooDir',          action='store', dest='bambooDir', required=True, default=None,        
+                                                help='Bamboo stage out dir')
     parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018', 'fullrun2'],
                                                 help='You need to pass your era')
-    parser.add_argument('--expectSignal',       action='store', required=False, type=int, default=1, choices=[0, 1],
-                                                help=' Is this S+B or B-Only fit? ')
     parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'],
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
                                                 help='DNN nodes')
-    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, 
-                                                choices=['validation_datacards', 'nll_shape', 'asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit', 'likelihood_fit'],        
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['validation_datacards', 'nll_shape', 'asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit', 'likelihood_fit'],        
                                                 help='Analysis method')
-    parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
-                                                help='Unblind analysis :: use real data instead of fake pseudo-data')
-    parser.add_argument('--signal-strength',    action='store_true', dest="signal_strength", required=False, default=False,                                                  
-                                                help='Put limit on the signal strength instead of the cross-section')
+    parser.add_argument('--expectSignal',       action='store', required=False, type=int, default=1, choices=[0, 1],
+                                                help=' Is this S+B or B-Only fit? ')
+    # normalisation 
+    parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
+                                                help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_of_generated_evets_weights')
+    parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
+                                                help='scale signal rate will x1000')
+    ## extra 
+    parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
+                                                help='Do not consider systematic uncertainties')
     parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', required=False, default='./data/fullEllipseParamWindow_MuMu.json',
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
-    parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
-                                                help='scale signal rate')
     parser.add_argument('--splitJECs',          action='store_true', dest='splitJECs', required=False, default=False,                                                  
                                                 help='split JES and JER by uncertaintues sources')
     parser.add_argument('--FixbuggyFormat',     action='store_true', dest='FixbuggyFormat', required=False, default=False,                                                  
                                                 help='Will be removed in the next itertaion of bamboo histograms')
     parser.add_argument('--validation_datacards',action='store_true', dest='validation_datacards', required=False, default=False,                                                  
                                                 help='Will run https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/validation/ and save the results in json files')
+    # slurm
     parser.add_argument('--slurm',              action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
                                                 help='slurm submission for long pull and impacts jobs')
-    parser.add_argument('--normalize',          action='store_true', dest='normalize', required=False, default=False,                                                  
-                                                help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_genEvts')
+    parser.add_argument('--sbatch_time',        action='store', type=str, dest='sbatch_time', required=False, default='02:59:00',                                                  
+                                                help='slurm submission time')
+    parser.add_argument('--sbatch_memPerCPU',   action='store', type=str, dest='sbatch_memPerCPU', required=False, default='7000',                                                  
+                                                help='slurm requested memory per cpu')
+    # r 
     parser.add_argument('--_2POIs_r',           action='store_true', dest='_2POIs_r', required=False, default=False,                                                  
                                                 help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
     parser.add_argument('--multi_signal',       action='store_true', dest='multi_signal', required=False, default=False,                                                  
                                                 help='The cards will contain both signals but using 1 discriminator ggH -> for nb2 and bbH -> for nb3')
-    parser.add_argument('--tanbeta',            action='store', type=float, required=False, default=None, #FIXME'--normalize' in sys.argv,
+    parser.add_argument('--tanbeta',            action='store', type=float, required=False, default=None, 
                                                 help='tanbeta value needed for BR and theory cross-section during the normalisation\n'
                                                      'This is required so both signal are normalised using one value during the card combination\n')
+    # data    
+    parser.add_argument('--unblind',            action='store_true', dest='unblind', required=False,
+                                                help='Unblind analysis :: use real data instead of fake pseudo-data')
     parser.add_argument('--dataset',            action='store', dest='dataset', choices=['toys', 'asimov'], required='--unblind' not in sys.argv, default=None,                             
                                                 help='if asimov:\n'
                                                         '-t -1 will produce an Asimov dataset in which statistical fluctuations are suppressed. \n'
@@ -1450,6 +1481,10 @@ if __name__ == '__main__':
                                                         '-t N with N > 0. Combine will generate N toy datasets from the model and re-run the method once per toy. \n'
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
+    
+    parser.add_argument('-v', '--verbose',      action='store', required=False, type=int, default=0, 
+                                                help='For debugging purposes , you may consider this argument !')
+    
     options = parser.parse_args()
     
     H.splitJECs = options.splitJECs
@@ -1519,15 +1554,15 @@ if __name__ == '__main__':
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
-            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.expectSignal, options.submit_to_slurm)
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.expectSignal, options.sbatch_time, options.sbatch_memPerCPU, options.submit_to_slurm)
         
         else:
-            scalefactors  = H.get_normalisationScale(options.input, options.output, options.method, options.era)
+            scalefactors  = H.get_normalisationScale(options.bambooDir, options.input, options.output, options.method, options.era)
             # for test or for specific points : please use signal_grid_foTest,
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
         
-            prepare_DataCards(  grid_data           = signal_grid_foTest, 
+            prepare_DataCards(  grid_data           = signal_grid, #foTest, 
                                 thdm                = thdm,
                                 dataset             = options.dataset, 
                                 expectSignal        = options.expectSignal, 
@@ -1541,8 +1576,9 @@ if __name__ == '__main__':
                                 scalefactors        = scalefactors,
                                 tanbeta             = options.tanbeta,
                                 verbose             = options.verbose, 
+                                sbatch_time         = options.sbatch_time,
+                                sbatch_memPerCPU    = options.sbatch_memPerCPU,
                                 unblind             = options.unblind, 
-                                signal_strength     = options.signal_strength, 
                                 stat_only           = options.stat_only, 
                                 merge_cards         = True, # will do all lepton flavour combination of ee+mumu+mue / also resolved+boosted / also nb2+nb3 
                                 _2POIs_r            = options._2POIs_r, # r_ggH , r_bbH or just 1 POI r

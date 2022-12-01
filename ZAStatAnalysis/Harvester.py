@@ -112,7 +112,7 @@ def smooth_lowess_tgraph(h):
 
 def symm_and_smooth(syst,proc):
     #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
-    print 'smoothing: ', syst
+    print ('smoothing: ', syst)
     nominal = proc.shape()
     nominal.Scale(proc.rate())
     hist_u = syst.shape_u()
@@ -400,18 +400,18 @@ def get_Observed_HIG_18_012(m):
         return None
 
 
-def get_normalisationScale(inDir=None, outDir=None, method=None, era=None):
+def get_normalisationScale(bambooDir=None, inDir=None, outDir=None, method=None, era=None):
     dict_ = {}
     wEra  = EraFromPOG(era)
     plotit_yml= True
     
-    bamboo_p    = inDir.replace('results', '')
+    bamboo_p    = bambooDir.replace('results', '')
     plotter_p   = outDir.split('work__UL')[0]
     yaml_file   = os.path.join(bamboo_p, 'plots.yml')
     
     # just make things faster reading an yml file, rather than opening hundred of root files
     # plotit cmd get killed when there are lots of files to read and does not give the plots.yml
-    # this is just a workaround !
+    # this is just a work around !
     if not os.path.exists(yaml_file):
         yaml_file = os.path.join(plotter_p, "config_{}.yml".format(wEra))
     else:
@@ -557,6 +557,8 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
+        return True
+    if 'QCDMuRF_' in s:
         return True
 
 
@@ -848,7 +850,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tanbeta)
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
-                        #smpScale *= BR
+                        smpScale  *= BR
                         if method !='asymptotic':
                             smpScale *= xsc
                     else:
