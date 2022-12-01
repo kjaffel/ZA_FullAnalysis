@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2016'                     
+era='fullrun2'                     
 #choices: '2016' , '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='asymptotic'
+do_what='impacts'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -29,22 +29,38 @@ tanbeta=1.5
 expectSignal=1
 verbose=0 #Verbosity level (-1 = very quiet; 0 = quiet, 1 = verbose, 2+ = debug)
 validation_datacards=true
-unblind=false
-submit_to_slurm=true
+unblind=true
 normalize=true
 scale=false
 x_branchingratio=false
-splitJECs=false
-FixbuggyFormat=false
+splitJECs=true
+FixbuggyFormat=false # won't be needed soon 
+
+submit_to_slurm=true
+sbatch_time='02:59:00'
+sbatch_memPerCPU='7000' #7000
+
+bambooDir='unblind_stage1_few_fullrun2/results/'
+stageOut='hig-22-010/unblinding_stage1/'
 
 #bambooDir='ul_run2__ver19/results/'
-#stageOut='hig-22-010/datacards/'
+#stageOut='hig-22-010/datacards_nosplitJECs/'
 
-bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
-stageOut='AtoZH_vs_HtoZA/'
+#bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
+#stageOut='AtoZH_vs_HtoZA/'
+
+#bambooDir='ul_run2__ver22_AtoZH_vs_HtoZA/results/'
+#stageOut='hig-22-010/AtoZH_vs_HtoZA_ver22/'
 
 #bambooDir='ul_run2__ver20_splitJES_JER2/results/'
-#stageOut='hig-22-010/jesjer_split__ver2/'
+#(old name)stageOut='hig-22-010/jesjer_split__ver2/'
+#stageOut='hig-22-010/datacards/'
+
+#================ DO NOT CHANGE =============================
+#============================================================
+workDir='work__UL'${era/20/""}'/'
+inDir=$stageOut$workDir
+outDir=$inDir
 
 #================ + flags  ==================================
 #============================================================
@@ -66,8 +82,9 @@ if $unblind; then
 fi 
 
 plus_args+=' --expectSignal '${expectSignal}
-plus_args+=' --verbose ' ${verbose}
 plus_args2=$plus_args
+plus_args+=' --verbose '${verbose}
+plus_args+=' --bambooDir '${bambooDir}
 
 if $multi_signal; then
     plus_args+=' --multi_signal'
@@ -76,6 +93,8 @@ fi
 
 if $submit_to_slurm; then
     plus_args+=' --slurm'
+    plus_args+=' --sbatch_time '${sbatch_time}
+    plus_args+=' --sbatch_memPerCPU '${sbatch_memPerCPU}
 fi
 
 if $normalize; then
@@ -103,7 +122,7 @@ if $validation_datacards; then
 fi
 
 
-if [ $unblind=false ];then
+if $unblind; then
     if [ "$do_what" != "generate_toys" ]; then
         plus_args+=' --dataset asimov'
     fi
@@ -125,18 +144,12 @@ fi
 echo "running ${do_what} Combine with the following arguments : " ${plus_args}
 echo "running ${do_what} post-processing step with the following arguments : " ${plus_args2}
 
-#================ DO NOT CHANGE =============================
-#============================================================
-workDir='work__UL'${era/20/""}'/'
-inDir=$stageOut$workDir
-outDir=$inDir
-
 #=============================================
 # generate toys data only 
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
     ./prepareShapesAndCards.py --era fullrun2 -i $bambooDir -o $stageOut/work__ULfullrun2 --dataset toys --mode $mode --method generatetoys --stat $plus_args
-    ./run_combined_${mode}_generatetoys.sh
+    #./run_combined_${mode}_generatetoys.sh
 fi
 
 #=============================================
@@ -154,8 +167,8 @@ if [ "$do_what" = "fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
     #./run_combined_${mode}_fitprepost.sh
 
+    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     #python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
-    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode
 fi 
 
 #=====================================================================
@@ -163,21 +176,32 @@ fi
 #=====================================================================
 if [ "$do_what" = "impacts" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method impacts $plus_args
-    ./run_combined_${mode}_impactspulls.sh
+    #./run_combined_${mode}_impactspulls.sh
 fi
 
 #==================================================================
 # CLs ( --expectSignal 1 )/CLsplusb (--expectSignal 0) limits 
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
+    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
     #./run_combined_${mode}_asymptoticlimits.sh
 
-    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era --expectSignal $expectSignal $plus_args2 
-    #python ZAlimits.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --log --era $era --rescale-to-za-br $plus_args2
+    jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
+    #jsP=$outDir/$scenario/asymptotic-limits/dnn_r_xBR/jsons/
+    #jsP=$outDir/$scenario/asymptotic-limits__very_good_xbr/$mode/jsons/
 
-    #python draw2D_mH_vs_mA_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
-    #python draw2D_tb_vs_cba_withRoot.py --jsonpath $outDir/$scenario/asymptotic-limits/$mode/jsons/ --era $era $plus_args2
+    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era $plus_args2 
+    #python ZAlimits.py --jsonpath $jsP --log --era $era $plus_args2
+
+    #python draw2D_mH_vs_mA_withRoot.py --jsonpath $jsP --era $era $plus_args2
+    #python draw2D_mH_vs_mA_scatter.py --jsonpath $jsP --era $era $plus_args2
+
+    python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod bbH
+    #python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod ggH
+    
+    #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
+    #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 997.14 
+    #python 2hdmtbvsmass.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
 fi
 
 #============================================================
@@ -185,13 +209,15 @@ fi
 #============================================================
 if [ "$do_what" = "pvalue" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method pvalue $plus_args
-    ./run_combined_${mode}_pvalue.sh
+    #./run_combined_${mode}_pvalue.sh
 
-    python collectPvalue.py --inputs $outDir/$scenario/
-    python plotSignificance.py --jsonpath $outDir/$scenario/pvalue-significance/$mode/jsons/ --era $era --scan mA
-    python plotSignificance.py --jsonpath $outDir/$scenario/pvalue-significance/$mode/jsons/ --era $era --scan mH
+    jsP=$outDir/$scenario/pvalue-significance/$mode/jsons/
 
-    python plotPValue.py --input $outDir/$scenario/pvalue-significance/$mode/jsons/ --era $era
+    #python collectPvalue.py --inputs $outDir/$scenario/
+    #python plotSignificance.py --jsonpath $jsP --era $era --scan mA
+    #python plotSignificance.py --jsonpath $jsP --era $era --scan mH
+
+    #python plotPValue.py --input $jsP --era $era
 fi
 
 #=============================================================

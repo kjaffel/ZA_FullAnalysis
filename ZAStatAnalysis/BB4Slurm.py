@@ -7,14 +7,6 @@ import numpy as np
 from CP3SlurmUtils.Configuration import Configuration
 from CP3SlurmUtils.SubmitWorker import SubmitWorker
 
-import logging
-LOG_LEVEL = logging.DEBUG
-stream = logging.StreamHandler()
-stream.setLevel(LOG_LEVEL)
-logger = logging.getLogger("BayesianBlocks")
-logger.setLevel(LOG_LEVEL)
-logger.addHandler(stream)
-
 
 def get_signal_parameters(f):
     if '_tb_' in f:  # Khawla new version format of signal sample
@@ -24,58 +16,42 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light)
 
 
-def SlurmRunBayesianBlocks(outputDIR, bambooDIR, era, isTest, unblind):
+def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, scenario, unblind):
     config = Configuration()
     config.sbatch_partition = 'cp3'
-    config.sbatch_qos = 'cp3'
+    config.sbatch_qos = 'normal'
     config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
     config.sbatch_chdir = os.path.join(outputDIR, 'slurm')
-    config.sbatch_time = '03:59:00'
-    config.sbatch_memPerCPU = '5000'
+    config.sbatch_time = '00:59:00'
+    config.sbatch_memPerCPU = '1000'
     #config.environmentType = 'cms'
-    config.inputSandboxContent = ["run_bboptimizer.sh"]
-    config.stageoutFiles = ['*.root']
+    #config.inputSandboxContent = [""]
+    #config.stageoutFiles = ['*.root']
     config.stageoutDir = config.sbatch_chdir
-    config.inputParamsNames = ['cmssw', 'input']
+    config.inputParamsNames = ['cmssw', 'input', 'outdir', 'rebin', 'era', 'mode', 'submit', 'scenario']
     config.inputParams = []
     #config.numJobs = 1
     
-    era_ = era.replace('20', '')
+    era_  = era.replace('20', '')
     cmssw = config.cmsswDir
 
-    fast_list = [125.]+list(np.arange(100., 1050., 50.))
-    
-    for i, inF in enumerate(glob.glob(os.path.join(bambooDIR, 'results', '*.root'))): 
+    for i, inF in enumerate(glob.glob(os.path.join(bambooResDIR, '*.root'))): 
         smp = inF.split('/')[-1]
-        isSignal = False
         
         if era!='fullrun2':
             if not f"_UL{era_}" in smp:
                 continue
         
-        if '_tb_' in smp: isSignal=True
-        #================================================================ 
-        #if isSignal:
-        #    m_heavy, m_light = get_signal_parameters(smp)
-        #    if not m_heavy in fast_list:
-        #        continue
-        #    if (m_heavy, m_light) in [(800., 140.), (200., 125.), (700., 200.), (500., 250.)]: # bugy 
-        #        continue
-        ##================================================================ 
-
         if not unblind:
             if any(x in smp for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
                 continue
 
-        if isTest and i!=0:
-            continue
-        
-        config.inputParams.append([cmssw, inF])
+        config.inputParams.append([cmssw, inF, outputDIR, rebin, era, mode, submit, scenario])
     
     config.payload = \
         """
-                pushd ${cmssw}
-                bash run_bboptimizer.sh ${cmssw} ${input}
+            pushd ${cmssw}
+            python optimizeBinning.py -i ${input} -o ${outDir} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
         """
     submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
@@ -84,12 +60,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Bayesian Blocks', formatter_class=argparse.RawTextHelpFormatter)
     
     current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    parser.add_argument("-o", "--output", default=None, required=True, help="output dir")
     parser.add_argument("-i", "--input", default=None, required=True, help="bamboo stageout dir")
+    parser.add_argument("-o", "--output", default=None, required=True, help="output dir")
     parser.add_argument("--era", type=str, default='fullrun2', required=False, help="")
-    parser.add_argument("--test", action='store_true', dest='isTest', default=False, help="")
-    parser.add_argument("--unblind", action='store_true', default=False, help="If set to Trur will produced histogram for data too")
-    
+    parser.add_argument('--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], help='')
+    parser.add_argument('--unblind', action='store_true', default=False, help="If set to True will produced histogram for data too")
+    parser.add_argument('--rebin', action='store', choices= ['custom', 'standalone', 'bayesian'], required=True, help='')
+    parser.add_argument('--scenario', action='store', choices= ['hybride', 'S', 'B', 'BB_hybride_good_stat'], required=False, help='')
+    parser.add_argument('--submit', action='store', default='test', choices=['all', 'test'], help='')
+
     options = parser.parse_args()
 
-    SlurmRunBayesianBlocks(outputDIR=options.output, bambooDIR=options.input, era=options.era, isTest=options.isTest, unblind=options.unblind)
+    SlurmRunBayesianBlocks( bambooResDIR = options.input, 
+                            outputDIR = options.output, 
+                            era       = options.era,
+                            submit    = options.submit,
+                            scenario  = options.scenario,
+                            mode      = options.mode,
+                            rebin     = options.rebin,
+                            unblind   = options.unblind 
+                           )
