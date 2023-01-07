@@ -114,6 +114,7 @@ scalesfactorsULegacyLIB = {
 leptonSFLib = {
     "electron_ID"     : "UL-Electron-ID-SF",
     "electron_reco"   : "UL-Electron-ID-SF",
+    "muon_reco"       : "NUM_TrackerMuons_DEN_genTracks",
     "muon_ID"         : "NUM_MediumID_DEN_TrackerMuons",
     "muon_iso"        : "NUM_TightRelIso_DEN_TightIDandIPCut",
     "muon_trigger": {
@@ -506,8 +507,9 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                                             wFail( subjet_bTagSF(j.subJet2), get_bTagEff( j.subJet2, reg, tagger_.lower(), wp, process) ) ),
                                               op.c_float(1.) )
                                 )
-
+    # reco of the signals processes 
     for process in ['gg_fusion', 'bb_associatedProduction']:
+        run2_bTagEventWeight_PerWP[process] = {}
         for reg, taggers in {'resolved': ['deepJet', 'deepCSV'], 'boosted': ['deepCSV']}.items():
             run2_bTagEventWeight_PerWP[process][reg] = {}
             for tagger in taggers:
@@ -562,7 +564,7 @@ def Top_reweighting(t, noSel, sampleCfg, isMC):
     binScaling = 1
     plots = []  
     # no ST
-    if isMC and "group" in sampleCfg.keys() and sampleCfg["group"] in ['ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
+    if isMC and "group" in sampleCfg.keys() and sampleCfg["group"] in ['ttbar', 'ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
         
         gen_top     = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId== 6))
         gen_antitop = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==-6))
@@ -581,8 +583,10 @@ def Top_reweighting(t, noSel, sampleCfg, isMC):
         scalefactor = lambda t : op.exp(0.0615-0.0005*t.pt)
         top_weight  = lambda top, antitop : op.sqrt(scalefactor(top)*scalefactor(antitop))
         
-        Sel_with_top_reWgt = noSel.refine("top_reweighting", weight=top_weight(gen_top[0], gen_antitop[0]))
-        
+        #Sel_with_top_reWgt = noSel.refine("top_reweighting", weight=top_weight(gen_top[0], gen_antitop[0]))
+        getTopPtWeight      = top_weight(gen_top[0], gen_antitop[0])
+        Sel_with_top_reWgt  = noSel.refine("TopPt_reweighting", weight=op.systematic(op.c_float(1.), TopPt_reweighting=getTopPtWeight))
+
         forceDefine(gen_top_pt, Sel_with_top_reWgt)
         forceDefine(gen_antitop_pt, Sel_with_top_reWgt)
         

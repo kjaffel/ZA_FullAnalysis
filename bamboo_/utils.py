@@ -47,13 +47,11 @@ def ZAlogger(name):
         logger.addHandler(stream)
     return logger
 
-
 logger   = ZAlogger(__name__)
 
+
 def getYearFromEra(era):
-    if   '2016' in era: return '16'
-    elif '2017' in era: return '17'
-    elif '2018' in era: return '18'
+    return era.replace('20', '')
 
 
 def get_tagger_wp(key, btv):
@@ -233,20 +231,19 @@ def getSignalMassPoints(outdir, all_=True):
     with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
     
-    points = {'gg_fusion': 
-                { 'resolved': { 'HToZA': [], 'AToZH': [] },
-                  'boosted' : { 'HToZA': [], 'AToZH': [] } },
-              'bb_associatedProduction':
-                { 'resolved': {'HToZA': [], 'AToZH': [] },
+    points = {'gg_fusion': { 
+                'resolved': { 'HToZA': [], 'AToZH': [] },
+                'boosted' : { 'HToZA': [], 'AToZH': [] } },
+              'bb_associatedProduction':{ 
+                  'resolved': {'HToZA': [], 'AToZH': [] },
                   'boosted' : {'HToZA': [], 'AToZH': [] } },
             }
-
-    all_points = { 'HToZA': [], 
-                   'AToZH': [] }
     
+    all_points = { 'HToZA': [], 'AToZH': [] }
+    chunk_of_points = { 'HToZA': [], 'AToZH': [] }
+    split = False
     for f in plotConfig['samples']:
         key = 'HToZA'
-        region = 'resolved'
         if not (f.startswith('GluGluTo') or f.startswith('HToZATo2L2B') or f.startswith('AToZHTo2L2B')):
             continue
         split_f = f.split('_')
@@ -260,6 +257,7 @@ def getSignalMassPoints(outdir, all_=True):
             if not (m0, m1) in all_points[key]:
                 all_points[key].append((m0, m1))
         else:
+            region = 'resolved'
             if m0 > 4*m1:
                 region = 'boosted'
     
@@ -271,8 +269,43 @@ def getSignalMassPoints(outdir, all_=True):
                     points['bb_associatedProduction'][region][key].append( (m0, m1))
     if all_:
         return all_points
+    #elif split:   
+    #    if chunk ==0: chunk_of_points['AToZH'] = all_points['AToZH'] 
+    #    else: chunk_of_points['AToZH'] = [] 
+    #    chunk_of_points['HToZA'] = np.array_split(all_points['HToZA'], 10)[chunk].tolist()
+    #    return chunk_of_points
     else:
         return points 
+
+
+def getSignalMassPoints_ver2(outdir, chunk=None, do='full', chunk_of=10):
+    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+        plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
+    
+    all_points = chunk_of_points = { 'HToZA': [], 'AToZH': [] }
+    
+    for f in plotConfig['samples']:
+        key = 'HToZA'
+        if not (f.startswith('GluGluTo') or f.startswith('HToZATo2L2B') or f.startswith('AToZHTo2L2B')):
+            continue
+        split_f = f.split('_')
+        
+        if split_f[1] == 'MA': key = 'AToZH'
+        
+        m0 = float(split_f[2].replace('p', '.'))
+        m1 = float(split_f[4].replace('p', '.'))
+        
+        if do in ['full', 'chunk']:
+            if not (m0, m1) in all_points[key]:
+                all_points[key].append((m0, m1))
+        
+    if do =='full':
+        return all_points
+    elif do=='chunk' :   
+        if chunk ==0: chunk_of_points['AToZH'] = [tuple(x) for x in all_points['AToZH'] ]
+        else: chunk_of_points['AToZH'] = [] 
+        chunk_of_points['HToZA'] = [tuple(x) for x in np.array_split(all_points['HToZA'], chunk_of)[chunk]]
+        return chunk_of_points
 
 
 def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
@@ -306,12 +339,14 @@ def makeMergedPlots(categDef, newCat, name, binning, var=None, **kwargs):
     return plotsToAdd + [SummedPlot(f"{newCat}_{name}", plotsToAdd, **kwargs)]
 
 
-@ROOT.Numba.Declare(['RVec<float>'], 'float')
-def computeHessianPDFUncertainty(weights):
+@ROOT.Numba.Declare(['RVec<float>', 'float', 'int'], 'float')
+def computeHessianPDFUncertainty(weights, SF=1., max_index=0):
     if len(weights) < 2:
         return 0.
     weights = np.asarray(weights)
-    return np.sqrt(np.sum((weights[1:] - weights[0])**2))
+    if (max_index != 0) and (max_index != -1):
+        weights = weights[:max_index+1]
+    return np.sqrt(np.sum((SF * weights[1:] - weights[0])**2))
 
 
 def not_in_use_declareHessianPDFCalculator():
@@ -327,35 +362,45 @@ def not_in_use_declareHessianPDFCalculator():
                             }""")
 
 
-def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True, PSISR=False, PSFSR=False, PDFs=False, pdf_mode="simple"):
+def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, saveQCDScaleEnvelopes=True, qcdScale=True, PSISR=False, PSFSR=False, PDFs=False, pdf_mode="simple"):
     plotter.qcdScaleVariations = dict()
     if qcdScale:
-        if plotter.qcdScaleVarMode == "separate":
-            noSel = noSel.refine("qcdMuF", weight=op.systematic(op.c_float(1.), name="qcdMuF", up=tree.LHEScaleWeight[3], down=tree.LHEScaleWeight[5]))
-            noSel = noSel.refine("qcdMuR", weight=op.systematic(op.c_float(1.), name="qcdMuR", up=tree.LHEScaleWeight[1], down=tree.LHEScaleWeight[7]))
-        elif plotter.qcdScaleVarMode == "combined":
-            qcdScaleVariations = { f"qcdScalevar{i}": tree.LHEScaleWeight[i] for i in [0, 1, 3, 5, 7, 8] }
-            qcdScaleSyst = op.systematic(op.c_float(1.), name="qcdScale", **plotter.qcdScaleVariations)
-            noSel = noSel.refine("qcdScale", weight=qcdScaleSyst)
+        if hasattr(tree, "LHEScaleWeight"):
+            if plotter.qcdScaleVarMode == "separate":
+                noSel = noSel.refine("qcdMuF", weight=op.systematic(op.c_float(1.), name="qcdMuF", up=tree.LHEScaleWeight[3], down=tree.LHEScaleWeight[5]))
+                noSel = noSel.refine("qcdMuR", weight=op.systematic(op.c_float(1.), name="qcdMuR", up=tree.LHEScaleWeight[1], down=tree.LHEScaleWeight[7]))
+                noSel = noSel.refine("qcdMuRF", weight=op.systematic(op.c_float(1.), name="qcdMuRF", up=tree.LHEScaleWeight[0], down=tree.LHEScaleWeight[8]))
+            elif plotter.qcdScaleVarMode == "combined":
+                qcdScaleVariations = { f"qcdScalevar{i}": tree.LHEScaleWeight[i] for i in [0, 1, 3, 5, 7, 8] }
+                qcdScaleSyst = op.systematic(op.c_float(1.), name="qcdScale", **plotter.qcdScaleVariations)
+                noSel = noSel.refine("qcdScale", weight=qcdScaleSyst)
+        else:
+            logger.warning("LHEScaleWeight not present in tree, muF/muR systematics will not be added")
+        
+        if saveQCDScaleEnvelopes:
+            return noSel
     
-    if PSISR:
-        psISRSyst = op.systematic(op.c_float(1.), name="psISR", up=tree.PSWeight[2], down=tree.PSWeight[0])
-        noSel = noSel.refine("psISR", weight=psISRSyst)
-    
-    if PSFSR:
-        psFSRSyst = op.systematic(op.c_float(1.), name="psFSR", up=tree.PSWeight[3], down=tree.PSWeight[1])
-        noSel = noSel.refine("psFSR", weight=psFSRSyst)
+    if hasattr(tree, "PSWeight"):
+        if PSISR:
+            psISRSyst = op.systematic(op.c_float(1.), name="psISR", up=tree.PSWeight[2], down=tree.PSWeight[0])
+            noSel = noSel.refine("psISR", weight=psISRSyst)
+        
+        if PSFSR:
+            psFSRSyst = op.systematic(op.c_float(1.), name="psFSR", up=tree.PSWeight[3], down=tree.PSWeight[1])
+            noSel = noSel.refine("psFSR", weight=psFSRSyst)
+    else:
+        logger.warning("PSWeight not present in tree, PS ISR and PS FSR systematics will not be added")
     
     if PDFs:
-        if sampleCfg['type']== 'mc':
-            pdf_mc = True
-            logger.info("This sample has MC PDF variations")
-        else:
-            pdf_mc = False  ## signal sample produced with hessian pdf
-            logger.info("This sample has Hessian PDF variations")
-        
-        nPdfVars = (0, 101) if pdf_mc else (1, 103)
         if hasattr(tree, "LHEPdfWeight"):
+            if sampleCfg['type']== 'mc':
+                pdf_mc = True
+                logger.info("This sample has MC PDF variations")
+            else:
+                pdf_mc = False  ## signal sample produced with hessian pdf
+                logger.info("This sample has Hessian PDF variations")
+            
+            nPdfVars = (0, 101) if pdf_mc else (1, 103)
             if pdf_mode == "full" and sampleCfg['type']== 'mc':
                 logger.info("Adding full PDF systematics")
                 pdfVars = { f"pdf{i}": tree.LHEPdfWeight[i] for i in range(*nPdfVars) }
@@ -367,12 +412,19 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, qcdScale=True,
                 else:
                     logger.info("Signal sample has Hessian PDF variations: NNPDF31_nnlo_as_0118_mc_hessian_pdfas")
                     sigmaCalc = op.extMethod("Numba::computeHessianPDFUncertainty", returnType="float")
-                    pdfSigma = sigmaCalc(tree.LHEPdfWeight)
-                
+                    pdfSigma  = sigmaCalc(tree.LHEPdfWeight)
+                    max_index = op.c_int(100)
+                    pdfSigma  = sigmaCalc(tree.LHEPdfWeight, op.c_float(1.), max_index)
                 pdfVars = { "pdfup": tree.LHEPdfWeight[0] + pdfSigma, "pdfdown": tree.LHEPdfWeight[0] - pdfSigma }
+                if sampleCfg['type']== 'signal': 
+                    # also include the alphaS variations separately
+                    # last two weights should be alpha_S variations
+                    alphaSVars = { "pdfAlphaSup": tree.LHEPdfWeight[101], "pdfAlphaSdown": tree.LHEPdfWeight[102] } 
+                    pdfVars.update( alphaSVars )
             noSel = noSel.refine("PDF", weight=op.systematic(op.c_float(1.), **pdfVars))
         else:
             logger.warning("LHEPdfWeight not present in tree, PDF systematics will not be added")
+    
     return noSel
 
 
@@ -402,7 +454,7 @@ def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, out
             smpScale = lumi / counterReader(resultsFile)[smpCfg["generated-events"]]
             
             if smpCfg.get("type") == "signal":
-                smpScale *= smpCfg["cross-section"] * smpCfg["Branching-ratio"]
+                smpScale *= smpCfg["cross-section"] * smpCfg["branching-ratio"]
             elif smpCfg.get("type") == "mc":
                 smpScale *= smpCfg["cross-section"]
             

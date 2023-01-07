@@ -188,7 +188,6 @@ def splitSignal_INcategories(era, process, Cfg, path):
             graph.Draw("colz0")
             graph.Draw("CONT4Z")
 
-    
             if (ROOT.gPad):
                 ROOT.gPad.SetLeftMargin(0.15)
                 ROOT.gPad.SetRightMargin(0.15)

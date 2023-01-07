@@ -12,8 +12,8 @@ import utils as utils
 logger = utils.ZAlogger(__name__)
 
 
+
 def getSamplesFromDAS(era, smp, dataType= None, rm_nlo= False):
-        
     if dataType != 'data':
         dasgoCmd     = ['dasgoclient', '-query', f'/{smp}*/RunIISummer20UL{era}*AODv9*/NANOAODSIM']
         dasgoCmd_APV = ['dasgoclient', '-query', f'/{smp}*/RunIISummer20UL{era}*AODAPVv9*/NANOAODSIM']
@@ -33,24 +33,18 @@ def getSamplesFromDAS(era, smp, dataType= None, rm_nlo= False):
    
     all_smp = (ls_lines + ls_linesAPV if era == 16 else (ls_lines))
     
-    if era == 17:
-        filter_smp1 = [ smpNm for smpNm in all_smp if not (str.encode('2017G') in smpNm or str.encode('2017H') in smpNm)]
-    
     if dataType == 'mc':
-        filter_smp0 = [ smpNm for smpNm in all_smp if not str.encode('PUForTRK_TRK_106X') in smpNm]
-        filter_smp1 = [ smpNm for smpNm in filter_smp0 if not str.encode('-PU35ForTRK_TRK_106X_') in smpNm]
-        filter_smp2 = [ smpNm for smpNm in filter_smp1 if not str.encode('JMENano') in smpNm]
-        filter_smp3 = [ smpNm for smpNm in filter_smp2 if not str.encode('PUForMUOVal') in smpNm]
-        filter_smp4 = [ smpNm for smpNm in filter_smp3 if not str.encode('FSUL18_FSUL18_') in smpNm]
-        return filter_smp4
+        all_smp = [ smpNm for smpNm in all_smp if not any(str.encode(x) in smpNm for x in ['PUForTRKv2_TRKv2_', 'PU35ForTRKv2_TRKv2_', 'PUForTRK_TRK_106X', '-PU35ForTRK_TRK_106X_', 'JMENano', 'PUForMUOVal', 'FSUL18_FSUL18_'])] 
+        return all_smp
     elif dataType == 'signal':
         if rm_nlo: 
-            filter_smp1 = [ smpNm for smpNm in all_smp if not str.encode('_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8') in smpNm]
-            return filter_smp0
+            filter_nlosmp = [ smpNm for smpNm in all_smp if not str.encode('_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8') in smpNm]
+            return filter_nlosmp
         else:
             return all_smp
     else:
-        return filter_smp0 if era ==17 else all_smp
+        if era == 17: all_smp = [ smpNm for smpNm in all_smp if not (str.encode('2017G') in smpNm or str.encode('2017H') in smpNm)]
+        return all_smp
 
 
 def writeToFile(fNm, list):
@@ -58,23 +52,34 @@ def writeToFile(fNm, list):
         for smp in list:
             outf.write(f"{smp.decode('utf-8')}\n")
     outf.close()
+    return 
 
 
-def checklocalfiles(era, list, tot_req): 
-    i = 0 
+def writeBambooYml(txtF):
+    ymlF = txtF.replace('.txt', '.yml')
+    Cmd  = ['python', 'writeconfig.py', '--das', txtF, '-o', ymlF]
+    try:
+        logger.info("running: {}".format(" ".join(Cmd)))
+        subprocess.run(Cmd, stdout=subprocess.PIPE).stdout.splitlines()
+    except subprocess.CalledProcessError:
+        logger.error("Failed to run {0}".format(" ".join(Cmd)))
+    return
+
+def checklocalfiles(era, list, s): 
     with open(f"rucio_signalUL{era}__ext2.txt","w") as outf:
         for dbLoc in list:
-            dasQuery = f"file dataset={dbLoc.decode('utf-8')}"
+            dasQuery   = f"'file dataset={dbLoc.decode('utf-8')}'"
             localgoCmd = ["dasgoclient", "-query", dasQuery]
             try:
-                print(f"Querying DAS: '{dasQuery}'")
+                print(f"Querying DAS: {' '.join(localgoCmd)}")
                 ls_files = [ln.strip() for ln in subprocess.check_output(localgoCmd, stderr=subprocess.STDOUT).decode().split()]
-                i += 1
             except subprocess.CalledProcessError:
                 logger.error("Failed to run {0}".format(" ".join(localgoCmd)))
             
-            files = glob.glob(os.path.join('/storage/data/cms/'+ os.path.dirname(ls_files[0]), '*.root'))
-            #print( len(files),  len(ls_files) , not files or len(files) != len(ls_files))
+            files = glob.glob(os.path.join(f'/storage/data/cms/store/{s}/'+ os.path.dirname(ls_files[0]), '*.root'))
+            print( os.path.join(f'/storage/data/cms/store/{s}/'+ os.path.dirname(ls_files[0]), '*.root') )
+            print( glob.glob(os.path.join('/storage/data/cms/'+ os.path.dirname(ls_files[0]), '*.root')) )
+            print( len(files),  len(ls_files) )
             if not files or len(files) != len(ls_files):
                 outf.write(f"{dbLoc.decode('utf-8')}\n")
             #try:
@@ -82,10 +87,61 @@ def checklocalfiles(era, list, tot_req):
             #except:# subprocess.CalledProcessError:
             #    outf.write(f"{dbLoc.decode('utf-8')}\n")
     outf.close()
-    logger.info( f"{i} out of {tot_req} samples are ready, you are getting there: {i/tot_req*100}%")
     logger.info( f"rucio request needed for samples saved in :: rucio_signalUL{era}__ext2.txt") 
 
+
+def ZA_DASGOCILENT(n='', choosen_points=None):
+    all_processes  = []
+    AToZH_points = []
+    suffix   = ''
+    for era in [18, 17, 16]:
+        suffix += f'{era}_'
+        
+        dtype_processes =[]
+        for dtype, listsmp in look_for.items():
+            
+            for smp in listsmp:
+                
+                if era ==17:
+                    if smp in ['SingleElectron', 'SingleMuon']:
+                        continue
+                
+                processes = getSamplesFromDAS(era, smp, dataType=dtype, rm_nlo=rm_nlo)
+                # take few for quick test !
+                if dtype == 'signal':
+                    if do in ['chunk', 'HvsA']:
+                        for p in processes:
+                            m = p.decode('utf-8').split('_tb')[0].split('To2L2B_')[-1]
+                            m_heavy  = float(m.split('_')[0].split('-')[1].replace('p','.'))
+                            m_light  = float(m.split('_')[1].split('-')[1].replace('p','.'))
+                        
+                            if any(x==(m_heavy, m_light) for x in choosen_points):
+                                dtype_processes.append(p)
+                            if 'AToZH' in p.decode('utf-8'):
+                                AToZH_points.append((m_heavy, m_light))
+
+                    elif do=='full':
+                        dtype_processes += processes
+
+                else:
+                    dtype_processes += processes
+            #s = 'data' if dtype=='data' else 'mc'
+            #checklocalfiles(era, dtype_processes, s=s)
+        all_processes += dtype_processes
+
+    #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_AtoZHvsHToZA.txt'
+    #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_few_for_fast_unblind.txt'
+    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_{do}{n}_for_unblindstage1.txt'
+    
+    writeToFile(fNm, all_processes)
+    print('Available A -> ZH signal points ::', list(set(AToZH_points)))
+    print(f'All das path are saved in: {fNm}')
+    return fNm
+
+
 if __name__ == "__main__":
+    
+    outdir   =  '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/config'
     
     look_for = {
         'signal' : ['GluGluToHToZATo2L2B', 'HToZATo2L2B', 'GluGluToAToZHTo2L2B', 'AToZHTo2L2B'],
@@ -99,8 +155,6 @@ if __name__ == "__main__":
                'TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8',
                'TTToHadronic_TuneCP5_13TeV-powheg-pythia8',
                # single top 
-               #'ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8',
-               #'ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8',
                'ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8',
                'ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8',
                'ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8',
@@ -113,6 +167,7 @@ if __name__ == "__main__":
                'WWTo2L2Nu_TuneCP5_13TeV-powheg-pythia8',
                'WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8', 
                'WWW_4F_TuneCP5_13TeV-amcatnlo-pythia8', 
+               'WWZ_4F_TuneCP5_13TeV-amcatnlo-pythia8', 
                'WZZ_TuneCP5_13TeV-amcatnlo-pythia8', 
                'ZZZ_TuneCP5_13TeV-amcatnlo-pythia8', 
                'WJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-pythia8', 
@@ -139,32 +194,30 @@ if __name__ == "__main__":
             ],
         }
     
-    suffix   = ''
-    all_processes    = []
     
-    for era in [18, 17, 16]:
-        suffix += f'{era}_'
-        
-        for dtype, listsmp in look_for.items():
-            
-            if era ==17 and dtype=='data':
-                listsmp.remove('SingleElectron')
-                listsmp.remove('SingleMuon')
-            
-            for smp in listsmp:
-                processes = getSamplesFromDAS(era, smp, dataType=dtype, rm_nlo=True)
-        
-                # take few for quick test !
-                if dtype == 'signal':
-                    for p in processes:
-                        if any(mass in p.decode('utf-8') for mass in ['MH-250p00_MA-50p00', 'MH-500p00_MA-50p00', 'MH-500p00_MA-300p00', 'MH-250p00_MA-125p00', 'MH-800p00_MA-200p00']):
-                            all_processes.append(p)
-                else:
-                    all_processes += processes
+    do = 'chunk' # choices: 'full', 'chunk', 'HvsA'
+    rm_nlo    = False
+    print_bambooCfg = True
 
-        #request  = [218, 232, 8, 13]
-        #checklocalfiles(era, all_processes, tot_req= 471)
+    if do == 'chunk':
+        chunk_of = 10
+        for n in range(chunk_of):
+            chunk_of_points = utils.getSignalMassPoints_ver2(outdir, chunk=n, do=do, chunk_of=chunk_of)
+            choosen_points  = chunk_of_points['HToZA']+chunk_of_points['AToZH']
+            logger.info( f'working on batch {n} :: {choosen_points}, len: {len(choosen_points)}')
+            outF = ZA_DASGOCILENT(n, choosen_points)
+            if print_bambooCfg:
+                writeBambooYml(outF) 
     
-    fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9.txt'
-    writeToFile(fNm, all_processes)
-    print(f'All das path are saved in: {fNm}')
+    elif do == 'full':
+        outF = ZA_DASGOCILENT()
+        if print_bambooCfg:
+            writeBambooYml(outF) 
+        
+
+    elif do == 'HvsA': 
+        AToZH_points = [(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)]
+        outF = ZA_DASGOCILENT(n='', choosen_points=AToZH_points)
+        if print_bambooCfg:
+            writeBambooYml(outF) 
+
