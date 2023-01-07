@@ -35,9 +35,11 @@ def get_era_and_luminosity(smp=None, run=None, isdata=False):
         elif 'RunIISummer20UL17' in smp or 'RunIISummer19UL17' in smp: return '2017', 41529.152060112, 0.02
         elif 'RunIISummer20UL18' in smp or 'RunIISummer19UL18' in smp: return '2018', 59740.565201546, 0.015
 
+
 def mass_to_str(m):
     return str(m).replace('.','p')
-    
+
+
 def get_list_ofsystematics(eras):
     sys =[
         '# total on the jets energy resolution',
@@ -124,6 +126,7 @@ def get_list_ofsystematics(eras):
         ]
     return sys
 
+
 def get_mcNmConvention_and_group(smpNm):
     """
     https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns
@@ -155,8 +158,8 @@ def get_mcNmConvention_and_group(smpNm):
                   'ggZH_HToBB_ZToLL_M-125'   : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
                   'ggZH_HToBB_ZToNuNu_M-125' : ['SM', 6.954e-03, 7.737e-06, 'ggh, tth, Zh',  '#43294D',  2],
                   'GluGluHToZZTo2L2Q_M125'   : ['SM', 28.87,       0.02027, 'ggh, tth, Zh',  '#43294D',  2],
-                  'ttHTobb_M125_'            : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
-                  'ttHToNonbb_M125_'         : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHTobb_M125'             : ['SM', 0.2934,  0.,          'ggh, tth, Zh',  '#43294D',  2],
+                  'ttHToNonbb_M125'          : ['SM', 0.2151,  0.,          'ggh, tth, Zh',  '#43294D',  2],
                   'WWW_4F'          : ['others', 0.2086,    0.,         'VVV, ttV',   '#9370DB',  1],
                   'WWZ_4F'          : ['others', 0.1651,    0.,         'VVV, ttV',   '#9370DB',  1],
                   'WZZ'             : ['others', 0.05565,   0.,         'VVV, ttV',   '#9370DB',  1],
@@ -171,6 +174,7 @@ def get_mcNmConvention_and_group(smpNm):
     for Nm, val in shortnames.items():
         if smpNm.startswith(Nm):
             return Nm , val[0], val[1], val[2], val[3], val[4], val[5] # name, xsc, uncer, legend, fill_color, order_of_group_in_plotit
+
 
 def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=False):
     das_tomerge  = []
@@ -208,13 +212,15 @@ def get_das_path(inf, smp, search, era, run, isdata=False, isMC=False, issignal=
     else:
         return 'das:{}'.format(smp), []
 
+
 def get_legend(process, comp, heavy, light, m_heavy, m_light, smpNm):
     m_heavy    = ('%.2f'%float(m_heavy)).replace('.00', '')
     m_light    = ('%.2f'%float(m_light)).replace('.00', '')
     if heavy == 'H':
-        return  "#splitline{%s: (m_{H}, m_{A})}{= (%s, %s) GeV}"%(process, m_heavy, m_light)
+        return  "#splitline{%s-%s: (m_{H}, m_{A})}{= (%s, %s) GeV}"%(comp, process, m_heavy, m_light)
     else:
-        return  "#splitline{%s: (m_{A}, m_{H})}{= (%s, %s) GeV}"%(process, m_heavy, m_light)
+        return  "#splitline{%s-%s: (m_{A}, m_{H})}{= (%s, %s) GeV}"%(comp, process, m_heavy, m_light)
+
 
 def get_xsc_br_fromSushi(smpNm, mode, base, process, comp):
     if mode == "HToZA":
@@ -234,9 +240,9 @@ def get_xsc_br_fromSushi(smpNm, mode, base, process, comp):
             H = 'H' if 'HToZA' in smpNm else 'A'
             m_heavy  = lis[1]
             m_light  = lis[2]
-            tb      = lis[3]
-            xsc     = lis[4]
-            xsc_err = lis[5]
+            tb       = lis[3]
+            xsc      = lis[4]
+            xsc_err  = lis[5]
             br_HeavytoZlight  = lis[6]
             br_lighttobb      = lis[7]
             return H, l, m_heavy, m_light, tb, xsc, xsc_err, float(br_HeavytoZlight), float(br_lighttobb)
@@ -483,6 +489,7 @@ if __name__ == "__main__":
                     outf.write(f"    certified_lumi_file: {cert}\n")
                 elif issignal :
                     outf.write("    type: signal\n")
+                    outf.write(f"    prod: {process}\n")
                     outf.write("    generated-events: 'genEventSumw'\n")
                     outf.write(f"    cross-section: {xsc}   # +/- {xsc_err} pb\n")
                     outf.write(f"    branching-ratio: {br}  # {details}\n")
