@@ -455,8 +455,8 @@ if __name__ == "__main__":
     
     divideByBinWidth = False
     get_half         = False
-    force_onebin     = False
-    force_samebin    = True
+    force_muel_onebin= False
+    force_samebin    = False   # A -> ZH and H-> ZA have the same binning
     fix_reco_format  = False
    
     if args.job =='local':
@@ -724,19 +724,6 @@ if __name__ == "__main__":
                 if smpNm.startswith('GluGluTo'): process = 'gg_fusion'
                 else: process = 'bb_associatedProduction' 
             
-            #==========================================================
-            # FIXME : I just need this to get some work done to be removed later on 
-            #         few signals only needed
-            #if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']):
-            #    if not 'MH_500p00_MA_200p00' in smpNm:
-            #        continue
-            #if not any( x in smpNm for x in ['125p00', '100p00', '200p00', '300p00', '400p00', '500p00', '600p00', '700p00', '800p00', '900p00', '1000p00']):
-            #    continue
-            ## If you are still blinded , do not waste time here !!
-            #if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
-            #    continue
-            ##==========================================================
-            
             print( f'==='*40) 
             print( f' working on : {rf}' ) 
 
@@ -817,13 +804,59 @@ if __name__ == "__main__":
 
                     # sys hist should have the same bins as nominal 
                     if params['flavor'] == 'MuEl': # this channel will help to control ttbar
-                        if force_onebin :
+                        if force_muel_onebin :
                             binning  = [[0., 1.], [1, 51]]
+                        
+                        elif get_half:
+                            
+                            look_for_same_flav_hist= []
+                            for sf in ['OSSF', 'MuMu', 'ElEl']:
+                                look_for_same_flav_hist.append(look_for_hist.replace('MuEl', sf))
+                            
+                            hit_boundaries = []
+                            for h in look_for_same_flav_hist:
+                                if not h in data['histograms'].keys():
+                                    continue
+                                _all_bins_signal  = data['histograms'][h][args.scenario][0]
+                                _half_bins_signal = [x for x in _all_bins_signal if x <= 0.6]
+                                hit_boundaries.append(len(_half_bins_signal) ==1)
+                            
+                            if any(flag is True for flag in hit_boundaries):
+                                binning  = data['histograms'][look_for_hist]['B']
+                            else:
+                                _all_bins  = data['histograms'][look_for_hist]['B'][0]
+                                _all_edges = data['histograms'][look_for_hist]['B'][1]
+                                _half_bins = [x for x in _all_bins if x <= 0.6]
+                                _half_edges= _all_edges[0:len(_half_bins)]
+                                binning    = [_half_bins, _half_edges]
                         else:
                             binning  = data['histograms'][look_for_hist]['B']
                     else:
-                        binning  = data['histograms'][look_for_hist][args.scenario]
-                    
+                        if get_half:
+                            
+                            look_for_same_flav_hist= []
+                            for sf in ['OSSF', 'MuMu', 'ElEl']:
+                                look_for_same_flav_hist.append(look_for_hist.replace(params['flavor'], sf))
+                            
+                            hit_boundaries = []
+                            for h in look_for_same_flav_hist:
+                                if not h in data['histograms'].keys():
+                                    continue
+                                _all_bins_signal  = data['histograms'][h][args.scenario][0]
+                                _half_bins_signal = [x for x in _all_bins_signal if x <= 0.6]
+                                hit_boundaries.append(len(_half_bins_signal) ==1)
+                            
+                            if any(flag is True for flag in hit_boundaries):
+                                binning  = data['histograms'][look_for_hist][args.scenario]
+                            else:
+                                _all_bins  = data['histograms'][look_for_hist][args.scenario][0]
+                                _all_edges = data['histograms'][look_for_hist][args.scenario][1]
+                                _half_bins = [x for x in _all_bins if x <= 0.6]
+                                _half_edges= _all_edges[0:len(_half_bins)]
+                                binning    = [_half_bins, _half_edges]
+                        else:
+                            binning  = data['histograms'][look_for_hist][args.scenario]
+
                     nph_old = NumpyHist.getFromRoot(oldHist)
                     
                     """

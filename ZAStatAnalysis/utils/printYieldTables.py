@@ -60,7 +60,6 @@ def PrintTables(cmb, fbin, signal_process, column, uargs):
 Process & \multicolumn{2}{c}{%s} \\
 \hline
 \hline
-
 """%column
     # main bkg
     LatexTab += r'''TTbar                                                     & $%.2f$ & $%.2f$ \\
@@ -84,15 +83,15 @@ Process & \multicolumn{2}{c}{%s} \\
     # tot bkg.
     LatexTab += r'''\hline'''
     LatexTab += r'''
-                Total expected background                                      & $%.2f$ & $%.2f$ \\ 
+                Total expected background                             & $%.2f$ & $%.2f$ \\ 
             ''' % (c_dnn.cp().backgrounds().GetRate(), c_dnn.cp().backgrounds().GetUncertainty(*uargs))
     # signal 
-    LatexTab += r'''%s                                                         & $%.2f$ & $%.2f$  \\ 
+    LatexTab += r'''%s                                                & $%.2f$ & $%.2f$  \\ 
             ''' % (signal_process, c_dnn.cp().signals().GetRate(), c_dnn.cp().signals().GetUncertainty(*uargs))
     # data
     LatexTab += r'''\hline'''
     LatexTab += r'''
-                Observed data                                                   & \multicolumn{2}{c}{$%g$} \\
+                Observed data                                         & \multicolumn{2}{c}{$%g$} \\
             ''' % (c_dnn.cp().GetObservedRate())
     LatexTab += r"""\hline
 \end{tabular}"""

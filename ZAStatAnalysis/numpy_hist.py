@@ -25,7 +25,7 @@ class NumpyHist:
         """
         self._e  = e     # Bin edges
         self._w  = w     # Bin content
-        self._s2 = s2  # Quadratic bin error 
+        self._s2 = s2    # Quadratic bin error 
         self._name = name
 
         if self._w.shape != self._s2.shape:
@@ -328,7 +328,7 @@ class NumpyHist:
             TODO : not sure about the bin error
         """
         self._w  = np.divide(self._w,self.widths)
-        self._s2 = np.divide(self._s2,self.widths)
+        self._s2 = np.divide(self._s2,self.widths**2)
 
     def setUnitaryBinWidth(self):
         """

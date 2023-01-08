@@ -178,6 +178,7 @@ def overwrite_path(f):
     with open(f, 'r') as file :
         filedata = file.read()
     filedata = filedata.replace('UL16', 'ULfullrun2')
+    filedata = filedata.replace('35.92', '138')
     with open(f, 'w') as file:
         file.write(filedata)
     return f
@@ -280,7 +281,7 @@ def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
         return points
 
 
-def add_autoMCStats(datacard, threshold=0, include_signal=0, hist_mode=1):
+def add_autoMCStats(datacard, threshold=100, include_signal=0, hist_mode=1):
     openFile=open(datacard, 'r')
     datacard_content = openFile.read()
     openFile.seek(0)

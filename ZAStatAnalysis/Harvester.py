@@ -1,4 +1,5 @@
 import sys
+sys.dont_write_bytecode  = True
 import os, os.path
 import yaml
 import ROOT
@@ -15,9 +16,10 @@ import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
 
-sys.dont_write_bytecode  = True
 splitJECs = True
+splitLep  = False
 FixbuggyFormat = False
+rm_nlo_bbH_signal= True
 
 def openFileAndGet(path, mode="read"):
     """Open ROOT file in a mode, check if open properly, and return TFile handle."""
@@ -109,7 +111,6 @@ def smooth_lowess_tgraph(h):
         hist_out.Fill(x,y)
     return hist_out
     
-
 def symm_and_smooth(syst,proc):
     #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
     print ('smoothing: ', syst)
@@ -230,11 +231,11 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     
     # btag;  good names do not overwrite
     elif 'btag' in origName:
-        return 'CMS_'+origName #.replace('preVFP', '').replace('postVFP', '')
+        return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
 
     # DY reweighting, correlated across year
     elif 'DYweight_' in origName:
-        return origName
+        return origName + "_{}".format(newEra)
 
     # jes 
     elif origName.startswith("jes"):
@@ -295,7 +296,7 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
             else: avoid += ll
             
             if reg == 'boosted':
-                avoid += [ 'btagSF_deepJet_fixWP', 'DYweight_resolved_', 'jer']
+                avoid += [ 'DYweight_resolved_', 'jer'] # 'btagSF_deepJet_fixWP'
                 avoid += [ 'Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample', 'jesTotal']
             elif reg == 'resolved':
                 avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
@@ -309,7 +310,6 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
                     systematics.append(syst)
         
         open_f.Close()
-    systematics += ['pdfAlphaS']
     return systematics
 
 
@@ -696,15 +696,21 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 #continue
             process_files += local_process_files
         processes_files[process] = process_files
-        #print( processes_files[process], process, '*** \n')
+        print( processes_files[process], process, '*** \n')
         if type(process) is tuple:
             hash.update(process[0])
         else:
             hash.update(process)
         map(hash.update, process_files)
    
-    # I am assuming you will be able to get full list of sys from these 2 
-    files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0] ]
+    signals_keys  = []
+    for k in processes_files.keys():
+        for i in range(len(signal_process)):
+            if k[0].startswith(signal_process[i]):
+                signals_keys +=[k]
+    
+    # I am assuming you will be able to get full list of sys from these 3 
+    files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0], processes_files[signals_keys[0]][0]]
     if era == '2016':
         otherFiles = add_decorPrePosVFPSytstematics(files_tolistsysts)
         files_tolistsysts += otherFiles
