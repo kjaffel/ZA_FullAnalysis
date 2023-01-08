@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='fullrun2'                     
+era='2016'                     
 #choices: '2016' , '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='impacts'
+do_what='generate_toys'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -34,14 +34,24 @@ normalize=true
 scale=false
 x_branchingratio=false
 splitJECs=true
-FixbuggyFormat=false # won't be needed soon 
+splitLep=true          # by default bbH and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
+FixbuggyFormat=false   # won't be needed soon 
+rm_nlo_bbH_signal=false # as the name sugested won't process bbh signal samples @nlo  
 
 submit_to_slurm=true
-sbatch_time='02:59:00'
-sbatch_memPerCPU='7000' #7000
+sbatch_time='3-24:59:00'
+sbatch_memPerCPU='15000' #7000
 
-bambooDir='unblind_stage1_few_fullrun2/results/'
-stageOut='hig-22-010/unblinding_stage1/'
+n=0
+
+#bambooDir='unblind_stage1_few_fullrun2/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext1/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext2/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext3/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext4_remove_qcd_uncer/'
+
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext5/chunk_'${n}'/'
 
 #bambooDir='ul_run2__ver19/results/'
 #stageOut='hig-22-010/datacards_nosplitJECs/'
@@ -78,7 +88,9 @@ fi
 
 
 if $unblind; then
-    plus_args+=' --unblind'
+    if [ "$do_what" != "generate_toys" ]; then
+        plus_args+=' --unblind'
+    fi
 fi 
 
 plus_args+=' --expectSignal '${expectSignal}
@@ -117,13 +129,23 @@ if $FixbuggyFormat; then
 fi
 
 
+if $rm_nlo_bbH_signal; then
+    plus_args+=' --rm_nlo_bbH_signal'
+fi
+
+
+if $splitLep; then
+    plus_args+=' --splitLep'
+fi
+
+
 if $validation_datacards; then
     plus_args+=' --validation_datacards'
 fi
 
 
 if $unblind; then
-    if [ "$do_what" != "generate_toys" ]; then
+    if [ "$do_what" == "generate_toys" ]; then
         plus_args+=' --dataset asimov'
     fi
 fi
@@ -149,7 +171,7 @@ echo "running ${do_what} post-processing step with the following arguments : " $
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
     ./prepareShapesAndCards.py --era fullrun2 -i $bambooDir -o $stageOut/work__ULfullrun2 --dataset toys --mode $mode --method generatetoys --stat $plus_args
-    #./run_combined_${mode}_generatetoys.sh
+    #./run_combine_${mode}_generatetoys.sh
 fi
 
 #=============================================
@@ -157,7 +179,7 @@ fi
 #=============================================
 if [ "$do_what" = "signal_strength" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method signal_strength $plus_args
-    ./run_combined_${mode}_signal_strength.sh
+    ./run_combine_${mode}_signal_strength.sh
 fi
 
 #=============================================
@@ -165,7 +187,7 @@ fi
 #=============================================
 if [ "$do_what" = "fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
-    #./run_combined_${mode}_fitprepost.sh
+    #./run_combine_${mode}_fitprepost.sh
 
     #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     #python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
@@ -176,7 +198,7 @@ fi
 #=====================================================================
 if [ "$do_what" = "impacts" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method impacts $plus_args
-    #./run_combined_${mode}_impactspulls.sh
+    #./run_combine_${mode}_impactspulls.sh
 fi
 
 #==================================================================
@@ -184,7 +206,7 @@ fi
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
     #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
-    #./run_combined_${mode}_asymptoticlimits.sh
+    #./run_combine_${mode}_asymptoticlimits.sh
 
     jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
     #jsP=$outDir/$scenario/asymptotic-limits/dnn_r_xBR/jsons/
@@ -209,7 +231,7 @@ fi
 #============================================================
 if [ "$do_what" = "pvalue" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method pvalue $plus_args
-    #./run_combined_${mode}_pvalue.sh
+    #./run_combine_${mode}_pvalue.sh
 
     jsP=$outDir/$scenario/pvalue-significance/$mode/jsons/
 
@@ -225,7 +247,7 @@ fi
 #============================================================
 if [ "$do_what" = "goodness_of_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method goodness_of_fit $plus_args
-    ./run_combined_${mode}_goodness_of_fit.sh
+    #./run_combine_${mode}_goodness_of_fit.sh
 fi 
 
 #=============================================================
@@ -233,7 +255,7 @@ fi
 #============================================================
 if [ "$do_what" = "nll_shape" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method nll_shape $plus_args
-    ./run_combined_${mode}_nll_shape.sh
+    ./run_combine_${mode}_nll_shape.sh
 fi 
 
 #=============================================================
@@ -241,5 +263,5 @@ fi
 #============================================================
 if [ "$do_what" = "likelihood_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method likelihood_fit $plus_args
-    #./run_combined_${mode}_likelihood_fit.sh
+    #./run_combine_${mode}_likelihood_fit.sh
 fi 

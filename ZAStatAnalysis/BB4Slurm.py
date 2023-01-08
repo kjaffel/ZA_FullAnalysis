@@ -28,7 +28,7 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
     #config.inputSandboxContent = [""]
     #config.stageoutFiles = ['*.root']
     config.stageoutDir = config.sbatch_chdir
-    config.inputParamsNames = ['cmssw', 'input', 'outdir', 'rebin', 'era', 'mode', 'submit', 'scenario']
+    config.inputParamsNames = ['cmssw', 'input', 'output', 'rebin', 'era', 'mode', 'submit', 'scenario']
     config.inputParams = []
     #config.numJobs = 1
     
@@ -45,13 +45,18 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
         if not unblind:
             if any(x in smp for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
                 continue
+        
+        if submit =='test':
+            if i !=0:
+                continue
 
         config.inputParams.append([cmssw, inF, outputDIR, rebin, era, mode, submit, scenario])
     
     config.payload = \
         """
             pushd ${cmssw}
-            python optimizeBinning.py -i ${input} -o ${outDir} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
+            echo "running ::" optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
+            python optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
         """
     submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
@@ -70,13 +75,13 @@ if __name__ == '__main__':
     parser.add_argument('--submit', action='store', default='test', choices=['all', 'test'], help='')
 
     options = parser.parse_args()
-
-    SlurmRunBayesianBlocks( bambooResDIR = options.input, 
-                            outputDIR = options.output, 
-                            era       = options.era,
-                            submit    = options.submit,
-                            scenario  = options.scenario,
-                            mode      = options.mode,
-                            rebin     = options.rebin,
-                            unblind   = options.unblind 
+    
+    SlurmRunBayesianBlocks( outputDIR   = options.output, 
+                            bambooResDIR= options.input, 
+                            rebin       = options.rebin,
+                            era         = options.era,
+                            mode        = options.mode,
+                            submit      = options.submit,
+                            scenario    = options.scenario,
+                            unblind     = options.unblind 
                            )
