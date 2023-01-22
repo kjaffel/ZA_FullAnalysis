@@ -260,7 +260,7 @@ def no_extra_binedges(newEdges, oldEdges):
             if i == 0: 
                 cleanEdges.append(x)
             else:
-                if x - cleanEdges[-1] != 0.01:
+                if x - cleanEdges[-1] != 0.02:
                     cleanEdges.append(x)
                 else:
                     print(x, 'is a very narrow bin width will be removed ' )
@@ -271,15 +271,31 @@ def no_zero_binContents(nph, newEdges, crossNm):
     edges   = np.array(newEdges)
     newHist = nph.rebin(edges).fillHistogram(crossNm)
     np_newhist  = NumpyHist.getFromRoot(newHist)
-    
     if 0. in np_newhist.w:
         result  = np.where(np_newhist.w == 0.)
         result  = np.array(result)
-        result2 = np.where(result == 0, 1, result)
-        FinalEdges  = np.delete(edges, result2)
+        rm_idx  = np.where(result == 0, 1, result)
+        FinalEdges  = np.delete(edges, rm_idx)
         return  np.array(FinalEdges)
     else:
         return np.array(newEdges)
+
+
+def no_bins_empty_background_across_year(rf, histNm, newEdges, channel, crossNm):
+    correctedEdges = newEdges
+    logger.info(f'ULfullrun2 binning: {crossNm}, {correctedEdges}')
+    if correctedEdges.tolist()== [0.,1.]:
+        return correctedEdges
+    for era in ['UL16', 'UL17', 'UL18']:
+        rf_per_era = rf.replace('ULfullrun2', era)
+        if not os.path.exists(rf_per_era):
+            continue
+        inFile   = HT.openFileAndGet(rf_per_era)
+        hist     = inFile.Get(channel).Get(histNm)
+        nph = NumpyHist.getFromRoot(hist)
+        correctedEdges = no_zero_binContents(nph, correctedEdges, crossNm)
+        logger.info(f'{era} binning: {crossNm}, {correctedEdges}')
+    return correctedEdges
 
 
 def get_finalbins(hist, edges):

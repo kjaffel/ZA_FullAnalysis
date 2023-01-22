@@ -10,15 +10,20 @@ run_on='toys'     # choices : 'toys', 'asimov'
 
 unblind=true
 do_template=false
-normalize_histograms=true
-plot_on_log=true
 submit_to_slurm=true
+normalize_histograms=true 
+plot_on_log=true
 
-n=0
+n=1
 
 era='fullrun2'
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext5/chunk_'${n}'/'
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext5/chunk_'${n}'/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
+
+bambooDir='unblind_stage1_few_fullrun2/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext8/half/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext10/'
 
 #bambooDir='unblind_stage1_few_fullrun2/results/'
 #stageOut='hig-22-010/unblinding_stage1/'

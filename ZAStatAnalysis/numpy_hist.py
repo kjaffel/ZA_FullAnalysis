@@ -6,6 +6,8 @@ import logging
 
 from hist_interface import PythonInterface, CppInterface
 
+get_half = False
+
 class NumpyHist:
     """
         Helper class to perform perform transitions between ROOT histograms and their numpy contents
@@ -197,8 +199,9 @@ class NumpyHist:
             ax2 = ax2.astype(ax1.dtype)
         if ax1[0] != ax2[0]:
             raise RuntimeError("Axis first edge not matching : {} != {}".format(ax1[0],ax2[0]))
-        if ax1[-1] != ax2[-1]:
-            raise RuntimeError("Axis last edge not matching : {} != {}".format(ax1[-1],ax2[-1]))
+        if not get_half:
+            if ax1[-1] != ax2[-1]:
+                raise RuntimeError("Axis last edge not matching : {} != {}".format(ax1[-1],ax2[-1]))
         if np.any(ax1[:-1] > ax1[1:]):
             raise RuntimeError("Axis old edges not increasing : ["+",".join([str(ax1[i]) for i in range(ax1.shape[0])])+"]")
         if np.any(ax2[:-1] > ax2[1:]):
@@ -295,8 +298,9 @@ class NumpyHist:
             raise NotImplementedError
 
         # Safety checks #
-        self._checkTotal(self._w,nw,'content')
-        self._checkTotal(self._s2,ns2,'quadratic error')
+        if not get_half:
+            self._checkTotal(self._w,nw,'content')
+            self._checkTotal(self._s2,ns2,'quadratic error')
         # Return #
         return NumpyHist(ne,nw,ns2,self._name)
 
