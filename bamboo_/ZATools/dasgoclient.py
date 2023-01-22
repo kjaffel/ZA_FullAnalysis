@@ -177,6 +177,7 @@ if __name__ == "__main__":
                'TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8',
                # Zh
                'HZJ_HToWW_M-125', 
+               'ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8',
                'ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8', 
                'ggZH_HToBB_ZToNuNu_M-125_TuneCP5_13TeV-powheg-pythia8',
                # ggh, h ->(ll)Z(qq),
@@ -196,11 +197,12 @@ if __name__ == "__main__":
     
     
     do = 'chunk' # choices: 'full', 'chunk', 'HvsA'
-    rm_nlo    = False
+    chunk_of = 10
+    
+    rm_nlo          = False
     print_bambooCfg = True
 
     if do == 'chunk':
-        chunk_of = 10
         for n in range(chunk_of):
             chunk_of_points = utils.getSignalMassPoints_ver2(outdir, chunk=n, do=do, chunk_of=chunk_of)
             choosen_points  = chunk_of_points['HToZA']+chunk_of_points['AToZH']

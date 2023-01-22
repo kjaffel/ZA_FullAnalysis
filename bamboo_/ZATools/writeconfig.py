@@ -369,6 +369,9 @@ if __name__ == "__main__":
             outf.write("samples:\n")
             # =======================================================
             run = None
+            doSplitTT = True
+            subprocesses = ['tt', 'ttB']
+            subprocessesColors = ['#c4ffff', '#abb2b9']
             for i, smp in enumerate(inf):
                 
                 isMC     = False
@@ -407,11 +410,11 @@ if __name__ == "__main__":
                 
                 year = era.replace('20', '')
                 if  'VFP' in era :
-                    era_ = era.split('-')[0]
-                    VFP  = f"_UL16{era.split('-')[1]}"
+                    era_   = era.split('-')[0]
+                    newEra = f"_UL16{era.split('-')[1]}"
                 else:
-                    era_ = era
-                    VFP = f"_UL{year}"
+                    era_   =  era
+                    newEra = f"_UL{year}"
 
                 if issignal:
                     br_Ztoll = 0.067264
@@ -434,7 +437,7 @@ if __name__ == "__main__":
                         xsc  = given_mass['cross-section'][process]['NLO'].split()[0]
                         xsc_err  = given_mass['cross-section'][process]['NLO'].split()[2]
 
-                    Nm      = smpNm.replace('-','_')+VFP
+                    Nm      = smpNm.replace('-','_')+newEra
                     br      = br_HeavytoZlight * br_lighttobb * br_Ztoll
                     leg     = get_legend(process, comp, heavy, light, m_heavy, m_light, smpNm)
                     search  = smpNm
@@ -448,46 +451,78 @@ if __name__ == "__main__":
                             save_colors_forSignalGroup = { nm_s: color }
 
                 elif isdata:
-                    Nm = f'{smpNm}_UL{era_}{run}{VFP}'
+                    Nm = f'{smpNm}_UL{era_}{run}{newEra}'
                     run_range = run2_ranges[era][run]
-                    # FIXME make sure that this assumption is correct : means the certefication is the same for pre/post VFP
-                    cert = certification[era.split('-')[0]] 
+                    cert   = certification[era.split('-')[0]] 
                     split  = 20
                     search = smpNm
 
                 elif isMC:
                     Nm, group, xsc, uncer, legend, fill_color, order = get_mcNmConvention_and_group(smpNm)
-                    Nm = Nm + VFP
+                    Nm = Nm + newEra
                     split = 400
                     search = smpNm
-                    if group not in groups.keys(): 
-                        groups[group] = {}
-                        groups[group]['legend'] = legend
-                        groups[group]['fill_color'] = fill_color
-                        groups[group]['order'] = order
+                    if group == 'DY' and doSplitTT: 
+                        order = order+1 
+                    
+                    if group =='ttbar' and doSplitTT:
+                        for i, (sub_p, sub_c) in enumerate(zip(subprocesses, subprocessesColors)):
+                            if sub_p not in groups.keys():
+                                groups[sub_p] = {}
+                                groups[sub_p]['legend'] = sub_p
+                                groups[sub_p]['fill_color'] = sub_c
+                                groups[sub_p]['order'] = order+i
+                    else:
+                        if group not in groups.keys(): 
+                            groups[group] = {}
+                            groups[group]['legend'] = legend
+                            groups[group]['fill_color'] = fill_color
+                            groups[group]['order'] = order
                 
                 if str(smp) in merged_daspath:
                     continue
                 das__path, to_ignore = get_das_path(options.das, smp, search, era_, run, isdata, isMC, issignal)
                 merged_daspath.extend( to_ignore)
                 
-                outf.write(f"  {Nm}:\n")
-                outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
-                if not issignal:
-                    outf.write(f"    split: {split}\n")
-                outf.write(f"    era: '{era}'\n")
                 if isMC :
-                    outf.write(f"    group: {group}\n")
-                    outf.write("    type: mc\n")
-                    outf.write("    generated-events: 'genEventSumw'\n")
-                    outf.write(f"    cross-section: {xsc} # +/- {uncer} pb\n")
+                    if group =='ttbar'and doSplitTT:
+                        for sub_p in subprocesses:
+                            outf.write(f"  {Nm.replace(newEra, '_'+sub_p+newEra)}:\n")
+                            outf.write(f'    db: {das__path}\n'.replace("'" , ""))
+                            outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                            outf.write(f"    split: {split}\n")
+                            outf.write(f"    era: '{era}'\n")
+                            outf.write(f"    group: {sub_p}\n")
+                            outf.write(f"    subprocess: {sub_p}\n")
+                            outf.write("    type: mc\n")
+                            outf.write("    generated-events: 'genEventSumw'\n")
+                            outf.write(f"    cross-section: {xsc} # +/- {uncer} pb\n")
+                            outf.write("\n")
+                    else:
+                        outf.write(f"  {Nm}:\n")
+                        outf.write(f'    db: {das__path}\n'.replace("'" , ""))
+                        outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                        outf.write(f"    split: {split}\n")
+                        outf.write(f"    era: '{era}'\n")
+                        outf.write(f"    group: {group}\n")
+                        outf.write("    type: mc\n")
+                        outf.write("    generated-events: 'genEventSumw'\n")
+                        outf.write(f"    cross-section: {xsc} # +/- {uncer} pb\n")
                 elif isdata :
+                    outf.write(f"  {Nm}:\n")
+                    outf.write(f'    db: {das__path}\n'.replace("'" , ""))
+                    outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                    outf.write(f"    split: {split}\n")
+                    outf.write(f"    era: '{era}'\n")
                     outf.write("    group: data\n")
                     outf.write("    type: data\n")
                     outf.write(f"    run_range: {run_range}\n")
                     outf.write(f"    certified_lumi_file: {cert}\n")
                 elif issignal :
+                    outf.write(f"  {Nm}:\n")
+                    outf.write(f'    db: {das__path}\n'.replace("'" , ""))
+                    outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                    outf.write(f"    era: '{era}'\n")
                     outf.write("    type: signal\n")
                     outf.write(f"    prod: {process}\n")
                     outf.write("    generated-events: 'genEventSumw'\n")

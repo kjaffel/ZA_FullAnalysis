@@ -66,6 +66,7 @@ class NanoHtoZABase(NanoAODModule):
         self.doSkim           = self.args.skim
         self.doChunk          = self.args.chunk
         
+        self.doSplitTT              = True
         self.doEllipses             = False
         self.doPass_bTagEventWeight = True
         self.CleanJets_fromPileup   = False
@@ -154,11 +155,11 @@ class NanoHtoZABase(NanoAODModule):
         if self.isULegacy: nanoJetMETCalc_ = nanoJetMETCalc_var
         else: nanoJetMETCalc_ = nanoJetMETCalc_METFixEE2017 if era == "2017" else nanoJetMETCalc_var
         
-        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, 
         #tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, backend=backend,
-                                            description=NanoAODDescription.get("v7", year=(era if "VFP" not in era else "2016"), 
-                                                                               isMC=isMC, systVariations=[ nanoRochesterCalc, nanoJetMETCalc_, nanoFatJetCalc ]),
-                                            backend=self.args.backend ) 
+        tree,noSel,be,lumiArgs = NanoAODHistoModule.prepareTree(self, tree, sample=sample, sampleCfg=sampleCfg, 
+                                                                description=NanoAODDescription.get("v7", year=(era if "VFP" not in era else "2016"), 
+                                                                    isMC=isMC, systVariations=[ nanoRochesterCalc, nanoJetMETCalc_, nanoFatJetCalc ]),
+                                                                backend=self.args.backend ) 
         
         #############################################################
         # Ellipses :
@@ -374,7 +375,11 @@ class NanoHtoZABase(NanoAODModule):
             #    noSel = noSel.refine("genWeight", weight=tree.genWeight, 
             #                                      cut=[sampleCut, op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())) ], 
             #                                      autoSyst=self.doSysts)
-            #else:
+
+            if "subprocess" in sampleCfg and self.doSplitTT:
+                logger.info(f"Adding ttbar category cuts for {sampleCfg['subprocess']}")
+                noSel = utils.splitTTjetFlavours(sampleCfg, tree, noSel)
+            
             noSel = noSel.refine("genWeight", weight=tree.genWeight, 
                                               cut=(op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values()))), 
                                               autoSyst=self.doSysts)
@@ -426,7 +431,7 @@ class NanoHtoZABase(NanoAODModule):
         # Top pt reweighting 
         ##################################################
         if self.doTop_reweighting:
-            noSel, plt = corr.Top_reweighting(t, noSel, sampleCfg, isMC)
+            noSel, plt = corr.Top_reweighting(t, noSel, sampleCfg, isMC, doplots=False)
             #plots.extend(plt)
         
         ###############################################
@@ -534,8 +539,8 @@ class NanoHtoZABase(NanoAODModule):
         eta    = 2.4 if '2016' in era else 2.5
         pt     = 20. if '2016' in era else 30.
 
-        jet_ID = { '2016-preVFP' : lambda j : j.jetId & 2, # FIXME move to 4 but please test first : tight Lep Veto
-                   '2016-postVFP': lambda j : j.jetId & 2,
+        jet_ID = { '2016-preVFP' : lambda j : j.jetId & 4, # 2 for 2016 FIXME move to 4 but please test first : tight Lep Veto
+                   '2016-postVFP': lambda j : j.jetId & 4,
                    '2017'        : lambda j : j.jetId & 4,
                    '2018'        : lambda j : j.jetId & 4}
         
@@ -1012,7 +1017,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots    = False
+        make_FinalSelControlPlots       = False
         make_EllipsesforCombinedLimits  = self.doEllipses
         
         # plots for the studies
@@ -1433,9 +1438,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         nm     = 'Z%s'%Light
                                         
                                         #masses_seen_forEvaluation = [(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)]
-                                        #masses_seen_forEvaluation = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
                                         #masses_seen_forEvaluation = [(250., 50.), (500., 50.), (500., 300.), (250., 125.), (800., 200.)]
-                                        masses_seen_forEvaluation = dict_allmasspoints[mode]
+                                        EXTRA = []
+                                        if mode == 'HToZA':
+                                            EXTRA = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
+                                        masses_seen_forEvaluation  = dict_allmasspoints[mode] + EXTRA
                                         signal_grid = { 'seen_byDNN'   : set(masses_seen_forEvaluation),
                                                         'notseen_byDNN': set(masses_notseen) }
                                     

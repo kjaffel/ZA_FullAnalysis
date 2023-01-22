@@ -367,9 +367,9 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, saveQCDScaleEn
     if qcdScale:
         if hasattr(tree, "LHEScaleWeight"):
             if plotter.qcdScaleVarMode == "separate":
-                noSel = noSel.refine("qcdMuF", weight=op.systematic(op.c_float(1.), name="qcdMuF", up=tree.LHEScaleWeight[3], down=tree.LHEScaleWeight[5]))
-                noSel = noSel.refine("qcdMuR", weight=op.systematic(op.c_float(1.), name="qcdMuR", up=tree.LHEScaleWeight[1], down=tree.LHEScaleWeight[7]))
-                noSel = noSel.refine("qcdMuRF", weight=op.systematic(op.c_float(1.), name="qcdMuRF", up=tree.LHEScaleWeight[0], down=tree.LHEScaleWeight[8]))
+                noSel = noSel.refine("qcdMuF", weight=op.systematic(op.c_float(1.), name="qcdMuF", up=tree.LHEScaleWeight[5], down=tree.LHEScaleWeight[3]))
+                noSel = noSel.refine("qcdMuR", weight=op.systematic(op.c_float(1.), name="qcdMuR", up=tree.LHEScaleWeight[7], down=tree.LHEScaleWeight[1]))
+                noSel = noSel.refine("qcdMuRF", weight=op.systematic(op.c_float(1.), name="qcdMuRF", up=tree.LHEScaleWeight[8], down=tree.LHEScaleWeight[0]))
             elif plotter.qcdScaleVarMode == "combined":
                 qcdScaleVariations = { f"qcdScalevar{i}": tree.LHEScaleWeight[i] for i in [0, 1, 3, 5, 7, 8] }
                 qcdScaleSyst = op.systematic(op.c_float(1.), name="qcdScale", **plotter.qcdScaleVariations)
@@ -382,11 +382,11 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, saveQCDScaleEn
     
     if hasattr(tree, "PSWeight"):
         if PSISR:
-            psISRSyst = op.systematic(op.c_float(1.), name="psISR", up=tree.PSWeight[2], down=tree.PSWeight[0])
+            psISRSyst = op.systematic(op.c_float(1.), name="psISR", up=tree.PSWeight[0], down=tree.PSWeight[2])
             noSel = noSel.refine("psISR", weight=psISRSyst)
         
         if PSFSR:
-            psFSRSyst = op.systematic(op.c_float(1.), name="psFSR", up=tree.PSWeight[3], down=tree.PSWeight[1])
+            psFSRSyst = op.systematic(op.c_float(1.), name="psFSR", up=tree.PSWeight[1], down=tree.PSWeight[3])
             noSel = noSel.refine("psFSR", weight=psFSRSyst)
     else:
         logger.warning("PSWeight not present in tree, PS ISR and PS FSR systematics will not be added")
@@ -428,17 +428,24 @@ def addTheorySystematics(plotter, sample, sampleCfg, tree, noSel, saveQCDScaleEn
     return noSel
 
 
+def ttJetFlavCuts(subProc, tree):
+    if subProc == "ttbb":
+        return (tree.genTtbarId % 100) >= 53
+    if subProc == "ttb":
+        return op.in_range(50, tree.genTtbarId % 100, 53)
+    if subProc == "ttcc":
+        return op.in_range(40, tree.genTtbarId % 100, 46)
+    if subProc == "ttjj":
+        return (tree.genTtbarId % 100) < 41
+    if subProc == "tt":
+        return (tree.genTtbarId % 100) <= 50
+    if subProc == "ttB":
+        return (tree.genTtbarId % 100) >= 51
+
+
 def splitTTjetFlavours(cfg, tree, noSel):
     subProc = cfg["subprocess"]
-    if subProc == "ttbb":
-        noSel = noSel.refine(subProc, cut=(tree.genTtbarId % 100) >= 52)
-    elif subProc == "ttbj":
-        noSel = noSel.refine(subProc, cut=(tree.genTtbarId % 100) == 51)
-    elif subProc == "ttcc":
-        noSel = noSel.refine(subProc, cut=op.in_range(40, tree.genTtbarId % 100, 46))
-    elif subProc == "ttjj":
-        noSel = noSel.refine(subProc, cut=(tree.genTtbarId % 100) < 41)
-    return noSel
+    return noSel.refine(subProc, cut=ttJetFlavCuts(subProc, tree))
 
 
 def normalizeAndMergeSamplesForCombined(plots, counterReader, config, inDir, outPath):

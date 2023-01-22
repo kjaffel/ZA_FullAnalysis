@@ -557,14 +557,13 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
         #                                                                            )
 
         
-def Top_reweighting(t, noSel, sampleCfg, isMC):
+def Top_reweighting(t, noSel, sampleCfg, isMC, doplots=False):
     # https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf
     # TODO for 2016 there's diffrents SFs and in all cases you should produce your own following
     # https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Use_case_3_ttbar_MC_is_used_to_m 
     binScaling = 1
     plots = []  
-    # no ST
-    if isMC and "group" in sampleCfg.keys() and sampleCfg["group"] in ['ttbar', 'ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
+    if isMC and "group" in sampleCfg.keys() and sampleCfg["group"] in ['ttbar', 'tt', 'ttB', 'ttbar_FullLeptonic', 'ttbar_SemiLeptonic', 'ttbar_FullHadronic']:
         
         gen_top     = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId== 6))
         gen_antitop = op.select(t.GenPart, lambda gp : op.AND((gp.statusFlags & (0x1<<13)), gp.pdgId==-6))
@@ -576,33 +575,35 @@ def Top_reweighting(t, noSel, sampleCfg, isMC):
         forceDefine(gen_top_pt, noSel)
         forceDefine(gen_antitop_pt, noSel)
     
-        plots.append(Plot.make1D("gen_ToppT_noReweighting", gen_top_pt, noSel, EqB(60 // binScaling, 0., 1000.), title="gen Top p_{T} [GeV]"))
+        if doplots:
+            plots.append(Plot.make1D("gen_ToppT_noReweighting", gen_top_pt, noSel, EqB(60 // binScaling, 0., 1000.), title="gen Top p_{T} [GeV]"))
     
-       #scalefactor = lambda t : op.exp(-2.02274e-01 + 1.09734e-04*t.pt -1.30088e-07*t.pt**2 + (5.83494e+01/(t.pt+1.96252e+02)))
-       #scalefactor = lambda t : 0.103*op.exp(-0.0118*t.pt)-0.000134*t.pt+0.973
-        scalefactor = lambda t : op.exp(0.0615-0.0005*t.pt)
-        top_weight  = lambda top, antitop : op.sqrt(scalefactor(top)*scalefactor(antitop))
+        #scalefactor = lambda t : op.exp(-2.02274e-01 + 1.09734e-04*t.pt -1.30088e-07*t.pt**2 + (5.83494e+01/(t.pt+1.96252e+02)))
+        #scalefactor = lambda t : 0.103*op.exp(-0.0118*t.pt)-0.000134*t.pt+0.973
+        scalefactor  = lambda t : op.exp(0.0615-0.0005*t.pt)
+        top_weight   = lambda top, antitop : op.sqrt(scalefactor(top)*scalefactor(antitop))
         
-        #Sel_with_top_reWgt = noSel.refine("top_reweighting", weight=top_weight(gen_top[0], gen_antitop[0]))
         getTopPtWeight      = top_weight(gen_top[0], gen_antitop[0])
-        Sel_with_top_reWgt  = noSel.refine("TopPt_reweighting", weight=op.systematic(op.c_float(1.), TopPt_reweighting=getTopPtWeight))
+        Sel_with_top_reWgt  = noSel.refine("TopPt_reweighting", weight=op.systematic(op.c_float(1.), name="TopPt_reweighting", up=getTopPtWeight, down=op.c_float(1.)))
 
         forceDefine(gen_top_pt, Sel_with_top_reWgt)
         forceDefine(gen_antitop_pt, Sel_with_top_reWgt)
         
-        plots.append(Plot.make1D("gen_ToppT_withReweighting", gen_top_pt, 
-            Sel_with_top_reWgt, EqB(60 // binScaling, 0., 1000.), 
-            title="rewighted gen Top p_{T} [GeV]")) 
-    else: # those are default, otherwise plotit will complain , and you get no plots 
-        plots.append(Plot.make1D("gen_ToppT_noReweighting", op.c_int(0), 
-            noSel, EqB(60 // binScaling, 0., 1000.), 
-            title="gen Top p_{T} [GeV]"))
-        plots.append(Plot.make1D("gen_ToppT_withReweighting", op.c_int(0), 
-            noSel, EqB(60 // binScaling, 0., 1000.), 
-            title="rewighted gen Top p_{T} [GeV]")) 
-        Sel_with_top_reWgt = noSel
-
-    return Sel_with_top_reWgt, plots
+        if doplots:
+            plots.append(Plot.make1D("gen_ToppT_withReweighting", gen_top_pt, 
+                Sel_with_top_reWgt, EqB(60 // binScaling, 0., 1000.), 
+                title="rewighted gen Top p_{T} [GeV]")) 
+        return Sel_with_top_reWgt, plots
+    else: 
+        # those are default, otherwise plotit will complain , and you get no plots 
+        if doplots:
+            plots.append(Plot.make1D("gen_ToppT_noReweighting", op.c_int(0), 
+                noSel, EqB(60 // binScaling, 0., 1000.), 
+                title="gen Top p_{T} [GeV]"))
+            plots.append(Plot.make1D("gen_ToppT_withReweighting", op.c_int(0), 
+                noSel, EqB(60 // binScaling, 0., 1000.), 
+                title="rewighted gen Top p_{T} [GeV]")) 
+        return noSel, plots
 
 
 def DrellYanreweighting(noSel, j, tagger, era, doSysts):
