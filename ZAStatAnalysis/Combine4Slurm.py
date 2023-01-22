@@ -28,21 +28,8 @@ def SlurmCombine(cardDir, outDir, time, mem_per_cpu, isTest):
         if isTest and i!=0:
             continue
         m = inF.split('/')[-2]
-       # if not m in ['MH-800.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MH-800.0_MA-200.0', 'MH-650.0_MA-50.0']:
-       #     continue
-       # if not script in [
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_dnn_MH_500.0_MA_300.0_run_goodness_of_fit.sh", 
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_MH_500.0_MA_300.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_MH_510.0_MA_130.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_dnn_MH_510.0_MA_130.0_run_goodness_of_fit.sh", 
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_MH_510.0_MA_130.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_dnn_MH_510.0_MA_130.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh",
-       #         "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_OSSF_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh",
-       #         ]:
-       # continue
+        #if not m in ['MH-800.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MH-800.0_MA-200.0', 'MH-650.0_MA-50.0']:
+        #    continue
         config.inputParams.append([cmssw, dir, script])
     config.payload = \
         """

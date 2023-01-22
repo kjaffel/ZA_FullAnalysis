@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2016'                     
+era='fullrun2'                     
 #choices: '2016' , '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='generate_toys'
+do_what='fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -34,24 +34,29 @@ normalize=true
 scale=false
 x_branchingratio=false
 splitJECs=true
-splitLep=true          # by default bbH and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
+splitLep=true          # by default bbH, nb3 and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
 FixbuggyFormat=false   # won't be needed soon 
-rm_nlo_bbH_signal=false # as the name sugested won't process bbh signal samples @nlo  
+rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
 sbatch_time='3-24:59:00'
 sbatch_memPerCPU='15000' #7000
 
-n=0
+n=1
 
-#bambooDir='unblind_stage1_few_fullrun2/results/'
+bambooDir='unblind_stage1_few_fullrun2/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext1/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext2/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext3/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext4_remove_qcd_uncer/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext5/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext6/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext8/half/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext11/'
 
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext5/chunk_'${n}'/'
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
 
 #bambooDir='ul_run2__ver19/results/'
 #stageOut='hig-22-010/datacards_nosplitJECs/'
@@ -129,8 +134,8 @@ if $FixbuggyFormat; then
 fi
 
 
-if $rm_nlo_bbH_signal; then
-    plus_args+=' --rm_nlo_bbH_signal'
+if $rm_mix_lo_nlo_bbH_signal; then
+    plus_args+=' --rm_mix_lo_nlo_bbH_signal'
 fi
 
 
@@ -170,7 +175,7 @@ echo "running ${do_what} post-processing step with the following arguments : " $
 # generate toys data only 
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
-    ./prepareShapesAndCards.py --era fullrun2 -i $bambooDir -o $stageOut/work__ULfullrun2 --dataset toys --mode $mode --method generatetoys --stat $plus_args
+    ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
     #./run_combine_${mode}_generatetoys.sh
 fi
 

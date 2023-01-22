@@ -19,7 +19,7 @@ logger = Constants.ZAlogger(__name__)
 splitJECs = True
 splitLep  = False
 FixbuggyFormat = False
-rm_nlo_bbH_signal= True
+rm_mix_lo_nlo_bbH_signal= True
 
 def openFileAndGet(path, mode="read"):
     """Open ROOT file in a mode, check if open properly, and return TFile handle."""
@@ -70,7 +70,7 @@ def matching_proc(p,s):
 
     
 def symmetrise_smooth_syst(chob,syst):
-  if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j")): 
+  if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j") or syst.name().startswith("QCD")): 
       chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: symm_and_smooth(syst,x) if (matching_proc(x,syst)) else None)
       chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: checkSizeOfShapeEffect(syst,x) if (matching_proc(x,syst)) else None)# doesn't do much, just helps the fit to converge faster
 
@@ -191,7 +191,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         #'btagSF_deepCSV_subjet_fixWP_heavy' : "CMS_btag_subjet_heavy_%s"%era,
         #'btagSF_deepJet_fixWP_light'        : "CMS_btag_light_%s"%era,
         #'btagSF_deepJet_fixWP_heavy'        : "CMS_btag_heavy_%s"%era,
-        'unclustEn'                         : "CMS_UnclusteredEn_%s"%era,        
+        'unclustEn'                         : "CMS_UnclusteredEn_%s"%newEra,        
         'jesHEMIssue'                       : "CMS_HEM_%s"%era, 
         'HLTZvtx'                           : "CMS_HLTZvtx_%s"%era,
         'elel_trigSF'                       : "CMS_elel_trigSF_%s"%newEra,
@@ -270,8 +270,8 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
     if cat is not None:
         flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal=multi_signal)
     
-    muel  = [ 'elmu_trigSF', 'muel_trigSF', 'mu_trigger']
-    mumu  = [ 'muid_medium', 'mumu_trigSF', 'muiso_tight', 'mu_trigger']
+    muel  = [ 'elmu_trigSF', 'muel_trigSF']
+    mumu  = [ 'muid_medium', 'mumu_trigSF', 'muiso_tight', 'mu_reco']
     elel  = [ 'elid_medium', 'lowpt_ele_reco', 'elel_trigSF', 'highpt_ele_reco']
     ll    = [ 'mumu_trigSF', 'elel_trigSF']
 
@@ -284,19 +284,25 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
                 continue
             if not '__' in key.GetName():
                 continue
-            if not 'down' in key.GetName():
+            if not 'down' in key.GetName(): # or up doesn't matter
                 continue
 
-            syst = key.GetName().split('__')[1].replace('up','').replace('down','')
-            syst = syst.replace('pile', 'pileup')
+            syst = key.GetName().split('__')[1].replace('down','')
             
             if   flavor == 'MuMu': avoid += elel + muel 
-            elif flavor == 'ElEl': avoid += mumu + muel 
+            elif flavor == 'ElEl': avoid += mumu + muel +['mu_trigger']
             elif flavor == 'OSSF': avoid += muel 
             else: avoid += ll
-            
+           
+            if syst.startswith('DYweight_'):
+                if flavor in ['MuEl', 'ElMu']:
+                    avoid += [syst]
+                elif flavor in ['MuMu', 'ElEl']:
+                    if not flavor.lower() in syst:
+                        avoid += [syst]
+
             if reg == 'boosted':
-                avoid += [ 'DYweight_resolved_', 'jer'] # 'btagSF_deepJet_fixWP'
+                avoid += [ 'DYweight_resolved_', 'jer']
                 avoid += [ 'Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample', 'jesTotal']
             elif reg == 'resolved':
                 avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
@@ -304,7 +310,8 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
                     avoid += ['jesTotal']
                 else:
                     avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
-            
+                    
+            avoid = list(set(avoid))
             if syst not in systematics:
                 if not any(x in syst for x in avoid):
                     systematics.append(syst)
@@ -537,7 +544,10 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
     if smp:
         # do not propagate DYrewigthing to non DY samples !
         if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
-            return True 
+            return True
+        # do not propagate top pt reweighting to non ttbar samples
+        if not any( smp.startswith(x) for x in ['TTToSemiLeptonic', 'TTTo2L2Nu', 'TTToHadronic']) and s=='TopPt_reweighting':
+            return True
     
         if 'postVFP' in smp and 'preVFP' in s: 
             return True 
@@ -552,8 +562,8 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
         return True
     if 'lightEff' in s:
         return True
-    if 'UnclusteredEn' in s: # this vars is very small and causes problem in the fit
-        return True
+    #if 'CMS_UnclusteredEn' in s: # this vars is very small and causes problem in the fit
+    #    return True
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
@@ -653,6 +663,20 @@ def get_keys(cat, multi_signal=False):
     return flavor, reg, reco, prod, taggerWP
 
 
+def remove_mix_lo_nlo_bbH(local_process_files):
+    all_={'lo': [], 'nlo':[]}
+    for f in local_process_files:
+        if '_amcatnlo_' in f:
+            all_['nlo'].append(f)
+        else:
+            all_['lo'].append(f)
+
+    for f in all_['nlo']:
+        if f.replace('_amcatnlo_', '_madgraph_') in all_['lo']:
+            local_process_files.remove(f)
+    return local_process_files
+
+
 def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, tanbeta, _2POIs_r=False, multi_signal=False, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
@@ -694,7 +718,11 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             if len(local_process_files) == 0:
                 logger.warning("Warning: regular expression {} do not match any file".format(path))
                 #continue
-            process_files += local_process_files
+            if type(process) is tuple and rm_mix_lo_nlo_bbH_signal and (process[0].startswith('bbA_') or process[0].startswith('bbH_')):
+                process_files += remove_mix_lo_nlo_bbH(local_process_files)
+            else:
+                process_files += local_process_files
+        
         processes_files[process] = process_files
         print( processes_files[process], process, '*** \n')
         if type(process) is tuple:

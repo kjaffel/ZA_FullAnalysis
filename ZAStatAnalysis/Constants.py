@@ -197,7 +197,7 @@ def getLuminosity(era):
     elif era == '2018':
         lumi = 59740.565201546  
     elif era == 'fullrun2':
-        lumi = 138000.
+        lumi = 138000
     return lumi # pb
 
 
@@ -291,7 +291,7 @@ def add_autoMCStats(datacard, threshold=100, include_signal=0, hist_mode=1):
             channels = line.split()
             break
     channels.remove( 'bin')
-    
+    print( channels ) 
     add_autoMCStats = ""
     for channel in channels:
         add_autoMCStats +="{} autoMCStats {} {} {}\n".format(channel, threshold, include_signal, hist_mode)
