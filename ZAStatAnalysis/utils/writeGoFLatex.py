@@ -6,7 +6,13 @@ import os, os.path, sys
 
 def print_table(_res, LatexF, heavy, light, m_heavy, m_light):
     
-    sys.stdout = open(LatexF, "w+")
+    # we need this to restore our sys.stdout later on
+    org_stdout = sys.stdout
+    # we open a file
+    f = open(LatexF, "w+")
+    # we redirect standard out to the file
+    sys.stdout = f
+    
     print(R"% Please add the following required packages to your document preamble:")
     print(R"% \usepackage{multirow}")
     print(R"% \usepackage{graphicx}")
@@ -96,20 +102,23 @@ def print_table(_res, LatexF, heavy, light, m_heavy, m_light):
     print(R"\end{tabular}%")
     print(R"}")
     print(R"\end{table}")
-
+    sys.stdout = org_stdout
+    f.close()
     return 
 
 
 
+#path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test_with_toysFrequentist/dnn/2POIs_r" 
+path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext11/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
 
-
-path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test_with_toysFrequentist/dnn/2POIs_r" 
 flavors   = ['ElEl', 'MuMu', 'MuEl', 'OSSF', 'OSSF_MuEl', 'split_OSSF', 'split_OSSF_MuEl', 'MuMu_ElEl', 'MuMu_ElEl_MuEl', 'MuMu_MuEl', 'ElEl_MuEl']
 regions   = ['resolved', 'boosted' , 'resolved_boosted']
 reco      = ['nb2', 'nb2PLusnb3', 'nb3']
 
-for p in glob.glob(os.path.join(path, 'M*')):
-    m = p.split('/')[-1]
+
+print( glob.glob(os.path.join(path, 'M*')) )
+for gof in glob.glob(os.path.join(path, 'M*')):
+    m = gof.split('/')[-1]
     
     heavy = m.split('-')[0].replace('M','')
     light = 'A' if heavy =='H' else 'H'
@@ -117,10 +126,8 @@ for p in glob.glob(os.path.join(path, 'M*')):
     m_heavy = float(m.split('_')[0].split('-')[-1])
     m_light = float(m.split('_')[-1].split('-')[-1])
 
-    p = os.path.join(p, 'saturated')
-   
-    if not m =='MH-650.0_MA-50.0':
-        continue
+    #if not m =='MH-650.0_MA-50.0':
+    #    continue
 
     _res = {}
     for nb in reco:
@@ -161,7 +168,6 @@ for p in glob.glob(os.path.join(path, 'M*')):
                         
                         if any(x in jsF for x in others):
                             continue
-                        
                         
                         openF  = open(f)
                         data   = json.load(openF)

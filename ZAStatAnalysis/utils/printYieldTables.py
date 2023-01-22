@@ -16,6 +16,7 @@ parser.add_argument('--fit_file',   '-f', help='Input file')
 parser.add_argument('--fit',              help='b-only fit or s+b fit ??', choices=['fit_s', 'fit_b'])
 parser.add_argument('--bin',        '-b', help='bin name')
 parser.add_argument('--signal',     '-s', help='signal name')
+parser.add_argument('--outdir',     '-o', help='output directory', default='YieldTables')
 
 
 args = parser.parse_args()
@@ -104,7 +105,9 @@ column = getColumnName(args.workspace)
 print 'Pre-fit tables:\n\n'
 preFit_LatexTab = PrintTables(cmb, fbin, signal_process, column, tuple())
 
-saveFile1 = os.path.join('YieldTables', args.workspace.split('_combine_workspace.root')[0]+'_%s_preFit.tex'%args.fit)
+LF =  args.workspace.split('/')[0].split('_combine_workspace.root')[0]
+
+saveFile1 = os.path.join(args.outdir, LF+'_%s_preFit.tex'%args.fit)
 with open(os.path.join(saveFile1), 'w+') as f_:
     f_.write(preFit_LatexTab)
 
@@ -113,6 +116,6 @@ cmb.UpdateParameters(rfr)
 print 'Post-fit tables:\n\n'
 postFit_LatexTab = PrintTables(cmb, fbin, signal_process, column, (rfr, 500))
 
-saveFile2 = os.path.join('YieldTables', args.workspace.split('_combine_workspace.root')[0]+'_%s_postFit.tex'%args.fit)
+saveFile2 = os.path.join(args.outdir, LF+'_%s_postFit.tex'%args.fit)
 with open(os.path.join(saveFile2), 'w+') as f_:
     f_.write(postFit_LatexTab)
