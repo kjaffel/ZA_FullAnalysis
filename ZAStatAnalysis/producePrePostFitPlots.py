@@ -20,45 +20,46 @@ def CopyTH1F_to_TH1D(hist):
 
 
 def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
-    for rf in  glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', '*.root')):
-        cat    = rf.split('/')[-2]
-        smp    = rf.split('/')[-1]
-        p_out  = rf.split(smp)[0]
-        
-        outdir = os.path.join(p_out, 'reshaped')
-        if not os.path.isdir(outdir):
-            os.makedirs(outdir)
+    
+    for fit in ['fit_s', 'fit_b']:
+        for rf in  glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', fit, '*.root')):
+            cat    = rf.split('/')[-2]
+            smp    = rf.split('/')[-1]
+            p_out  = rf.split(smp)[0]
+            
+            outdir = os.path.join(p_out, 'reshaped')
+            if not os.path.isdir(outdir):
+                os.makedirs(outdir)
 
-        if smp == 'plots.root':
-            continue
-        #if 'MH-750_MA-610' in p_out: # those ponit have problem width < 0.
-        #    continue
-        #if 'MH-800_MA-400' in p_out:
-        #    continue
-        
-        inFile  = HT.openFileAndGet(rf)
-        outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
-        for hk in inFile.GetListOfKeys():
-            
-            cl = ROOT.gROOT.GetClass(hk.GetClassName())
-            if not cl.InheritsFrom("TH1"):
+            if smp == 'plots.root':
                 continue
-            histNm = hk.ReadObj().GetName()
-            hk.ReadObj().SetDirectory(0)
-            
-            hist  = hk.ReadObj()
-            #hist = CopyTH1F_to_TH1D(hk.ReadObj())
-            nph = NumpyHist.getFromRoot(hist)
-            #nph.setUnitaryBinWidth()
-            nph.divideByBinWidth()
-            newHist = nph.fillHistogram(hist.GetName())
-            newHist.SetDirectory(0) 
-            
-            outFile.cd()
-            newHist.Write()
-        inFile.Close()
-        outFile.Close()
-        #print( "============="*10)
+            if smp.startswith('fit_shapes_'):
+                continue
+
+            inFile  = HT.openFileAndGet(rf)
+            outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
+            for hk in inFile.GetListOfKeys():
+                
+                cl = ROOT.gROOT.GetClass(hk.GetClassName())
+                if not cl.InheritsFrom("TH1"):
+                    continue
+                histNm = hk.ReadObj().GetName()
+                hk.ReadObj().SetDirectory(0)
+                
+                hist  = hk.ReadObj()
+                #hist = CopyTH1F_to_TH1D(hk.ReadObj())
+                
+                nph = NumpyHist.getFromRoot(hist)
+                #nph.setUnitaryBinWidth()
+                nph.divideByBinWidth()
+                newHist = nph.fillHistogram(hist.GetName())
+                newHist.SetDirectory(0) 
+                
+                outFile.cd()
+                newHist.Write()
+            inFile.Close()
+            outFile.Close()
+            #print( "============="*10)
 
 
 def ProcessHistograms( hist):
@@ -184,7 +185,6 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
         re       = 'reshaped' if reshape else ''
         lumi     = Constants.getLuminosity(era)
         hist_nm  = Constants.get_Nm_for_runmode( mode)
-        lumi     = ("%.2f" %lumi).replace('.00', '.')
         
         xmax_dict= {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
         channels = {
@@ -199,85 +199,92 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     'MuMu_ElEl_MuEl': r'($\mu\mu$ + ee) + $\mu e$',
                     }
         
-        plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', re))
         for fit in ['prefit', 'postfit']:
-            for cat_path in plotit_histos:
+            for fit_what in ['fit_s', 'fit_b']:
                 
-                split_path = cat_path.split('/')
-                if '' in split_path: split_path.remove('')
+                plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re))
                 
-                if any(x in split_path for x in ['MuMu_ElEl', 'MuMu_MuEl', 'ElEl_MuEl', 'OSSF_MuEl', 'MuMu_ElEl_MuEl']):
-                    continue # this is need to be taken care here convertPrePostfitShapesForPlotIt.py TODO
-                if reshape: p_out = split_path[-2]
-                else: p_out = split_path[-1]
-               
-                output = cat_path.split()[-1]
-                os.chdir(os.path.join(base, cat_path.split(output)[0]))
-                os.getcwd()
+                for cat_path in plotit_histos:
+                    
+                    split_path = cat_path.split('/')
+                    if '' in split_path: split_path.remove('')
+                    
+                    if any(x in split_path for x in ['MuMu_ElEl', 'MuMu_MuEl', 'ElEl_MuEl', 'OSSF_MuEl', 'MuMu_ElEl_MuEl']):
+                        print('sorry, merged categories are not supported...')
+                        continue # this is need to be taken care here convertPrePostfitShapesForPlotIt.py TODO
+                    
+                    if reshape: p_out = split_path[-3]
+                    else: p_out = split_path[-2]
+                   
+                    output = cat_path.split()[-1]
+                    os.chdir(os.path.join(base, cat_path.split(output)[0]))
+                    os.getcwd()
+                    
+                    prod       = p_out.split('_')[1] +'_'+p_out.split('_')[2]
+                    flavor     = channels[p_out.split('_')[-1]]
+                    region     = p_out.split('_')[-2]
+                    reco       = p_out.split('_')[-3]
+                    params     = cat_path.split('/plotIt_')[0].split('/')[-1].split('_')
+                    heavy      = params[0].split('-')[0].replace('M', '')
+                    light      = params[1].split('-')[0].replace('M', '')
+                    process    = 'gg%s'%heavy if 'gg_fusion' in p_out else 'bb%s'%heavy
+                    m_heavy    = '%.2f'%float(params[0].split('-')[1])
+                    m_light    = '%.2f'%float(params[1].split('-')[1])
+                    m_heavy    = m_heavy.replace('.00', '')
+                    m_light    = m_light.replace('.00', '')
+                    x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode}'
+                    x_max      = xmax_dict[mode]
+                    signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
+                    tb         = float(tb_dir.split('_')[1]) if tb_dir !='' else None
 
-                prod       = p_out.split('_')[1] +'_'+p_out.split('_')[2]
-                flavor     = channels[p_out.split('_')[5]]
-                region     = p_out.split('_')[4]
-                reco       = p_out.split('_')[3]
-                params     = cat_path.split('/')[-3].split('_')
-                heavy      = params[0].split('-')[0].replace('M', '')
-                light      = params[1].split('-')[0].replace('M', '')
-                process    = 'gg%s'%heavy if 'gg_fusion' in p_out else 'bb%s'%heavy
-                m_heavy    = '%.2f'%float(params[0].split('-')[1])
-                m_light    = '%.2f'%float(params[1].split('-')[1])
-                m_heavy    = m_heavy.replace('.00', '')
-                m_light    = m_light.replace('.00', '')
-                x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode}'
-                x_max      = xmax_dict[mode]
-                signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
-                tb         = float(tb_dir.split('_')[1]) if tb_dir !='' else None
-
-                if tb is None:
-                    tb = 1.5 if 'gg_fusion' in p_out else 20.
-                xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
-                
-                with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
-                    with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
-                        for line in inf:
-                            if '    blinded-range: [0.6, 1.0]' in line:
-                                outf.write("{}    blinded-range: [0.6, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
-                            elif '    x-axis:' in line:
-                                outf.write(f"    x-axis: {x_axis}\n")
-                            elif '  root: myroot_path' in line:
-                                outf.write(f"  root: {output}\n")
-                            elif '  luminosity: mylumi' in line:
-                                outf.write(f"  luminosity: {lumi}\n")
-                            elif 'signal-prod_fit-type_histos.root:' in line:
-                                outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
-                                #outf.write("{}\n".format(line.replace('signal-prod', 'HToZATo2L2B').replace('fit-type', fit)))
-                            elif 'fit-type' in line:
-                                outf.write("{}\n".format(line.replace('fit-type', fit)))
-                            elif '    legend: mysignal' in line:
-                                outf.write(f"    legend: '{signal_smp}'\n")
-                            elif '    Branching-ratio: ' in line:
-                                outf.write(f"    Branching-ratio: {br}\n")
-                            elif '      text: mychannel' in line:
-                                outf.write(f"      text: {reco}-{region}, {flavor}\n")
-                            elif '  histo-name:' in line:
-                                outf.write(f"  {hist_nm}_{fit}:\n")
-                            elif '    - x_max' in line:
-                                outf.write(f"    - {x_max}\n")
-                            #elif 'Label1' in line:
-                            #    outf.write("        - {text: '%s -%s', position: [0.22, 0.895], size: 20}\n"%(reco, region))
-                            #elif 'Lable2' in line:
-                            #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
-                            else:
-                                outf.write(line)
-                
-                plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", output, "--", f"{output}/{fit}_plots.yml"]
-                try:
-                    logger.info("running {}".format(" ".join(plotitCmd)))
-                    subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
-                    print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}.png')
-                    print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}_logy.png')
-                except subprocess.CalledProcessError:
-                    logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-            os.chdir(base)
+                    if tb is None:
+                        tb = 1.5 if 'gg_fusion' in p_out else 20.
+                    xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
+                    
+                    with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
+                        with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
+                            for line in inf:
+                                if 'luminosity-label' in line:
+                                    if era =='fullrun2':
+                                        outf.write("  luminosity-label: '%1$.0f fb^{-1} (13 TeV)'\n")
+                                elif '    blinded-range:' in line:
+                                    outf.write("{}    blinded-range: [0.7, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
+                                elif '    x-axis:' in line:
+                                    outf.write(f"    x-axis: {x_axis}\n")
+                                elif '  root: myroot_path' in line:
+                                    outf.write(f"  root: {output}\n")
+                                elif '  luminosity: mylumi' in line:
+                                    outf.write(f"  luminosity: {lumi}\n")
+                                elif 'signal-prod_fit-type_histos.root:' in line:
+                                    outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
+                                elif 'fit-type' in line:
+                                    outf.write("{}\n".format(line.replace('fit-type', fit)))
+                                elif '    legend: mysignal' in line:
+                                    outf.write(f"    legend: '{signal_smp}'\n")
+                                elif '    Branching-ratio: ' in line:
+                                    outf.write(f"    Branching-ratio: {br}\n")
+                                elif '      text: mychannel' in line:
+                                    outf.write(f"      text: {reco}-{region}, {flavor}\n")
+                                elif '  histo-name:' in line:
+                                    outf.write(f"  {hist_nm}_{fit}:\n")
+                                elif '    - x_max' in line:
+                                    outf.write(f"    - {x_max}\n")
+                                #elif 'Label1' in line:
+                                #    outf.write("        - {text: '%s -%s', position: [0.22, 0.895], size: 20}\n"%(reco, region))
+                                #elif 'Lable2' in line:
+                                #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
+                                else:
+                                    outf.write(line)
+                    
+                    plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", output, "--", f"{output}/{fit}_plots.yml"]
+                    try:
+                        logger.info("running {}".format(" ".join(plotitCmd)))
+                        subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
+                        print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}.png')
+                        print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}_logy.png')
+                    except subprocess.CalledProcessError:
+                        logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+                os.chdir(base)
 
 
 if __name__ == '__main__':
