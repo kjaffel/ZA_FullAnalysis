@@ -90,7 +90,7 @@ def checklocalfiles(era, list, s):
     logger.info( f"rucio request needed for samples saved in :: rucio_signalUL{era}__ext2.txt") 
 
 
-def ZA_DASGOCILENT(n='', choosen_points=None):
+def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
     all_processes  = []
     AToZH_points = []
     suffix   = ''
@@ -99,7 +99,10 @@ def ZA_DASGOCILENT(n='', choosen_points=None):
         
         dtype_processes =[]
         for dtype, listsmp in look_for.items():
-            
+           
+            if not dtype in _runOn:
+                continue
+
             for smp in listsmp:
                 
                 if era ==17:
@@ -109,7 +112,7 @@ def ZA_DASGOCILENT(n='', choosen_points=None):
                 processes = getSamplesFromDAS(era, smp, dataType=dtype, rm_nlo=rm_nlo)
                 # take few for quick test !
                 if dtype == 'signal':
-                    if do in ['chunk', 'HvsA']:
+                    if do in ['chunk', 'HvsA', 'custom']:
                         for p in processes:
                             m = p.decode('utf-8').split('_tb')[0].split('To2L2B_')[-1]
                             m_heavy  = float(m.split('_')[0].split('-')[1].replace('p','.'))
@@ -176,7 +179,7 @@ if __name__ == "__main__":
                'TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8',
                'TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8',
                # Zh
-               'HZJ_HToWW_M-125', 
+               'HZJ_HToWW_M-125_TuneCP5_13TeV-powheg', 
                'ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8',
                'ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8', 
                'ggZH_HToBB_ZToNuNu_M-125_TuneCP5_13TeV-powheg-pythia8',
@@ -196,30 +199,38 @@ if __name__ == "__main__":
         }
     
     
-    do = 'chunk' # choices: 'full', 'chunk', 'HvsA'
+    _runOn  = ['data', 'mc', 'signal']
+    do = 'custom' # choices: 'full', 'chunk', 'HvsA', custom
     chunk_of = 10
     
     rm_nlo          = False
     print_bambooCfg = True
-
+    
     if do == 'chunk':
         for n in range(chunk_of):
             chunk_of_points = utils.getSignalMassPoints_ver2(outdir, chunk=n, do=do, chunk_of=chunk_of)
             choosen_points  = chunk_of_points['HToZA']+chunk_of_points['AToZH']
             logger.info( f'working on batch {n} :: {choosen_points}, len: {len(choosen_points)}')
-            outF = ZA_DASGOCILENT(n, choosen_points)
+            outF = ZA_DASGOCILENT(n, choosen_points, _runOn=_runOn)
             if print_bambooCfg:
                 writeBambooYml(outF) 
     
+    elif do == 'custom':
+        pass_list = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
+        outF = ZA_DASGOCILENT(n='', choosen_points=pass_list, _runOn=_runOn)
+        if print_bambooCfg:
+            writeBambooYml(outF)
+    
     elif do == 'full':
-        outF = ZA_DASGOCILENT()
+        outF = ZA_DASGOCILENT(_runOn=_runOn)
         if print_bambooCfg:
             writeBambooYml(outF) 
         
 
     elif do == 'HvsA': 
         AToZH_points = [(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)]
-        outF = ZA_DASGOCILENT(n='', choosen_points=AToZH_points)
+        outF = ZA_DASGOCILENT(n='', choosen_points=AToZH_points, _runOn=_runOn)
         if print_bambooCfg:
-            writeBambooYml(outF) 
+            writeBambooYml(outF)
+
 

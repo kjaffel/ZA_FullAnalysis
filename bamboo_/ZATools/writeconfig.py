@@ -52,11 +52,14 @@ def get_list_ofsystematics(eras):
         'jer3',
         'jer4',
         'jer5',
+        
         '# on fat jets',
         'jmr',
         'jms',
+        
         '# on missing energy',
         'unclustEn',
+        
         '# on the jets energy scale ',
         'jesTotal']
     for era in eras.keys():
@@ -68,6 +71,7 @@ def get_list_ofsystematics(eras):
                 f'DYweight_resolved_elel_ployfit_lowmass{n}_highmass5',
                 #"   type: shape",
                 #"   on: 'DY'",
+                
                 f'DYweight_boosted_mumu_ployfit_lowmass{n}',
                 #"   type: shape",
                 #"   on: 'DY'",
@@ -80,13 +84,14 @@ def get_list_ofsystematics(eras):
         if not f'jesAbsolute_{era}' in sys:
             sys += [
                 f'   #{era}',
-                f'pileup_{era}',
-            '  # splited by source, uncorrelated per year',
+                '  # splited by source, uncorrelated per year',
                 f'jesAbsolute_{era}',
                 f'jesBBEC1_{era}',
                 f'jesEC2_{era}',
                 f'jesHF_{era}',
                 f'jesRelativeSample_{era}',
+                
+                f'pileup_{era}',
             ]
             if era != '2018':
                 sys += [
@@ -95,16 +100,21 @@ def get_list_ofsystematics(eras):
             ]
 
     sys += [
+        '# on ttbar',
+        'TopPt_reweighting', 
+
         '# leptons ID, ISO and RCO SFs ',
         'muid_medium',
         'muiso_tight',
         'elid_medium',
         'lowpt_ele_reco',
         'highpt_ele_reco',
+        
         '# on the trigger',
         'elel_trigSF',
         'muel_trigSF',
         'mumu_trigSF',
+        
         '# sys from theory  ',
         'qcdScale',
         'qcdMuF',
@@ -112,6 +122,8 @@ def get_list_ofsystematics(eras):
         'psISR',
         'psFSR',
         'pdf',
+        'pdfAlphaS',
+        
         '# on the btagged jets ',
         'btagSF_fixWP_subjetdeepcsvM_light',
         'btagSF_fixWP_subjetdeepcsvM_heavy',
@@ -119,7 +131,8 @@ def get_list_ofsystematics(eras):
         'btagSF_fixWP_deepcsvM_heavy',
         'btagSF_fixWP_deepflavourM_light',
         'btagSF_fixWP_deepflavourM_heavy',
-        '# from btag eff meas '
+        
+        '# from btag eff measurements ',
         'bEff',
         'cEff',
         'lightEff',
@@ -369,7 +382,7 @@ if __name__ == "__main__":
             outf.write("samples:\n")
             # =======================================================
             run = None
-            doSplitTT = True
+            doSplitTT = False
             subprocesses = ['tt', 'ttB']
             subprocessesColors = ['#c4ffff', '#abb2b9']
             for i, smp in enumerate(inf):
@@ -563,6 +576,9 @@ if __name__ == "__main__":
                 outf.write(f"      fill-color: '{opt['fill_color']}'\n")
                 outf.write(f"      legend: {opt['legend']}\n")
                 outf.write(f"      order: {opt['order']}\n")
+                outf.write(f"      line-width: 1\n")
+                outf.write(f"      line-color: 1\n")
+                outf.write(f"      line-style: 1\n")
             outf.write("  plotdefaults:\n")
             outf.write("      y-axis: Events\n")
             outf.write("      log-y: both\n")
