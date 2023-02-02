@@ -30,11 +30,11 @@ def ZAlogger(name):
                         datefmt=None,
                         reset=True,
                         log_colors={
-                                'DEBUG':    'green',
-                                'INFO':     'cyan',
-                                'WARNING':  'blue',
-                                'ERROR':    'red',
-                                'CRITICAL': 'red',
+                                'DEBUG'   :'green',
+                                'INFO'    :'cyan',
+                                'WARNING' :'yellow',
+                                'ERROR'   :'red',
+                                'CRITICAL':'red',
                             },
                         secondary_log_colors={},
                         style='%' )

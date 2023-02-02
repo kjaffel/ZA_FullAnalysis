@@ -15,7 +15,7 @@ logger = utils.ZAlogger(__name__)
 import ControlPLots as cp
 import HistogramTools as HT
 
-from ZAtollbb_v2 import NanoHtoZABase
+from ZAtollbb import NanoHtoZABase
 from bambooToOls import Plot, SaveCutFlowReports
 from reweightDY import getDYweightFromPolyfit
 
@@ -80,7 +80,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     },
                 "boosted":{
                     "DeepCSV": {
-                        "2016": (0.2217, 0.6321), 
+                        "2016":(0.2217, 0.6321), 
                         "2017":(0.1522, 0.4941), 
                         "2018":(0.1241, 0.4184) 
                         },
@@ -97,7 +97,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                         },
                     "DeepFlavour":{
                         "2016-preVFP" :(0.0508, 0.2598, 0.6502), 
-                        "2016-postVFP":( 0.0480, 0.2489, 0.6377), 
+                        "2016-postVFP":(0.0480, 0.2489, 0.6377), 
                         "2017":(0.0532, 0.3040, 0.7476), 
                         "2018":(0.0490, 0.2783, 0.7100) 
                         }
@@ -130,7 +130,8 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         
         processes_dic = { "gg_fusion":{ 
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 2, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK8jets) == 1) },
+                                        #"boosted": op.AND(op.rng_len(AK8jets) == 1) },
+                                        "boosted" : op.AND(op.rng_len(AK8jets) >= 1,  op.rng_len(AK4jets) == 0) },
                           "bb_associatedProduction":{
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 3, op.rng_len(AK8jets) == 0),
                                         "boosted" : op.AND(op.rng_len(AK8jets) >= 1, op.rng_len(AK4jets) >= 1) }
@@ -241,25 +242,22 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
                     for tagger in discriminatorcuts_lib[reg].keys(): 
                         for (wp, deepThr) in zip( OperatingPoints, discriminatorcuts_lib[reg][tagger][era]):
                             
-                            selJets_dict = {
-                                    "gg_fusion": {
-                                        "resolved": {
-                                                "DeepFlavour": lambda j: j.btagDeepFlavB >= deepThr,
-                                                "DeepCSV"    : lambda j: j.btagDeepB >= deepThr },
-                                        "boosted" : { 
-                                                "DeepCSV"    : lambda j: op.OR(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr)},
-                                            },
-
-                                    "bb_associatedProduction": {
-                                        "resolved": {
-                                                "DeepFlavour": lambda j: j.btagDeepFlavB >= deepThr,
-                                                "DeepCSV"    : lambda j: j.btagDeepB >= deepThr },
-                                        "boosted" : {
-                                                #"DeepCSV"   : lambda j: op.OR(j.btagDeepFlavB >= discriminatorcuts_lib["boosted"]["DeepFlavour"][era][getIDX(wp)], j.btagDeepB >= deepThr) 
-                                                "DeepCSV"    : lambda j: op.OR(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr),
-                                                } 
-                                            }
-                                }
+                            selCats = {
+                                    "resolved": {
+                                            "DeepFlavour": lambda j: j.btagDeepFlavB >= deepThr,
+                                            "DeepCSV"    : lambda j: j.btagDeepB >= deepThr },
+                                        }
+                            
+                            if self.doPassNbr_subjets == "both_subjets":
+                                selCats.update({"boosted": { 
+                                                    "DeepCSV" : lambda j: op.AND(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr) 
+                                                    } })
+                            else:
+                                selCats.update({"boosted": { 
+                                                    "DeepCSV" : lambda j: op.OR(j.subJet1.btagDeepB >= deepThr, j.subJet2.btagDeepB >= deepThr) 
+                                                    } })
+                            
+                            selJets_dict = {"gg_fusion": selCats, "bb_associatedProduction": selCats }
 
                             selJets = op.select(flavJets, selJets_dict[process][reg][tagger]) 
                             pt  = op.map(selJets, lambda j: j.pt)

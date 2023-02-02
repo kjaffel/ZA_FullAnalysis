@@ -418,12 +418,15 @@ def call_BTagCalibration(flav, noSel, era, wp):
                     getters= getters, sel= noSel, uName= f'btagSF_subjetdeepcsv_fixWP_{flav}')
 
 
-def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, decorr_eras, full_scheme, full_scheme_mapping):
+def makeBtagSF(cleaned_AK4JetsByDeepFlav, cleaned_AK8JetsByDeepB, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, decorr_eras, full_scheme, full_scheme_mapping, nano="v9"):
+    
+    jets = {'resolved': cleaned_AK4JetsByDeepFlav,
+            'boosted' : cleaned_AK8JetsByDeepB }
     
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
 
-    base_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/BTagEff_maps/"
     #base_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_btv_effmaps/"
+    base_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/BTagEff_maps/"
     
     path_Effmaps = { 
             #'2016-preVFP' : "ul2016__btv_effmaps__ver8/results/summedProcessesForEffmaps/summedProcesses_2016-preVFP_ratios.root",
@@ -440,8 +443,6 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
     
     bTagEff_file = os.path.join(base_path, path_Effmaps[era])
     
-    jets = {'resolved': cleaned_AK4JetsByDeepFlav,
-            'boosted' : cleaned_AK8JetsByDeepB }
     
     def get_bTagSF(tagger, flav):
         return get_bTagSF_fixWP(tagger=tagger, wp=wp, flav=flav, era=era.replace('-',''), 
@@ -452,9 +453,12 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                (j.hadronFlavour == 4, get_bTagSF(tagger, 4)(j)),
                                                       get_bTagSF(tagger, 0)(j))
     def subjet_bTagSF(subJet):
-        return op.multiSwitch( (subJet.nBHadrons >0, get_bTagSF('deepCSV_subjet', 5)(subJet)), 
-                               (subJet.nCHadrons >0, get_bTagSF('deepCSV_subjet', 4)(subJet)),
-                               get_bTagSF('deepCSV_subjet', 0)(subJet))
+        if nano =="v9":
+            return bTagSF(subJet, 'deepCSV_subjet')
+        else:
+            return op.multiSwitch((subJet.nBHadrons >0, get_bTagSF('deepCSV_subjet', 5)(subJet)), 
+                                  (subJet.nCHadrons >0, get_bTagSF('deepCSV_subjet', 4)(subJet)),
+                                   get_bTagSF('deepCSV_subjet', 0)(subJet))
     
     def get_bTagEff(j, reg, tagger, wp, process):
         prefix   = '' if reg =='resolved' and dobJetER and isSignal else 'no'
@@ -473,13 +477,13 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                 systVariations={}, #{f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, 
                                 defineOnFirstUse=defineOnFirstUse, sel= noSel )
 
-        if reg == 'resolved':
-            return op.multiSwitch( (j.hadronFlavour == 5, call_get_correction('b')(j)),
-                                   (j.hadronFlavour == 4, call_get_correction('c')(j)),
-                                       call_get_correction('light')(j) )
-        else:
+        if reg == 'boosted' and nano !="v9":
             return op.multiSwitch( (j.nBHadrons > 0 , call_get_correction('b')(j)),
                                    (j.nCHadrons > 0 , call_get_correction('c')(j)),
+                                    call_get_correction('light')(j) )
+        else:
+            return op.multiSwitch( (j.hadronFlavour == 5, call_get_correction('b')(j)),
+                                   (j.hadronFlavour == 4, call_get_correction('c')(j)),
                                        call_get_correction('light')(j) )
     
 
@@ -507,6 +511,7 @@ def makeBtagSF(cleaned_AK4JetsByDeepB, cleaned_AK4JetsByDeepFlav, cleaned_AK8Jet
                                                             wFail( subjet_bTagSF(j.subJet2), get_bTagEff( j.subJet2, reg, tagger_.lower(), wp, process) ) ),
                                               op.c_float(1.) )
                                 )
+    
     # reco of the signals processes 
     for process in ['gg_fusion', 'bb_associatedProduction']:
         run2_bTagEventWeight_PerWP[process] = {}

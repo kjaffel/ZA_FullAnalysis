@@ -570,9 +570,8 @@ class NanoHtoZABase(NanoAODModule):
         
         # exclude from the jetsSel any jet that happens to include within its reconstruction cone a muon or an electron.
         AK4jets = op.select(AK4jetsSel, 
-                            lambda j : op.AND(
-                                            op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < deltaR )), 
-                                            op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < deltaR ))))
+                            lambda j : op.AND( op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < deltaR )), 
+                                               op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < deltaR ))) )
 
         
         AK4jets_noptcutSel = op.select(sorted_AK4jets, lambda j : op.AND(op.abs(j.eta) < eta, jet_ID[era]))
@@ -603,11 +602,15 @@ class NanoHtoZABase(NanoAODModule):
                                                   j.subJet1.isValid,
                                                   j.subJet2.isValid,
                                                   j.tau2/j.tau1 < tau21[era_] ))
+        # No ele, no muons and no AK4 arounds 
         AK8jets = op.select(AK8jetsSel, 
                             lambda j : op.AND(
                                             op.NOT(op.rng_any(electrons, lambda ele : op.deltaR(j.p4, ele.p4) < 0.8 )), 
-                                            op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 ))))
-        
+                                            op.NOT(op.rng_any(muons, lambda mu : op.deltaR(j.p4, mu.p4) < 0.8 )),
+                                            op.NOT(op.rng_any(AK4jets, lambda chs : op.deltaR(j.p4, chs.p4) < 1.2 ))
+                                            ) )
+       
+
         self.cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
         
         # No tau2/tau1 cut 
@@ -876,9 +879,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                             "jer5"    : "jer",
                         }
                 
-                run2_bTagEventWeight_PerWP[wp] = corr.makeBtagSF(self.cleaned_AK4JetsByDeepB, self.cleaned_AK4JetsByDeepFlav, self.cleaned_AK8JetsByDeepB, 
+                run2_bTagEventWeight_PerWP[wp] = corr.makeBtagSF(self.cleaned_AK4JetsByDeepFlav, self.cleaned_AK8JetsByDeepB, 
                                 wp, idx, corr.legacy_btagging_wpdiscr_cuts, era, noSel, sample, self.dobJetER, self.doCorrect, isSignal,
-                                defineOnFirstUse=False, decorr_eras=decorr_eras, full_scheme=full_scheme, full_scheme_mapping=systMapping)
+                                defineOnFirstUse=False, decorr_eras=decorr_eras, full_scheme=full_scheme, full_scheme_mapping=systMapping, nano="v9")
 
         if self.doEvaluate:
                         
@@ -1005,9 +1008,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         ]
         
         # basic distribution for control region
-        make_ZpicPlots              = False
-        make_JetsPlusLeptonsPlots   = False
-        make_JetmultiplictyPlots    = False
+        make_ZpicPlots              = True
+        make_JetsPlusLeptonsPlots   = True
+        make_JetmultiplictyPlots    = True
         make_METPlots               = False
         make_METPuppiPlots          = False
         make_recoVerticesPlots      = False
@@ -1017,7 +1020,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots       = False
+        make_FinalSelControlPlots       = True
         make_EllipsesforCombinedLimits  = self.doEllipses
         
         # plots for the studies
@@ -1026,10 +1029,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_ttbarEstimationPlots    = False
         
         # the follow are mainly for debugging purposes 
-        make_BoostedBtagPlots        = False    
-        make_DYReweightingPlots      = False
+        make_BoostedBtagPlots        = True    
+        make_DYReweightingPlots      = True
         make_tau2tau1RatioPlots      = False
-        make_deltaRPlots             = False 
+        make_deltaRPlots             = True 
         make_InclusivePlots          = False
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
@@ -1138,7 +1141,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 plots.extend(zoomplots(catSel, lljjSelections["resolved"], dilepton, AK4jets, 'resolved', channel))
             
             if make_METPuppiPlots:
-                plots.extend(cp.MakePuppiMETPlots(PuppiMET, lljjSelections["resolved"], channel))
+                plots.extend(cp.MakePuppiMETPlots(PuppiMET, lljjSelections["boosted"], channel))
             
             if make_LookInsideJets:
                 plots.extend(LeptonsInsideJets(AK4jets, lljjSelections["resolved"], channel))
@@ -1167,8 +1170,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             
             if make_DiscriminatorPlots:
                 for tagger, list_j_sel in {'DeepFlavour'    : [lljj_jets['resolved'], lljjSelections['resolved']],
-                                    'DeepCSV'        : [lljj_jets['boosted'], lljjSelections['boosted']],
-                                    'DeepDoubleBvLV2': [lljj_jets['boosted'], lljjSelections['boosted']] 
+                                           'DeepCSV'        : [lljj_jets['boosted'], lljjSelections['boosted']],
+                                           'DeepDoubleBvLV2': [lljj_jets['boosted'], lljjSelections['boosted']] 
                                     }.items():
                     discr_cp, discr_cpToSum = cp.MakeBtagDiscriminatorPlots(tagger, list_j_sel, channel)
                     plots.extend(discr_cp)
@@ -1209,13 +1212,15 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     bjets = { 'resolved': {
                                     'DeepFlavour': bJets_resolved_PassdeepflavourWP, 
                                     'DeepCSV'    : bJets_resolved_PassdeepcsvWP},
-                               'boosted': {} }
+                               }
                     if wp !='T':
-                        bjets['boosted'].update(bJets_boosted_PassdeepcsvWP)
+                        bjets.update({'boosted': {
+                                        'DeepCSV': bJets_boosted_PassdeepcsvWP }
+                                        })
 
                     for region, dict_ in bjets.items():
-                        for tagger, btaggedJets in bjets.items():
-                            plots.extend(cp.makeJetmultiplictyPlots(catSel, btaggedJets, channel,f"_NoCutOnbJetsLen_{reg}_{tagger}_{wp}"))
+                        for tagger, btaggedJets in dict_.items():
+                            plots.extend(cp.makeJetmultiplictyPlots(catSel, btaggedJets, channel,f"_NoCutOnbJetsLen_{region}_{tagger}_{wp}"))
                 
                 
                 if make_BoostedBtagPlots and wp !='T':
@@ -1244,26 +1249,28 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 LeptonsPlusBjets_NoMETCut_bTagEventWeight_Res = {
                         "gg_fusion": { # eq. nb2 -resolved -DeepFlavour M wp 
-                                    "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsExactly2Bjets_NoMETcut_NobTagEventWeight_DeepFlavour{}_{}_Resolved".format(wp, channel),
+                                    "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsExactly2Bjets_NoMETcut_DeepFlavour{}_{}_Resolved".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_resolved_PassdeepflavourWP) == 2 ],
                                                                         weight = (run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
                                                                                    if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": { # eq. nb3 -resolved -DeepFlavour M wp
-                                    "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsAtLeast3Bjets_NoMETcut_NobTagEventWeight_DeepFlavour{}_{}_Resolved".format(wp, channel),
+                                    "DeepFlavour{}".format(wp) :  lljjSelections["resolved"].refine("TwoLeptonsAtLeast3Bjets_NoMETcut_DeepFlavour{}_{}_Resolved".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_resolved_PassdeepflavourWP) >= 3 ],
                                                                         weight = (run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                             }
     
-                if wp !='T':
+                if wp !='T': # tight does not exist for boosted DeepCSV tagger
                     LeptonsPlusBjets_NoMETCut_bTagEventWeight_Boo = {
                         "gg_fusion": { # eq. nb2 -boosted -DeepCSV M wp
-                                    "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsExactly1FatBjets_NoMETcut_NobTagEventWeight_DeepCSV{}_{}_Boosted".format(wp, channel),
-                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1 ],
-                                                                        weight = ( run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted']['DeepCSV{}'.format(wp)] if isMC else None) 
-                                                                                   if self.doPass_bTagEventWeight else None) },
+                                    "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_NoAK4Bjets_NoMETcut_DeepCSV{}_{}_Boosted".format(wp, channel),
+                                                                        cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1, op.rng_len(bJets_resolved_PassdeepflavourWP) == 0],
+                                                                        # previously : cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) == 1],
+                                                                        weight = ([ run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted']['DeepCSV{}'.format(wp)],
+                                                                                    run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None) 
+                                                                                    if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": { # eq. nb3 -boosted -DeepCSV M wp
-                                    "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_with_AtLeast1AK4_NoMETcut_NobTagEventWeight_DeepCSV{0}_{1}_Boosted".format(wp, channel),
+                                    "DeepCSV{}".format(wp)     :  lljjSelections["boosted"].refine("TwoLeptonsAtLeast1FatBjets_AtLeast1AK4Bjets_NoMETcut_DeepCSV{}_{}_Boosted".format(wp, channel),
                                                                         cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepflavourWP) >= 1 ],
                                                                         weight = ([ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted']['DeepCSV{}'.format(wp)],
                                                                                     run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved']['DeepFlavour{}'.format(wp)] ] if isMC else None)
@@ -1448,6 +1455,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     
                                         for k, tup in signal_grid.items():
                                             for parameters in tup: 
+                                                
                                                 mHeavy = parameters[0]
                                                 mLight = parameters[1]
                                                 histNm = f"DNNOutput_{nm}node_{channel}_{reco}_{region}_{tag_plus_wp}_METCut_M{Heavy}_{mass_to_str(mHeavy)}_M{Light}_{mass_to_str(mLight)}"

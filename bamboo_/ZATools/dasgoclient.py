@@ -134,7 +134,8 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
 
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_AtoZHvsHToZA.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_few_for_fast_unblind.txt'
-    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_{do}{n}_for_unblindstage1.txt'
+    #fNm = f'mc_fullanalysisRunIISummer20UL_{suffix}nanov9_for_btagEffMaps.txt'
+    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_noSignal.txt'
     
     writeToFile(fNm, all_processes)
     print('Available A -> ZH signal points ::', list(set(AToZH_points)))
@@ -199,7 +200,7 @@ if __name__ == "__main__":
         }
     
     
-    _runOn  = ['data', 'mc', 'signal']
+    _runOn  = ['data', 'mc']#, 'signal']
     do = 'custom' # choices: 'full', 'chunk', 'HvsA', custom
     chunk_of = 10
     
