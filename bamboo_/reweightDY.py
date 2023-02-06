@@ -23,6 +23,10 @@ def pogEraFormat(era):
     return "UL" + era.replace('20', '').replace('-','')
 
 
+def BinFormat(_tup):
+    return '{}_to_{}'.format(int(_tup[0]),int(_tup[1]))
+
+
 def get_JsonWeights(era, flav):
     era_ = pogEraFormat(era)
     jsf  = f"DYJetsTo{flav}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20{era_}_NanoAODv9.json"
@@ -53,22 +57,21 @@ def make_gaussian(x, parameters):
     return parameters[0]*op.exp(-0.5* exp_term_of(x)) 
 
 
-def computeDYweight(flav, era, reg, fitdegree, mass, name, doSysts):
-    fits_rng = {'resolved': [10., 600.], 'boosted': [10., 150.] }
+def computeDYweight(flav, era, reg, fitdegree, fitrange, mass, name, doSysts):
     params   = get_JsonWeights(era, flav)
     
     if reg == 'boosted':
         s   = f"_lowmass{fitdegree}"
-        nom = op.c_float(TMultiLayerPerceptron(mass, reg, flav, era))
-            #op.switch( mass < fits_rng[reg][1], 
-            #                make_polynomial(mass, params[era][reg][name][f"polyfit{fitdegree}"]), 
-            #            op.c_float(params[era][reg][name]['binWgt']) )
+        #nom= op.c_float(TMultiLayerPerceptron(mass, reg, flav, era))
+        nom = op.switch( mass < fitrange[0][1], 
+                            make_polynomial(mass, params[era][reg][name][f"lowmass_{BinFormat(fitrange[0])}"][f"polyfit{fitdegree}"]), 
+                        op.c_float(params[era][reg][name][f"binWgt_above_{int(fitrange[0][1])}"]['binWgt']) )
     
     elif reg == 'resolved':
         s   = f"_lowmass{fitdegree[0]}_highmass{fitdegree[1]}" 
-        nom = op.multiSwitch( (op.in_range(fits_rng[reg][0], mass, 150.), make_polynomial(mass, params[era][reg][name][f"polyfit{fitdegree[0]}"])),
-                              (op.in_range(150., mass, fits_rng[reg][1]), make_polynomial(mass, params[era][reg][name][f"polyfit{fitdegree[1]}"]))
-                             , op.c_float(params[era][reg][name]['binWgt']))
+        nom = op.multiSwitch( (op.in_range(fitrange[0][0], mass, fitrange[0][1]), make_polynomial(mass, params[era][reg][name][f"lowmass_{BinFormat(fitrange[0])}"][f"polyfit{fitdegree[0]}"])),
+                              (op.in_range(fitrange[1][0], mass, fitrange[1][1]), make_polynomial(mass, params[era][reg][name][f"highmass_{BinFormat(fitrange[1])}"][f"polyfit{fitdegree[1]}"]))
+                             , op.c_float(params[era][reg][name][f"binWgt_above_{int(fitrange[1][1])}"]['binWgt']))
     
     if doSysts: return op.systematic(op.c_float(nom), name=f"DYweight_{reg}_{flav.lower()}_ployfit{s}", up=op.c_float(2*(nom-1)+1), down=op.c_float((nom-1)/2+ 1))
     else: return nom 
@@ -174,15 +177,15 @@ def DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt=False, doSum=
     return plots, plots_ToSum2
 
 
-def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, lightflavour_j=None, doSysts=False, doreweightDY='', doOnlylightflav=False):
+def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, fitrange, lightflavour_j=None, doSysts=False, doreweightDY='', doOnlylightflav=False):
     
     if doreweightDY == "comb": flav = 'LL'
     else: flav = channel if channel in ['ElEl', 'MuMu'] else ( 'LL')
             
-    DYweight = { "mjj"          : computeDYweight(flav, era, reg, polyfit, mass, 'mjj', doSysts),
-                #"mlljj"        : computeDYweight(flav, era, reg, polyfit, mass, 'mlljj', doSysts),
-                #"mjj_vs_mlljj" : op.product( computeDYweight(flav, era, reg, polyfit, mass, 'mjj', doSysts), 
-                #                             computeDYweight(flav, era, reg, polyfit, mass, 'mlljj', doSysts)) 
+    DYweight = { "mjj"          : computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mjj', doSysts),
+                #"mlljj"        : computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mlljj', doSysts),
+                #"mjj_vs_mlljj" : op.product( computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mjj', doSysts), 
+                #                             computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mlljj', doSysts)) 
                 }
     
     if doOnlylightflav:
@@ -235,7 +238,7 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
 
 
 
-def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg, era, isMC, doreweightDY='split', doSysts=False, doWgt=False, doSum=False):
+def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg, era, isMC, fitrange, doreweightDY='split', doSysts=False, doWgt=False, doSum=False):
 
     plots = []
     binScaling = 1
@@ -255,7 +258,7 @@ def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg
             else: s   = f"_lowmass{fitdegree}_highmassBinWgt"
             
             sel = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweight{doreweightDY}_fitpolynomial{s}_on_mjj", 
-                    weight=(getDYweightFromPolyfit(channel=uname, era=era, reg=reg, k='mjj', mass=mjj, polyfit=fitdegree, doSysts=doSysts, doreweightDY=doreweightDY))
+                    weight=(getDYweightFromPolyfit(channel=uname, era=era, reg=reg, k='mjj', mass=mjj, polyfit=fitdegree, fitrange=fitrange, doSysts=doSysts, doreweightDY=doreweightDY))
                     )  
             
         plt, pltToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt, doSum)

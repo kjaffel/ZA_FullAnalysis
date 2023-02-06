@@ -52,19 +52,22 @@ class NanoHtoZABase(NanoAODModule):
                             "sort-by-yields"   : False,
                             "legend-columns"   : 3 }
         
-        self.fit_degree = { 'resolved': { #(lowmass, highmass) degree fit 
+        self.fit_degree = { 'resolved': { #(lowmass, highmass) degree fits 
                                 '2016-preVFP' : (6,4), 
                                 '2016-postVFP': (6,4), 
                                 '2016': (6,4), 
                                 '2017': (7,4),
                                 '2018': (6,4) },
                             'boosted' : {
-                                '2016-preVFP' : 6,  # just one fit
+                                '2016-preVFP' : 6,  # just one polyfit deg 6
                                 '2016-postVFP': 6, 
                                 '2016': 6, 
                                 '2017': 6, 
                                 '2018': 6 } 
                             }
+        
+        self.fit_range = {'resolved': [(10., 150.), (150., 600.)], # 2 poly fits with degree above; 10 to 150 Gev && 150 Gev to 600 GeV &&  > 600GeV is taken as bin Wgt 
+                          'boosted' : [(10., 150.)] }              # 1 poly fit 10 to 150 GeV, from 150 GeV above is taken as bin Wgt
 
         self.doSysts          = self.args.systematic
         self.doEvaluate       = self.args.DNN_Evaluation
@@ -864,7 +867,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
 
             _sel_weighted = {}
             for reg , sel in lljjSelections.items():
-                DYweight = getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], lightflavour_j, 
+                DYweight = getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], self.fit_range[reg], lightflavour_j, 
                                                     self.doSysts, self.reweightDY, self.doOnlylightflav)
                 _sel_weighted[reg]= sel.refine(f"TwoJet_{channel}Sel_{reg}_DYweight", weight=(DYweight))
             
@@ -1163,10 +1166,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     plots_ToSum2.update(cp_0Btag_noDYwgtToSum)
                     
                     # before applying DY weights decided in "self.fit_degree", let's cross-check with other fit degree 
-                    #dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, 
-                    #                                                        self.reweightDY, self.doSysts, doWgt=True, doSum=True)
-                    #plots.extend(dy_cp)
-                    #plots_ToSum2.update(dy_cpToSum)
+                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, self.fit_range[reg], 
+                                                                            self.reweightDY, self.doSysts, doWgt=True, doSum=True)
+                    plots.extend(dy_cp)
+                    plots_ToSum2.update(dy_cpToSum)
             
             # apply DY weights 
             if self.doDY_reweighting:
