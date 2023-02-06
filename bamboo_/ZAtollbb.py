@@ -52,7 +52,20 @@ class NanoHtoZABase(NanoAODModule):
                             "sort-by-yields"   : False,
                             "legend-columns"   : 3 }
         
-        
+        self.fit_degree = { 'resolved': { #(lowmass, highmass) degree fit 
+                                '2016-preVFP' : (6,4), 
+                                '2016-postVFP': (6,4), 
+                                '2016': (6,4), 
+                                '2017': (7,4),
+                                '2018': (6,4) },
+                            'boosted' : {
+                                '2016-preVFP' : 6,  # just one fit
+                                '2016-postVFP': 6, 
+                                '2016': 6, 
+                                '2017': 6, 
+                                '2018': 6 } 
+                            }
+
         self.doSysts          = self.args.systematic
         self.doEvaluate       = self.args.DNN_Evaluation
         self.doSplitJER       = self.args.splitJER
@@ -72,7 +85,7 @@ class NanoHtoZABase(NanoAODModule):
         self.CleanJets_fromPileup   = False
         self.doDDBvsL               = False
         self.BTV_discrCuts          = False
-        self.doDY_reweighting       = True        # using poly fit degree 6 on mjj mass  
+        self.doDY_reweighting       = True        # using poly self.fit_degree on mjj mass
         self.doOnlylightflav        = False       # DY reweighting will be applied on light flavour jets only 
         self.dotthDY_reweighting    = False       # tth weights eraly beginning on noSel
         self.doTop_reweighting      = True
@@ -85,12 +98,11 @@ class NanoHtoZABase(NanoAODModule):
         self.doPassNbr_subjets      = "both_subjets" # discri cut on fat jet options: atleast_1subjet or both_subjets, fatjet 
         self.WorkingPoints          = ["M"]       # ["L", "M", "T"]
         self.rebin                  = "uniform"   # bayesian or uniform (50 bins) : for the DNN template that will be given to combine
-        self.reweightDY             = "split"     # comb or "split" lepton flavour
+        self.reweightDY             = "split"     # comb ( ee+mumu) or "split" lepton flavour
         self.doCorrect              = "subjets"   # "fatjet" or subjets : when applying btagging SFs 
         self.qcdScaleVarMode        = "separate"  # "separate" : (muR/muF variations)  or combine : (7-point envelope)
         self.pdfVarMode             = "simple"    # simple  : (event-based envelope) (only if systematics enabled)
                                                   # or full : PDF uncertainties (100 histogram variations) 
-
     def addArgs(self, parser):
         super(NanoHtoZABase, self).addArgs(parser)
         
@@ -613,11 +625,15 @@ class NanoHtoZABase(NanoAODModule):
        
 
         self.cleaned_AK8JetsByDeepB = op.sort(AK8jets, lambda j: -j.btagDeepB)
+        #########################################################
         
-        self.cleaned_AK4JetsByDeepFlav_noPuppi = op.select(self.cleaned_AK4JetsByDeepFlav, lambda j : op.NOT(op.rng_any(self.cleaned_AK8JetsByDeepB, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
-        self.cleaned_AK4JetsByDeepB_noPuppi    = op.select(self.cleaned_AK4JetsByDeepB, lambda j : op.NOT(op.rng_any(self.cleaned_AK8JetsByDeepB, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
+        cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.AND( op.rng_len(AK8jets) >= 1, 
+                                                                             op.NOT(op.rng_any(AK8jets, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) ) 
+        
+        self.cleaned_AK4JetsByDeepFlav_noPuppi = op.sort(cleaned_AK4jets_noPuppi, lambda j: -j.btagDeepFlavB)
+        self.cleaned_AK4JetsByDeepB_noPuppi    = op.sort(cleaned_AK4jets_noPuppi, lambda j: -j.btagDeepB) 
 
-
+        #########################################################
         # what follow for debugging only : No tau2/tau1 cut 
         fatjetsel_nosubjettinessCut = op.select(sorted_AK8jets, 
                                                     lambda j : op.AND(j.pt > 200., op.abs(j.eta) < 2.5, (j.jetId &2), 
@@ -806,7 +822,7 @@ class NanoHtoZABase(NanoAODModule):
                                                         ) 
                                       )) for channel, catLLRng in osLLRng.items())
         
-        return noSel, plots, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_mix_ak4_rmPuppi, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET
+        return noSel, plots, categories, AK4jets, AK8jets, cleaned_AK4jets_noPuppi, fatjets_nosubjettinessCut, bjets_resolved, bjets_mix_ak4_rmPuppi, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET
 
 
 
@@ -840,8 +856,22 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         def inputStaticCast(inputDict,cast='float'):
             return [op.static_cast(cast,v) for v in inputDict.values()]
-        
-        noSel, plots, categories, AK4jets, AK8jets, fatjets_nosubjettinessCut, bjets_resolved, bjets_mix_ak4_rmPuppi, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
+                
+        def _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections, lightflavour_j=None):
+                   
+            jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
+                           'boosted' :  AK8jets[0].p4.M() }
+
+            _sel_weighted = {}
+            for reg , sel in lljjSelections.items():
+                DYweight = getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], lightflavour_j, 
+                                                    self.doSysts, self.reweightDY, self.doOnlylightflav)
+                _sel_weighted[reg]= sel.refine(f"TwoJet_{channel}Sel_{reg}_DYweight", weight=(DYweight))
+            
+            return _sel_weighted
+       
+
+        noSel, plots, categories, AK4jets, AK8jets, cleaned_AK4jets_noPuppi, fatjets_nosubjettinessCut, bjets_resolved, bjets_mix_ak4_rmPuppi, bjets_boosted, electrons, muons, MET, corrMET, PuppiMET = super(NanoHtoZA, self).defineObjects(t, noSel, sample, sampleCfg)
         
         era  = sampleCfg.get("era") if sampleCfg else None
         era_ = era if "VFP" not in era else "2016"
@@ -868,6 +898,19 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         addIncludePath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "include"))
         loadHeader("BTagEffEvaluator.h")
+        
+        _cleaned_jets = { 'resolved': { 
+                                'DeepFlavour': self.cleaned_AK4JetsByDeepFlav, 
+                                'DeepCSV': self.cleaned_AK4JetsByDeepB
+                                },
+                            'mix_ak4_rmPuppi': { 
+                                'DeepFlavour': self.cleaned_AK4JetsByDeepFlav_noPuppi,
+                                'DeepCSV': self.cleaned_AK4JetsByDeepB_noPuppi 
+                                },
+                            'boosted': { 
+                                'DeepCSV': self.cleaned_AK8JetsByDeepB 
+                                }
+                        }
        
         run2_bTagEventWeight_PerWP = collections.defaultdict(dict)
         
@@ -896,18 +939,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                             "jer5"    : "jer",
                         }
                 
-                _cleaned_jets = { 'resolved': { 
-                                        'DeepFlavour': self.cleaned_AK4JetsByDeepFlav, 
-                                        'DeepCSV': self.cleaned_AK4JetsByDeepB
-                                        },
-                                  'mix_ak4_rmPuppi': { 
-                                        'DeepFlavour': self.cleaned_AK4JetsByDeepFlav_noPuppi,
-                                        'DeepCSV': self.cleaned_AK4JetsByDeepB_noPuppi 
-                                        },
-                                  'boosted': { 
-                                      'DeepCSV': self.cleaned_AK8JetsByDeepB 
-                                      }
-                                  }
 
                 run2_bTagEventWeight_PerWP[wp] = corr.makeBtagSF( _cleaned_jets, 
                                 wp, idx, corr.legacy_btagging_wpdiscr_cuts, era, noSel, sample, self.dobJetER, self.doCorrect, isSignal,
@@ -988,7 +1019,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                         }
         
         jetType        = { "resolved": "AK4",
-                           "boosted" : "AK8"
+                           "boosted" : "AK8",
+                           "mix_ak4_rmPuppi": "AK4_rmPuppi",
                         }
             
         lljj_selName   = { "resolved": "has2Lep_atLeast_2ResolvedJets",
@@ -999,11 +1031,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                            "boosted" : AK8jets 
                         }
         
-        lljj_cleanjets = { "resolved": { 'DeepFlavour': self.cleaned_AK4JetsByDeepFlav, 
-                                         'DeepCSV'    : self.cleaned_AK4JetsByDeepB },
-                           "boosted" : {'DeepCSV'     : self.cleaned_AK8JetsByDeepB } 
-                        }
-                
         lljj_bJets     = { "resolved": bjets_resolved,
                            "boosted" : bjets_boosted 
                         }
@@ -1101,11 +1128,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     plots.extend(cp.makeJetmultiplictyPlots(catSel, jet, channel,"_NoCutOnJetsLen_" + reg))
                 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            #                                          Control region 
-            #                                   *** This's an Inclusive selection *** 
-            # I don't care about my CR if boosted and resolved are inclusive , what's matter for me is my SR  ** 
+            #                                          Control region
+            # boosted is not fully inclusive, events mght have resolved AK4 and boosted AK8 , this handeled in the SR
             # boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat so no pu jets wgt is applied !
-            #                                          Signal region 
+            #                                          
+            #                                       Signal region 
             # gg fusion :  
             #              resolved :  exactly 2 AK4 b jets 
             #              boosted  :  exactly 1 fat bjet
@@ -1113,49 +1140,51 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #              resolved : at least 3 AK4 bjets 
             #              boosted  : at least 1 fat bjets && at least 1 AK4 bjets
             # 
-            # DY reweighting if set to true , the reweighting will be done here too
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
-            TwoLeptonsTwoJets_Resolved = catSel.refine(f"TwoJet_{channel}Sel_resolved", cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) == 0])
+            lljjSelections = { "resolved": catSel.refine(f"TwoJet_{channel}Sel_resolved", cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) == 0]),
+                               "boosted" : catSel.refine(f"OneJet_{channel}Sel_boosted",  cut=[ op.rng_len(AK8jets) >= 1,  op.rng_len(cleaned_AK4jets_noPuppi) >= 0])
+                               }
             
-            TwoLeptonsOneJet_Boosted   = catSel.refine(f"OneJet_{channel}Sel_boosted",  cut=[ op.rng_len(AK8jets) >= 1])
             
-            lightflavour_j = {} 
-            for reg , sel in {"resolved": TwoLeptonsTwoJets_Resolved, 
-                              "boosted": TwoLeptonsOneJet_Boosted
-                              }.items():
-            
-                if self.doDY_reweighting:
-                    lightflavour_j[reg] = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=False, doSum=True, doPlot=False)
-            
-                if make_DYReweightingPlots: # Before reweighting ** 
-                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, self.reweightDY, self.doSysts, doWgt=True, doSum=True)
-                    plots.extend(dy_cp)
-                    plots_ToSum2.update(dy_cpToSum)
-            
-                    cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=False, doSum=True, doPlot=True)
+            # plots before rewighting 
+            if make_DYReweightingPlots: 
+                for reg , sel in lljjSelections.items():
+                    # mjj and mlljj before rewighting 
+                    jet = lljj_jets[reg]
+                    plots.extend(cp.makeJetPlots(sel, jet, channel, reg, era, '_noDYweight'))
+                    plots.extend(cp.makeControlPlotsForBasicSel(sel, jet, dilepton, channel, reg, '_noDYweight'))
+                    
+                    # 0 btag, region orthogonal to my SR 
+                    # these will be used to extract the poly fit degrees
+                    cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag( _cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
+                                                                                          doMETCut=True, doWgt=False, doSum=True, doPlot=True)
                     plots.extend(cp_0Btag_noDYwgt)
                     plots_ToSum2.update(cp_0Btag_noDYwgtToSum)
+                    
+                    # before applying DY weights decided in "self.fit_degree", let's cross-check with other fit degree 
+                    #dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, 
+                    #                                                        self.reweightDY, self.doSysts, doWgt=True, doSum=True)
+                    #plots.extend(dy_cp)
+                    #plots_ToSum2.update(dy_cpToSum)
             
+            # apply DY weights 
             if self.doDY_reweighting:
+                # for debugging only 
+                lightflavour_j = {} 
+                if self.doOnlylightflav:
+                    for reg , sel in lljjSelections.items():
+                        lightflavour_j[reg] = prepareCP_ForDrellYan0Btag(_cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
+                                                                        doMETCut=True, doWgt=False, doSum=True, doPlot=False)
+                # refine the selction with Dy weights 
                 if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and channel in ['MuMu', 'ElEl']:
-                    jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
-                                   'boosted' :  AK8jets[0].p4.M() }
+                    lljjSelections = _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections, lightflavour_j)
 
-                    lowmass_fitdeg = { '2017': 7, '2016': 6, '2018': 6 } 
-
-                    DYweight_reso = getDYweightFromPolyfit(channel, era_, 'resolved', 'mjj', jj_mass['resolved'], 5, lightflavour_j['resolved'], self.doSysts, self.reweightDY, self.doOnlylightflav)
-                    DYweight_boo  = getDYweightFromPolyfit(channel, era_, 'boosted', 'mjj', jj_mass['boosted'], lowmass_fitdeg[era_], lightflavour_j['boosted'], self.doSysts, self.reweightDY, self.doOnlylightflav)
-            
-                    TwoLeptonsTwoJets_Resolved = TwoLeptonsTwoJets_Resolved.refine(f"TwoJet_{channel}Sel_resolved_DYweight", weight=(DYweight_reso))
-                    TwoLeptonsOneJet_Boosted   = TwoLeptonsOneJet_Boosted.refine(f"OneJet_{channel}Sel_boosted_DYweight", weight=(DYweight_boo))
-            
-            lljjSelections = { "resolved": TwoLeptonsTwoJets_Resolved,
-                               "boosted" : TwoLeptonsOneJet_Boosted}
-
-            if self.doDY_reweighting and make_DYReweightingPlots: # After reweighting
+            # plots after rewighting , CP are 0 btag after rewighting 
+            if self.doDY_reweighting and make_DYReweightingPlots: 
                 for reg , sel in lljjSelections.items():
-                    cp_0Btag_DYwgt, cp_0Btag_DYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_cleanjets, jetType, dilepton, sel, channel, reg, era, "medium", corrMET, doMETCut=True, doWgt=True, doSum=True, doPlot=True)
+                    cp_0Btag_DYwgt, cp_0Btag_DYwgtToSum = prepareCP_ForDrellYan0Btag(_cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
+                                                                                    doMETCut=True, doWgt=True, doSum=True, doPlot=True)
                     plots.extend(cp_0Btag_DYwgt)
                     plots_ToSum2.update(cp_0Btag_DYwgtToSum)
 
@@ -1228,9 +1257,11 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 # resolved 
                 bJets_resolved_PassdeepflavourWP  = bjets_resolved["DeepFlavour"][wp]
                 bJets_resolved_PassdeepcsvWP      = bjets_resolved["DeepCSV"][wp]
+
                 # resolved +boosted but AK4 JETS are cleaned from any Puppi contanmination
                 bJets_resolved_PassdeepflavourWP_noPuppi  = bjets_mix_ak4_rmPuppi["DeepFlavour"][wp]
                 bJets_resolved_PassdeepcsvWP_noPuppi      = bjets_mix_ak4_rmPuppi["DeepCSV"][wp]
+                
                 # boosted
                 if wp !='T':
                     bJets_boosted_PassdeepcsvWP   = bjets_boosted["DeepCSV"][wp]
@@ -1238,14 +1269,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 if self.dobJetER and isSignal:
                     bJets_resolved_PassdeepflavourWP  = op.map(bJets_resolved_PassdeepflavourWP, lambda j: j.pt*j.bRegCorr)
                     bJets_resolved_PassdeepcsvWP      = op.map(bJets_resolved_PassdeepcsvWP, lambda j: j.pt*j.bRegCorr)
+                    
                     #bJets_resolved_PassdeepflavourWP = corr.bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
                     #bJets_resolved_PassdeepcsvWP     = corr.bJetEnergyRegression( bJets_resolved_PassdeepcsvWP)
                
-                bJets_resolved_PassdeepflavourWP_noPuppi = op.select(bJets_resolved_PassdeepflavourWP, lambda j : 
-                                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
-        
-                bJets_resolved_PassdeepcsvWP_noPuppi    = op.select(bJets_resolved_PassdeepcsvWP, lambda j : 
-                                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) 
+                #bJets_resolved_PassdeepflavourWP_noPuppi = op.select(bJets_resolved_PassdeepflavourWP, lambda j : 
+                #                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
+                #bJets_resolved_PassdeepcsvWP_noPuppi     = op.select(bJets_resolved_PassdeepcsvWP, lambda j : 
+                #                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) 
                 
                 if make_JetmultiplictyPlots:
                     bjets = { 'resolved': {
@@ -1669,6 +1700,9 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     continue
                 if smpCfg["era"] != era:
                     continue
+                if not os.path.exists(os.path.join(resultsdir, outName)):
+                    continue
+                
                 f = gbl.TFile.Open(os.path.join(resultsdir, outName))
                 xsec[outName]  = smpCfg["cross-section"]
                 sumw[outName]  = self.readCounters(f)[smpCfg["generated-events"]]

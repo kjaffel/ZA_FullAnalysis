@@ -76,7 +76,7 @@ def makePrimaryANDSecondaryVerticesPlots(t, sel, uname):
         ])
 
 
-def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, region):
+def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, region, note=''):
     binScaling =1
     plots =[]
     
@@ -90,8 +90,8 @@ def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, region):
     lljj_p4 = dilepton[0].p4 +dilepton[1].p4+jj_p4
     eqBIns_M = ( EqB(60 // binScaling, 120., 1200.) if region == "boosted" else(EqB(60 // binScaling, 150., 1200.)))
 
-    if region in ["resolved", "inclusive"]:
-        plots += [ Plot.make1D("{0}_{1}_jj{nm}".format(uname, region, nm=nm), var, sel, binning,
+    if region in ["resolved"]:#, "inclusive"]:
+        plots += [ Plot.make1D(f"{uname}_{region}_jj{nm}{note}", var, sel, binning,
             title=f"di-jets {title}", plotopts=utils.getOpts(uname))
             for nm, (var, binning, title) in {
                 "PT" : (jj_p4.Pt(),  EqB(60 // binScaling, 0., 450.), "P_{T} [GeV]"),
@@ -100,27 +100,26 @@ def makeControlPlotsForBasicSel(sel, jets, dilepton, uname, region):
                 }.items()
             ]
 
-    plots.append(Plot.make1D(f"{uname}_{region}_mjj",
+    plots.append(Plot.make1D(f"{uname}_{region}_mjj{note}",
                 jj_p4.M(), sel,
                 EqB(60 // binScaling, 0., 1200.), 
                 title="mjj (GeV)", plotopts=utils.getOpts(uname)))
-    plots.append(Plot.make1D(f"{uname}_{region}_mlljj", 
+    plots.append(Plot.make1D(f"{uname}_{region}_mlljj{note}", 
                 lljj_p4.M(), sel,
                 EqB(60 // binScaling, 0., 1200.), 
                 title="mlljj (GeV)", plotopts=utils.getOpts(uname)))
-
-    if region == 'boosted':
-        plots.append(Plot.make1D(f"{uname}_{region}_mjj_fatjet_softdropmass",
-                    jets[0].msoftdrop, sel,
-                    EqB(60 // binScaling, 0., 850.),
-                    title="mjj Soft Drop(fatjet) (GeV)",
-                    plotopts = utils.getOpts(uname)))
-        plots.append(Plot.make1D(f"{uname}_{region}_mlljj_fatjet_softdropmass",
-                    (jets[0].msoftdrop+ (dilepton[0].p4 +dilepton[1].p4).M()), sel,
-                    eqBIns_M,
-                    title="mlljj Soft Drop(fatjet) (GeV)",
-                    plotopts = utils.getOpts(uname)))
-
+    # no need for these anymore!
+    # if region == 'boosted':
+    #     plots.append(Plot.make1D(f"{uname}_{region}_mjj_fatjet_softdropmass",
+    #                 jets[0].msoftdrop, sel,
+    #                 EqB(60 // binScaling, 0., 850.),
+    #                 title="mjj Soft Drop(fatjet) (GeV)",
+    #                 plotopts = utils.getOpts(uname)))
+    #     plots.append(Plot.make1D(f"{uname}_{region}_mlljj_fatjet_softdropmass",
+    #                 (jets[0].msoftdrop+ (dilepton[0].p4 +dilepton[1].p4).M()), sel,
+    #                 eqBIns_M,
+    #                 title="mlljj Soft Drop(fatjet) (GeV)",
+    #                 plotopts = utils.getOpts(uname)))
     #plots.append(Plot.make2D("{0}_{1}_mlljj_vs_mjj".format(uname, region),
     #            (jj_p4.M(), (dilepton[0].p4 + dilepton[1].p4 + jj_p4).M()), sel, 
     #            (EqB(60 // binScaling, 0., 1200.), EqB(60 // binScaling, 120., 1200.)), 
@@ -193,7 +192,7 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, region, cut, 
     return plots, plots_ToSum2 
 
 
-def makeJetPlots(sel, jets, uname, region, era):
+def makeJetPlots(sel, jets, uname, region, era, note=''):
     binScaling = 1
     plots  = []
     maxJet = ( 1 if region=="boosted" else(2))
@@ -202,7 +201,7 @@ def makeJetPlots(sel, jets, uname, region, era):
         eqBin = {'resolved': EqB(60 // binScaling, 20., 650.),
                  'boosted' : EqB(60 // binScaling, 200, 850.) }
         
-        plots += [ Plot.make1D(f"{uname}_{region}_jet{i+1}_{nm}",
+        plots += [ Plot.make1D(f"{uname}_{region}_jet{i+1}_{nm}{note}",
                 jVar(jets[i]), sel, binning, title=f"{utils.getCounter(i+1)} jet {title}",
                 plotopts=utils.getOpts(uname))
             for nm, (jVar, binning, title) in {
