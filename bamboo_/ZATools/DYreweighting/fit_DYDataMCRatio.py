@@ -40,9 +40,14 @@ def EraPOGFormat(year):
 
 def getHistTemplate(path, gr, prefix, reg):
     
-    filename = glob.glob(os.path.join(path, '*.root'))[0]
-    f = ROOT.TFile.Open(filename)
-    #hist   = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    files = glob.glob(os.path.join(path, '*.root'))
+    rfs   = []
+    for f in files:
+        if '__skeleton__' not in f:
+            rfs.append(f)
+    
+    f     = ROOT.TFile.Open(rfs[0])
+    #hist = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
     hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
     #histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
@@ -70,6 +75,9 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
     requested_flav = ['MuMu', 'ElEl'] if flavour=='LL' else [flavour]
     DLdataset = {"ElEl":"DoubleEG", "MuMu": "DoubleMuon" }
     SLdataset = {"ElEl":"SingleElectron", "MuMu": "SingleMuon" }
+    
+    if year == "2018":
+        DLdataset["ElEl"] ="EGamma"
 
     histo = getHistTemplate(path, gr, prefix, reg)
 
@@ -99,7 +107,7 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
             continue
         
         if not isData:
-            if forDataSubstr: 
+            if forDataSubstr: # found all processes that need to be substracted from data! that isn't DY too
                 if Cfg['files'][smp]['group'] in ['data', 'DY']: 
                     continue
             else:
@@ -117,8 +125,6 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
             print( lumi, xsc, genevt )
             sf = lumi * xsc / (genevt)
         
-        if year == "2018":
-            DLdataset["ElEl"] ="EGamma"
 
         f = ROOT.TFile.Open(filename)
         print ( 'looking into :', smp)
@@ -389,17 +395,34 @@ if __name__ == "__main__":
         for year, files_path in {#'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+                                 
                                  #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
                                  #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
                                  #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver35/results',
+                                 
                                  #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver29/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver19/results',
-                                 #'2016-preVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
+                                 
+                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
                                  #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
                                  #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver38/results',
-                                  '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver33/results',
+                                 
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver33/results',
+                                 
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver21/results',
-                                }.items():
+                                 
+                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2016-preVFP/results',
+                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2016-postVFP/results',
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2016/results',
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2017/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2018/results',
+                                 
+                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016-preVFP/results',
+                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016-postVFP/results',
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
+                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__5/2017/results',
+                                 }.items():
    
             
             
@@ -421,7 +444,7 @@ if __name__ == "__main__":
                 plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
             
                 
-                for deg in [4, 5, 6, 7, 8]:
+                for deg in [2, 3, 4, 5, 6, 7, 8]:
                     sf = DYEstimation(plotConfig, files_path, flavour, year, n0[year], deg, splitDYweight=False, compareshape=False)
                     
                     for reg, wgt_mass in sf.items():
