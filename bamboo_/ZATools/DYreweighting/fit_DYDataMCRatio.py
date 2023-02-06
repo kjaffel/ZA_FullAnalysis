@@ -38,16 +38,9 @@ def EraPOGFormat(year):
     return 'UL'+ str(year).replace('20', '').replace('-','')
 
 
-def getHistTemplate(path, gr, prefix, reg):
+def getHistTemplate(rf, gr, prefix, reg):
     
-    files = glob.glob(os.path.join(path, '*.root'))
-    rfs   = []
-    for f in files:
-        if '__skeleton__' not in f:
-            rfs.append(f)
-    
-    f     = ROOT.TFile.Open(rfs[0])
-    #hist = f.Get(f"MuMu_noBtag_{reg}_{prefix}")
+    f     = ROOT.TFile.Open(rf)
     hist  = f.Get(f"MuMu_{reg}_0Btag_{prefix}")
     
     #histo = ROOT.TH1F(prefix +f"_{gr}","", hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
@@ -70,7 +63,8 @@ def subtractMinorBackgrounds(h_data, h_mc):
 
 
 def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=False):
-    gr = "data" if isData else ("mc")
+    histo = None
+    gr    = "data" if isData else ("mc")
     
     requested_flav = ['MuMu', 'ElEl'] if flavour=='LL' else [flavour]
     DLdataset = {"ElEl":"DoubleEG", "MuMu": "DoubleMuon" }
@@ -78,9 +72,7 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
     
     if year == "2018":
         DLdataset["ElEl"] ="EGamma"
-
-    histo = getHistTemplate(path, gr, prefix, reg)
-
+    
     for i, filename in enumerate(glob.glob(os.path.join(path, '*.root'))):
         split_filename = filename.split('/')
         smp = str(split_filename[-1])
@@ -88,12 +80,6 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
         # ignore skeleton
         if smp.startswith('__skeleton__'):
             continue
-        
-        # ignore dataset that does not describe DY
-        # well better play safe, the histogram will be empty anyway if no events pass 
-        #if smp.startswith('MuonEG'):
-        #    continue
-        
         # ignore signal 
         if 'HToZATo2L2B_' in smp:
             continue
@@ -117,26 +103,32 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
             if not Cfg['files'][smp]['group']=='data':
                 continue
         
+        
         era     = Cfg["files"][smp]['era']
         lumi    = Cfg["configuration"]["luminosity"][era]
         if "cross-section" in Cfg['files'][smp].keys():
             xsc    = Cfg['files'][smp]["cross-section"]
             genevt = Cfg['files'][smp]["generated-events"]
-            print( lumi, xsc, genevt )
             sf = lumi * xsc / (genevt)
         
-
         f = ROOT.TFile.Open(filename)
-        print ( 'looking into :', smp)
+        print ( 'Adding sample :', smp)
+        
+        if not isData:
+            print ( '\t - lumi, xsc, genevt :',  lumi, xsc, genevt)
+        
         for cat in requested_flav:
-            
-            #varToPlots_histo = f.Get(f"{cat}_noBtag_{reg}_{prefix}") #old version 
-            #print( 'adding ::', f"{cat}_noBtag_{reg}_{prefix}")
             varToPlots_histo = f.Get(f"{cat}_{reg}_0Btag_{prefix}")
-            print( 'adding ::', f"{cat}_{reg}_0Btag_{prefix}")
+            varToPlots_histo.SetDirectory(0)
+            print( '\t - histogram :', f"{cat}_{reg}_0Btag_{prefix}")
+            
             if not isData:
                 varToPlots_histo.Scale(sf)
-            histo.Add(varToPlots_histo, 1)
+            if histo is None:
+                histo = varToPlots_histo.Clone()
+                histo.SetName(prefix +f"_{gr}")
+            else:
+                histo.Add(varToPlots_histo, 1)
             histo.SetDirectory(0)
         f.Close()
             
@@ -145,17 +137,17 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
 
 
 
-def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, compareshape):
+def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
     
     lumi = Constants.getLuminosity(year)
 
-    if splitDYweight :
-        BinEdges = {'resolved': {'mjj': [0., 50, 100., 200, 450., 650.], 'mlljj': [100., 200., 450., 650., 1200.] },
-                    'boosted' : {'mjj': [], 'mlljj': [] } }
-    else:
-        #BinEdges = {'resolved': {'mjj' : [0., 650.], 'mlljj': [120., 650.] },
-        BinEdges  = {'resolved': {'mjj' : [0., 600.], 'mlljj': [120., 650.] },
-                     'boosted' : {'mjj' : [0., 150.], 'mlljj': [200., 650.] } }
+    BinEdges  = {'resolved': {
+                         'mjj'  : [(10., 150.), (150., 600.)], 
+                         'mlljj': [(120., 650.)] },
+                     'boosted' : {
+                         'mjj'  : [(10., 150.)], 
+                         'mlljj': [(200., 650.)] } 
+                     }
         
     
     outDir = os.path.join(os.getcwd(), f"results/ul{year}/{flavour}")
@@ -165,230 +157,228 @@ def DYEstimation(plotCfg, files_path, flavour, year, n0, n , splitDYweight, comp
     sf = {}
     for reg in ['resolved', 'boosted']:
         
-        func = f'{n0}-{n}' if reg == 'resolved' else str(n)
+        func = f'{nlowmass}-{n}' if reg == 'resolved' else str(n)
         sf[reg] = {}
         for idx, varToPlot in enumerate(['mjj']):#, 'mlljj']):
             
             sf[reg][varToPlot] = {}
-            for bin in range(0,len(BinEdges[reg][varToPlot])-1):
-        
-                if splitDYweight: w = bin  
-                else: w = 'comb'
                 
-                # histo_mc is hadd Drell-Yan + jets  mc
-                histo_mc        = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
-                histo_other_mc  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
-                histo_all_data  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
+            histo_dy_mc     = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=False)
+            histo_other_mc  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=False, forDataSubstr=True)
+            histo_all_data  = getHisto(year, files_path, plotCfg, flavour, reg, varToPlot, isData=True, forDataSubstr=False)
+        
+            #histo_data  = histo_all_data 
+            histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
             
-                histo_data  = histo_all_data 
-                #histo_data = subtractMinorBackgrounds( histo_all_data, histo_other_mc)
-                
-                print ( " Get Drell-Yan weight from polynomial fit order ", n, "from bin ",BinEdges[reg][varToPlot][bin], "to",BinEdges[reg][varToPlot][bin+1], "GeV") 
-                print ( " Integrals ** ", ", region:", reg, ", distribution: ", varToPlot)
-                print ( " Data     :", histo_data.Integral())
-                print ( " MC       :", histo_mc.Integral())
-                print ( " other mc :", histo_other_mc.Integral())
-                print ( " Data/MC  :", histo_data.Integral()/histo_other_mc.Integral())
-                print ( " Data - other_mc/Drell-Yan mc  :", (histo_data.Integral() - histo_other_mc.Integral() )/histo_other_mc.Integral())
-                print ( "====================================================================================")
-                
-                f_nm = f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.root" 
-                w_file = ROOT.TFile.Open(f_nm, "recreate")
-                histo_mc.SetDirectory(0)
-                histo_data.SetDirectory(0)
-                
-                histo_mc.Write()
-                histo_data.Write()
-                w_file.Close()
-        
-                ratio_file = ROOT.TFile.Open(f_nm)
-                histo_mc   = ratio_file.Get("%s_mc"%varToPlot)
-                histo_data = ratio_file.Get("%s_data"%varToPlot)
-        
-                #histo_data.Sumw2()
-                #histo_mc.Sumw2()
-                
-                #histo_data.Scale(1./histo_data.Integral())
-                #histo_mc.Scale(1./histo_mc.Integral())
-                
-                #histo_data.ResetStats()
-                #histo_mc.ResetStats()
-                
-                if compareshape:
-                    c1 = ROOT.TCanvas("c1", "c1", 800, 800)
-                    
-                    histo_mc.SetStats(0)
-                    histo_mc.SetLineWidth(2)
-                    histo_mc.SetLineColor(kRed)
-                    histo_mc.GetXaxis().SetTitle("%s (GeV)"%varToPlot)
-                    histo_mc.GetYaxis().SetTitle("Events ")
+            print ( " Integrals ** ", ", region:", reg, ", distribution: ", varToPlot)
+            print ( " Data     :", histo_data.Integral())
+            print ( " MC       :", histo_dy_mc.Integral())
+            print ( " other mc :", histo_other_mc.Integral())
+            print ( " Data/MC  :", histo_data.Integral()/histo_other_mc.Integral())
+            print ( " Data - other_mc/Drell-Yan mc  :", (histo_data.Integral() - histo_other_mc.Integral() )/histo_other_mc.Integral())
+            print ( "====================================================================================")
+            
+            f_nm = f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}.root" 
+            w_file = ROOT.TFile.Open(f_nm, "recreate")
+            histo_dy_mc.SetDirectory(0)
+            histo_data.SetDirectory(0)
+            
+            histo_dy_mc.Write()
+            histo_data.Write()
+            w_file.Close()
     
-                    histo_data.SetStats(0)
-                    histo_data.SetLineWidth(2)
-                    histo_data.SetLineColor(kBlue)
-                    histo_data.GetXaxis().SetTitle("%s (GeV)"%varToPlot)
-                    histo_data.GetYaxis().SetTitle("Events ")
+            ratio_file  = ROOT.TFile.Open(f_nm)
+            histo_dy_mc = ratio_file.Get("%s_mc"%varToPlot)
+            histo_data  = ratio_file.Get("%s_data"%varToPlot)
+            
+            #histo_data.Sumw2()
+            #histo_dy_mc.Sumw2()
+            
+            #histo_data.Scale(1./histo_data.Integral())
+            #histo_dy_mc.Scale(1./histo_dy_mc.Integral())
+            
+            #histo_data.ResetStats()
+            #histo_dy_mc.ResetStats()
+            
+            if compareshape:
+                c1 = ROOT.TCanvas("c1", "c1", 800, 800)
                 
-                    histo_mc.Draw()
-                    histo_data.Draw("same")
-                    
-                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.pdf", "pdf")
-                    c1.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}.png", "png")
-               
-                    del c1
-                
-                #create histo of ratio data/MC
-                ratio = histo_data.Clone()
-                ratio.SetTitle("")
-                ratio.Sumw2()
-                ratio.SetStats(0)
-                ratio.Divide(histo_mc)
-                
-                c2 = ROOT.TCanvas("c2", "c2", 800, 800)
-                c2.DrawFrame(-12,-12,12,12)
-                
-                ROOT.gStyle.SetOptTitle(0)
-                ROOT.gStyle.SetOptStat(0)
-                ROOT.gStyle.SetOptFit(1111)
-                ROOT.gStyle.SetStatBorderSize(0)
-                ROOT.gStyle.SetStatX(.89)
-                ROOT.gStyle.SetStatY(.89)
-                
-                ratio.SetMarkerColor(ROOT.kBlack)
-                ratio.SetMarkerStyle(20)
-                ratio.SetMarkerSize(1.5)
-                ratio.SetMinimum(0.6)
-                ratio.SetMaximum(1.4)
-                
-                ratio.GetYaxis().SetTitle("Data/Mc")
-                ratio.GetYaxis().SetNdivisions(505)
-                ratio.GetYaxis().SetTitleSize(20)
-                ratio.GetYaxis().SetTitleFont(43)
-                ratio.GetYaxis().SetTitleOffset(1.8)
-                ratio.GetYaxis().SetLabelFont(43)
-                ratio.GetYaxis().SetLabelSize(15)
+                histo_dy_mc.SetStats(0)
+                histo_dy_mc.SetLineWidth(2)
+                histo_dy_mc.SetLineColor(kRed)
+                histo_dy_mc.GetXaxis().SetTitle("%s (GeV)"%varToPlot)
+                histo_dy_mc.GetYaxis().SetTitle("Events ")
 
-                ratio.GetXaxis().SetTitle(f"{varToPlot} (GeV)")
-                ratio.GetXaxis().SetNdivisions(510)
-                ratio.GetXaxis().SetTitleSize(20)
-                ratio.GetXaxis().SetTitleFont(43)
-                ratio.GetXaxis().SetTitleOffset(1.8)
-                ratio.GetXaxis().SetLabelFont(43)
-                ratio.GetXaxis().SetLabelSize(15)
+                histo_data.SetStats(0)
+                histo_data.SetLineWidth(2)
+                histo_data.SetLineColor(kBlue)
+                histo_data.GetXaxis().SetTitle("%s (GeV)"%varToPlot)
+                histo_data.GetYaxis().SetTitle("Events ")
+            
+                histo_dy_mc.Draw()
+                histo_data.Draw("same")
+                
+                c1.SaveAs(f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}.pdf", "pdf")
+                c1.SaveAs(f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}.png", "png")
+            
+                del c1
+            
+            #create histo of ratio data/MC
+            ratio = histo_data.Clone()
+            ratio.SetTitle("")
+            ratio.Sumw2()
+            ratio.SetStats(0)
+            ratio.Divide(histo_dy_mc)
+            
+            c2 = ROOT.TCanvas("c2", "c2", 800, 800)
+            c2.DrawFrame(-12,-12,12,12)
+            
+            ROOT.gStyle.SetOptTitle(0)
+            ROOT.gStyle.SetOptStat(0)
+            ROOT.gStyle.SetOptFit(1111)
+            ROOT.gStyle.SetStatBorderSize(0)
+            ROOT.gStyle.SetStatX(.89)
+            ROOT.gStyle.SetStatY(.89)
+            
+            ratio.SetMarkerColor(ROOT.kBlack)
+            ratio.SetMarkerStyle(20)
+            ratio.SetMarkerSize(1.5)
+            ratio.SetMinimum(0.6)
+            ratio.SetMaximum(1.4)
+            
+            ratio.GetYaxis().SetTitle("Data/Mc")
+            ratio.GetYaxis().SetNdivisions(505)
+            ratio.GetYaxis().SetTitleSize(20)
+            ratio.GetYaxis().SetTitleFont(43)
+            ratio.GetYaxis().SetTitleOffset(1.8)
+            ratio.GetYaxis().SetLabelFont(43)
+            ratio.GetYaxis().SetLabelSize(15)
 
-                b0 = BinEdges[reg][varToPlot][bin]
-                b1 = 150.
-                b2 = BinEdges[reg][varToPlot][bin+1]
-                
-                gaus_pars  = []
-                pol_highmass_params = []
-                pol_lowmass_params  = []
-                if reg == 'resolved':
-                
-                    #fit_func1 = ROOT.TF1("gaus", "gaus", 0., b1)
-                    fit_func1 = ROOT.TF1(f"pol{n0}", f"pol{n0}", 10., b1)
-                    fit_func2 = ROOT.TF1(f"pol{n}", f"pol{n}", b1, b2)
-                
-                    #fit_func1.SetParameter(1, 0.0000005)
-                    #fit_func2.SetParameter(1, 0.0000005)
-                    
-                    fit_func1.SetLineColor(ROOT.kBlue)
-                    fit_func2.SetLineColor(ROOT.kRed)
-                    
-                    ratio.Fit(fit_func1, "R")
-                    ratio.Fit(fit_func2, "R+")
-                    
-                    fit_func1.Print()
-                    fit_func2.Print()
+            ratio.GetXaxis().SetTitle(f"{varToPlot} (GeV)")
+            ratio.GetXaxis().SetNdivisions(510)
+            ratio.GetXaxis().SetTitleSize(20)
+            ratio.GetXaxis().SetTitleFont(43)
+            ratio.GetXaxis().SetTitleOffset(1.8)
+            ratio.GetXaxis().SetLabelFont(43)
+            ratio.GetXaxis().SetLabelSize(15)
 
-                    for i in range(0, n0+1):
-                        p = fit_func1.GetParameter(i)
-                        pol_lowmass_params.append(p)
-                else:
-                    fit_func1 = ROOT.TF1(f"pol{n}", f"pol{n}", 10., 200.)
-                    fit_func1.SetLineColor(ROOT.kBlue)
-                    
-                    ratio.Fit(fit_func1, "R")
-                    fit_func1.Print()
+            gaus_pars  = []
+            pol_highmass_params = []
+            pol_lowmass_params  = []
+            if reg == 'resolved':
+            
+                fit_func1 = ROOT.TF1(f"pol{nlowmass}", f"pol{nlowmass}", BinEdges[reg][varToPlot][0][0], BinEdges[reg][varToPlot][0][1])
+                fit_func2 = ROOT.TF1(f"pol{n}", f"pol{n}", BinEdges[reg][varToPlot][1][0], BinEdges[reg][varToPlot][1][1])
+            
+                #fit_func1.SetParameter(1, 0.0000005)
+                #fit_func2.SetParameter(1, 0.0000005)
                 
-                if histo_mc.Integral(histo_mc.FindBin(b2), histo_mc.FindBin(1200)) != 0 :
-                    #print( ratio.GetNbinsX(), ratio.GetXaxis().GetBinLowEdge(2), ratio.FindBin(20))
-                    binWgt = histo_data.Integral(histo_data.FindBin(b2), histo_data.FindBin(1200))/histo_mc.Integral(histo_mc.FindBin(b2), histo_mc.FindBin(1200))
+                fit_func1.SetLineColor(ROOT.kBlue)
+                fit_func2.SetLineColor(ROOT.kRed)
                 
+                ratio.Fit(fit_func1, "R")
+                ratio.Fit(fit_func2, "R+")
+                
+                fit_func1.Print()
+                fit_func2.Print()
+
+                last_bin_of_fit = BinEdges[reg][varToPlot][1][1]
+                
+                for i in range(0, nlowmass+1):
+                    p = fit_func1.GetParameter(i)
+                    pol_lowmass_params.append(p)
+
                 for i in range(0, n+1):
                     p = fit_func2.GetParameter(i)
                     pol_highmass_params.append(p)
                 
                 print("========"*10)
                 print(f'Parms for:  {reg} {varToPlot}')
-                print(f'low mass pol fit degree {n0} parameters:', pol_lowmass_params)
+                print(f'low mass pol fit degree {nlowmass} parameters:', pol_lowmass_params)
                 print(f'high mass pol fit degree {n} parameters:', pol_highmass_params)
-                print(f'scale factor [{b2}-1200] GeV :', binWgt)
+            else:
+                fit_func1 = ROOT.TF1(f"pol{n}", f"pol{n}", BinEdges[reg][varToPlot][0][0], BinEdges[reg][varToPlot][0][1])
+                fit_func1.SetLineColor(ROOT.kBlue)
+                
+                ratio.Fit(fit_func1, "R")
+                fit_func1.Print()
+                
+                last_bin_of_fit = BinEdges[reg][varToPlot][0][1]
+                
+                for i in range(0, n+1):
+                    p = fit_func1.GetParameter(i)
+                    pol_lowmass_params.append(p)
+                
                 print("========"*10)
+                print(f'Parms for:  {reg} {varToPlot}')
+                print(f'low mass pol fit degree {n} parameters:', pol_lowmass_params)
                 
-                sf[reg][varToPlot][bin]= {'low_mass': pol_lowmass_params, 'high_mass': pol_highmass_params, 'binWgt': binWgt }
+            if histo_dy_mc.Integral(histo_dy_mc.FindBin(last_bin_of_fit), histo_dy_mc.FindBin(1200)) != 0 :
+                #print( ratio.GetNbinsX(), ratio.GetXaxis().GetBinLowEdge(2), ratio.FindBin(20))
+                binWgt = histo_data.Integral(histo_data.FindBin(last_bin_of_fit), histo_data.FindBin(1200))/histo_dy_mc.Integral(histo_dy_mc.FindBin(last_bin_of_fit), histo_dy_mc.FindBin(1200))
+            
+            print(f'scale factor ({last_bin_of_fit}, 1200) GeV :', binWgt)
+            print("========"*10)
+            
+            
+            sf[reg][varToPlot]= {'low_mass' : pol_lowmass_params, 
+                                 'high_mass': pol_highmass_params, 
+                                 'binWgt'   : binWgt }
 
-                ratio.Draw()
-                
-                t = c2.GetTopMargin()
-                r = c2.GetRightMargin()
-                l = c2.GetLeftMargin()
-                lumiTextOffset   = 0.2
+            ratio.Draw()
+            
+            t = c2.GetTopMargin()
+            r = c2.GetRightMargin()
+            l = c2.GetLeftMargin()
+            lumiTextOffset   = 0.2
 
-                latex = ROOT.TLatex()
-                latex.SetNDC()
-                latex.SetTextAngle(0)
-                latex.SetTextColor(ROOT.kBlack)
+            latex = ROOT.TLatex()
+            latex.SetNDC()
+            latex.SetTextAngle(0)
+            latex.SetTextColor(ROOT.kBlack)
 
-                lumiText = "%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(year)/1000.,'.2f')
-                lumi = latex.DrawLatex(0.65,1-t+lumiTextOffset*t,lumiText)
-                lumi.SetNDC()
-                lumi.SetTextFont(40)
-                lumi.SetTextSize(0.03)
-                lumi.Draw("same")
+            lumiText = "#%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(year)/1000.,'.2f')
+            lumi = latex.DrawLatex(0.65,1-t+lumiTextOffset*t,lumiText)
+            lumi.SetNDC()
+            lumi.SetTextFont(40)
+            lumi.SetTextSize(0.03)
+            lumi.Draw("same")
 
-                cms_text = latex.DrawLatex(0.12, 1-t+lumiTextOffset*t, "CMS Preliminary")
-                cms_text.SetNDC()
-                cms_text.SetTextFont(40)
-                cms_text.SetTextSize(0.03)
-                cms_text.Draw("same")
+            cms_text = latex.DrawLatex(0.12, 1-t+lumiTextOffset*t, "CMS Preliminary")
+            cms_text.SetNDC()
+            cms_text.SetTextFont(40)
+            cms_text.SetTextSize(0.03)
+            cms_text.Draw("same")
 
-                line = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1, ratio.GetXaxis().GetXmax(), 1)
-                line.SetLineWidth(5)
-                line.SetLineColor(ROOT.kBlack)
-                line.Draw("PE")
-                
-                add_ratio = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.root", "recreate")
-                ratio.SetDirectory(0)
-                ratio.Write()
-                add_ratio.Close()
+            line = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1, ratio.GetXaxis().GetXmax(), 1)
+            line.SetLineWidth(5)
+            line.SetLineColor(ROOT.kBlack)
+            line.Draw("PE")
+            
+            add_ratio = ROOT.TFile.Open(f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.root", "recreate")
+            ratio.SetDirectory(0)
+            ratio.Write()
+            add_ratio.Close()
 
-                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.pdf", "pdf")
-                c2.SaveAs(f"{outDir}/DYJetsToLL_weight{w}_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.png", "png")
-        
-                ratio_file.Close()
-                del c2
+            c2.SaveAs(f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.pdf", "pdf")
+            c2.SaveAs(f"{outDir}/DYJetsToLL_weightcomb_polfit{func}_{reg}_{varToPlot}_DataMC_ratio.png", "png")
+    
+            ratio_file.Close()
+            del c2
     return sf
 
 if __name__ == "__main__":
+    
     ROOT.gROOT.SetBatch(True)
     
     pp = pprint.PrettyPrinter(indent=2)
     
-    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.15.05/results'
-    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.7/results'
-    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/forexo/controlPlots2017v.9/results'
-    #files_path  = '/home/ucl/cp3/kjaffel/scratch/ZAFullAnalysis/2017Results/controlPlots2017v.8/ver20.05.28/results'
-    #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2017__ver19/results' 
-    #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2016__ver27/results' 
-    #files_path  = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_2018__ver10/results' 
-    
-    n0 = {  '2016-preVFP' : 6, 
-            '2016-postVFP': 6, 
-            '2016': 6, 
-            '2017': 7, 
-            '2018': 6 
-            }
+    nlowmass = { '2016-preVFP' : 6,  # test for resolved that it works well, let's try to get best fit for high mass
+                 '2016-postVFP': 6, 
+                 '2016': 6, 
+                 '2017': 7, 
+                 '2018': 6 
+                }
     
     for flavour in ['LL', 'ElEl', 'MuMu']:
         
@@ -421,7 +411,9 @@ if __name__ == "__main__":
                                  #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016-postVFP/results',
                                  #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
-                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__5/2017/results',
+                                 
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__6/2017/results',
+                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__7/2017/results',
                                  }.items():
    
             
@@ -445,15 +437,17 @@ if __name__ == "__main__":
             
                 
                 for deg in [2, 3, 4, 5, 6, 7, 8]:
-                    sf = DYEstimation(plotConfig, files_path, flavour, year, n0[year], deg, splitDYweight=False, compareshape=False)
+                    sf = DYEstimation(plotConfig, files_path, flavour, year, nlowmass[year], deg, compareshape=False)
                     
-                    for reg, wgt_mass in sf.items():
-                        for m, wgt_per_bin in wgt_mass.items():
-                            for bin, wgt_massplane in wgt_per_bin.items(): # it is just one bin FIXME later
-                                if reg == 'resolved':
-                                    scale_factor[year][reg][m].update({f"polyfit{n0[year]}":sf[reg][m][bin]['low_mass']})
-                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m][bin]['high_mass']})
-                                scale_factor[year][reg][m].update({f"binWgt":sf[reg][m][bin]['binWgt']})
+                    for reg, wgt_per_mass in sf.items():
+                        for m, wgt_per_fit in wgt_per_mass.items():
+                            
+                            if reg=='resolvd':
+                                scale_factor[year][reg][m].update({f"polyfit{nlowmass[year]}":sf[reg][m]['low_mass']})
+                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m]['high_mass']})
+                            else:
+                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m]['low_mass']})
+                            scale_factor[year][reg][m].update({f"binWgt":sf[reg][m]['binWgt']})
             
             #pp.pprint(scale_factor)
             with open(jsf_nm, 'w') as _f:
