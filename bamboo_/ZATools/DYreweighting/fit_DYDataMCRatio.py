@@ -136,19 +136,33 @@ def getHisto(year, path, Cfg, flavour, reg, prefix, isData=False, forDataSubstr=
     return histo
 
 
+def formatted_bin(_tup):
+    return '{}_to_{}'.format(int(_tup[0]),int(_tup[1]))
+
+
+def getSF_dict(year, BinEdges):
+    scale_factor = collections.defaultdict(list)
+    scale_factor[year] = {}
+    for i, reg in enumerate(['boosted', 'resolved']):
+
+        scale_factor[year][reg] = {}
+        for mass in ['mjj']:#, 'mlljj']:
+            
+            scale_factor[year][reg][mass] = {}
+            fit_range_tup = BinEdges[reg][mass]
+
+            if reg == 'resolved':
+                scale_factor[year][reg][mass].update({
+                        f'highmass_{formatted_bin(fit_range_tup[1])}': {} })
+            scale_factor[year][reg][mass].update({
+                        f'lowmass_{formatted_bin(fit_range_tup[0])}': {},
+                        f'binWgt_above_{int(fit_range_tup[i][1])}': {} })
+    return scale_factor
+
 
 def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
     
     lumi = Constants.getLuminosity(year)
-
-    BinEdges  = {'resolved': {
-                         'mjj'  : [(10., 150.), (150., 600.)], 
-                         'mlljj': [(120., 650.)] },
-                     'boosted' : {
-                         'mjj'  : [(10., 150.)], 
-                         'mlljj': [(200., 650.)] } 
-                     }
-        
     
     outDir = os.path.join(os.getcwd(), f"results/ul{year}/{flavour}")
     if not os.path.exists(outDir):
@@ -262,7 +276,7 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
             ratio.GetXaxis().SetLabelFont(43)
             ratio.GetXaxis().SetLabelSize(15)
 
-            gaus_pars  = []
+            fit_range_tup   = BinEdges[reg][varToPlot]
             pol_highmass_params = []
             pol_lowmass_params  = []
             if reg == 'resolved':
@@ -281,7 +295,7 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
                 
                 fit_func1.Print()
                 fit_func2.Print()
-
+                
                 last_bin_of_fit = BinEdges[reg][varToPlot][1][1]
                 
                 for i in range(0, nlowmass+1):
@@ -294,8 +308,8 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
                 
                 print("========"*10)
                 print(f'Parms for:  {reg} {varToPlot}')
-                print(f'low mass pol fit degree {nlowmass} parameters:', pol_lowmass_params)
-                print(f'high mass pol fit degree {n} parameters:', pol_highmass_params)
+                print(f'low mass ({BinEdges[reg][varToPlot][0][0]}, {BinEdges[reg][varToPlot][0][1]}) GeV pol fit degree {nlowmass} parameters:', pol_lowmass_params)
+                print(f'high mass ({BinEdges[reg][varToPlot][1][0]}, {BinEdges[reg][varToPlot][1][1]}) GeV pol fit degree {n} parameters:', pol_highmass_params)
             else:
                 fit_func1 = ROOT.TF1(f"pol{n}", f"pol{n}", BinEdges[reg][varToPlot][0][0], BinEdges[reg][varToPlot][0][1])
                 fit_func1.SetLineColor(ROOT.kBlue)
@@ -311,7 +325,7 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
                 
                 print("========"*10)
                 print(f'Parms for:  {reg} {varToPlot}')
-                print(f'low mass pol fit degree {n} parameters:', pol_lowmass_params)
+                print(f'low mass ({BinEdges[reg][varToPlot][0][0]}, {BinEdges[reg][varToPlot][0][1]}) GeV pol fit degree {n} parameters:', pol_lowmass_params)
                 
             if histo_dy_mc.Integral(histo_dy_mc.FindBin(last_bin_of_fit), histo_dy_mc.FindBin(1200)) != 0 :
                 #print( ratio.GetNbinsX(), ratio.GetXaxis().GetBinLowEdge(2), ratio.FindBin(20))
@@ -321,9 +335,11 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
             print("========"*10)
             
             
-            sf[reg][varToPlot]= {'low_mass' : pol_lowmass_params, 
-                                 'high_mass': pol_highmass_params, 
-                                 'binWgt'   : binWgt }
+            sf[reg][varToPlot] = {f'lowmass_{formatted_bin(fit_range_tup[0])}' : pol_lowmass_params, 
+                                  f'binWgt_above_{int(last_bin_of_fit)}'        : binWgt }
+            if reg == 'resolved':
+                sf[reg][varToPlot].update({f'highmass_{formatted_bin(fit_range_tup[1])}': pol_highmass_params})
+
 
             ratio.Draw()
             
@@ -337,7 +353,7 @@ def DYEstimation(plotCfg, files_path, flavour, year, nlowmass, n, compareshape):
             latex.SetTextAngle(0)
             latex.SetTextColor(ROOT.kBlack)
 
-            lumiText = "#%s fb^{-1} (13 TeV)" %format(Constants.getLuminosity(year)/1000.,'.2f')
+            lumiText = "%s #fb^{-1} (13 TeV)" %format(Constants.getLuminosity(year)/1000.,'.2f')
             lumi = latex.DrawLatex(0.65,1-t+lumiTextOffset*t,lumiText)
             lumi.SetNDC()
             lumi.SetTextFont(40)
@@ -380,9 +396,20 @@ if __name__ == "__main__":
                  '2018': 6 
                 }
     
+    BinEdges  = {'resolved': {
+                         'mjj'   : [(10., 150.), (150., 600.)], 
+                         #'mlljj': [(120., 650.) # not in use 
+                         },
+                     'boosted' : {
+                         'mjj'   : [(10., 150.)], 
+                         #'mlljj': [(200., 650.)] 
+                         } 
+                     }
+    
     for flavour in ['LL', 'ElEl', 'MuMu']:
         
-        for year, files_path in {#'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
+        for year, files_path in {
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_run2__ver10/results',
                                  
@@ -412,42 +439,35 @@ if __name__ == "__main__":
                                  #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
                                  
-                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__6/2017/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
                                  '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__7/2017/results',
                                  }.items():
    
             
+            if not files_path:
+                continue
             
             era = year.replace('20', '').replace('-','')
             jsf_nm = f"DYJetsTo{flavour}_TuneCP5_13TeV-amcatnloFXFX-pythia8_polyfitWeights_RunIISummer20UL{era}_NanoAODv9.json"
-        
-            scale_factor = collections.defaultdict(list)
-            scale_factor[year] = {'resolved': { 
-                                        'mjj'  : {},
-                                        'mlljj': {} },   
-                                'boosted': {
-                                        'mjj'  : {},
-                                        'mlljj': {} }
-                                }
-            if not files_path:
-                continue
-    
+            
+            scale_factor = getSF_dict(year, BinEdges)        
+            
             with open(os.path.join(files_path.replace('/results',''), 'plots.yml')) as _f:
                 plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
             
+            for deg in [2, 3, 4, 5, 6, 7, 8]:
+                _sf = DYEstimation(plotConfig, files_path, flavour, year, nlowmass[year], deg, compareshape=False)
                 
-                for deg in [2, 3, 4, 5, 6, 7, 8]:
-                    sf = DYEstimation(plotConfig, files_path, flavour, year, nlowmass[year], deg, compareshape=False)
-                    
-                    for reg, wgt_per_mass in sf.items():
-                        for m, wgt_per_fit in wgt_per_mass.items():
-                            
-                            if reg=='resolvd':
-                                scale_factor[year][reg][m].update({f"polyfit{nlowmass[year]}":sf[reg][m]['low_mass']})
-                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m]['high_mass']})
-                            else:
-                                scale_factor[year][reg][m].update({f"polyfit{deg}":sf[reg][m]['low_mass']})
-                            scale_factor[year][reg][m].update({f"binWgt":sf[reg][m]['binWgt']})
+                for reg, wgt_per_mass in _sf.items():
+                    for m, wgt_per_fit in wgt_per_mass.items():
+                            for f_rng, f_param in wgt_per_fit.items():
+                                
+                                if reg == 'resolved' and f_rng =='low_mass':
+                                    deg = nlowmass[year]
+                                if 'binWgt' in f_rng: k = 'binWgt'
+                                else: k = f'polyfit{deg}'
+                                
+                                scale_factor[year][reg][m][f_rng].update({f"{k}": f_param})
             
             #pp.pprint(scale_factor)
             with open(jsf_nm, 'w') as _f:
