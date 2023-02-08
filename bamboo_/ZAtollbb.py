@@ -89,7 +89,6 @@ class NanoHtoZABase(NanoAODModule):
         self.doDDBvsL               = False
         self.BTV_discrCuts          = False
         self.doDY_reweighting       = True        # using poly self.fit_degree on mjj mass
-        self.doOnlylightflav        = False       # DY reweighting will be applied on light flavour jets only 
         self.dotthDY_reweighting    = False       # tth weights eraly beginning on noSel
         self.doTop_reweighting      = True
         self.doProduceParquet       = False       # df for skim 
@@ -633,6 +632,9 @@ class NanoHtoZABase(NanoAODModule):
         cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.AND( op.rng_len(AK8jets) >= 1, 
                                                                              op.NOT(op.rng_any(AK8jets, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) ) 
         
+        soft_cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.NOT(op.rng_any(self.cleaned_AK8JetsByDeepB, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) 
+        #cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.deltaR(j.p4, self.cleaned_AK8JetsByDeepB[0].p4) > 1.2)
+        
         self.cleaned_AK4JetsByDeepFlav_noPuppi = op.sort(cleaned_AK4jets_noPuppi, lambda j: -j.btagDeepFlavB)
         self.cleaned_AK4JetsByDeepB_noPuppi    = op.sort(cleaned_AK4jets_noPuppi, lambda j: -j.btagDeepB) 
 
@@ -860,15 +862,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         def inputStaticCast(inputDict,cast='float'):
             return [op.static_cast(cast,v) for v in inputDict.values()]
                 
-        def _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections, lightflavour_j=None):
+        def _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections):
                    
             jj_mass    = { 'resolved': (AK4jets[0].p4 + AK4jets[1].p4).M(),
                            'boosted' :  AK8jets[0].p4.M() }
 
             _sel_weighted = {}
             for reg , sel in lljjSelections.items():
-                DYweight = getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], self.fit_range[reg], lightflavour_j, 
-                                                    self.doSysts, self.reweightDY, self.doOnlylightflav)
+                DYweight = getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], self.fit_range[reg], self.doSysts, self.reweightDY)
                 _sel_weighted[reg]= sel.refine(f"TwoJet_{channel}Sel_{reg}_DYweight", weight=(DYweight))
             
             return _sel_weighted
@@ -1042,7 +1043,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             lljj_bJets['boosted']["DeepDoubleBvLV2"] = {}
 
         masses_seen = [
-        #part0 : 21 signal samples 
         #( MH, MA)
         ( 200, 50),
         ( 200, 100), ( 200, 125),
@@ -1054,18 +1054,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         ( 800, 50), ( 800, 100), ( 800, 200), ( 800, 400), ( 800, 700),
         (1000, 50), (1000, 200), (1000, 500),    
         ]
-        #part1
-        masses_notseen = [
-        #( 173.52,  72.01),  
-        #( 209.90,  30.00), ( 209.90,  37.34), ( 261.40, 102.99), ( 261.40, 124.53),
-        #( 296.10, 145.93), ( 296.10,  36.79),
-        #( 379.00, 205.76), 
-        #( 442.63, 113.53), ( 442.63,  54.67),( 442.63,  80.03), 
-        #( 609.21, 298.01), 
-        #( 717.96,  30.00), ( 717.96, 341.02), 
-        #( 846.11, 186.51), ( 846.11, 475.64), ( 846.11,  74.80), 
-        #( 997.14, 160.17), ( 997.14, 217.19), ( 997.14, 254.82), ( 997.14, 64.24) 
-        ]
+        masses_notseen = []
         
         # basic distribution for control region
         make_ZpicPlots              = True
@@ -1089,11 +1078,10 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_ttbarEstimationPlots    = False
         
         # the follow are mainly for debugging purposes 
-        make_BoostedBtagPlots        = True    
+        make_BoostedBtagPlots        = False    
         make_DYReweightingPlots      = True
         make_tau2tau1RatioPlots      = False
-        make_deltaRPlots             = True 
-        make_InclusivePlots          = False
+        make_deltaRPlots             = False
         make_zoomplotsANDptcuteffect = False
         make_2017Checksplots         = False
         make_LookInsideJets          = False
@@ -1116,13 +1104,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 self.yield_object.addYields(catSel,"hasOs%s"%channel,"2 OS lep.(%s) + $m_{ll}$ cut"%optstex)
                 self.selections_for_cutflowreport.add(catSel, "2 OS lep.(%s) + $m_{ll}$ cut"%optstex)
             
-            if make_InclusivePlots:
-                plots += varsCutsPlotsforLeptons(dilepton, catSel, channel)
-                plots.extend(cp.makeControlPlotsForZpic(catSel, dilepton, 'oslepSel', channel, 'inclusive'))
-                
-                inclusiveSel = catSel.refine(f"TwoJet_{channel}_inclusiveSel",cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) >= 0])
-                plots.extend(cp.makeControlPlotsForBasicSel(inclusiveSel, lljj_jets, dilepton, channel, 'inclusive'))
-            
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     # Jets multiplicty  
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1132,7 +1113,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             #                                          Control region
-            # boosted is not fully inclusive, events mght have resolved AK4 and boosted AK8 , this handeled in the SR
             # boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat so no pu jets wgt is applied !
             #                                          
             #                                       Signal region 
@@ -1146,9 +1126,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
             lljjSelections = { "resolved": catSel.refine(f"TwoJet_{channel}Sel_resolved", cut=[ op.rng_len(AK4jets) >= 2,  op.rng_len(AK8jets) == 0]),
-                               "boosted" : catSel.refine(f"OneJet_{channel}Sel_boosted",  cut=[ op.rng_len(AK8jets) >= 1,  op.rng_len(cleaned_AK4jets_noPuppi) >= 0])
+                               "boosted" : catSel.refine(f"OneJet_{channel}Sel_boosted",  cut=[ op.rng_len(AK8jets) >= 1 ])
                                }
-            
             
             # plots before rewighting 
             if make_DYReweightingPlots: 
@@ -1160,36 +1139,29 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     
                     # 0 btag, region orthogonal to my SR 
                     # these will be used to extract the poly fit degrees
-                    cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag( _cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
-                                                                                          doMETCut=True, doWgt=False, doSum=True, doPlot=True)
+                    cp_0Btag_noDYwgt, cp_0Btag_noDYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_bJets, dilepton, sel, channel, reg, era, "M", self.fit_degree[reg][era], corrMET, 
+                                                                                          doMETCut=True, doWgt=False, doSum=True)
                     plots.extend(cp_0Btag_noDYwgt)
                     plots_ToSum2.update(cp_0Btag_noDYwgtToSum)
                     
                     # before applying DY weights decided in "self.fit_degree", let's cross-check with other fit degree 
-                    dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, self.fit_range[reg], 
-                                                                            self.reweightDY, self.doSysts, doWgt=True, doSum=True)
-                    plots.extend(dy_cp)
-                    plots_ToSum2.update(dy_cpToSum)
+                    #dy_cp, dy_cpToSum = ProduceFitPolynomialDYReweighting(lljj_jets[reg], dilepton, sel, channel, reg, sampleCfg, era, isMC, self.fit_range[reg], 
+                    #                                                        self.reweightDY, self.doSysts, doWgt=True, doSum=True)
+                    #plots.extend(dy_cp)
+                    #plots_ToSum2.update(dy_cpToSum)
             
             # apply DY weights 
             if self.doDY_reweighting:
-                # for debugging only 
-                lightflavour_j = {} 
-                if self.doOnlylightflav:
-                    for reg , sel in lljjSelections.items():
-                        lightflavour_j[reg] = prepareCP_ForDrellYan0Btag(_cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
-                                                                        doMETCut=True, doWgt=False, doSum=True, doPlot=False)
-                # refine the selction with Dy weights 
                 if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and channel in ['MuMu', 'ElEl']:
-                    lljjSelections = _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections, lightflavour_j)
+                    lljjSelections = _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections)
 
             # plots after rewighting , CP are 0 btag after rewighting 
-            if self.doDY_reweighting and make_DYReweightingPlots: 
-                for reg , sel in lljjSelections.items():
-                    cp_0Btag_DYwgt, cp_0Btag_DYwgtToSum = prepareCP_ForDrellYan0Btag(_cleaned_jets, jetType, dilepton, sel, channel, reg, era, "medium", self.fit_degree[reg][era], corrMET, 
-                                                                                    doMETCut=True, doWgt=True, doSum=True, doPlot=True)
-                    plots.extend(cp_0Btag_DYwgt)
-                    plots_ToSum2.update(cp_0Btag_DYwgtToSum)
+            #if self.doDY_reweighting and make_DYReweightingPlots: 
+            #    for reg , sel in lljjSelections.items():
+            #         cp_0Btag_DYwgt, cp_0Btag_DYwgtToSum = prepareCP_ForDrellYan0Btag(lljj_bJets, dilepton, sel, channel, reg, era, "M", self.fit_degree[reg][era], corrMET, 
+            #                                                                        doMETCut=True, doWgt=True, doSum=True)
+            #        plots.extend(cp_0Btag_DYwgt)
+            #        plots_ToSum2.update(cp_0Btag_DYwgtToSum)
 
             if self.doYields:
                 for reg, sel in lljjSelections.items():
@@ -1261,13 +1233,19 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 bJets_resolved_PassdeepflavourWP  = bjets_resolved["DeepFlavour"][wp]
                 bJets_resolved_PassdeepcsvWP      = bjets_resolved["DeepCSV"][wp]
 
-                # resolved +boosted but AK4 JETS are cleaned from any Puppi contanmination
-                bJets_resolved_PassdeepflavourWP_noPuppi  = bjets_mix_ak4_rmPuppi["DeepFlavour"][wp]
-                bJets_resolved_PassdeepcsvWP_noPuppi      = bjets_mix_ak4_rmPuppi["DeepCSV"][wp]
-                
                 # boosted
                 if wp !='T':
                     bJets_boosted_PassdeepcsvWP   = bjets_boosted["DeepCSV"][wp]
+                
+                # resolved +boosted but AK4 JETS are cleaned from any Puppi contanmination
+                # this one might be too strict, let's try the one below
+                #bJets_resolved_PassdeepflavourWP_noPuppi  = bjets_mix_ak4_rmPuppi["DeepFlavour"][wp]
+                #bJets_resolved_PassdeepcsvWP_noPuppi      = bjets_mix_ak4_rmPuppi["DeepCSV"][wp]
+                
+                bJets_resolved_PassdeepflavourWP_noPuppi = op.select(bJets_resolved_PassdeepflavourWP, lambda j : 
+                                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
+                bJets_resolved_PassdeepcsvWP_noPuppi     = op.select(bJets_resolved_PassdeepcsvWP, lambda j : 
+                                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) 
                 
                 if self.dobJetER and isSignal:
                     bJets_resolved_PassdeepflavourWP  = op.map(bJets_resolved_PassdeepflavourWP, lambda j: j.pt*j.bRegCorr)
@@ -1276,10 +1254,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     #bJets_resolved_PassdeepflavourWP = corr.bJetEnergyRegression( bJets_resolved_PassdeepflavourWP)
                     #bJets_resolved_PassdeepcsvWP     = corr.bJetEnergyRegression( bJets_resolved_PassdeepcsvWP)
                
-                #bJets_resolved_PassdeepflavourWP_noPuppi = op.select(bJets_resolved_PassdeepflavourWP, lambda j : 
-                #                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
-                #bJets_resolved_PassdeepcsvWP_noPuppi     = op.select(bJets_resolved_PassdeepcsvWP, lambda j : 
-                #                                                        op.NOT(op.rng_any(bJets_boosted_PassdeepcsvWP, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) ) 
                 
                 if make_JetmultiplictyPlots:
                     bjets = { 'resolved': {
@@ -1520,8 +1494,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         Light  = mode[-1]
                                         nm     = 'Z%s'%Light
                                         
-                                        #masses_seen_forEvaluation = [(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)]
-                                        #masses_seen_forEvaluation = [(250., 50.), (500., 50.), (500., 300.), (250., 125.), (800., 200.)]
                                         EXTRA = []
                                         if mode == 'HToZA':
                                             EXTRA = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]

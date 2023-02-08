@@ -105,6 +105,11 @@ def computeDYweight(flav, era, reg, fitdegree, fitrange, mass, name, doSysts):
 #_dyw_expr_mjj   = None
 #_dyw_expr_mlljj = None
 #
+
+def getIDX(wp = None):
+    return (0 if wp=="L" else ( 1 if wp=="M" else 2))
+
+
 def splitDYweight(mjj, mlljj, withSystematic=False):
     mjj      = op.define(mjj)
     mlljj    = op.define(mlljj)
@@ -129,7 +134,6 @@ def splitDYweight(mjj, mlljj, withSystematic=False):
                 ) for j in range(1,len(dwyBins_mlljj))
             ]+[noWeight]))) for i in range(1,len(dywBins_mjj))
         ]+[noWeight]))
-
 
 def DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt=False, doSum=False, do0Btag=False):
     plots = []
@@ -177,7 +181,7 @@ def DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt=False, doSum=
     return plots, plots_ToSum2
 
 
-def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, fitrange, lightflavour_j=None, doSysts=False, doreweightDY='', doOnlylightflav=False):
+def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, fitrange, doSysts=False, doreweightDY=''):
     
     if doreweightDY == "comb": flav = 'LL'
     else: flav = channel if channel in ['ElEl', 'MuMu'] else ( 'LL')
@@ -187,18 +191,11 @@ def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, fitrange, lightf
                 #"mjj_vs_mlljj" : op.product( computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mjj', doSysts), 
                 #                             computeDYweight(flav, era, reg, polyfit, fitrange, mass, 'mlljj', doSysts)) 
                 }
-    
-    if doOnlylightflav:
-        return op.switch( lightflavour_j, DYweight[k], op.c_float(1.))
-    else:
-        return DYweight[k]
+    return DYweight[k]
 
-
-def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp, fitdegree, corrMET, doMETCut=False, doWgt=False, doSum=False, doPlot=True):
-    
+def prepareCP_ForDrellYan0Btag(bjets, dilepton, sel, uname, reg, era, wp, fitdegree, corrMET, doMETCut=False, doWgt=False, doSum=False):
     plots = []
     binScaling = 1
-    non_bjets  = {}
     plots_ToSum2 = collections.defaultdict(list)
     
     nm = '' 
@@ -206,40 +203,24 @@ def prepareCP_ForDrellYan0Btag(jets, jetType, dilepton, sel, uname, reg, era, wp
         nm += 'MECut'
     if doWgt:
         nm += '_DYWeight'
+    _tag = 'DeepCSV' if reg == 'boosted' else 'DeepFlavour'
 
-    lambda_failbtag = {'DeepFlavour': lambda j: j.btagDeepFlavB < legacy_btagging_wpdiscr_cuts['DeepFlavour'][era][getIDX(wp)],
-                       'DeepCSV'    : lambda j: op.AND(j.subJet1.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)],
-                                                       j.subJet2.btagDeepB < legacy_btagging_wpdiscr_cuts['DeepCSV'][era][getIDX(wp)]) }
-
-    for (tagger, lambda_), k in zip(lambda_failbtag.items(), ['resolved', 'boosted']):
-        non_bjets[jetType[k]] = op.select(jets[k][tagger], lambda_)
-    non_bjets["AK4_rmPuppi"]  = op.select(jets["mix_ak4_rmPuppi"]["DeepFlavour"], lambda_failbtag["DeepFlavour"])
-
-    cut_per_cr = { 'resolved': [ op.rng_len(non_bjets["AK4"]) >= 2,  op.rng_len(non_bjets["AK8"]) == 0 ],
-                   'boosted' : [ op.rng_len(non_bjets["AK4_rmPuppi"]) >= 0,  op.rng_len(non_bjets["AK8"]) >= 1 ] }
+    _0btag = { 'resolved': [ op.rng_len(bjets['resolved']['DeepFlavour'][wp]) <= 2,  op.rng_len(bjets['boosted']['DeepCSV'][wp]) == 0 ],
+               'boosted' : [ op.rng_len(bjets['boosted']['DeepCSV'][wp]) <= 1 ] }
     
-    cut_lightflav_j = { 'resolved' : op.AND( op.rng_len(non_bjets["AK4"]) >= 2, op.rng_len(non_bjets["AK8"]) == 0 ),
-                         'boosted' : op.AND( op.rng_len(non_bjets["AK4_rmPuppi"]) >= 0, op.rng_len(non_bjets["AK8"]) >= 1 ) }
-    
-    Sel_cut = cut_per_cr[reg]
+    _0btag_cuts = _0btag[reg]
     if doMETCut:
-        Sel_cut += [corrMET.pt < 80.]
-        lf_cut   = op.AND( cut_lightflav_j[reg], corrMET.pt < 80. )
+        _0btag_cuts += [corrMET.pt < 80.]
     
-    if doPlot:
-        sel = sel.refine(f'{uname}_{reg}_controlregion_2Lep2Jets_0Btag_{nm}_{wp}', cut=Sel_cut )
-    
-        cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(non_bjets[jetType[reg]], dilepton, sel, uname, reg, fitdegree, doWgt=doWgt, doSum=doSum, do0Btag=True)
-        plots += cp_0Btag
-        plots_ToSum2.update(cp_0BtagToSum)
-        return plots, plots_ToSum2
-    else:
-        return lf_cut
+    sel = sel.refine(f'{uname}_{reg}_controlregion_2Lep2Jets_0Btag_{nm}_{wp}', cut=_0btag_cuts )
 
+    cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(bjets[reg][_tag][wp], dilepton, sel, uname, reg, fitdegree, doWgt=doWgt, doSum=doSum, do0Btag=True)
+    plots += cp_0Btag
+    plots_ToSum2.update(cp_0BtagToSum)
+    return plots, plots_ToSum2
 
 
 def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg, era, isMC, fitrange, doreweightDY='split', doSysts=False, doWgt=False, doSum=False):
-
     plots = []
     binScaling = 1
     plots_ToSum2 = collections.defaultdict(list)
@@ -258,8 +239,7 @@ def ProduceFitPolynomialDYReweighting(jets, dilepton, sel, uname, reg, sampleCfg
             else: s   = f"_lowmass{fitdegree}_highmassBinWgt"
             
             sel = sel.refine(f"TwoLep_{uname}_TwoJets_{reg}_DYweight{doreweightDY}_fitpolynomial{s}_on_mjj", 
-                    weight=(getDYweightFromPolyfit(channel=uname, era=era, reg=reg, k='mjj', mass=mjj, polyfit=fitdegree, fitrange=fitrange, doSysts=doSysts, doreweightDY=doreweightDY))
-                    )  
+                    weight=(getDYweightFromPolyfit(channel=uname, era=era, reg=reg, k='mjj', mass=mjj, polyfit=fitdegree, fitrange=fitrange, doSysts=doSysts, doreweightDY=doreweightDY)) )  
             
         plt, pltToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt, doSum)
         plots += plt

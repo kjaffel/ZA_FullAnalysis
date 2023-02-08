@@ -41,15 +41,18 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         binScaling = 1
         plots = []
         
-        
+        soft_cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.NOT(op.rng_any(self.cleaned_AK8JetsByDeepB, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
+
         def getIDX(wp = None):
             return (0 if wp=="L" else ( 1 if wp=="M" else 2))
         
         def get_DYweight(channel, reg):
             jj_mass    = { 'resolved' : (AK4jets[0].p4 + AK4jets[1].p4).M(),
                             'boosted' :  AK8jets[0].p4.M() }
+            
             if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and channel in ['ElEl', 'MuMu']:
-                return getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], self.doSysts, self.reweightDY)
+                return getDYweightFromPolyfit(channel, era, reg, 'mjj', jj_mass[reg], self.fit_degree[reg][era], self.fit_range[reg], 
+                                                None, self.doSysts, self.reweightDY)
             else:
                 return None
 
@@ -118,7 +121,7 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
        
         processes_dic = { "gg_fusion":{ 
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 2, op.rng_len(AK8jets) == 0),
-                                        "boosted" : op.AND(op.rng_len(AK8jets) >= 1,  op.rng_len(cleaned_AK4jets_noPuppi) == 0) },
+                                        "boosted" : op.AND(op.rng_len(AK8jets) >= 1, op.rng_len(cleaned_AK4jets_noPuppi) == 0) },
                           "bb_associatedProduction":{
                                         "resolved": op.AND(op.rng_len(AK4jets) >= 3, op.rng_len(AK8jets) == 0),
                                         "boosted" : op.AND(op.rng_len(AK8jets) >= 1, op.rng_len(cleaned_AK4jets_noPuppi) >= 1) }
