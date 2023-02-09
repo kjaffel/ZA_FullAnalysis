@@ -22,7 +22,7 @@ def ZAlogger(nm):
                     log_colors={
                             'DEBUG':    'green',
                             'INFO':     'cyan',
-                            'WARNING':  'blue',
+                            'WARNING':  'yellow',
                             'ERROR':    'red',
                             'CRITICAL': 'red',
                             },

@@ -15,9 +15,11 @@ from cppyy import gbl
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
-
-splitJECs = True
-splitLep  = False
+decotheory     = False
+splitJECs      = True
+splitLep       = False
+splitTTbar     = False
+splitDrellYan  = False
 FixbuggyFormat = False
 rm_mix_lo_nlo_bbH_signal= True
 
@@ -68,11 +70,11 @@ def matching_proc(p,s):
             and (p.analysis()==s.analysis()) and  (p.era()==s.era()) 
             and (p.channel()==s.channel()) and (p.bin_id()==s.bin_id()) and (p.mass()==s.mass()))
 
-    
-def symmetrise_smooth_syst(chob,syst):
-  if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j") or syst.name().startswith("QCD")): 
-      chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: symm_and_smooth(syst,x) if (matching_proc(x,syst)) else None)
-      chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: checkSizeOfShapeEffect(syst,x) if (matching_proc(x,syst)) else None)# doesn't do much, just helps the fit to converge faster
+
+def symmetrise_smooth_syst(chob, syst):
+    if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j") or syst.name().startswith("QCD")): 
+        chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: symm_and_smooth(syst,x) if (matching_proc(x,syst)) else None)
+        chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: checkSizeOfShapeEffect(syst,x) if (matching_proc(x,syst)) else None)# doesn't do much, just helps the fit to converge faster
 
 
 def drop_onesided_systs(syst):
@@ -113,7 +115,7 @@ def smooth_lowess_tgraph(h):
     
 def symm_and_smooth(syst,proc):
     #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
-    print ('smoothing: ', syst)
+    print 'smoothing: ', syst
     nominal = proc.shape()
     nominal.Scale(proc.rate())
     hist_u = syst.shape_u()
@@ -179,7 +181,7 @@ def readRecursiveDirContent(content, currTDir, resetDir=True):
                 obj.SetDirectory(0)
 
 
-def CMSNamingConvention(origName=None, era=None, process=None):
+def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     era   = era.replace('-', '')
@@ -207,13 +209,16 @@ def CMSNamingConvention(origName=None, era=None, process=None):
         'highpt_ele_reco'   : "CMS_eff_elreco_highpt",
         'muid_medium'       : "CMS_eff_muid",
         'muiso_tight'       : "CMS_eff_muiso",
+        'TopPt_reweighting' : "TopPt_reweighting", 
 
         }
    
     # remove mass _MX-... duplicate in the datacards 
     if process:
         process = process.split('_')[0]
-    
+        if decotheory and cat is not None:
+            process += '_'+'_'.join(cat.split('_')[2:])
+
     # theory 
     theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
                     "qcdMuF"   : "QCDMuF_%s"%process, 
@@ -255,7 +260,7 @@ def CMSNamingConvention(origName=None, era=None, process=None):
     
     # unkown 
     else:
-        return origName+"_{}".format(era)
+        return origName+"_{}".format(newEra)
 
 
 def get_hist_from_key(keys=None, key=None):
@@ -301,15 +306,15 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
                     if not flavor.lower() in syst:
                         avoid += [syst]
 
-            if reg == 'boosted':
-                avoid += [ 'DYweight_resolved_', 'jer']
-                avoid += [ 'Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample', 'jesTotal']
-            elif reg == 'resolved':
-                avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
-                if splitJECs:
-                    avoid += ['jesTotal']
-                else:
-                    avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
+            #if reg == 'boosted':
+            #    avoid += [ 'DYweight_resolved_', 'jer']
+            #elif reg == 'resolved':
+            #    avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
+            
+            if splitJECs:
+                avoid += ['jesTotal']
+            else:
+                avoid += ['Absolute', 'BBEC1', 'EC2', 'FlavorQCD', 'HF', 'RelativeBal', 'RelativeSample'] 
                     
             avoid = list(set(avoid))
             if syst not in systematics:
@@ -562,13 +567,14 @@ def ignoreSystematic(smp=None, flavor=None, process=None, s=None, _type=None):
         return True
     if 'lightEff' in s:
         return True
+    # maybe these two are not anymore causing issues !
     #if 'CMS_UnclusteredEn' in s: # this vars is very small and causes problem in the fit
+    #    return True
+    #if 'QCDMuRF_' in s:
     #    return True
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
-        return True
-    if 'QCDMuRF_' in s:
         return True
 
 
@@ -677,7 +683,7 @@ def remove_mix_lo_nlo_bbH(local_process_files):
     return local_process_files
 
 
-def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, flav_categories, era, scalefactors, tanbeta, _2POIs_r=False, multi_signal=False, unblind=False, normalize=False):
+def prepareFile(processes_map, categories_map, input, output_filename, signal_process, method, luminosity, mode, thdm, analysis_categories, era, scalefactors, tanbeta, _2POIs_r=False, multi_signal=False, unblind=False, normalize=False):
     """
     Prepare a ROOT file suitable for Combine Harvester.
     The structure is the following:
@@ -686,7 +692,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
       The name of the histogram is the name of the background.
     """
     ToFIX = [] 
-    logger.info("Categories                                 : %s"%flav_categories )
+    logger.info("Categories                                 : %s"%analysis_categories )
     logger.info("Preparing ROOT file for combine...")
     logger.info("="*60)
     
@@ -708,13 +714,16 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # The key is the process identifier, the value is a list of files
     # If more than one file exist for a given process, the histograms of each file will
     # be merged together later
-
+    
     processes_files = {}
     for process, paths in processes_map.items():
         process_files = []
         for path in paths:
             r = re.compile(path, re.IGNORECASE)
             local_process_files = [f for f in files if r.search(os.path.basename(f))]
+            #FIXME
+            if process=='tt':
+                local_process_files = [f for f in local_process_files if not '_ttB_' in f]
             if len(local_process_files) == 0:
                 logger.warning("Warning: regular expression {} do not match any file".format(path))
                 #continue
@@ -725,29 +734,33 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         
         processes_files[process] = process_files
         print( processes_files[process], process, '*** \n')
+
         if type(process) is tuple:
             hash.update(process[0])
         else:
             hash.update(process)
         map(hash.update, process_files)
    
+    # I am assuming you will be able to get full list of sys from these 3
     signals_keys  = []
     for k in processes_files.keys():
         for i in range(len(signal_process)):
             if k[0].startswith(signal_process[i]):
                 signals_keys +=[k]
     
-    # I am assuming you will be able to get full list of sys from these 3 
-    files_tolistsysts  = [ processes_files['ttbar'][0], processes_files['DY'][0], processes_files[signals_keys[0]][0]]
+    tt = 'ttB' if splitTTbar else 'ttbar'
+    dy = 'DY2jets' if splitDrellYan else 'DY'
+    
+    files_tolistsysts  = [ processes_files[tt][0], processes_files[dy][0], processes_files[signals_keys[0]][0]]
     if era == '2016':
         otherFiles = add_decorPrePosVFPSytstematics(files_tolistsysts)
         files_tolistsysts += otherFiles
-    systematics = {f: get_listofsystematics(files_tolistsysts, f, multi_signal)[:] for f in flav_categories}
+    systematics = {f: get_listofsystematics(files_tolistsysts, f, multi_signal)[:] for f in analysis_categories}
     print("Systematics are taken from main backgrounds files:: {}".format(files_tolistsysts))
     print(systematics)
     
     # Use a TT file as reference to extract the list of histograms
-    ref_file = processes_files['ttbar'][0]
+    ref_file = processes_files[tt][0]
     print("Extract histogram names from {}".format(ref_file))
 
     f = ROOT.TFile.Open(ref_file)
@@ -762,7 +775,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # The key is the category name and the value is a list of histogram. The list will always
     # contains at least one histogram (the nominal histogram), and possibly more, two per systematic (up & down variation)
     histogram_names_per_cat = {}
-    for cat in flav_categories:
+    for cat in analysis_categories:
         
         flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
         #FIXME in next iteration of plots in Bamboo
@@ -781,12 +794,15 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 hash.update(category[0])
             else:
                 hash.update(category)
+            
             hash.update(histogram_name)
             r = re.compile(histogram_name, re.IGNORECASE)
             histogram_names[category] = [n for n in keys if r.search(n)]
+            
             if len(histogram_names[category]) == 0:
                 print("[{}, {}] Warning: no histogram found matching {}".format(flavor, category, histogram_name))
                 ToFIX.append(category[1])
+        
         histogram_names_per_cat[cat] = histogram_names
     
     ToFIX = list( set(ToFIX))
@@ -794,7 +810,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # Extract list of expand histogram name
     systematics_regex = re.compile('__(.*)(up|down)$', re.IGNORECASE)
     histograms_per_cat = {}
-    for cat in flav_categories:
+    for cat in analysis_categories:
         histograms = {}
         for category, histogram_names in histogram_names_per_cat[cat].items():
             for histogram_name in histogram_names:
@@ -811,9 +827,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     histograms[category] = nominal_name
         histograms_per_cat[cat] = histograms
 
-    cms_systematics = {f: [CMSNamingConvention(origName=s, era=era, process=None) for s in v] for f, v in systematics.items()}
+    cms_systematics = {f: [CMSNamingConvention(origName=s, cat=None, era=era, process=None) for s in v] for f, v in systematics.items()}
     
-    for cat in flav_categories:
+    for cat in analysis_categories:
         hash.update(cat)
         for systematic in cms_systematics[cat]:
             hash.update(systematic)
@@ -907,7 +923,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 if not key.GetName() in keys:
                     keys[key.GetName()] = key
 
-            for cat in flav_categories:
+            for cat in analysis_categories:
                 if not cat in final_systematics:
                     final_systematics[cat] = {}
                 
@@ -947,7 +963,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     # Load systematics shapes
                     for systematic in systematics[cat]:
                         
-                        cms_systematic = CMSNamingConvention(origName=systematic, era=newEra, process=process)
+                        cms_systematic = CMSNamingConvention(origName=systematic, cat=cat, era=newEra, process=process)
                         if ignoreSystematic(smp=smp, flavor=None, process=None, s=cms_systematic, _type=_t ):
                             continue
                         
@@ -968,21 +984,21 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             f.Close()
         print("Done.")
 
-    for cat in flav_categories:
+    for cat in analysis_categories:
         for category, d in final_systematics[cat].items():
             for key, value in d.items():
                 d[key] = list(value)
 
     # Store hash
     output_file = ROOT.TFile.Open(output_filename, 'recreate')
-    file_hash = ROOT.TNamed('hash', hash)
+    file_hash   = ROOT.TNamed('hash', hash)
     file_hash.Write()
 
     systematics_object = ROOT.TNamed('systematics', json.dumps(final_systematics))
     systematics_object.Write()
 
-    if not unblind:
-        for cat in flav_categories:
+    if not unblind: # will do asimov dataset which is the sum of all bkgs !! 
+        for cat in analysis_categories:
             for category, processes in shapes.items():
                 category  = category
                 fake_data = None
@@ -1003,15 +1019,19 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 
                 processes['data_obs_{}'.format(cat)] = {'nominal': fake_data}
 
+    
+    
     for category, processes in shapes.items():
         if Constants.cat_to_tuplemass(category) in ToFIX:
             continue
         output_file.mkdir(category).cd()
-        for process, systematics_ in processes.items():
-            for systematic, histogram in systematics_.items():
-                if process == 'data_obs' and systematic != 'nominal':
+        for process, systematics in processes.items():
+            for syst, histogram in systematics.items():
+                if process == 'data_obs' and syst != 'nominal':
                     continue
-                histogram.SetName(process if systematic == 'nominal' else process + '__' + systematic)
+                #if  syst == 'nominal':
+                #print( histogram.Integral(), category, process)
+                histogram.SetName(process if syst == 'nominal' else process + '__' + syst)
                 histogram.Write()
         
         output_file.cd()
