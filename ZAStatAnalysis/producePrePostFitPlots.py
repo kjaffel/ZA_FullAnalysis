@@ -211,7 +211,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     
                     if any(x in split_path for x in ['MuMu_ElEl', 'MuMu_MuEl', 'ElEl_MuEl', 'OSSF_MuEl', 'MuMu_ElEl_MuEl']):
                         print('sorry, merged categories are not supported...')
-                        continue # this is need to be taken care here convertPrePostfitShapesForPlotIt.py TODO
+                        continue # this is need to be taken care in :: convertPrePostfitShapesForPlotIt.py TODO
                     
                     if reshape: p_out = split_path[-3]
                     else: p_out = split_path[-2]

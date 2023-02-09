@@ -3,6 +3,10 @@ import json
 import os, os.path, sys
 
 
+sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
+import utils as utils
+logger = utils.ZAlogger(__name__)
+
 
 def print_table(_res, LatexF, heavy, light, m_heavy, m_light):
     
@@ -90,7 +94,7 @@ def print_table(_res, LatexF, heavy, light, m_heavy, m_light):
         _res['nb2PLusnb3']['gg{}'.format(heavy)]['resolved']['split_OSSF'], _res['nb2PLusnb3']['gg{}'.format(heavy)]['boosted']['split_OSSF'], 
         _res['nb2PLusnb3']['bb{}'.format(heavy)]['resolved']['split_OSSF'], _res['nb2PLusnb3']['bb{}'.format(heavy)]['boosted']['split_OSSF'] ))
     print(R"     \multicolumn{1}{|l|}{}                                          &                                                                    & \multicolumn{2}{c|}{%s}                  & \multicolumn{2}{c|}{%s}                  \\ \cline{2-6} "%(
-        _res['nb2PLusnb3']['gg{}'.format(heavy)]['resolved_boosted']['OSSF'], _res['nb2PLusnb3']['bb{}'.format(heavy)]['resolved_boosted']['OSSF'] ))
+        _res['nb2PLusnb3']['gg{}'.format(heavy)]['resolved_boosted']['split_OSSF'], _res['nb2PLusnb3']['bb{}'.format(heavy)]['resolved_boosted']['split_OSSF'] ))
     
     print(R"     \multicolumn{1}{|l|}{}                                          & {18. $\mu\mu + ee +\mu e$ (5 +12)}                  & \multicolumn{1}{c|}{%s}        & %s       & \multicolumn{1}{c|}{%s}        & %s       \\ \cline{3-6} "%(
         _res['nb2PLusnb3']['gg{}'.format(heavy)]['resolved']['split_OSSF_MuEl'], _res['nb2PLusnb3']['gg{}'.format(heavy)]['boosted']['split_OSSF_MuEl'], 
@@ -107,9 +111,14 @@ def print_table(_res, LatexF, heavy, light, m_heavy, m_light):
     return 
 
 
-
-#path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test_with_toysFrequentist/dnn/2POIs_r" 
-path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext11/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test_with_toysFrequentist/dnn/2POIs_r" 
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext11/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext8/half/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext12/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext13/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext14/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+#path     = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext15/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
+path      = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/hig-22-010/unblinding_stage1/followup1__ext16/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r"
 
 flavors   = ['ElEl', 'MuMu', 'MuEl', 'OSSF', 'OSSF_MuEl', 'split_OSSF', 'split_OSSF_MuEl', 'MuMu_ElEl', 'MuMu_ElEl_MuEl', 'MuMu_MuEl', 'ElEl_MuEl']
 regions   = ['resolved', 'boosted' , 'resolved_boosted']
@@ -171,13 +180,16 @@ for gof in glob.glob(os.path.join(path, 'M*')):
                         
                         openF  = open(f)
                         data   = json.load(openF)
-                        pvalue =  data["125.0"]["p"]
-                        if pvalue <= 0.05:
-                            pvalue = '\cellcolor[HTML]{E44F4B}'+str(pvalue)
-                        _res[nb][p][reg][flav] = pvalue
-                        
-                        print( jsF, p, nb, reg, flav, pvalue)
+                        if "125.0" in data.keys():
+                            pvalue =  data["125.0"]["p"]
+                            if pvalue <= 0.05:
+                                pvalue = '\cellcolor[HTML]{E44F4B}'+str(pvalue)
+                            _res[nb][p][reg][flav] = pvalue
+                            print( jsF, p, nb, reg, flav, pvalue)
+                        else:
+                            logger.warning("== sth wrong might happend with  this file: == %s"%f)
     
-    LatexF = os.path.join(path, m, 'saturated','GOF.tex')
-    print( 'file saved in ::', LatexF)
-    print_table(_res, LatexF, heavy, light, m_heavy, m_light)
+    if os.path.isdir(os.path.join(path, m, 'saturated')):
+        LatexF = os.path.join(path, m, 'saturated','GOF.tex')
+        print( 'file saved in ::', LatexF)
+        print_table(_res, LatexF, heavy, light, m_heavy, m_light)

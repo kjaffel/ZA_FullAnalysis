@@ -46,7 +46,7 @@ files:
     group: others
 plots:
   histo-name:
-    #blinded-range: [0.7, 1.0]
+    blinded-range: [0.7, 1.0]
     labels:
         #- {text: 'Label1', position: [0.22, 0.895]}
         #- {text: 'Label2', position: [0.3, 0.895]}
@@ -75,26 +75,44 @@ groups:
     fill-color: '#0000FF'
     legend: DY+jets
     order: 6
+    line-width: 1
+    line-color: 1
+    line-style: 1
   ttbar:
     fill-color: '#c4ffff'
     legend: tt
     order: 5
+    line-width: 1
+    line-color: 1
+    line-style: 1
   ST:
     fill-color: '#ffc800'
     legend: ST
     order: 4
+    line-width: 1
+    line-color: 1
+    line-style: 1
   VV:
     fill-color: '#9370DB'
     legend: VV
     order: 1
+    line-width: 1
+    line-color: 1
+    line-style: 1
   SM:
     fill-color: '#43294D' 
     legend: ggh, tth, Zh
     order: 2
+    line-width: 1
+    line-color: 1
+    line-style: 1
   others:
     fill-color: '#ff8d58'
     legend: VVV, ttV
     order: 3
+    line-width: 1
+    line-color: 1
+    line-style: 1
 legend:
     #position: [0.62, 0.61, 0.95, 0.89]
     position: [0.5, 0.61, 0.95, 0.89]

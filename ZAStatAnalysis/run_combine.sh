@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='fullrun2'                     
+era='2018'                     
 #choices: '2016' , '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='fit'
+do_what='impacts'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -33,18 +33,22 @@ unblind=true
 normalize=true
 scale=false
 x_branchingratio=false
+
 splitJECs=true
 splitLep=true          # by default bbH, nb3 and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
+splitTTbar=true
+splitDrellYan=false
+
 FixbuggyFormat=false   # won't be needed soon 
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
 sbatch_time='3-24:59:00'
-sbatch_memPerCPU='15000' #7000
+sbatch_memPerCPU='45000' #7000
 
 n=1
 
-bambooDir='unblind_stage1_few_fullrun2/results/'
+#bambooDir='unblind_stage1_few_fullrun2/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext1/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext2/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext3/'
@@ -53,10 +57,18 @@ bambooDir='unblind_stage1_few_fullrun2/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext6/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext8/half/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext11/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext11/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext12/'
 
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
+
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_'${n}'/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext13/chunk_'${n}'/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext14/chunk_'${n}'/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext15/chunk_'${n}'/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext16/chunk_'${n}'/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext18/back_to_old_cmssw_version/chunk_'${n}'/'
 
 #bambooDir='ul_run2__ver19/results/'
 #stageOut='hig-22-010/datacards_nosplitJECs/'
@@ -129,6 +141,16 @@ if $splitJECs; then
 fi
 
 
+if $splitTTbar; then
+    plus_args+=' --splitTTbar'
+fi
+
+
+if $splitDrellYan; then
+    plus_args+=' --splitDrellYan'
+fi
+
+
 if $FixbuggyFormat; then
     plus_args+=' --FixbuggyFormat'
 fi
@@ -191,11 +213,11 @@ fi
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
+    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
     #./run_combine_${mode}_fitprepost.sh
 
     #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
-    #python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
+    python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
 fi 
 
 #=====================================================================

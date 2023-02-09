@@ -374,7 +374,7 @@ def proj(hist):
 
 def get_process(f, plotConfig, era, merge=False):
     fNm = f.split('/')[-1]
-    if 'prod' in plotConfig["files"][fNm].keys(): # signal 
+    if any(x in fNm for x in ['_tb_1p50_', '_tb_20p00_']): # my signal 
         return plotConfig["files"][fNm]['prod']
     else:
         if merge: # 'summed_normalized_2017others_samples'
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input' , type=str , help='Input to bamboo directory results dir', required=True)
     parser.add_argument('-o', '--output', type=str , help='Output directory', default ='sysvars')
     parser.add_argument('-y', '--yml'   , help='plotit yml files', required=True) 
-    parser.add_argument('-e', '--era'   , type=str , help='', choices=['2016-preVFP', '2016-postVFP', '2017', '2018'], required=True)
+    parser.add_argument('-e', '--era'   , type=str , help='', choices=['fullrun2', '2016-preVFP', '2016-postVFP', '2017', '2018'], required=True)
     parser.add_argument('-p', '--plots' , nargs='*', help='Restrict to those plots - use all by default')
     parser.add_argument('-f', '--files' , nargs='*', help='Restrict to those files - use all by default')
     parser.add_argument('-s', '--syst'  , nargs='*', help='Restrict to those systematics - use all by default')
