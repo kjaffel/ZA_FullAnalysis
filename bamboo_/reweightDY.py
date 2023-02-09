@@ -193,7 +193,7 @@ def getDYweightFromPolyfit(channel, era, reg, k, mass, polyfit, fitrange, doSyst
                 }
     return DYweight[k]
 
-def prepareCP_ForDrellYan0Btag(bjets, dilepton, sel, uname, reg, era, wp, fitdegree, corrMET, doMETCut=False, doWgt=False, doSum=False):
+def prepareCP_ForDrellYan0Btag(jets, bjets, dilepton, sel, uname, reg, era, wp, fitdegree, corrMET, doMETCut=False, doWgt=False, doSum=False):
     plots = []
     binScaling = 1
     plots_ToSum2 = collections.defaultdict(list)
@@ -205,8 +205,8 @@ def prepareCP_ForDrellYan0Btag(bjets, dilepton, sel, uname, reg, era, wp, fitdeg
         nm += '_DYWeight'
     _tag = 'DeepCSV' if reg == 'boosted' else 'DeepFlavour'
 
-    _0btag = { 'resolved': [ op.rng_len(bjets['resolved']['DeepFlavour'][wp]) <= 2,  op.rng_len(bjets['boosted']['DeepCSV'][wp]) == 0 ],
-               'boosted' : [ op.rng_len(bjets['boosted']['DeepCSV'][wp]) <= 1 ] }
+    _0btag = { 'resolved': [ op.rng_len(bjets['resolved']['DeepFlavour'][wp]) < 2,  op.rng_len(bjets['boosted']['DeepCSV'][wp]) == 0 ],
+               'boosted' : [ op.rng_len(bjets['boosted']['DeepCSV'][wp]) < 1 ] }
     
     _0btag_cuts = _0btag[reg]
     if doMETCut:
@@ -214,7 +214,7 @@ def prepareCP_ForDrellYan0Btag(bjets, dilepton, sel, uname, reg, era, wp, fitdeg
     
     sel = sel.refine(f'{uname}_{reg}_controlregion_2Lep2Jets_0Btag_{nm}_{wp}', cut=_0btag_cuts )
 
-    cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(bjets[reg][_tag][wp], dilepton, sel, uname, reg, fitdegree, doWgt=doWgt, doSum=doSum, do0Btag=True)
+    cp_0Btag, cp_0BtagToSum = DYPlusJetsCP(jets, dilepton, sel, uname, reg, fitdegree, doWgt=doWgt, doSum=doSum, do0Btag=True)
     plots += cp_0Btag
     plots_ToSum2.update(cp_0BtagToSum)
     return plots, plots_ToSum2

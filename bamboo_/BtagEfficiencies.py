@@ -41,7 +41,6 @@ class  ZA_BTagEfficiencies(NanoHtoZABase, HistogramsModule):
         binScaling = 1
         plots = []
         
-        soft_cleaned_AK4jets_noPuppi = op.select(AK4jets, lambda j : op.NOT(op.rng_any(self.cleaned_AK8JetsByDeepB, lambda puppi : op.deltaR(j.p4, puppi.p4) < 1.2 )) )
 
         def getIDX(wp = None):
             return (0 if wp=="L" else ( 1 if wp=="M" else 2))
