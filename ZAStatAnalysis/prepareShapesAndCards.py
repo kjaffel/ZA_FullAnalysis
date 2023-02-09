@@ -1153,7 +1153,12 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             cb.cp().bin([bin_id]).channel([cat]).backgrounds().ExtractShapes(file, '$BIN/$PROCESS_%s' %cat, '$BIN/$PROCESS_%s__$SYSTEMATIC' %cat)
             cb.cp().bin([bin_id]).channel([cat]).signals().ExtractShapes(file, '$BIN/$PROCESS_M%s-%s_M%s-%s_%s'% (heavy, m_heavy, light, m_light, cat), 
                                                     '$BIN/$PROCESS_%s_%s__$SYSTEMATIC'% ('M%s-%s_M%s-%s'%(heavy, m_heavy, light, m_light), cat))
-            
+           
+        cb.FilterProcs(lambda x: H.drop_zero_procs(cb,x)) 
+        cb.FilterSysts(lambda x: H.drop_zero_systs(x))
+        cb.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(cb,x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j")) else None)
+        #cb.FilterSysts(lambda x: H.drop_onesided_systs(x))
+        
         # Bin by bin uncertainties
         #if not stat_only:
         #    bkgs = cb.cp().backgrounds()
@@ -1533,31 +1538,28 @@ popd
         logger.info("Writing datacards!")
         print (categories_with_parameters )
          
-        def writeCard(cb, mass, output_dir, output_file, cat, opts, script=True):
+        def writeCard(c, mass, output_dir, output_file, cat, opts, script=True):
             datacard  = os.path.join(output_dir, output_file + '.dat')
-            shapeFile = ROOT.TFile(os.path.join(output_dir, output_file + '_shapes.root'), 'recreate')
-            
-            cb.cp().mass([mass, "*"]).WriteDatacard(datacard, shapeFile)
-            shapeFile.Close()           
+            # this did not work !
+            #shapeFile = ROOT.TFile(os.path.join(output_dir, output_file + '_shapes.root'), 'recreate')
+            #c.cp().mass([mass, "*"]).WriteDatacard(datacard, shapeFile)
+            #shapeFile.Close()           
             
             # parse again the datacard for smoothing
-            charv = ch.CombineHarvester()
-            charv.SetVerbosity(verbose)
-            charv.SetFlag("zero-negative-bins-on-import", True)
-            charv.SetFlag("check-negative-bins-on-import",True)
-
             # ParseDatacard(filename, analysis, era, channel, bin_id, mass)
-            charv.ParseDatacard(datacard, analysis=analysis[0], era='13TeV_%s'%era, channel=cat, mass=mass)#, bin_id) 
-            charv.FilterProcs(lambda x: H.drop_zero_procs(charv,x)) 
-            charv.FilterSysts(lambda x: H.drop_zero_systs(x))
-            charv.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(charv, x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j") or x.name().startswith("QCD")) else None)
-            charv.FilterSysts(lambda x: H.drop_onesided_systs(x))
-            charv.AddDatacardLineAtEnd("* autoMCStats 0")
+            #c.cp().ParseDatacard(datacard, analysis=analysis[0], era='13TeV_%s'%era, channel=cat, mass=mass)#, bin_id) 
+            #c.cp().FilterProcs(lambda x: H.drop_zero_procs(c,x)) 
+            #c.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(c, x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j") or x.name().startswith("QCD")) else None)
+            #c.cp().FilterSysts(lambda x: H.drop_zero_systs(x))
+            #c.cp().FilterSysts(lambda x: H.drop_onesided_systs(x))
 
-            shapeFile_smoothed = ROOT.TFile(os.path.join(output_dir, output_file + '_shapes.root'), 'recreate')
-            datacard_smoothed  = os.path.join(output_dir, output_file + '.dat')
-            charv.WriteDatacard(datacard_smoothed, shapeFile_smoothed)
-            shapeFile_smoothed.Close()           
+            c.cp().mass([mass, "*"]).WriteDatacard(datacard, os.path.join(output_dir, output_file + '_shapes.root'))
+            
+            #shapeFile_smooth = ROOT.TFile(os.path.join(output_dir, output_file + '_smooth_shapes.root'), 'recreate')
+            #datacard_smooth  = os.path.join(output_dir, output_file + '.dat')
+            #c.cp().WriteDatacard(datacard, os.path.join(output_dir, output_file + '_smooth_shapes.root'))
+            #c.cp().AddDatacardLineAtEnd("* autoMCStats 0")
+            #shapeFile_smoothed.Close()           
            
             if script:
                 createRunCombineScript(bin_id, mass, output_dir, output_file, cat, opts, create=False, skip=False)
@@ -1784,7 +1786,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
         
-            prepare_DataCards(  grid_data           = signal_grid_foTest, 
+            prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
                                 thdm                = thdm,
                                 dataset             = options.dataset, 
                                 expectSignal        = options.expectSignal, 
