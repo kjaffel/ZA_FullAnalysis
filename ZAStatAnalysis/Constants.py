@@ -235,8 +235,7 @@ def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
                   },
             }
 
-    base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis'    
-    with open(os.path.join(base, 'data/fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", 'fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
         plotConfig = yaml.safe_load(_f) 
     
     for f, cfg in plotConfig['samples'].items():
