@@ -118,7 +118,7 @@ def get_xsc_br_fromSushi(smpNm, arr):
 def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
     # depreacted !!    
     import numpy as np
-    base   = "/home/ucl/cp3/kjaffel/ZAPrivateProduction/data/"
+    base   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
     heavy  = mode[0]
     light  = mode[-1]
     
