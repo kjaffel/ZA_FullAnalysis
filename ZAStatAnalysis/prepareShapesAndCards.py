@@ -667,6 +667,7 @@ def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expec
     script = """#! /bin/bash
 
 WorkEra='{WorkEra}'
+combine_method='{combine_method}'
 scripts=`find {output} -name "*_{suffix}.sh"`
 base="$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
 echo $base
@@ -692,10 +693,12 @@ sbatch_time={sbatch_time}
 sbatch_memPerCPU={sbatch_memPerCPU}
 
 # for slurm submission instead!
-{c2}python Combine4Slurm.py -c {output} -o {slurm_dir} --time ${{sbatch_time}} --mem-per-cpu ${{sbatch_memPerCPU}}
+{c2}python Combine4Slurm.py -c {output} -o {slurm_dir}/${{WorkEra}}/${{combine_method}} --time ${{sbatch_time}} --mem-per-cpu ${{sbatch_memPerCPU}}
+
 """.format(output           = output.replace('work_'+ H.EraFromPOG(era), '$WorkEra'),
            WorkEra          = 'work_' + H.EraFromPOG(era),
-           slurm_dir        = output.split('work__UL')[0], 
+           slurm_dir        = output.split('work__UL')[0],
+           combine_method   = H.get_method_group(method),
            suffix           = 'run_%s'%method,
            sbatch_time      = sbatch_time,
            sbatch_memPerCPU = sbatch_memPerCPU,
