@@ -748,7 +748,7 @@ class NanoHtoZABase(NanoAODModule):
         ########################################################
         # supress quaronika resonances and jets misidentified as leptons
         LowMass_cut = lambda lep1, lep2: op.invariant_mass(lep1.p4, lep2.p4)>12.
-        # Dilepton selection: opposite sign leptons in range 70.<mll<120. GeV 
+        # Dilepton selection: opposite sign leptons in range 70.<mll<110. GeV 
         osdilep_Z   = lambda lep1,lep2 : op.AND(lep1.charge != lep2.charge, op.in_range(70., op.invariant_mass(lep1.p4, lep2.p4), 110.))
         osdilep     = lambda lep1,lep2 : op.AND(lep1.charge != lep2.charge)
         
@@ -986,7 +986,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 logger.info( f'{mode} running {self.doMVAEvaluator_on} {self.doChunk} of samples for len={len(dict_allmasspoints[mode])}')
                 logger.info( f'full set of points :: {dict_allmasspoints[mode]}')
             
-            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb'
+            #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/tf_models/tf_bestmodel_max_eval_mean_trainResBoOv0_fbversion.pb'
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/scratch/ul__results/test__4/model/tf_bestmodel.pb"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/onnx_models/prob_model.onnx"
             #ZAmodel_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/ul__results/work__1/keras_tf_onnx_models/all_combined_dict_343_model.pb"
@@ -1137,13 +1137,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 self.selections_for_cutflowreport.add(catSel, "2 OS lep.(%s) + $m_{ll}$ cut"%optstex)
             
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    # Jets multiplicty  
-            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            if make_JetmultiplictyPlots :
-                for reg, jet in lljj_jets.items():
-                    plots.extend(cp.makeJetmultiplictyPlots(catSel, jet, channel,"_NoCutOnJetsLen_" + reg))
-                
-            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             #                                          Control region
             # boosted is unlikely to have pu jets ; jet pt > 200 in the boosted cat so no pu jets wgt is applied !
             #                                          
@@ -1198,7 +1191,14 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 for reg, sel in lljjSelections.items():
                     self.yield_object.addYields(sel, f"{lljj_selName[reg]}_{channel}" , f"2 OS lep.({optstex}) + {jlenOpts['inclusive'][reg]} {jetType[reg]} jets+ $m_{{ll}}$ cut")
                     self.selections_for_cutflowreport.add(sel, f"2 OS lep.({optstex}) + {jlenOpts['inclusive'][reg]} {jetType[reg]} jets+ $m_{{ll}}$ cut")
-
+            
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                    # Jets multiplicty  
+            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            if make_JetmultiplictyPlots :
+                for reg, sel in lljjSelections.items():
+                    plots.extend(cp.makeJetmultiplictyPlots(sel, lljj_jets[reg], '', channel, reg))
+                
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
             if make_zoomplotsANDptcuteffect:
@@ -1219,10 +1219,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             
             for reg, sel in lljjSelections.items():
-                jet = lljj_jets[reg]
-                if make_JetmultiplictyPlots:
-                    plots.extend(cp.makeJetmultiplictyPlots(sel, jet, channel, reg))
-                
+                jet = lljj_jets[reg] 
                 if make_deltaRPlots:    
                     plots.extend(cp.makedeltaRPlots(sel, jet, dilepton, channel, reg))
                 
@@ -1234,20 +1231,21 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                     plots.extend(cp.makeControlPlotsForZpic(sel, dilepton, 'lepplusjetSel', channel, reg))
             
             if make_DiscriminatorPlots:
-                for tagger, list_j_sel in {'DeepFlavour'    : [lljj_jets['resolved'], lljjSelections['resolved']],
-                                           'DeepCSV'        : [lljj_jets['boosted'], lljjSelections['boosted']],
-                                           'DeepDoubleBvLV2': [lljj_jets['boosted'], lljjSelections['boosted']] 
-                                    }.items():
+                for tagger, list_j_sel in { 'DeepFlavour'    : [lljj_jets['resolved'], lljjSelections['resolved']],
+                                            'DeepCSV'        : [lljj_jets['boosted'], lljjSelections['boosted']],
+                                            'DeepDoubleBvLV2': [lljj_jets['boosted'], lljjSelections['boosted']] 
+                                            }.items():
+                    
                     discr_cp, discr_cpToSum = cp.MakeBtagDiscriminatorPlots(tagger, list_j_sel, channel)
+                    
                     plots.extend(discr_cp)
                     plots_ToSum2.update(discr_cpToSum)
             
             if make_tau2tau1RatioPlots:  
                 plots.extend(cp.makeNsubjettinessPLots(lljjSelections["boosted"], fatjets_nosubjettinessCut, catSel, channel))
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                    # DeepCSV for both boosted && resolved , DeepFlavour  
+                                                    # DeepCSV for both boosted && resolved , DeepFlavour ==DeepJet for resolved 
             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            
             
             for j, wp in enumerate(self.WorkingPoints): 
                 
@@ -1271,41 +1269,50 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                 # this one might be too harsh, let's try the one below
                 #bJets_resolved_PassdeepflavourWP_noPuppi = bjets_mix_ak4_rmPuppi["DeepFlavour"][wp]
                 #bJets_resolved_PassdeepcsvWP_noPuppi     = bjets_mix_ak4_rmPuppi["DeepCSV"][wp]
+                
                 bJets_resolved_PassdeepflavourWP_noPuppi  = _all_btaggedJets['mix_ak4_rmPuppi_soft']["DeepFlavour"][wp]
                 bJets_resolved_PassdeepcsvWP_noPuppi      = _all_btaggedJets['mix_ak4_rmPuppi_soft']["DeepCSV"][wp]
                 
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                    #  B-jet multiplicity 
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                
                 if make_JetmultiplictyPlots:
-                    bjets = { 'resolved': {
-                                    'DeepFlavour': bJets_resolved_PassdeepflavourWP, 
-                                    'DeepCSV'    : bJets_resolved_PassdeepcsvWP },
-                              'mix_ak4_rmPuppi': { 
-                                    'DeepFlavour' : bJets_resolved_PassdeepflavourWP_noPuppi,
-                                    'DeepCSV'     : bJets_resolved_PassdeepcsvWP_noPuppi } }
-                    if wp !='T':
-                        bjets.update({'boosted': {
-                                        'DeepCSV': bJets_boosted_PassdeepcsvWP }
-                                        })
-
-                    for region, dict_ in bjets.items():
-                        for tagger, btaggedJets in dict_.items():
-                            plots.extend(cp.makeJetmultiplictyPlots(catSel, btaggedJets, channel,f"_NoCutOnbJetsLen_{region}_{tagger}_{wp}"))
-                
-                
-                if make_BoostedBtagPlots and wp !='T':
-                    weight = { 'nb3-boosted': None,
-                               'nb2-boosted': None,
-                               }
+                    for reg, sel in lljjSelections.items():
+                        for tagger, bj4wp in _all_btaggedJets[reg].items():
+                            btaggedJets = bj4wp[wp]
+                            w = None
+                            if self.doPass_bTagEventWeight and isMC:
+                                
+                                if reg == 'resolved':
+                                    w = [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved'][f'{tagger}{wp}'], 
+                                        run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved'][f'{tagger}{wp}'] ]
+                                elif reg =='boosted':
+                                    w = [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved'][f'{tagger}{wp}'], 
+                                        run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved'][f'{tagger}{wp}'],
+                                        run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted'][f'{tagger}{wp}'], 
+                                        run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'{tagger}{wp}'],
+                                        ]
+                                sel = sel.refine(f'{channel}_plus_Bjets_{reg}_{tagger}_{wp}', weight=w)
+                            plots.extend(cp.makeJetmultiplictyPlots(sel, btaggedJets, f'B-tagged {jetType}', channel,f"{reg}_{tagger}_{wp}"))
                     
-                    if self.doPass_bTagEventWeight and isMC:
-                        weight = { 'nb3-boosted': [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted'][f'DeepCSV{wp}'],
-                                                    run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] 
-                                                    ],
-                                   'nb2-boosted': [ run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'DeepCSV{wp}'],
-                                                    run2_bTagEventWeight_PerWP[wp]['gg_fusion']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}']
-                                                    ]
-                                 }
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                    #  subjets  
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                    cp_boosted, cp_boostedToSum, cfr = get_bestSubjetsCut(wp , lljjSelections["boosted"], bJets_resolved_PassdeepcsvWP, weight, channel, dilepton, AK8jets, corrMET, optstex, era, self.doProduceSummedPlots, self.BTV_discrCuts)
+                if make_BoostedBtagPlots and wp !='T':
+                    weight = { 'nb3-boosted' : None,
+                               'nb2-boosted' : None }
+
+                    if self.doPass_bTagEventWeight and isMC:
+                        weight = { 'nb3-boosted' : [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted'][f'DeepCSV{wp}'],
+                                                     run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ],
+                                    'nb2-boosted': [ run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'DeepCSV{wp}'],
+                                                     run2_bTagEventWeight_PerWP[wp]['gg_fusion']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ]
+                                    }
+                    
+                    cp_boosted, cp_boostedToSum, cfr = get_bestSubjetsCut(wp, lljjSelections["boosted"], bJets_resolved_PassdeepcsvWP, weight, 
+                                                                            channel, dilepton, AK8jets, corrMET, optstex, era, self.doProduceSummedPlots, self.BTV_discrCuts)
                     plots.extend(cp_boosted)
                     plots_ToSum2.update(cp_boostedToSum)
                     
@@ -1336,13 +1343,15 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                     f"DeepCSV{wp}"     :  lljjSelections["boosted"].refine(f"TwoLeptonsAtLeast1FatBjets_NoAK4Bjets_NoMETcut_DeepCSV{wp}_{channel}_Boosted",
                                                                         cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1, op.rng_len(bJets_resolved_PassdeepflavourWP_noPuppi) == 0],
                                                                         weight = ([ run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'DeepCSV{wp}'],
-                                                                                    run2_bTagEventWeight_PerWP[wp]['gg_fusion']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ] if isMC else None) 
+                                                                                    #run2_bTagEventWeight_PerWP[wp]['gg_fusion']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ] if isMC else None) 
+                                                                                    run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved'][f'DeepFlavour{wp}'] ] if isMC else None) 
                                                                                     if self.doPass_bTagEventWeight else None) },
                         "bb_associatedProduction": { # eq. nb3 -boosted -DeepCSV M wp
                                     f"DeepCSV{wp}"     :  lljjSelections["boosted"].refine(f"TwoLeptonsAtLeast1FatBjets_AtLeast1AK4Bjets_NoMETcut_DeepCSV{wp}_{channel}_Boosted",
                                                                         cut    = [ op.rng_len(bJets_boosted_PassdeepcsvWP) >= 1 , op.rng_len(bJets_resolved_PassdeepflavourWP_noPuppi) >= 1 ],
                                                                         weight = ([ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted'][f'DeepCSV{wp}'],
-                                                                                    run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ] if isMC else None)
+                                                                                    #run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ] if isMC else None)
+                                                                                    run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved'][f'DeepFlavour{wp}'] ] if isMC else None)
                                                                                     if self.doPass_bTagEventWeight else None) },
                             }
                 
@@ -1412,6 +1421,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         for reg, noMETSels in llbbSelections_noMETCut_per_reco.items() }
                                     for reco, llbbSelections_noMETCut_per_reco in llbbSelections_noMETCut.items() 
                                 }
+                
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                 # make Skimmer
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1427,7 +1437,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                 elif reg =="boosted":
                                     bJets  = bjets_boosted[taggerWP.replace(wp, "")][wp]
                                     llbb_M = (dilepton[0].p4 +dilepton[1].p4+bJets[0].p4).M()
-                                    bb_M   = bJets[0].mass
+                                    bb_M   = bJets[0].p4.M()
                                     bb_softDropM = bJets[0].msoftdrop
                                 else:
                                     raise RuntimeError(f'what is going on here ?? ')

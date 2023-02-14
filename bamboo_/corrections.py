@@ -35,7 +35,6 @@ eoy_btagging_wpdiscr_cuts = {
                           }
                 }
 
-
 legacy_btagging_wpdiscr_cuts = {
                 "DeepCSV":{ # era: (loose, medium, tight)
                             "2016-preVFP" :(0.2027, 0.6001, 0.8819),  
@@ -256,7 +255,10 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
         jsf_nm = 'btagging.json.gz'
         method = "incl" if flav == 0 else heavy_method
         correction = f"{tagger}_{method}"
-    
+        #FIXME tmp fix to the issue here: https://cms-talk.web.cern.ch/t/ul-b-tagging-sf-update/20209
+        if tagger == 'DeepJet' and era == "2016-postVFP" and flav == 0:
+            era = "2016-preVFP"
+
     path_localizePOGSF = localizePOGSF(era, "BTV", jsf_nm)
     
     return get_correction(path_localizePOGSF, correction, params=params[f"{prefix}Jet_bRegCorr"],

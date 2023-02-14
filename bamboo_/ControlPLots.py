@@ -48,11 +48,11 @@ def makeControlPlotsForZpic(sel, leptons, region, uname, reg ):
     return plots
         
 
-def makeJetmultiplictyPlots(sel, jets, uname, region):
+def makeJetmultiplictyPlots(sel, jets, jtype, uname, region):
     binScaling=1
     plots=[]
     plots.append(Plot.make1D(f"{uname}_{region}_Jet_multiplicity", op.rng_len(jets), sel,
-            EqB(7, 0., 7.), title="Jet multiplicity",
+            EqB(7, 0., 7.), title=f"{jtype}Jet multiplicity",
             plotopts=utils.getOpts(uname, **{"log-y": True})))
         
     return plots
