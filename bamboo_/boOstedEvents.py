@@ -142,15 +142,23 @@ def get_DeepDoubleX(AK8jets, discr, discr_cut):
         raise RuntimeError(f'sorry {discr} is unkown')
 
 
-def get_bestSubjetsCut(wp, sel, bJets_resolved_PassdeepcsvWP, weight, channel, ll, fatjet, corrMET, optstex, era, doProduceSum, btv):
+def get_bestSubjetsCut(wp, sel, bJets_resolved_PassdeepflavourWP_noPuppi, bTagEventWeight4WP, channel, ll, fatjet, corrMET, optstex, era, doProduceSum, btv, doPass_bTagEventWeight, isMC):
     plots = []
     plots_ToSum2 = collections.defaultdict(list)
     binScaling = 1
     cfr = {} 
     
-    cleaned_AK8JetsByDeepB = op.sort(fatjet, lambda j: -j.btagDeepB)
+    weight = { 'nb3-boosted' : None, 'nb2-boosted' : None }
 
-    wpdiscr_cut = corr.BoostedTopologiesWP['DeepCSV'][era][wp]
+    if doPass_bTagEventWeight and isMC:
+        weight = { 'nb3-boosted' : [ bTagEventWeight['bb_associatedProduction']['boosted'][f'DeepCSV{wp}'],
+                                     bTagEventWeight['bb_associatedProduction']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ],
+                    'nb2-boosted': [ bTagEventWeight['gg_fusion']['boosted'][f'DeepCSV{wp}'],
+                                     bTagEventWeight['gg_fusion']['mix_ak4_rmPuppi'][f'DeepFlavour{wp}'] ] }
+    
+    
+    cleaned_AK8JetsByDeepB = op.sort(fatjet, lambda j: -j.btagDeepB)
+    wpdiscr_cut      = corr.BoostedTopologiesWP['DeepCSV'][era][wp]
     subjets_btag_req = corr.get_subjets_requirements('DeepCSV', wp, wpdiscr_cut, era)
     
     for scenario, lambda_f in subjets_btag_req['b'].items(): 
@@ -159,10 +167,10 @@ def get_bestSubjetsCut(wp, sel, bJets_resolved_PassdeepcsvWP, weight, channel, l
 
         llxsubjets_noMET_boosted = { 
                 "nb2": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_ggH_Boosted".format(channel, scenario, wp, channel),
-                                cut    = [ op.rng_len(subjets_AK8_scenarios) == 1, corrMET.pt < 80.],
+                                cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, corrMET.pt < 80.],
                                 weight = weight['nb2-boosted']),
                 "nb3": sel.refine("{}_ll_jj_{}_METcut_NobTagEventWeight_DeepCSV{}_{}_bbH_Boosted".format(channel, scenario, wp, channel),
-                                cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, op.rng_len(bJets_resolved_PassdeepcsvWP) >= 0, corrMET.pt < 80.],
+                                cut    = [ op.rng_len(subjets_AK8_scenarios) >= 1, op.rng_len(bJets_resolved_PassdeepflavourWP_noPuppi) >= 1, corrMET.pt < 80.],
                                 weight = weight['nb3-boosted'])
                 }
         

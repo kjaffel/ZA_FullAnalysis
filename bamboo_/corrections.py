@@ -243,7 +243,8 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
                     else:
                         systVariations[f"{var}{d}"] = f"{d}_{varBTV}"
     
-    prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
+    #prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER and isSignal else "no"
+    prefix = "" if tagger =='deepJet' and flav ==5 and dobJetER else "no"
     
     if tagger == 'deepCSV_subjet':
         #path_localizePOGSF = localize_btv_json_files(era, 'btv-json-sf/data', 'subjet_tagging.json')
@@ -388,7 +389,7 @@ def catchHLTforSubPrimaryDataset(year, fullEra, evt, isMC=False):
 
 def bJetEnergyRegression(bjet):
     return op.map(bjet, lambda j : op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float>>", (j.pt*j.bRegCorr, j.eta, j.phi, j.mass*j.bRegCorr)))
-
+    #return op.map(bjet, lambda j: j.pt*j.bRegCorr)
 
 def JetEnergyRegression(jet):
     return op.map( jet, lambda j: op.construct("ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >", (
@@ -464,7 +465,6 @@ def makeBtagSF(_cleaned_jets, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel,
                                    get_bTagSF(tagger, 0)(subJet))
     
     def get_bTagEff(j, jtype, reg, tagger, wp, process):
-        prefix   = '' if reg =='resolved' and dobJetER and isSignal else 'no'
         params   = {
                 'Jet_bRegCorr'  : {"pt": lambda j: j.pt*j.bRegCorr, "eta": lambda j: j.eta}, 
                 'noJet_bRegCorr': {"pt": lambda j: j.pt, "eta": lambda j: j.eta} }
@@ -475,6 +475,8 @@ def makeBtagSF(_cleaned_jets, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel,
             "light": f"pair_lept_2j_jet_pt_vs_eta_lightflav_{reg}_{tagger}_wp{wp}_{process}_{jtype}__mc_eff" }
         
         def call_get_correction(flav):
+            prefix   = '' if reg =='resolved' and dobJetER and flav ==5 else 'no'
+            #prefix  = '' if reg =='resolved' and dobJetER and flav ==5 and isSignal else 'no'
             return get_correction(bTagEff_file, correctionSet[flav], params=params[f'{prefix}Jet_bRegCorr'],
                                 systParam="ValType", systNomName="sf",
                                 systVariations={}, #{f"{flav}Effup": "sfup", f"{flav}Effdown": "sfdown"}, 

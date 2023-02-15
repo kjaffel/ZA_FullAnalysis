@@ -279,7 +279,8 @@ def getSignalMassPoints(outdir, all_=True):
 
 
 def getSignalMassPoints_ver2(outdir, chunk=None, do='full', chunk_of=10):
-    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+    #with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+    with open(os.path.join(outdir, 'fullanalysisRunIISummer20UL_18_17_16_nanov9_FewSignals.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
     
     all_points = chunk_of_points = { 'HToZA': [], 'AToZH': [] }
