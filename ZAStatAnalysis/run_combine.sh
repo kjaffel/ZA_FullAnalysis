@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2018'                     
-#choices: '2016' , '2017' , '2018', 'fullrun2'  
+era='2016preVFP'                     
+#choices: '2016' , '2016preVFP', '2016postVFP', '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='impacts'
+do_what='goodness_of_fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -34,6 +34,7 @@ normalize=true
 scale=false
 x_branchingratio=false
 
+splitEraUL2016=true
 splitJECs=true
 splitLep=true          # by default bbH, nb3 and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
 splitTTbar=true
@@ -63,12 +64,17 @@ n=1
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
 
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_'${n}'/results/'
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_'${n}'/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext13/chunk_'${n}'/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext14/chunk_'${n}'/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext15/chunk_'${n}'/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext16/chunk_'${n}'/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext18/back_to_old_cmssw_version/chunk_'${n}'/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext18/back_to_old_cmssw_version/chunk_'${n}'/'
+
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext19/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext20/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext21/'
 
 #bambooDir='ul_run2__ver19/results/'
 #stageOut='hig-22-010/datacards_nosplitJECs/'
@@ -148,6 +154,11 @@ fi
 
 if $splitDrellYan; then
     plus_args+=' --splitDrellYan'
+fi
+
+
+if $splitEraUL2016; then
+    plus_args+=' --splitEraUL2016'
 fi
 
 

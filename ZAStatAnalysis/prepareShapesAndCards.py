@@ -498,7 +498,7 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
     fNm         = opts['process']+ '_'+ opts['nb']+'_' +opts['region']+'_' + opts['flavor'] + params
     
     label_left  = '{}, {}, {}, ({})'.format(p, nb, opts['region'].replace('_','+'), Lepts[opts['flavor']])
-    label_right = '%s fb^{-1}(13TeV)'%(round(Constants.getLuminosity(era)/1000., 2))
+    label_right = '%s fb^{-1}(13TeV)'%(round(Constants.getLuminosity(H.PlotItEraFormat(era))/1000., 2))
     pad_style   = '--pad-style TopMargin=0.04' if (opts['region']=='resolved_boosted' or nb == 'nb2+nb3') else ''
     
     script      = """#!/bin/bash
@@ -693,7 +693,7 @@ sbatch_time={sbatch_time}
 sbatch_memPerCPU={sbatch_memPerCPU}
 
 # for slurm submission instead!
-{c2}python Combine4Slurm.py -c {output} -o {slurm_dir}/${{WorkEra}}/${{combine_method}} --time ${{sbatch_time}} --mem-per-cpu ${{sbatch_memPerCPU}}
+{c2}python Combine4Slurm.py -c {output} -o {slurm_dir}/${{WorkEra}} --method ${{combine_method}} --time ${{sbatch_time}} --mem-per-cpu ${{sbatch_memPerCPU}}
 
 """.format(output           = output.replace('work_'+ H.EraFromPOG(era), '$WorkEra'),
            WorkEra          = 'work_' + H.EraFromPOG(era),
@@ -725,8 +725,8 @@ sbatch_memPerCPU={sbatch_memPerCPU}
 
 
 def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, verbose, sbatch_time, sbatch_memPerCPU, unblind= False, stat_only= False, merge_cards= False, _2POIs_r=False, multi_signal=False, scale= False, normalize= False, run_validation=False, submit_to_slurm= False):
-    
-    luminosity  = Constants.getLuminosity(era)
+   
+    luminosity  = Constants.getLuminosity(H.PlotItEraFormat(era))
     
     ellipses = {}
     if mode == "ellipse":
@@ -770,17 +770,17 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 else:
                     if not (m_heavy, m_light) in grid_data[prod][reg][thdm]:
                         continue
-                if (m_heavy, m_light) == (500.0, 250.0):
-                    continue
+                
                 if not (m_heavy, m_light) in all_parameters[prod][reg]:
                     all_parameters[prod][reg].append( (m_heavy, m_light) )
     
+    print( all_parameters )
     NotIn2Prod = []    
     for tup in all_parameters['gg_fusion']['resolved']:
         if not tup in all_parameters['bb_associatedProduction']['resolved']:
             NotIn2Prod.append('%s_M%s_%s_M%s_%s'%(mode, thdm[0], tup[0], thdm[-1], tup[1]))
 
-    logger.info("Era and the corresponding luminosity      : %s, %s" %(era, Constants.getLuminosity(era)))
+    logger.info("Era and the corresponding luminosity      : %s, %s" %(era, Constants.getLuminosity(H.PlotItEraFormat(era))))
     logger.info("Input path                                : %s" % input )
     logger.info("Chosen analysis mode                      : %s" % mode)
 
@@ -1033,7 +1033,6 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     file, systematics, ToFIX = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
                                              categories_map      = histfactory_to_combine_categories, 
                                              input               = input, 
-                                             #output_filename    = os.path.join(output, H.get_method_group(method), 'shapes_{}_{}_{}.root'.format('_'.join(sig_process), reco, reg)), 
                                              output_filename     = os.path.join(output, 'shapes_{}_{}_{}.root'.format('_'.join(sig_process), reco, reg)), 
                                              signal_process      = sig_process,
                                              method              = method, 
@@ -1113,10 +1112,11 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             processes_without_weighted_data.FilterProcs(lambda p: 'data' in p.process())
             
             lumi_correlations = Constants.getLuminosityUncertainty()
-            processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['uncorrelated'][era]))
-            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2016_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_16_17_18'][era]))
+            newEra = '2016' if 'VFP' in era else era
+            processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['uncorrelated'][newEra]))
+            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2016_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['correlated_16_17_18'][newEra]))
             if era in ['2017', '2018']:
-                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_17_18'][era]))
+                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['correlated_17_18'][newEra]))
 
             #cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')(['ttbar'], 1.001525372691124) )
             #cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')(['SingleTop'], 1.19/1.22) )
@@ -1139,7 +1139,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                             print("[{}, {}] Process '{}' not found, skipping systematics".format(category_with_parameters, cat, process))
                         for s in systematics[cat][category_with_parameters][process]:
                             s = str(s)
-                            if H.ignoreSystematic(smp=None, flavor=cat, process=process, s=s, _type=_type):
+                            if H.ignoreSystematic(smp=None, cat=cat, process=process, s=s, _type=_type):
                                 print("[{}, {}, {}] Ignoring systematic '{}'".format(category_with_parameters, cat, process, s))
                                 continue
                             cb.cp().channel([cat]).process([process]).AddSyst(cb, s, 'shape', ch.SystMap()(1.00))
@@ -1159,7 +1159,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
            
         cb.FilterProcs(lambda x: H.drop_zero_procs(cb,x)) 
         cb.FilterSysts(lambda x: H.drop_zero_systs(x))
-        cb.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(cb,x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j")) else None)
+        cb.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(cb,x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j") or x.name().startswith("QCD")) else None)
         #cb.FilterSysts(lambda x: H.drop_onesided_systs(x))
         
         # Bin by bin uncertainties
@@ -1648,7 +1648,7 @@ if __name__ == '__main__':
                                                 help='Output directory')
     parser.add_argument('--bambooDir',          action='store', dest='bambooDir', required=True, default=None,        
                                                 help='Bamboo stage out dir')
-    parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016', '2017', '2018', 'fullrun2'],
+    parser.add_argument('--era',                action='store', dest='era', required=True, default=None, choices=['2016preVFP', '2016postVFP', '2016', '2017', '2018', 'fullrun2'],
                                                 help='You need to pass your era')
     parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'],
                                                 help='Analysis mode')
@@ -1676,6 +1676,8 @@ if __name__ == '__main__':
                                                 help='This will split ttbar between tt+b and tt ')
     parser.add_argument('--splitDrellYan',      action='store_true', dest='splitDrellYan', required=False, default=False,                                                  
                                                 help='This will split splitDrellYan into DY+0jets, DY+1jets and DY+2jets')
+    parser.add_argument('--splitEraUL2016',     action='store_true', dest='splitEraUL2016', required=False, default=False,                                                  
+                                                help='Will work with 2016 split between pre/post VFP')
     parser.add_argument('--FixbuggyFormat',     action='store_true', dest='FixbuggyFormat', required=False, default=False,                                                  
                                                 help='Will be removed in the next itertaion of bamboo histograms')
     parser.add_argument('--rm_mix_lo_nlo_bbH_signal',  action='store_true', dest='rm_mix_lo_nlo_bbH_signal', required=False, default=False,                                                  
@@ -1713,6 +1715,7 @@ if __name__ == '__main__':
     
     options = parser.parse_args()
     
+    H.splitEraUL2016 = options.splitEraUL2016
     H.splitJECs      = options.splitJECs
     H.splitLep       = options.splitLep
     H.splitTTbar     = options.splitTTbar
@@ -1723,7 +1726,9 @@ if __name__ == '__main__':
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
     
-    for thdm in ['HToZA']:#, 'AToZH']:
+    Years = ['16preVFP', '16postVFP', '17', '18'] if H.splitEraUL2016 else [16, 17, 18]
+    
+    for thdm in ['HToZA', 'AToZH']:
         
         heavy = thdm[0]
         light = thdm[-1]
@@ -1743,7 +1748,7 @@ if __name__ == '__main__':
                         for flav in flavors:
                             cat = '{}_{}_{}_{}_{}'.format(prod, reco, reg, '_'.join(flav), options.mode)
                             to_combine[cat] = {}
-                            for j, year in enumerate([16, 17, 18]):
+                            for j, year in enumerate(Years):
                                 
                                 mPath = os.path.join(outDir.replace('work__ULfullrun2', 'work__UL{}'.format(year)))
                                 for p in glob.glob(os.path.join(mPath, 'M%s-*'%heavy)):
@@ -1761,7 +1766,7 @@ if __name__ == '__main__':
 
                                     if j ==0:
                                         shutil.copy(os.path.join(p, shNm), pOut)
-                                        Constants.overwrite_path(os.path.join(pOut, shNm))
+                                        Constants.overwrite_path(os.path.join(pOut, shNm), 'UL'+year)
                                     
                                     if not masses in to_combine[cat].keys():
                                         to_combine[cat][masses]= ['combineCards.py']
@@ -1770,10 +1775,10 @@ if __name__ == '__main__':
             for cat, Cmd_per_mass in to_combine.items():        
                 for m, cmd in to_combine[cat].items():
                     
-                    if len(cmd) !=4: 
-                        logger.info("The 3-eras cards are needed, will sum what we got!")
-                        logger.info("running :: ' {} ' for {}\\".format(" ".join(cmd), m))
-                    
+                    if len(cmd) !=(len(Years)+1): 
+                        logger.warning("The {}-years cards are needed".format(len(Years)))
+                        logger.warning("trying to run :: ' {} ' for {}\\".format(" ".join(cmd), m))
+
                     CardOut = '{}/{}/{}'.format(outDir, m, cmd[1].split('/')[-1])
                     try:
                         with open(CardOut, "w+") as outfile:
@@ -1787,7 +1792,7 @@ if __name__ == '__main__':
             scalefactors  = H.get_normalisationScale(options.bambooDir, options.input, options.output, options.method, options.era)
             # for test or for specific points : please use signal_grid_foTest,
             # otherwise the full list of samples will be used !
-            signal_grid = Constants.get_SignalMassPoints(options.era, returnKeyMode= False, split_sig_reso_boo= False) 
+            signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), returnKeyMode= False, split_sig_reso_boo= False) 
         
             prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
                                 thdm                = thdm,

@@ -174,10 +174,10 @@ def get_SignalStatisticsUncer(m_heavy, m_light, process, mode, tb=None):
     return float(xsc), float(xsc_err), br
 
 
-def overwrite_path(f):
+def overwrite_path(f, year):
     with open(f, 'r') as file :
         filedata = file.read()
-    filedata = filedata.replace('UL16', 'ULfullrun2')
+    filedata = filedata.replace(year, 'ULfullrun2')
     filedata = filedata.replace('35.92', '138')
     with open(f, 'w') as file:
         file.write(filedata)
