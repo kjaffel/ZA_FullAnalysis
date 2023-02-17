@@ -92,7 +92,7 @@ def drop_zero_procs(chob,proc):
         null_yield = not (proc.rate() > 1e-6)
         if(null_yield):
             chob.FilterSysts(lambda sys: matching_proc(proc,sys))
-            print( 'Dropping 0 process', proc )
+            print 'Dropping 0 process', proc 
         return null_yield
 
 
@@ -187,21 +187,18 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     era     = era.replace('-', '')
-    newEra  = '2016' if 'VFP' in era else era 
-
+    if H.splitEraUL2016:
+        newEra  = '2016' if 'VFP' in era else era 
+    
     other = {
-        # uncorrelated
-        #'btagSF_deepCSV_subjet_fixWP_light' : "CMS_btag_subjet_light_%s"%era,
-        #'btagSF_deepCSV_subjet_fixWP_heavy' : "CMS_btag_subjet_heavy_%s"%era,
-        #'btagSF_deepJet_fixWP_light'        : "CMS_btag_light_%s"%era,
-        #'btagSF_deepJet_fixWP_heavy'        : "CMS_btag_heavy_%s"%era,
-        'unclustEn'                         : "CMS_UnclusteredEn_%s"%era,#newEra,        
-        'jesHEMIssue'                       : "CMS_HEM_%s"%era, 
-        'HLTZvtx'                           : "CMS_HLTZvtx_%s"%era,
-        'elel_trigSF'                       : "CMS_elel_trigSF_%s"%era, #newEra,
-        'mumu_trigSF'                       : "CMS_mumu_trigSF_%s"%era, #newEra,
-        'muel_trigSF'                       : "CMS_muel_trigSF_%s"%era, #newEra,
-        'mu_trigger'                        : "CMS_mu_trigger_%s"%era, #newEra,
+        # decorrelated
+        'unclustEn'                         : "CMS_UnclusteredEn_%s"%newEra,        
+        'jesHEMIssue'                       : "CMS_HEM_%s"%newEra, 
+        'HLTZvtx'                           : "CMS_HLTZvtx_%s"%newEra,
+        'elel_trigSF'                       : "CMS_elel_trigSF_%s"%newEra,
+        'mumu_trigSF'                       : "CMS_mumu_trigSF_%s"%newEra,
+        'muel_trigSF'                       : "CMS_muel_trigSF_%s"%newEra,
+        'mu_trigger'                        : "CMS_mu_trigger_%s"%newEra,
         
         # correlated
         'pileup'            : "CMS_pileup",
@@ -238,31 +235,35 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     
     # btag;  good names do not overwrite
     elif 'btag' in origName:
-        return 'CMS_'+origName#.replace('preVFP', '').replace('postVFP', '')
+        if H.splitEraUL2016::
+            return 'CMS_'+origName
+        else:
+            return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
 
     # DY reweighting, decorrelated across year
     elif 'DYweight_' in origName:
-        return origName + "_{}".format(era)
+        return origName + "_{}".format(newEra)
 
     # jes 
     elif origName.startswith("jes"):
         return "CMS_scale_j_{}".format(origName[3:])
     elif origName.startswith("jms"):
-        return "CMS_scale_fatjet_{}".format(newEra)
+        y = '2016' if 'VFP' in era else era
+        return "CMS_scale_fatjet_{}".format(y)
     
     # jer
     elif origName.startswith("jer"):
         if len(origName) == 3:
-            return "CMS_res_j_Total_{}".format(era)#newEra)
+            return "CMS_res_j_Total_{}".format(newEra)
         else:
             jerReg = jerRegions[int(origName[3:])]
-            return "CMS_res_j_{}_{}".format(jerReg, era)#newEra)
+            return "CMS_res_j_{}_{}".format(jerReg, newEra)
     elif origName.startswith("jmr"):
-        return "CMS_res_fatjet_{}".format(era)#newEra)
+        return "CMS_res_fatjet_{}".format(newEra)
     
     # unkown 
     else:
-        return origName+"_{}".format(era)#newEra)
+        return origName+"_{}".format(newEra)
 
 
 def get_hist_from_key(keys=None, key=None):
@@ -548,7 +549,7 @@ def ignoreSystematic(smp=None, cat=None, process=None, s=None, _type=None):
         return False
     if not _type=='signal' and s =='pdfAlphaS':
         return True
-    if 'MuEl' in cat and _type=='signal': # will ignore all systematic related to the signal for mu e channel !
+    if 'MuEl' in cat and _type=='signal' and process in s: # will ignore all systematic related to the signal for mu e channel !
         return True
     if smp:
         # do not propagate DYrewigthing to non DY samples !
@@ -973,7 +974,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     for systematic in systematics[cat]:
                         
                         cms_systematic = CMSNamingConvention(origName=systematic, cat=cat, era=newEra, process=process)
-                        if ignoreSystematic(smp=smp, cat=cat, process=None, s=cms_systematic, _type=_t ):
+                        if ignoreSystematic(smp=smp, cat=cat, process=process, s=cms_systematic, _type=_t ):
                             continue
                         
                         has_both = True

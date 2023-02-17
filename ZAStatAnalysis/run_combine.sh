@@ -5,7 +5,7 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2016preVFP'                     
+era='fullrun2'                     
 #choices: '2016' , '2016preVFP', '2016postVFP', '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
@@ -45,54 +45,18 @@ rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal sa
 
 submit_to_slurm=true
 sbatch_time='3-24:59:00'
-sbatch_memPerCPU='45000' #7000
+sbatch_memPerCPU='15000' #7000
 
 n=1
 
-#bambooDir='unblind_stage1_few_fullrun2/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext1/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext2/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext3/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext4_remove_qcd_uncer/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext5/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext6/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext8/half/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext9/do_comb_and_split/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext11/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext12/'
-
-#bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
-
-#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_'${n}'/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext13/chunk_'${n}'/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext14/chunk_'${n}'/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext15/chunk_'${n}'/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext16/chunk_'${n}'/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext18/back_to_old_cmssw_version/chunk_'${n}'/'
-
 bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext19/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext20/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext21/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext22/'
 
-#bambooDir='ul_run2__ver19/results/'
-#stageOut='hig-22-010/datacards_nosplitJECs/'
-
-#bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
-#stageOut='AtoZH_vs_HtoZA/'
-
-#bambooDir='ul_run2__ver22_AtoZH_vs_HtoZA/results/'
-#stageOut='hig-22-010/AtoZH_vs_HtoZA_ver22/'
-
-#bambooDir='ul_run2__ver20_splitJES_JER2/results/'
-#(old name)stageOut='hig-22-010/jesjer_split__ver2/'
-#stageOut='hig-22-010/datacards/'
 
 #================ DO NOT CHANGE =============================
 #============================================================
 workDir='work__UL'${era/20/""}'/'
-inDir=$stageOut$workDir
+inDir=$stageOut/$workDir
 outDir=$inDir
 
 #================ + flags  ==================================
@@ -209,7 +173,7 @@ echo "running ${do_what} post-processing step with the following arguments : " $
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
     ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
-    #./run_combine_${mode}_generatetoys.sh
+    ./run_combine_${mode}_generatetoys.sh
 fi
 
 #=============================================
@@ -224,10 +188,10 @@ fi
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
-    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
-    #./run_combine_${mode}_fitprepost.sh
+    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
+    ./run_combine_${mode}_fitprepost.sh
 
-    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
+    python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
 fi 
 
@@ -243,7 +207,7 @@ fi
 # CLs ( --expectSignal 1 )/CLsplusb (--expectSignal 0) limits 
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
-    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
+    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
     #./run_combine_${mode}_asymptoticlimits.sh
 
     jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
@@ -301,5 +265,5 @@ fi
 #============================================================
 if [ "$do_what" = "likelihood_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method likelihood_fit $plus_args
-    #./run_combine_${mode}_likelihood_fit.sh
+    ./run_combine_${mode}_likelihood_fit.sh
 fi 

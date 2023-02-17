@@ -2,6 +2,7 @@ import os, sys
 sys.dont_write_bytecode = True
 import yaml
 import math
+import subprocess
 
 
 def ZAlogger(nm):
@@ -221,6 +222,16 @@ def getLuminosityUncertainty():
                         '2017': 1.006, '2018': 1.002 }
                   }
     return uncer
+
+
+def SymbolicLinkForBayesianResults(bb, workDir):
+    cmd=['ln', '-s', '-d', bb, workDir]
+    if not os.path.exists(os.path.join(workDir, 'results')):
+        try:
+            print( "A link to Bayesian blocks histograms: {0}".format(" ".join(cmd)))
+            subprocess.call(cmd)
+        except subprocess.CalledProcessError:
+            print("Failed to run {0}".format(" ".join(cmd)))
 
 
 def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
