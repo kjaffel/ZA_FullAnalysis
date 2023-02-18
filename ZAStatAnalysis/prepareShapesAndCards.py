@@ -1766,7 +1766,8 @@ if __name__ == '__main__':
 
                                     if j ==0:
                                         shutil.copy(os.path.join(p, shNm), pOut)
-                                        Constants.overwrite_path(os.path.join(pOut, shNm), 'UL'+year)
+                                        lumi = round(Constants.getLuminosity(H.PlotItEraFormat('20'+year))/1000., 2) 
+                                        Constants.overwrite_path(os.path.join(pOut, shNm), 'UL'+year, str(lumi))
                                     
                                     if not masses in to_combine[cat].keys():
                                         to_combine[cat][masses]= ['combineCards.py']
@@ -1790,8 +1791,10 @@ if __name__ == '__main__':
         
         else:
             # get latest BB histograms from other dir
-            bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hig-22-010/unblinding_stage1/followup1__ext19/work__ULfullrun2/bayesian_rebin_on_S/results')
-            Constants.SymbolicLinkForBayesianResults(bb, options.output)
+            if options.method != "generatetoys":
+                #bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), options.output.split('work_')[0], 'work__ULfullrun2', '/bayesian_rebin_on_S/results')
+                bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hig-22-010/unblinding_stage1/followup1__ext23/work__ULfullrun2/bayesian_rebin_on_S/results')
+                Constants.SymbolicLinkForBayesianResults(bb, options.output)
             
             scalefactors  = H.get_normalisationScale(options.bambooDir, options.input, options.output, options.method, options.era)
             
@@ -1799,7 +1802,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), returnKeyMode= False, split_sig_reso_boo= False) 
         
-            prepare_DataCards(  grid_data           = signal_grid_foTest, 
+            prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
                                 thdm                = thdm,
                                 dataset             = options.dataset, 
                                 expectSignal        = options.expectSignal, 

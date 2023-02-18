@@ -92,7 +92,7 @@ def drop_zero_procs(chob,proc):
         null_yield = not (proc.rate() > 1e-6)
         if(null_yield):
             chob.FilterSysts(lambda sys: matching_proc(proc,sys))
-            print 'Dropping 0 process', proc 
+            print ('Dropping 0 process', proc )
         return null_yield
 
 
@@ -117,7 +117,7 @@ def smooth_lowess_tgraph(h):
     
 def symm_and_smooth(syst,proc):
     #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
-    print 'smoothing: ', syst
+    print ('smoothing: ', syst )
     nominal = proc.shape()
     nominal.Scale(proc.rate())
     hist_u = syst.shape_u()
@@ -186,8 +186,8 @@ def readRecursiveDirContent(content, currTDir, resetDir=True):
 def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
-    era     = era.replace('-', '')
-    if H.splitEraUL2016:
+    newEra = era = era.replace('-', '')
+    if not splitEraUL2016:
         newEra  = '2016' if 'VFP' in era else era 
     
     other = {
@@ -235,7 +235,7 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     
     # btag;  good names do not overwrite
     elif 'btag' in origName:
-        if H.splitEraUL2016::
+        if splitEraUL2016:
             return 'CMS_'+origName
         else:
             return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
@@ -309,11 +309,6 @@ def get_listofsystematics(files, cat, flavor=None, reg=None, multi_signal=False)
                     if not flavor.lower() in syst:
                         avoid += [syst]
 
-            #if reg == 'boosted':
-            #    avoid += [ 'DYweight_resolved_', 'jer']
-            #elif reg == 'resolved':
-            #    avoid += [ 'btagSF_deepCSV_subjet_fixWP', 'DYweight_boosted_', 'jmr', 'jms'] 
-            
             if splitJECs:
                 avoid += ['jesTotal']
             else:
@@ -575,8 +570,8 @@ def ignoreSystematic(smp=None, cat=None, process=None, s=None, _type=None):
     # maybe these two are not anymore causing issues !
     #if 'CMS_UnclusteredEn' in s: # this vars is very small and causes problem in the fit
     #    return True
-    if 'QCDMuRF_' in s:
-        return True
+    #if 'QCDMuRF_' in s:
+    #    return True
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets

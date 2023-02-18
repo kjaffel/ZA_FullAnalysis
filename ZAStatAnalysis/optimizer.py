@@ -286,7 +286,7 @@ def no_bins_empty_background_across_year(rf, histNm, newEdges, channel, crossNm)
     logger.info(f'ULfullrun2 binning: {crossNm}, {correctedEdges}')
     if correctedEdges.tolist()== [0.,1.]:
         return correctedEdges
-    for era in ['UL16', 'UL17', 'UL18']:
+    for era in ['UL16', 'UL17', 'UL18', 'UL16preVFP', 'UL16postVFP']:
         rf_per_era = rf.replace('ULfullrun2', era)
         if not os.path.exists(rf_per_era):
             continue
