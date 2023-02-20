@@ -140,12 +140,12 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, region, cut, 
         
         bb_p4   = ((bjets_[0].p4+bjets_[1].p4)if region=="resolved" else( bjets_[0].p4))
         llbb_p4 = (leptons[0].p4 +leptons[1].p4+bb_p4)
-
+        plotitLeg = f"{uname}_{reco_sig}-{region}"
         # make di-bjets Plots 
         # skip boosted catgory because plots are already called in "makeBjetsPlots"
         if region=="resolved":
             bb_plots = { f'plt_bb_{nm}': Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_bb{nm}_{key}",
-                var, sel, binning, title=f"di-bjet {title}", plotopts=utils.getOpts(uname))
+                var, sel, binning, title=f"di-bjet {title}", plotopts=utils.getOpts(plotitLeg))
                 for nm, (var, binning, title) in {
                     "PT" : (bb_p4.Pt() , EqB(50 // binScaling, 0., 650.), "P_{T} (GeV)"),
                     "Phi": (bb_p4.Phi(), EqB(50 // binScaling, -3.1416, 3.1416), "#phi"),
@@ -160,12 +160,12 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, region, cut, 
                                 bjets_[0].msoftdrop, sel,
                                 EqB(60 // binScaling, 0., 850.),
                                 title="mbb (Soft Drop fatjet) (GeV)",
-                                plotopts = utils.getOpts(uname)))
+                                plotopts = utils.getOpts(plotitLeg)))
             plots.append(Plot.make1D(f"{uname}_{reco_sig}_boosted_{cut}_fatjet_softdropmass_mllbb_{key}",
                                 (bjets_[0].msoftdrop + (leptons[0].p4 +leptons[1].p4).M()), sel,
                                 EqB(60 // binScaling, 120., 1200.),
                                 title="mllbb (Soft Drop fatjet) (GeV)",
-                                plotopts = utils.getOpts(uname)))
+                                plotopts = utils.getOpts(plotitLeg)))
         
         #plots.append(Plot.make2D(f"{uname}_{reco_sig}_{region}_{cut}_mllbb_vs_mbb_{key}", 
         #            (bb_p4.M(), llbb_p4.M()), sel,
@@ -174,11 +174,11 @@ def makeControlPlotsForFinalSel(selections, bjets, leptons, uname, region, cut, 
         plt_mllbb = Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_mllbb_{key}", 
                     llbb_p4.M(), sel,
                     EqB(60 // binScaling, 120., 1400.), 
-                    title="mllbb (GeV)", plotopts=utils.getOpts(uname))
+                    title="mllbb (GeV)", plotopts=utils.getOpts(plotitLeg))
         plt_mbb = Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_mbb_{key}",
                     bb_p4.M(), sel,
                     EqB(60 // binScaling, 0., 1200.), 
-                    title= "mbb (GeV)", plotopts=utils.getOpts(uname))
+                    title= "mbb (GeV)", plotopts=utils.getOpts(plotitLeg))
 
         
         plots += [plt_mbb, plt_mllbb]
@@ -242,17 +242,18 @@ def makeBJetPlots(selections, bjets, jType, uname, region, cut, era, reco_sig, d
     
     for key, sel in selections.items():
         
+        plotitLeg = f"{uname}_{reco_sig}-{region}"
         tagger, wp = utils.get_tagger_wp(key, btv)
         bjets_ = bjets[tagger][wp]
         
         plots.append(Plot.make1D(f"{uname}_{reco_sig}_{region}_{key}_{cut}_Jet_multiplicity", op.rng_len(bjets_), sel,
-                    EqB(7, 0., 7.), title="B-tagged {jType} Jet multiplicity",
-                    plotopts=utils.getOpts(uname, **{"log-y": True})))
+                    EqB(7, 0., 7.), title=f"B-tagged {jType} Jet multiplicity",
+                    plotopts=utils.getOpts(plotitLeg, **{"log-y": True})))
         
         for i in range(maxJet):
             bb_plots = { f'plt_bb_{nm}': Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_bjet{i+1}_{nm}_{key}",
                         jVar(bjets_[i]), sel, binning, title=f"{utils.getCounter(i+1)} b-tagged Jet {title}",
-                        plotopts=utils.getOpts(uname))
+                        plotopts=utils.getOpts(plotitLeg))
                 for nm, (jVar, binning, title) in {
                     "pT"   : (lambda j : j.pt,  EqB(60 // binScaling, jet_ptcut[region], 850.), "p_{T} (GeV)"),
                     "mass" : (lambda j : j.mass,EqB(50 // binScaling, 0., 300.), "Mass (GeV)"),
@@ -328,6 +329,7 @@ def makeNsubjettinessPLots(lepPlusJetssel, fatjet, lepSel, uname):
 def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname, region, suffix, reco_sig, btv):
     plots=[]
     binScaling = 1
+    plotitLeg  = f"{uname}_{reco_sig}-{region}"
     for key, sel in selections.items():
         
         tagger, wp = utils.get_tagger_wp(key, btv)
@@ -338,7 +340,7 @@ def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname,
         llbb_p4 = ll_p4 + bb_p4
         
         plots += [ Plot.make1D(f"{uname}_{nm}_{reco_sig}_{region}_{tagger}{wp}_{suffix}",
-            llbbVar, sel, binning, title=title, plotopts=utils.getOpts(uname))
+            llbbVar, sel, binning, title=title, plotopts=utils.getOpts(plotitLeg))
             for nm, (llbbVar, binning, title) in {
                 "bb_M"     : (bb_p4.M(),   EqB(50, 10., 1000.), "m_{bb} (GeV)"),
                 "llbb_M"   : (llbb_p4.M(), EqB(50, 100., 1500.), "m_{llbb} (GeV)"),
@@ -361,32 +363,33 @@ def makeHistosForTTbarEstimation(selections, ll, bjets, corrmet, met, wp, uname,
 def MakeMETPlots(selections, lepton, corrmet, met, uname, region, reco_sig):
     plots = []
     binScaling = 1
+    plotitLeg  = f"{uname}_{reco_sig}-{region}"
     
     for key, sel in selections.items():
         
         plots.append(Plot.make1D(f"met_pt_{reco_sig}_{region}_{uname}_hZA_lljj_{key}", 
                     met.pt, sel,
                     EqB(60 // binScaling, 0., 600.), title="MET p_{T} [GeV]",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
+                    plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
         plots.append(Plot.make1D("xycorrmet_pt_{reco_sig}_{region}_{uname}_hZA_lljj_{key}", 
                     corrmet.pt, sel,
                     EqB(60 // binScaling, 0., 600.), title="corrMET p_{T} [GeV]",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
+                    plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
         plots.append(Plot.make1D(f"{uname}_{key}_{region}_{reco_sig}_MET_pt", met.pt, sel,
                     EqB(60 // binScaling, 0., 600.), title="MET p_{T} [GeV]",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
+                    plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
         plots.append(Plot.make1D(f"{uname}_{key}_{region}_{reco_sig}_MET_phi", met.phi, sel,
                     EqB(60 // binScaling, -3.1416, 3.1416), title="MET #phi",
-                    plotopts=utils.getOpts(uname, **{"log-y": False})))
+                    plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
         for i in range(2):
             plots.append(Plot.make1D(f"{uname}_{key}_{reco_sig}_{region}_MET_lep{i+1}_deltaPhi",
                             op.Phi_mpi_pi(lepton[i].phi - met.phi), sel, EqB(60 // binScaling, -3.1416, 3.1416),
-                            title="#Delta #phi (lepton, MET)", plotopts=utils.getOpts(uname, **{"log-y": False})))
+                            title="#Delta #phi (lepton, MET)", plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
     
             MT = op.sqrt( 2. * met.pt * lepton[i].p4.Pt() * (1. - op.cos(op.Phi_mpi_pi(met.phi - lepton[i].p4.Phi()))) )
             plots.append(Plot.make1D(f"{uname}_{key}_{reco_sig}_{region}_MET_MT_lep{i+1}", MT, sel,
                             EqB(60 // binScaling, 0., 600.), title="Lepton M_{T} [GeV]",
-                            plotopts=utils.getOpts(uname, **{"log-y": False})))
+                            plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
     return plots
 
 
@@ -413,6 +416,7 @@ def MakePuppiMETPlots(PuppiMET, sel, uname):
 def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, uname, region, cut, reco_sig, btv):
     plots = []
     binScaling=1
+    plotitLeg = f"{uname}_{reco_sig}-{region}"
     
     for key, sel in selections.items():
     
@@ -422,14 +426,14 @@ def MakeBJERcorrComparaisonPlots(selections, bjets, leptons, uname, region, cut,
 
         for i in range(2): 
             plots += [ Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_{nm}{i+1}_{key}",
-                llbbVar, sel, binning, title=f"{utils.getCounter(i+1)} b-Jet {title}", plotopts=utils.getOpts(uname))
+                llbbVar, sel, binning, title=f"{utils.getCounter(i+1)} b-Jet {title}", plotopts=utils.getOpts(plotitLeg))
                 for nm, (llbbVar, binning, title) in {
                     "pT"   : (bjets_[i].pt, EqB(60, 20., 650.), "pt (GeV)"),
                     "mass" : (bjets_[i].mass, EqB(60, 0., 1000.), "mass (GeV)"),
                 }.items()
             ]
         plots += [ Plot.make1D(f"{uname}_{reco_sig}_{region}_{cut}_{nm}_{key}",
-            llbbVar, sel, binning, title=title, plotopts=utils.getOpts(uname))
+            llbbVar, sel, binning, title=title, plotopts=utils.getOpts(plotitLeg))
             for nm, (llbbVar, binning, title) in {
                 "mbb"   : (bb_p4.M(), EqB(60, 0., 1000.), "m_{bb} (GeV)"),
                 "mllbb" : ((leptons[0].p4 + leptons[1].p4 + bb_p4).M(), EqB(60, 0., 1000.), "m_{llbb} (GeV)"),

@@ -553,7 +553,7 @@ class NanoHtoZABase(NanoAODModule):
         eta    = 2.4 if '2016' in era else 2.5
         pt     = 20. if '2016' in era else 30.
 
-        jet_ID = { '2016-preVFP' : lambda j : j.jetId & 4, # 2 for 2016 FIXME move to 4 but please test first : tight Lep Veto
+        jet_ID = { '2016-preVFP' : lambda j : j.jetId & 4, 
                    '2016-postVFP': lambda j : j.jetId & 4,
                    '2017'        : lambda j : j.jetId & 4,
                    '2018'        : lambda j : j.jetId & 4}
@@ -1302,7 +1302,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'{tagger}{wp}'],
                                         ]
                                 sel = sel.refine(f'{channel}_plus_Bjets_{reg}_{tagger}_{wp}', weight=w)
-                            plots.extend(cp.makeJetmultiplictyPlots(sel, btaggedJets, f'B-tagged {jetType[reg]}', channel,f"{reg}_{tagger}_{wp}"))
+                            plots.extend(cp.makeJetmultiplictyPlots(sel, btaggedJets, f'B-tagged {jetType[reg]}', channel,f"{reg}_{tagger}{wp}"))
                     
                 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                                     #  subjets 

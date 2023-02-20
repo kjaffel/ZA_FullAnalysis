@@ -180,25 +180,29 @@ def run_Plotit(workdir, inDir, outDir, counterReader, config):
 
 
 def getOpts(name, **kwargs):
-    uname=name.lower()
+    uname=name.split('_')[0].lower()
     if "elmu" in uname:
-        label = "e^{+}#mu^{-}"+"channel"
+        label = "e^{+}#mu^{-}"+" channel"
     elif "muel" in uname:
-        label = "#mu^{+}e^{-}"+ "channel"
+        label = "#mu^{+}e^{-}"+ " channel"
     elif "elel" in uname:
-        label = "e^{+}e^{-}"+"channel"
+        label = "e^{+}e^{-}"+" channel"
     elif "mumu" in uname:
-        label = "#mu^{+}#mu^{-}"+"channel"
+        label = "#mu^{+}#mu^{-}"+" channel"
     elif "comb" in uname:
         label = "e^{#pm}#mu^{#pm}"+" combined"
     elif "lept" in uname:
         label = "1 lepton pair (e/#mu)"
     elif "ossf" in uname:
-        label = "e^{+}e^{-} + #mu^{+}#mu^{-}"+"channel"
+        label = "e^{+}e^{-} + #mu^{+}#mu^{-}"+" channel"
     if "2j" in uname:
         label += ", #geq 2 jets"
     if "2b" in uname:
         label += ", #geq 2 b tags"
+    if '_' in name:
+        label = label.replace(' channel', '')
+        cat   = name.split('_')[1]
+        label +=', '+cat
     opts = {
         "labels": [{"text": label, "position": [0.205, 0.912]}]
     }

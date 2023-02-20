@@ -13,6 +13,8 @@ from bamboo.analysisutils import configureRochesterCorrection, configureJets, co
 from bamboo.scalefactors import get_correction, BtagSF
 
 import utils as utils
+logger = utils.ZAlogger(__name__)
+
 from bambooToOls import Plot
 from scalefactorslib import all_scalefactors, all_run2_Ulegacyscalefactors
 
@@ -256,10 +258,11 @@ def get_bTagSF_fixWP(tagger, wp, flav, era, sel, dobJetER=False, isSignal=False,
         jsf_nm = 'btagging.json.gz'
         method = "incl" if flav == 0 else heavy_method
         correction = f"{tagger}_{method}"
-        #FIXME tmp fix to the issue here: https://cms-talk.web.cern.ch/t/ul-b-tagging-sf-update/20209
-        if tagger == 'DeepJet' and era == "2016-postVFP" and flav == 0:
-            era = "2016-preVFP"
-
+        #FIXME : this is a tmp fix to the issue reported here: https://cms-talk.web.cern.ch/t/ul-b-tagging-sf-update/20209
+        if tagger == 'deepJet' and era == "2016postVFP" and flav == 0:
+            logger.warning(' Will use 2016preVFP deepJet light tagged SF for 2016postVFP ')
+            era = "2016preVFP"
+    
     path_localizePOGSF = localizePOGSF(era, "BTV", jsf_nm)
     
     return get_correction(path_localizePOGSF, correction, params=params[f"{prefix}Jet_bRegCorr"],
