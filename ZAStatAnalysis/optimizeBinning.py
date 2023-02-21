@@ -262,8 +262,7 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             
             crossNm     = old_hist.GetName()+name+"_crossCheck_%.2f"%p0
             FinalEdges  = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
-            if not isSignal:
-                FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
+            FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
             
             _newHist        = nph.rebin(FinalEdges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
             np_newhist      = NumpyHist.getFromRoot(_newHist)

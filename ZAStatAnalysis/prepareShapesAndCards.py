@@ -1098,12 +1098,14 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             elif reco =='nb2':
                 analysis = ['gg%s'% thdm[0]]
         
+        newEra = '2016' if 'VFP' in era else era
+
         #cb.AddObservations( mass, analysis, era, channel, bin)
-        cb.AddObservations(['*'], analysis, ['13TeV_%s'%era], analysis_categories, categories_with_parameters)
+        cb.AddObservations(['*'], analysis, ['13TeV_%s'%newEra], analysis_categories, categories_with_parameters)
         
         #cb.AddProcesses( mass, analysis, era, channel, process, bin, signal( bool))
-        cb.AddProcesses(['*'], analysis, ['13TeV_%s'%era], analysis_categories, bkg_processes, categories_with_parameters, signal=False)
-        cb.AddProcesses([mass], analysis, ['13TeV_%s'%era], analysis_categories, sig_process, categories_with_parameters, signal=True)
+        cb.AddProcesses(['*'], analysis, ['13TeV_%s'%newEra], analysis_categories, bkg_processes, categories_with_parameters, signal=False)
+        cb.AddProcesses([mass], analysis, ['13TeV_%s'%newEra], analysis_categories, sig_process, categories_with_parameters, signal=True)
         
         cb.AddDatacardLineAtEnd("* autoMCStats 0 0 1")
         
@@ -1112,11 +1114,10 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             processes_without_weighted_data.FilterProcs(lambda p: 'data' in p.process())
             
             lumi_correlations = Constants.getLuminosityUncertainty()
-            newEra = '2016' if 'VFP' in era else era
-            processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['uncorrelated'][newEra]))
-            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2016_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_16_17_18'][newEra]))
+            processes_without_weighted_data.AddSyst(cb, 'lumi_uncorrelated_$ERA', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['uncorrelated'][newEra]))
+            processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2016_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['correlated_16_17_18'][newEra]))
             if era in ['2017', '2018']:
-                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%era], lumi_correlations['correlated_17_18'][era]))
+                processes_without_weighted_data.AddSyst(cb, 'lumi_correlated_13TeV_2017_2018', 'lnN', ch.SystMap('era')(['13TeV_%s'%newEra], lumi_correlations['correlated_17_18'][newEra]))
 
             #cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')(['ttbar'], 1.001525372691124) )
             #cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')(['SingleTop'], 1.19/1.22) )
@@ -1766,8 +1767,8 @@ if __name__ == '__main__':
 
                                     if j ==0:
                                         shutil.copy(os.path.join(p, shNm), pOut)
-                                        lumi = round(Constants.getLuminosity(H.PlotItEraFormat('20'+year))/1000., 2) 
-                                        Constants.overwrite_path(os.path.join(pOut, shNm), 'UL'+year, str(lumi))
+                                        lumi = round(Constants.getLuminosity(H.PlotItEraFormat('20'+str(year)))/1000., 2) 
+                                        Constants.overwrite_path(os.path.join(pOut, shNm), 'UL'+str(year), str(lumi))
                                     
                                     if not masses in to_combine[cat].keys():
                                         to_combine[cat][masses]= ['combineCards.py']
@@ -1793,7 +1794,7 @@ if __name__ == '__main__':
             # get latest BB histograms from other dir
             if options.method != "generatetoys":
                 #bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), options.output.split('work_')[0], 'work__ULfullrun2', '/bayesian_rebin_on_S/results')
-                bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hig-22-010/unblinding_stage1/followup1__ext23/work__ULfullrun2/bayesian_rebin_on_S/results')
+                bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hig-22-010/unblinding_stage1/followup1__ext28/work__ULfullrun2/bayesian_rebin_on_S/results')
                 Constants.SymbolicLinkForBayesianResults(bb, options.output)
             
             scalefactors  = H.get_normalisationScale(options.bambooDir, options.input, options.output, options.method, options.era)

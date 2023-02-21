@@ -5,13 +5,13 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='fullrun2'                     
+era='2016-preVFP'                     
 #choices: '2016' , '2016preVFP', '2016postVFP', '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='goodness_of_fit'
+do_what='fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 multi_signal=false
@@ -44,13 +44,13 @@ FixbuggyFormat=false   # won't be needed soon
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
-sbatch_time='3-24:59:00'
+sbatch_time='1-24:59:00'
 sbatch_memPerCPU='15000' #7000
 
 n=1
 
 bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext22/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
 
 
 #================ DO NOT CHANGE =============================
@@ -173,7 +173,7 @@ echo "running ${do_what} post-processing step with the following arguments : " $
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
     ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
-    ./run_combine_${mode}_generatetoys.sh
+    #./run_combine_${mode}_generatetoys.sh
 fi
 
 #=============================================
@@ -207,12 +207,12 @@ fi
 # CLs ( --expectSignal 1 )/CLsplusb (--expectSignal 0) limits 
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
+    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
     #./run_combine_${mode}_asymptoticlimits.sh
 
-    jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
+    #jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
     #jsP=$outDir/$scenario/asymptotic-limits/dnn_r_xBR/jsons/
-    #jsP=$outDir/$scenario/asymptotic-limits__very_good_xbr/$mode/jsons/
+    jsP=$outDir/$scenario/asymptotic-limits__very_good_xbr/$mode/jsons/
 
     #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era $plus_args2 
     #python ZAlimits.py --jsonpath $jsP --log --era $era $plus_args2

@@ -16,11 +16,12 @@ import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
 decotheory     = False
+decothResBoo   = False
 splitJECs      = True
 splitLep       = False
 splitTTbar     = False
 splitDrellYan  = False
-splitEraUL2016 = True
+splitEraUL2016 = False
 FixbuggyFormat = False
 rm_mix_lo_nlo_bbH_signal= True
 
@@ -183,12 +184,13 @@ def readRecursiveDirContent(content, currTDir, resetDir=True):
                 obj.SetDirectory(0)
 
 
-def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
+def CMSNamingConvention(origName=None, cat=None, era=None, process=None, multi_signal=False):
     ## see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombinationConventions
     jerRegions = [ "barrel", "endcap1", "endcap2lowpt", "endcap2highpt", "forwardlowpt", "forwardhighpt" ]
     newEra = era = era.replace('-', '')
     if not splitEraUL2016:
-        newEra  = '2016' if 'VFP' in era else era 
+        newEra   = '2016' if 'VFP' in era else era 
+        origName = origName.replace('preVFP', '').replace('postVFP', '')
     
     other = {
         # decorrelated
@@ -217,7 +219,9 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
         process = process.split('_')[0]
         if decotheory and cat is not None:
             process += '_'+'_'.join(cat.split('_')[2:])
-
+        if decothResBoo and cat is not None:
+            flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
+            process +=  '_' +reg
     # theory 
     theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
                     "qcdMuF"   : "QCDMuF_%s"%process, 
@@ -235,10 +239,7 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None):
     
     # btag;  good names do not overwrite
     elif 'btag' in origName:
-        if splitEraUL2016:
-            return 'CMS_'+origName
-        else:
-            return 'CMS_'+origName.replace('preVFP', '').replace('postVFP', '')
+        return 'CMS_'+origName
 
     # DY reweighting, decorrelated across year
     elif 'DYweight_' in origName:
@@ -832,7 +833,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     histograms[category] = nominal_name
         histograms_per_cat[cat] = histograms
 
-    cms_systematics = {f: [CMSNamingConvention(origName=s, cat=None, era=era, process=None) for s in v] for f, v in systematics.items()}
+    cms_systematics = {f: [CMSNamingConvention(origName=s, cat=None, era=era, process=None, multi_signal=multi_signal) for s in v] for f, v in systematics.items()}
     
     for cat in analysis_categories:
         hash.update(cat)
@@ -968,7 +969,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     # Load systematics shapes
                     for systematic in systematics[cat]:
                         
-                        cms_systematic = CMSNamingConvention(origName=systematic, cat=cat, era=newEra, process=process)
+                        cms_systematic = CMSNamingConvention(origName=systematic, cat=cat, era=newEra, process=process, multi_signal=multi_signal)
                         if ignoreSystematic(smp=smp, cat=cat, process=process, s=cms_systematic, _type=_t ):
                             continue
                         

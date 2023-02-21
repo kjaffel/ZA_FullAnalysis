@@ -17,35 +17,8 @@ plot_on_log=true
 n=1
 
 era='fullrun2'
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_'${n}'/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext13/chunk_'${n}'/'
-
-#bambooDir='unblind_stage1_full_per_chunk_fullrun2/chunk_'${n}'/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext5/chunk_'${n}'/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext7/chunk_'${n}'/'
-
-#bambooDir='unblind_stage1_few_fullrun2/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext8/half/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext10/'
-
-#bambooDir='unblind_stage1_few_fullrun2/results/'
-#stageOut='hig-22-010/unblinding_stage1/'
-
-#bambooDir='ul_run2__ver22_AtoZH_vs_HtoZA/results/'
-#stageOut='hig-22-010/AtoZH_vs_HtoZA_ver22/'
-
-#bambooDir='ul_run2__ver21_AtoZH_vs_HtoZA/results/'
-#stageOut='AtoZH_vs_HtoZA/'
-
-#bambooDir='ul_run2__ver19/results/'
-#stageOut='hig-22-010/datacards/'
-
-#bambooDir='ul_run2__ver20_splitJES_JER2/results/'
-#stageOut='hig-22-010/jesjer_split/'
-
-#bambooDir='ul_run2__ver20_splitJES_JER2/results/'
-#stageOut='hig-22-010/jesjer_split__ver2/'
-
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext28/'
 #================ DO NOT CHANGE =============================
 #============================================================
 
