@@ -3,13 +3,12 @@ configuration:
   height: 800
   luminosity-label: '%1$.2f fb^{-1} (13 TeV)'
   experiment: "CMS"
-  #extra-label: "Preliminary"
   extra-label: "Simulation"
   root: myroot_path
   luminosity: mylumi
   no-lumi-rescaling: true
-  blinded-range-fill-color: '#FDFBFB' #"16" #"#29556270"
-  blinded-range-fill-style: 4050 #3004
+  blinded-range-fill-color: '#FDFBFB'
+  blinded-range-fill-style: 4050
   yields-table-align: v
   book-keeping-file: 'plots.root'
 files:
@@ -26,9 +25,12 @@ files:
   DY_fit-type_histos.root:
     type: mc
     group: DY
-  ttbar_fit-type_histos.root:
+  tt_fit-type_histos.root:
     type: mc
-    group: ttbar
+    group: tt
+  ttB_fit-type_histos.root:
+    type: mc
+    group: ttB
   SingleTop_fit-type_histos.root:
     type: mc
     group: ST
@@ -46,7 +48,7 @@ files:
     group: others
 plots:
   histo-name:
-    blinded-range: [0.7, 1.0]
+    blinded-range: [0.8, 1.0]
     labels:
         #- {text: 'Label1', position: [0.22, 0.895]}
         #- {text: 'Label2', position: [0.3, 0.895]}
@@ -74,13 +76,20 @@ groups:
   DY:
     fill-color: '#0000FF'
     legend: DY+jets
+    order: 7
+    line-width: 1
+    line-color: 1
+    line-style: 1
+  tt:
+    fill-color: '#c4ffff'
+    legend: tt
     order: 6
     line-width: 1
     line-color: 1
     line-style: 1
-  ttbar:
-    fill-color: '#c4ffff'
-    legend: tt
+  ttB:
+    fill-color: '#abb2b9'
+    legend: ttB
     order: 5
     line-width: 1
     line-color: 1
@@ -114,8 +123,8 @@ groups:
     line-color: 1
     line-style: 1
 legend:
-    #position: [0.62, 0.61, 0.95, 0.89]
     position: [0.5, 0.61, 0.95, 0.89]
+    #position: [0.62, 0.61, 0.95, 0.89]
     #position: [0.5, 0.7, 0.95, 0.89]
 systematics:
   - fit-type

@@ -3,6 +3,8 @@ import glob
 import ROOT
 import subprocess
 import argparse
+
+
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
@@ -17,6 +19,26 @@ def CopyTH1F_to_TH1D(hist):
         return None
     copyHist = ROOT.TH1D(str(hist.GetName()), hist.GetTitle(), hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     return copyHist
+
+
+def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir):
+   
+    for fit in ['fit_s', 'fit_b']:
+        for rf in glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit)):
+            smp    = rf.split('/')[-1]
+            dir    = rf.split(smp)[0]
+            params = rf.split('/')[-3].split('_')
+            heavy  = params[0].split('-')[0].replace('M', '')
+            light  = params[1].split('-')[0].replace('M', '')
+            prod   = '%sToZ%sTo2LB'%(heavy, light)
+    
+            redoConversion = ['python', 'utils/convertPrePostfitShapesForPlotIt.py', '-i',  '%s/%s'%(dir, smp), '-o', '%s/%s'%(dir, fit), '--signal-process', prod, '-n', 'dnn_scores']
+            try:
+                logger.info("running {}".format(" ".join(redoConversion)))
+                subprocess.check_call(redoConversion)#, stdout=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                logger.error("Failed to run {}".format(" ".join(redoConversion)))
+
 
 
 def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
@@ -35,7 +57,7 @@ def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
                 continue
             if smp.startswith('fit_shapes_'):
                 continue
-
+            #print( 'working on:', rf)
             inFile  = HT.openFileAndGet(rf)
             outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
             for hk in inFile.GetListOfKeys():
@@ -59,7 +81,8 @@ def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
                 newHist.Write()
             inFile.Close()
             outFile.Close()
-            #print( "============="*10)
+            #print( 'Divide events by the bin width for', fit, smp)
+        #print( "============="*10)
 
 
 def ProcessHistograms( hist):
@@ -183,6 +206,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
 
         base     = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
         re       = 'reshaped' if reshape else ''
+        era      = era.replace('2016', '2016-') if 'VFP' in era else era
         lumi     = Constants.getLuminosity(era)
         hist_nm  = Constants.get_Nm_for_runmode( mode)
         
@@ -220,6 +244,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     os.chdir(os.path.join(base, cat_path.split(output)[0]))
                     os.getcwd()
                     
+                    inBlockSignal = False
                     prod       = p_out.split('_')[1] +'_'+p_out.split('_')[2]
                     flavor     = channels[p_out.split('_')[-1]]
                     region     = p_out.split('_')[-2]
@@ -243,26 +268,54 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     
                     with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                         with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
+                            
                             for line in inf:
+                                cs = ''
+                                cb = ''
                                 if 'luminosity-label' in line:
                                     if era =='fullrun2':
                                         outf.write("  luminosity-label: '%1$.0f fb^{-1} (13 TeV)'\n")
+                                    else:
+                                        outf.write("  luminosity-label: '%1$.2f fb^{-1} (13 TeV)'\n")
+                                
                                 elif '    blinded-range:' in line:
-                                    outf.write("{}    blinded-range: [0.7, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
+                                    outf.write("{}    blinded-range: [0.8, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
                                 elif '    x-axis:' in line:
                                     outf.write(f"    x-axis: {x_axis}\n")
                                 elif '  root: myroot_path' in line:
                                     outf.write(f"  root: {output}\n")
                                 elif '  luminosity: mylumi' in line:
                                     outf.write(f"  luminosity: {lumi}\n")
+                                
                                 elif 'signal-prod_fit-type_histos.root:' in line:
-                                    outf.write("{}\n".format(line.replace('signal-prod', process).replace('fit-type', fit)))
-                                elif 'fit-type' in line:
-                                    outf.write("{}\n".format(line.replace('fit-type', fit)))
+                                    inBlockSignal = True
+                                    signal = line.strip().replace('signal-prod', process).replace('fit-type', fit).replace(':','')
+                                    if not os.path.exists( os.path.join(output, signal)): cs = '#'
+                                    outf.write(f"{cs}  {signal}:\n")
+                                elif '_fit-type_histos.root:' in line:
+                                    inBlockSignal = False
+                                    bkg    = line.strip().replace('fit-type', fit).replace(':','')
+                                    if not os.path.exists( os.path.join(output, bkg)): cb = '#'
+                                    outf.write(f"{cb}  {bkg}:\n")
+                                
+                                elif '    type:' in line and not inBlockSignal:
+                                    _Type  = line.strip().split(':')[-1]
+                                    outf.write(f"{cb}    type: {_Type}\n")
+                                elif '    group:' in line and not inBlockSignal:
+                                    _group = line.strip().split(':')[-1]
+                                    outf.write(f"{cb}    group: {_group}\n")
+                                
                                 elif '    legend: mysignal' in line:
-                                    outf.write(f"    legend: '{signal_smp}'\n")
+                                    outf.write(f"{cs}    legend: '{signal_smp}'\n")
                                 elif '    Branching-ratio: ' in line:
-                                    outf.write(f"    Branching-ratio: {br}\n")
+                                    outf.write(f"{cs}    Branching-ratio: {br}\n")
+                                elif '    type: signal' in line:
+                                    outf.write(f"{cs}    type: signal\n")
+                                elif '    line-type: 8' in line and inBlockSignal:
+                                    outf.write(f"{cs}    line-type: 8\n")
+                                elif '    line-width: 3' in line and inBlockSignal:
+                                    outf.write(f"{cs}    line-width: 3\n")
+
                                 elif '      text: mychannel' in line:
                                     outf.write(f"      text: {reco}-{region}, {flavor}\n")
                                 elif '  histo-name:' in line:
@@ -273,6 +326,8 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                 #    outf.write("        - {text: '%s -%s', position: [0.22, 0.895], size: 20}\n"%(reco, region))
                                 #elif 'Lable2' in line:
                                 #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
+                                elif '  - fit-type' in line:
+                                    outf.write("  - {}\n".format(fit))
                                 else:
                                     outf.write(line)
                     
@@ -293,7 +348,7 @@ if __name__ == '__main__':
                 help='Path to work dir ( output given when running prepareShapesAndCards.py script with arg --method fit )')
     parser.add_argument('-m', '--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], 
                 help='posfit plots produced for one of these mode')
-    parser.add_argument('--era', action='store', required=True, default=None, choices=['2016', '2017', '2018', 'fullrun2'], 
+    parser.add_argument('--era', action='store', required=True, default=None, choices=['2016', '2016preVFP', '2016postVFP', '2017', '2018', 'fullrun2'], 
                 help='data taking year')
     parser.add_argument('--unblind', action='store_true', default=False, 
                 help='unblind data in dnn score template')
@@ -304,8 +359,18 @@ if __name__ == '__main__':
 
     options = parser.parse_args()
     
-    if options.reshape: # needed only for dnn mode 
+    #RedoPrePostfitShapesConversionForPlotIt(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
+    
+    if options.reshape: # will devide bin contents by the bin width
         reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
     
-    runPlotIt_prepostFit(workdir=options.inputs, mode=options.mode, era=options.era, unblind=options.unblind, reshape=options.reshape, poi_dir='2POIs_r', tb_dir='', rescale_to_za_br=options.rescale_to_za_br)
+    runPlotIt_prepostFit(workdir          = options.inputs, 
+                         mode             = options.mode, 
+                         era              = options.era, 
+                         unblind          = options.unblind, 
+                         reshape          = options.reshape, 
+                         poi_dir          = '2POIs_r', 
+                         tb_dir           = '', 
+                         rescale_to_za_br = options.rescale_to_za_br)
+
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

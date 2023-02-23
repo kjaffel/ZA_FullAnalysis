@@ -43,7 +43,6 @@ def create_postfit_prefit_error_shapes(fit, fit_shape_with_errors, reference):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert Combine harvester pre/post-fit output to a format suitable for plotIt')
     parser.add_argument('-i', '--input', action='store', type=str, dest='input', help='Path to the ROOT file created by combine harvester', required=True)
-    #parser.add_argument('-s', '--signals', action='store', type=str, dest='signals', help='Path to the ROOT file containing all the signal shapes')
     parser.add_argument('-o', '--output', action='store', type=str, dest='output', help='Name of the output directory')
     parser.add_argument('-n', '--name', action='store', type=str, dest='name', help='Shape name')
     parser.add_argument('--signal-process', action='store', type=str, dest='signal_process', help='The process name identifying the signal (ggHH or ggX0HH for example)')
@@ -94,8 +93,8 @@ if __name__ == '__main__':
         
                 plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'recreate')
                 nominal_fit.Write()
-                if background == 'ttbar':
-                    # Special treatment for ttbar. Apply errors from the TotalBkgs shapes to ttbar
+
+                if background =='tt' or background =='ttbar': 
                     total_bkgs_fit = file.Get("{}_{}/TotalBkg".format(channel, fit))
                     if not total_bkgs_fit:
                         raise Exception("TotalBkg %s shape not found"%fit)
