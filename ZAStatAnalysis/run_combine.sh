@@ -5,23 +5,28 @@
 mode='dnn'
 #choices: 'mbb', 'mllbb'
 
-era='2016-preVFP'                     
+era='fullrun2'                     
 #choices: '2016' , '2016preVFP', '2016postVFP', '2017' , '2018', 'fullrun2'  
 
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='fit'
+do_what='goodness_of_fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
-multi_signal=false
-# if this true, the cards will contain both signals but using 1 discriminator ggH -> for nb2 and bbH -> for nb3 
+multi_signal=true
+# if this true, the cards will contain both signals r_ggH & r_bbH, but using 1 discriminator, nb2 for ggH and nb3 for bbH
 # this will allow you to test HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel while freezing or profiling 1 signal at the time
+# tanbeta will be required
 
 _2POIs_r=true 
-# if this false  r_ggH +r_bbH will be combined, so you need to give a tb value
+# if this false, ggH and bbH signals will be merged in 1histogram, 
+# but scalinf of the cross-section will be applied, 
+# tanbeta will be required
 
-tanbeta=1.5
+declare -A tanbeta
+tanbeta['gg']=5.
+tanbeta['bb']=5.
 #choices: any value you want
 # Just make sure you already run Sushi and 2HDMC, so you have the results saved in this format
 # data/sushi1.7.0-xsc_tanbeta-20.0_2hdm-type2.yml
@@ -34,23 +39,25 @@ normalize=true
 scale=false
 x_branchingratio=false
 
-splitEraUL2016=true
+splitEraUL2016=false
 splitJECs=true
 splitLep=true          # by default bbH, nb3 and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
 splitTTbar=true
 splitDrellYan=false
 
-FixbuggyFormat=false   # won't be needed soon 
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
-sbatch_time='1-24:59:00'
-sbatch_memPerCPU='15000' #7000
+sbatch_time='01:59:00'
+sbatch_memPerCPU='7000'
 
 n=1
 
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext28/no_split_prepostVFP/'
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
 
 
 #================ DO NOT CHANGE =============================
@@ -69,8 +76,21 @@ fi
 plus_args='' 
 if $_2POIs_r; then
     plus_args+=' --_2POIs_r'
-else
-    plus_args+=' --tanbeta'
+fi
+
+
+if [[ $multi_signal || ! $_2POIs_r ]]; then
+    if [  ${tanbeta['gg']} != ${tanbeta['bb']} ]; then
+        echo 'This does not make any sense, tanbeta need to be the same for both processes !'
+        exit 1
+    fi
+    #FIXME plus_args+=" --tanbeta="'{"gg":'${tanbeta['gg']}',"bb":'${tanbeta['bb']}'}'
+fi
+
+
+if $multi_signal; then
+    plus_args+=' --multi_signal'
+    _2POIs_r=true
 fi
 
 
@@ -84,10 +104,6 @@ plus_args+=' --expectSignal '${expectSignal}
 plus_args2=$plus_args
 plus_args+=' --verbose '${verbose}
 plus_args+=' --bambooDir '${bambooDir}
-
-if $multi_signal; then
-    plus_args+=' --multi_signal'
-fi
 
 
 if $submit_to_slurm; then
@@ -123,11 +139,12 @@ fi
 
 if $splitEraUL2016; then
     plus_args+=' --splitEraUL2016'
-fi
+    if [  "${era}"==2016 ]; then
+        echo 'This should not happend, era=2016 while splitEraUL2016=true'
+        echo 'Needed era are [ 2016preVFP, 2016postVFP]'
+        exit 1
+    fi
 
-
-if $FixbuggyFormat; then
-    plus_args+=' --FixbuggyFormat'
 fi
 
 
@@ -188,10 +205,10 @@ fi
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
-    ./run_combine_${mode}_fitprepost.sh
+    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
+    #./run_combine_${mode}_fitprepost.sh
 
-    python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
+    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
 fi 
 
