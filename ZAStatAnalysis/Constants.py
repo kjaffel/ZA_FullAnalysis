@@ -38,12 +38,12 @@ def ZAlogger(nm):
 logger = ZAlogger(__name__)
 
 
-def locate_outputs(method, _2POIs_r, tb, expectSignal):
-    poi_dir = '1POIs_r'
+def locate_outputs(method, _2POIs_r, tb, expectSignal, multi_signal):
     if _2POIs_r: poi_dir = '2POIs_r'
-    
+    else: poi_dir = '1POIs_r'
+
     tb_dir = ''
-    if tb is not None: tb_dir = 'tanbeta_%s'%options.tanbeta
+    if multi_signal: tb_dir = 'multi_signal/tanbeta_%s'%tb['gg']
     
     if method in ['asymptotic', 'impacts']:
         if expectSignal==1: CL_dir = 'CLs'

@@ -22,7 +22,6 @@ splitLep       = False
 splitTTbar     = False
 splitDrellYan  = False
 splitEraUL2016 = False
-FixbuggyFormat = False
 rm_mix_lo_nlo_bbH_signal= True
 
 def openFileAndGet(path, mode="read"):
@@ -511,6 +510,7 @@ def get_normalisationScale(bambooDir=None, inDir=None, outDir=None, method=None,
                                     'lumi' : lumi, 
                                     'type' : 'signal', 
                                     'group': 'signal',
+                                    'prod' : smpCfg["prod"],
                                     'scale': smpScale, 
                                     'cross-section': smpCfg["cross-section"], 
                                     'generated-events': sumW, 
@@ -710,6 +710,11 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     hash.update(str(luminosity))
 
     all_files = [os.path.join(input, f) for f in os.listdir(input) if f.endswith('.root')]
+    
+    if multi_signal:
+        if 'gg_fusion' in input: otherSigPath = input.replace('gg_fusion', 'bb_associatedProduction')
+        else: otherSigPath = input.replace('bb_associatedProduction', 'gg_fusion')
+        all_files += [ os.path.join(otherSigPath, f) for f in os.listdir(otherSigPath) if thdm in f]
     if not era == "fullrun2":
         files = [ f for f in all_files if EraFromPOG(era) in f.split('/')[-1]]
     else:
@@ -750,13 +755,14 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     # I am assuming you will be able to get full list of sys from these 3
     signals_keys  = []
     for k in processes_files.keys():
-        for i in range(len(signal_process)):
-            if k[0].startswith(signal_process[i]):
+        for i, s in enumerate(signal_process):
+            if k[0].startswith(s):
                 signals_keys +=[k]
     
     tt = 'ttB' if splitTTbar else 'ttbar'
     dy = 'DY2jets' if splitDrellYan else 'DY'
     
+    print( signals_keys[0], signals_keys )
     files_tolistsysts  = [ processes_files[tt][0], processes_files[dy][0], processes_files[signals_keys[0]][0]]
     if era == '2016':
         otherFiles = add_decorPrePosVFPSytstematics(files_tolistsysts)
@@ -784,17 +790,12 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
     for cat in analysis_categories:
         
         flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
-        #FIXME in next iteration of plots in Bamboo
-        fix_reco_format = 'gg_fusion' if reco =='nb2' else 'bb_associatedProduction'
 
         hash.update(cat)
         histogram_names = {}
         for category, histogram_name in categories_map.items():
             
-            if FixbuggyFormat:
-                histogram_name = histogram_name.format(flavor=flavor, reg=reg, taggerWP=taggerWP, fix_reco_format=fix_reco_format)
-            else:
-                histogram_name = histogram_name.format(flavor=flavor, reco=reco, reg=reg, taggerWP=taggerWP)
+            histogram_name = histogram_name.format(flavor=flavor, reco=reco, reg=reg, taggerWP=taggerWP)
             
             if type(category) is tuple:
                 hash.update(category[0])
@@ -895,15 +896,14 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                 
                 if _t =='signal':
                     # make sure that you are using 1 single tb with the corresponding xsc and BR
-                    #xsc = scalefactors['files'][smp]['cross-section']
-                    #br  = scalefactors['files'][smp]['branching-ratio']
-                    sumW = scalefactors['files'][smp]['generated-events']
+                    #xsc   = scalefactors['files'][smp]['cross-section']
+                    #br    = scalefactors['files'][smp]['branching-ratio']
+                    sumW   = scalefactors['files'][smp]['generated-events']
+                    
                     m_heavy, m_light, proc1 = get_SignalmassParameters(smpNm)
-                    
-                    if tanbeta is None:
-                        tanbeta = 1.5 if proc1.startswith('gg') else 20.
-                    
-                    xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tanbeta)
+                    tb     = tanbeta[proc1[:2]]
+                     
+                    xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tb)
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
                         smpScale  *= BR
@@ -912,10 +912,10 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     else:
                         heavy = thdm[0]
                         proc2 = 'gg%s'%heavy if proc1 =='bb%s'%heavy else 'bb%s'%heavy
-                        xsc2, xsc2_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc2, thdm, tanbeta)
+                        xsc2, xsc2_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc2, thdm, tb)
                         factor = xsc/(xsc + xsc2)
                         smpScale *= factor
-                    print(smp, "*** smpScale:", smpScale, "xsc:", xsc, "BR:", BR, "lumi:", lumi, "sumW:", sumW, ' ***\n')
+                    print(smp, "*** smpScale:", smpScale, "xsc:", xsc, "BR:", BR, "tb:", tb, "lumi:", lumi, "sumW:", sumW, ' ***\n')
                 
                 elif _t == 'mc':
                     sumW = scalefactors['files'][smp]['generated-events']

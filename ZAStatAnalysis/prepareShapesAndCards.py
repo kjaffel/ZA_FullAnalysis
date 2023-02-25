@@ -658,9 +658,9 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light) 
 
 
-def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, sbatch_time, sbatch_memPerCPU, submit_to_slurm):
+def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, multi_signal, sbatch_time, sbatch_memPerCPU, submit_to_slurm):
     
-    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal)
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal, multi_signal)
     
     output        = os.path.join(output, H.get_method_group(method), mode, CL_dir, poi_dir, tb_dir)
     symbolic_path = os.path.abspath(os.path.dirname(output.split('/')[0]))+'/'+output.split('/')[0]
@@ -735,44 +735,45 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     # this is cross-check that the extracted signal mass points from the plots.yml
     # have their equivalent root file in the results/ dir  
     all_parameters = {}
-    for prefix, prod in {'GluGluTo': 'gg_fusion', 
-                         '': 'bb_associatedProduction',
-                         'full': 'gg_fusion_bb_associatedProduction'}.items():
-        
-        p =''
-        if method != 'generatetoys':  p = prod
+    for prod, prefixs in {'gg_fusion': ['GluGluTo'], 
+                         'bb_associatedProduction': [''],
+                         'gg_fusion_bb_associatedProduction': ['GluGluTo', '']}.items():
         
         all_parameters[prod] = { 'resolved': [] , 'boosted': [] }
-        for f in glob.glob(os.path.join(input, p, '*.root')):
+        for prefix in prefixs:
+            p = ''
+            if method != 'generatetoys':  
+                p = 'gg_fusion' if prefix == 'GluGluTo' else 'bb_associatedProduction'
             
-            split_filename = f.split('/')[-1]
-            
-            if not thdm in split_filename:
-                continue
-
-            if prefix =='full':
-                if not '_tb_' in split_filename:
-                    continue
-            else:
-                if not split_filename.startswith('{}{}To2L2B_'.format(prefix, thdm)): 
-                    continue
-            
-            if era != "fullrun2":
-                if not H.EraFromPOG(era) in split_filename:
-                    continue
-            
-            for reg in ['resolved', 'boosted']:
-                m_heavy, m_light = get_signal_parameters(split_filename)
-
-                if prefix =='full':
-                    if not (m_heavy, m_light) in grid_data['gg_fusion'][reg][thdm] and not (m_heavy, m_light) in grid_data['bb_associatedProduction'][reg][thdm]:
-                        continue
-                else:
-                    if not (m_heavy, m_light) in grid_data[prod][reg][thdm]:
+            for f in glob.glob(os.path.join(input, p, '*.root')):
+                
+                split_filename = f.split('/')[-1]
+                if era != "fullrun2":
+                    if not H.EraFromPOG(era) in split_filename:
                         continue
                 
-                if not (m_heavy, m_light) in all_parameters[prod][reg]:
-                    all_parameters[prod][reg].append( (m_heavy, m_light) )
+                if not '_tb_' in split_filename:
+                    continue
+                
+                if not thdm in split_filename:
+                    continue
+                
+                if not split_filename.startswith('{}{}To2L2B_'.format(prefix, thdm)): 
+                    continue
+                
+                m_heavy, m_light = get_signal_parameters(split_filename)
+                for reg in ['resolved', 'boosted']:
+
+                    if prod == 'gg_fusion_bb_associatedProduction':
+                        # does not make any sense to proceed with mass that does not exist in both processes
+                        if not (m_heavy, m_light) in grid_data['gg_fusion'][reg][thdm] or not (m_heavy, m_light) in grid_data['bb_associatedProduction'][reg][thdm]:
+                            continue
+                    else:
+                        if not (m_heavy, m_light) in grid_data[p][reg][thdm]:
+                            continue
+                    
+                    if not (m_heavy, m_light) in all_parameters[prod][reg]:
+                        all_parameters[prod][reg].append( (m_heavy, m_light) )
     
     print( all_parameters )
     NotIn2Prod = []    
@@ -799,8 +800,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     proc_combination = {}
     cats = []
     for prod in productions:
-        p = ''
-        if method != 'generatetoys': p = prod
+        
         proc_combination[prod] = {}
         if _2POIs_r:
             if multi_signal:
@@ -827,6 +827,10 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 logger.info("Working on %s && %s cat.     :"%(prod, reg) )
                 logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
                 
+                p = ''
+                if method != 'generatetoys':  
+                    if reco=='nb2': p = 'gg_fusion' 
+                    else: p = 'bb_associatedProduction'
                 
                 Totflav_cards_allparams, buggy = prepareShapes( input           = os.path.join(input, p), 
                                                                 dataset         = dataset, 
@@ -897,7 +901,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     #    Constants.add_autoMCStats(datacard, threshold=0, include_signal=0, hist_mode=1)
 
     # Create helper script to run combine
-    CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, sbatch_time, sbatch_memPerCPU, submit_to_slurm)
+    CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, multi_signal, sbatch_time, sbatch_memPerCPU, submit_to_slurm)
 
 
 
@@ -934,7 +938,6 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     heavy = thdm[0]
     light = thdm[-1]
     
-    _s = '*'
     if prod == 'gg_fusion': 
         look_for = 'GluGluTo'
     else : 
@@ -974,36 +977,32 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
 
         formatted_p = format_parameters(p)
         
-        if _2POIs_r: # if so, you should not merge the signals 
-            if multi_signal:
+        if _2POIs_r: 
+            if multi_signal: # 2 POIs multi signal fit, r_ggH, r_bbH
                 histfactory_to_combine_processes['gg{}_M{}-{}_M{}-{}'.format(thdm[0], heavy, m_heavy, light, m_light), p] = [
                                                  '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
                                                 ]
                 histfactory_to_combine_processes['bb{}_M{}-{}_M{}-{}'.format(thdm[0], heavy, m_heavy, light, m_light), p] = [
-                                                 '^{}To2L2B_M{}_{}_M{}_{}{}'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light), _s),
+                                                 '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
                                                 ]
-            else:
+            else: # 2 POIs but 1 fit at the time
                 histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process[0], heavy, m_heavy, light, m_light), p] = [
-                                                '^{}{}To2L2B_M{}_{}_M{}_{}{}'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light), _s) 
+                                                '^{}{}To2L2B_M{}_{}_M{}_{}*'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                                 ]
-        else:
-            histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process[0], heavy, m_heavy, light, m_light), p] = [
+        else: # 1 POIs, 1 r , 1 fit
+            histfactory_to_combine_processes['{}{}_M{}-{}_M{}-{}'.format(sig_process[0], sig_process[1], heavy, m_heavy, light, m_light), p] = [
                                              '^GluGluTo{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
-                                             '^{}To2L2B_M{}_{}_M{}_{}{}'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light), _s) 
+                                             '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                             ]
 
         if mode == "dnn":
-            if H.FixbuggyFormat: 
-                histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
-                   'DNNOutput_Z%snode_{flavor}_{reg}_{taggerWP}_METCut_{fix_reco_format}_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
-            else:     
-                histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
-                    'DNNOutput_Z%snode_{flavor}_{reco}_{reg}_{taggerWP}_METCut_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
+            histfactory_to_combine_categories[('dnn_M{}_{}_M{}_{}'.format(heavy, m_heavy, light, m_light), p)] = get_hist_regex(
+                'DNNOutput_Z%snode_{flavor}_{reco}_{reg}_{taggerWP}_METCut_M%s_%s_M%s_%s'%( light, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) )
         
         elif mode == "mllbb":
-            histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{fix_reco_format}')
+            histfactory_to_combine_categories[('mllbb', p)] = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mllbb_{taggerWP}_{reco}')
         elif mode == "mbb":
-            histfactory_to_combine_categories[('mbb', p)]   = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mbb_{taggerWP}_{fix_reco_format}')
+            histfactory_to_combine_categories[('mbb', p)]   = get_hist_regex('{flavor}_{reg}_METCut_NobJetER_bTagWgt_mbb_{taggerWP}_{reco}')
         
         #  !! deprecated 
         #formatted_e = format_ellipse(p, ellipses)
@@ -1057,7 +1056,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     # Dummy mass value used for all combine input when a mass is needed
     mass = "125"
     
-    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal)
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal, multi_signal)
     
     output_prefix  = '{}To2L2B'.format(thdm)
     
@@ -1679,8 +1678,6 @@ if __name__ == '__main__':
                                                 help='This will split splitDrellYan into DY+0jets, DY+1jets and DY+2jets')
     parser.add_argument('--splitEraUL2016',     action='store_true', dest='splitEraUL2016', required=False, default=False,                                                  
                                                 help='Will work with 2016 split between pre/post VFP')
-    parser.add_argument('--FixbuggyFormat',     action='store_true', dest='FixbuggyFormat', required=False, default=False,                                                  
-                                                help='Will be removed in the next itertaion of bamboo histograms')
     parser.add_argument('--rm_mix_lo_nlo_bbH_signal',  action='store_true', dest='rm_mix_lo_nlo_bbH_signal', required=False, default=False,                                                  
                                                 help='bbH signal @ nlo will not be processed, only the samples produced @ lo')
     parser.add_argument('--validation_datacards',action='store_true', dest='validation_datacards', required=False, default=False,                                                  
@@ -1696,8 +1693,8 @@ if __name__ == '__main__':
     parser.add_argument('--_2POIs_r',           action='store_true', dest='_2POIs_r', required=False, default=False,                                                  
                                                 help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
     parser.add_argument('--multi_signal',       action='store_true', dest='multi_signal', required=False, default=False,                                                  
-                                                help='The cards will contain both signals but using 1 discriminator ggH -> for nb2 and bbH -> for nb3')
-    parser.add_argument('--tanbeta',            action='store', type=float, required=False, default=None, 
+                                                help='The cards will contain both signals but using 1 discriminator nb2 for gg-fusion and nb3 for bb-associated production')
+    parser.add_argument('--tanbeta',            action='store', type=json.loads, required=False, default={"gg":5., "bb":5.}, 
                                                 help='tanbeta value needed for BR and theory cross-section during the normalisation\n'
                                                      'This is required so both signal are normalised using one value during the card combination\n')
     # data    
@@ -1715,13 +1712,12 @@ if __name__ == '__main__':
                                                 help='For debugging purposes , you may consider this argument !')
     
     options = parser.parse_args()
-    
+
     H.splitEraUL2016 = options.splitEraUL2016
     H.splitJECs      = options.splitJECs
     H.splitLep       = options.splitLep
     H.splitTTbar     = options.splitTTbar
     H.splitDrellYan  = options.splitDrellYan 
-    H.FixbuggyFormat = options.FixbuggyFormat
     H.rm_mix_lo_nlo_bbH_signal = options.rm_mix_lo_nlo_bbH_signal
 
     if not os.path.isdir(options.output):
@@ -1734,13 +1730,13 @@ if __name__ == '__main__':
         heavy = thdm[0]
         light = thdm[-1]
         
-        poi_dir, tb_dir, CL_dir = Constants.locate_outputs( options.method, options._2POIs_r, options.tanbeta, options.expectSignal)
+        poi_dir, tb_dir, CL_dir = Constants.locate_outputs( options.method, options._2POIs_r, options.tanbeta, options.expectSignal, options.multi_signal)
         
         if options.era == "fullrun2" and options.method != "generatetoys":
             to_combine = defaultdict()
             outDir = os.path.join(options.output, H.get_method_group(options.method), options.mode, CL_dir, poi_dir, tb_dir)
             
-            for prod in ['gg_fusion', 'bb_associatedProduction']:
+            for prod in ['gg_fusion', 'bb_associatedProduction', 'gg_fusion_bb_associatedProduction']:
                 for reco in ['nb2', 'nb3', 'nb2PLusnb3']:
                     for reg in ['resolved', 'boosted', 'resolved_boosted']:
                         
@@ -1788,13 +1784,12 @@ if __name__ == '__main__':
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
-            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.expectSignal, options.sbatch_time, options.sbatch_memPerCPU, options.submit_to_slurm)
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.expectSignal, options.multi_signal, options.sbatch_time, options.sbatch_memPerCPU, options.submit_to_slurm)
         
         else:
-            # get latest BB histograms from other dir
+            # get a symbolic links to the BB histogram produced in 'work__ULfullrun2/bayesian_rebin_on_S/results' dir
             if options.method != "generatetoys":
-                #bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), options.output.split('work_')[0], 'work__ULfullrun2', '/bayesian_rebin_on_S/results')
-                bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hig-22-010/unblinding_stage1/followup1__ext28/work__ULfullrun2/bayesian_rebin_on_S/results')
+                bb = os.path.join(os.path.dirname(os.path.abspath(__file__)), options.output.split('work_')[0], 'work__ULfullrun2/bayesian_rebin_on_S/results')
                 Constants.SymbolicLinkForBayesianResults(bb, options.output)
             
             scalefactors  = H.get_normalisationScale(options.bambooDir, options.input, options.output, options.method, options.era)
@@ -1802,7 +1797,7 @@ if __name__ == '__main__':
             # for test or for specific points : please use signal_grid_foTest,
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), returnKeyMode= False, split_sig_reso_boo= False) 
-        
+            
             prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
                                 thdm                = thdm,
                                 dataset             = options.dataset, 

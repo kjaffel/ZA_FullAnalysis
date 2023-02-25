@@ -240,7 +240,7 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             for elem in np_arr_oldhist:
                 safe_arr = np.append(safe_arr, [elem+1e-7])
             # reduce importance of stats. 
-            if not isSignal and 'nb2' in name and 'resolved' in name:
+            if not isSignal and 'MuEl' in name and 'resolved' in name:
                 safe_arr = np.divide(safe_arr, 100.)
                 print( 'reduce stat by /100.:', safe_arr )
             
