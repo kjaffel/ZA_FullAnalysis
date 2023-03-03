@@ -448,6 +448,16 @@ def ttJetFlavCuts(subProc, tree):
         return (tree.genTtbarId % 100) >= 51
 
 
+def splitDrellYanjetFlavours(cfg, tree, noSel):
+    subProc  = cfg["subprocess"]
+    genBJets = op.select(tree.GenJet, lambda j: op.AND(j.pt > 25, op.abs(j.eta) < 2.4, j.hadronFlavour == 5))
+    dySubSamples = {
+        "DY0b": op.rng_len(genBJets) == 0,
+        "DY1b": op.rng_len(genBJets) == 1,
+        "DY2b": op.rng_len(genBJets) >= 2 }
+    return noSel.refine(genBJets, cut=dySubSamples[subProc])
+
+
 def splitTTjetFlavours(cfg, tree, noSel):
     subProc = cfg["subprocess"]
     return noSel.refine(subProc, cut=ttJetFlavCuts(subProc, tree))

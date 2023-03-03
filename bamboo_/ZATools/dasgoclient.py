@@ -55,9 +55,13 @@ def writeToFile(fNm, list):
     return 
 
 
-def writeBambooYml(txtF):
+def writeBambooYml(txtF, doSplitTT=False, doSplitDY=False):
     ymlF = txtF.replace('.txt', '.yml')
     Cmd  = ['python', 'writeconfig.py', '--das', txtF, '-o', ymlF]
+    if doSplitTT:
+        Cmd += ['--doSplitTT']
+    if doSplitDY:
+        Cmd += ['--doSplitDY']
     try:
         logger.info("running: {}".format(" ".join(Cmd)))
         subprocess.run(Cmd, stdout=subprocess.PIPE).stdout.splitlines()
@@ -135,7 +139,8 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_AtoZHvsHToZA.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_few_for_fast_unblind.txt'
     #fNm = f'mc_fullanalysisRunIISummer20UL_{suffix}nanov9_for_btagEffMaps.txt'
-    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_noSignal.txt'
+    #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_noSignal.txt'
+    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_for_skim.txt'
     
     writeToFile(fNm, all_processes)
     print('Available A -> ZH signal points ::', list(set(AToZH_points)))
@@ -200,13 +205,15 @@ if __name__ == "__main__":
         }
     
     
-    _runOn  = ['data', 'mc']#, 'signal']
+    _runOn  = ['data', 'mc', 'signal']
     do = 'custom' # choices: 'full', 'chunk', 'HvsA', custom
     chunk_of = 10
     
     rm_nlo          = False
     print_bambooCfg = True
-    
+    doSplitTT       = True
+    doSplitDY       = True
+
     if do == 'chunk':
         for n in range(chunk_of):
             chunk_of_points = utils.getSignalMassPoints_ver2(outdir, chunk=n, do=do, chunk_of=chunk_of)
@@ -214,24 +221,24 @@ if __name__ == "__main__":
             logger.info( f'working on batch {n} :: {choosen_points}, len: {len(choosen_points)}')
             outF = ZA_DASGOCILENT(n, choosen_points, _runOn=_runOn)
             if print_bambooCfg:
-                writeBambooYml(outF) 
+                writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY) 
     
     elif do == 'custom':
-        pass_list = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
-        outF = ZA_DASGOCILENT(n='', choosen_points=pass_list, _runOn=_runOn)
+        custom_list = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
+        outF = ZA_DASGOCILENT(n='', choosen_points=custom_list, _runOn=_runOn)
         if print_bambooCfg:
-            writeBambooYml(outF)
+            writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY)
     
     elif do == 'full':
         outF = ZA_DASGOCILENT(_runOn=_runOn)
         if print_bambooCfg:
-            writeBambooYml(outF) 
+            writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY) 
         
 
     elif do == 'HvsA': 
         AToZH_points = [(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)]
         outF = ZA_DASGOCILENT(n='', choosen_points=AToZH_points, _runOn=_runOn)
         if print_bambooCfg:
-            writeBambooYml(outF)
+            writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY)
 
 

@@ -68,10 +68,9 @@ def get_list_ofsystematics(eras):
         n = '7' if era == '2017' else '6'
         sys  += [ 
                 '# on DY+jets @nlo',
-                f'DYweight_resolved_elel_ployfit_lowmass{n}_highmass5',
+                f'DYweight_resolved_elel_ployfit_lowmass{n}_highmass4',
                 #"   type: shape",
                 #"   on: 'DY'",
-                
                 f'DYweight_boosted_mumu_ployfit_lowmass{n}',
                 #"   type: shape",
                 #"   on: 'DY'",
@@ -328,6 +327,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--das', required=True, action='store', help=' a Text files of dataset path')
     parser.add_argument('-o', '--output', required=True, action='store', help='Name of the output .yml file')
+    parser.add_argument('--doSplitTT', action='store_true', default=False, help='duplicate ttbar samples so events can be splitted in to tt and tt+b')
+    parser.add_argument('--doSplitDY', action='store_true', default=False, help='duplicate DY samples so events can be splitted into DY0b, DY1b, DY2b')
     options = parser.parse_args()
     
     certification = {'2016':'https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions16/13TeV/Legacy_2016/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt', 
@@ -382,9 +383,10 @@ if __name__ == "__main__":
             outf.write("samples:\n")
             # =======================================================
             run = None
-            doSplitTT = False
-            subprocesses = ['tt', 'ttB']
-            subprocessesColors = ['#c4ffff', '#abb2b9']
+            doSplitTT = options.doSplitTT
+            doSplitDY = options.doSplitDY
+            subprocesses = {'ttbar': ['tt', 'ttB'], 'DY': ['DY0b', 'DY1b', 'DY2b'] }
+            subprocessesColors = {'ttbar': ['#c4ffff', '#abb2b9'], 'DY':['#5F9EA0', '#C6E2FF','#0000FF'] }
             for i, smp in enumerate(inf):
                 
                 isMC     = False
@@ -478,8 +480,8 @@ if __name__ == "__main__":
                     if group == 'DY' and doSplitTT: 
                         order = order+1 
                     
-                    if group =='ttbar' and doSplitTT:
-                        for i, (sub_p, sub_c) in enumerate(zip(subprocesses, subprocessesColors)):
+                    if (group =='ttbar' and doSplitTT) or (group =='DY' and doSplitDY):
+                        for i, (sub_p, sub_c) in enumerate(zip(subprocesses[group], subprocessesColors[group])):
                             if sub_p not in groups.keys():
                                 groups[sub_p] = {}
                                 groups[sub_p]['legend'] = sub_p
@@ -498,8 +500,8 @@ if __name__ == "__main__":
                 merged_daspath.extend( to_ignore)
                 
                 if isMC :
-                    if group =='ttbar'and doSplitTT:
-                        for sub_p in subprocesses:
+                    if (group =='ttbar'and doSplitTT) or (group =='DY'and doSplitDY):
+                        for sub_p in subprocesses[group]:
                             outf.write(f"  {Nm.replace(newEra, '_'+sub_p+newEra)}:\n")
                             outf.write(f'    db: {das__path}\n'.replace("'" , ""))
                             outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")

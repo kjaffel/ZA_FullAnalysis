@@ -83,6 +83,7 @@ class NanoHtoZABase(NanoAODModule):
         self.doChunk          = self.args.chunk
         
         self.doSplitTT              = True
+        self.doSplitDY              = True
         self.doEllipses             = False
         self.doPass_bTagEventWeight = True
         self.CleanJets_fromPileup   = False
@@ -129,7 +130,7 @@ class NanoHtoZABase(NanoAODModule):
                 help="version NanoAODv2(== v8 == ULegacy) and NanoAODvv9(== ULeagacy), the rest is pre-Legacy(== EOY) ")
         parser.add_argument("--doMETT1Smear", action="store_true", default= False, 
                 help="do T1 MET smearing")
-        parser.add_argument("--dobJetEnergyRegression", action="store_true", default= True, 
+        parser.add_argument("--dobJetEnergyRegression", action="store_true", default= False, 
                 help="apply b jets energy regression to improve the bjets mass resolution")
         parser.add_argument("--skim", action="store_true", default= False, 
                 help="make skim instead of plots")
@@ -390,9 +391,14 @@ class NanoHtoZABase(NanoAODModule):
             #                                      cut=[sampleCut, op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values())) ], 
             #                                      autoSyst=self.doSysts)
 
-            if "subprocess" in sampleCfg and self.doSplitTT:
-                logger.info(f"Adding ttbar category cuts for {sampleCfg['subprocess']}")
-                noSel = utils.splitTTjetFlavours(sampleCfg, tree, noSel)
+            if "subprocess" in sampleCfg: 
+                if self.doSplitTT and 'tt' in sampleCfg['subprocess']:
+                    logger.info(f"Adding ttbar category cuts for {sampleCfg['subprocess']}")
+                    noSel = utils.splitTTjetFlavours(sampleCfg, tree, noSel)
+                
+                elif self.doSplitDY and 'DY' in sampleCfg['subprocess']:
+                    logger.info(f"Adding Drell-Yan category cuts for {sampleCfg['subprocess']}")
+                    noSel = utils.splitDrellYanjetFlavours(sampleCfg, tree, noSel)
             
             noSel = noSel.refine("genWeight", weight=tree.genWeight, 
                                               cut=(op.OR(*chain.from_iterable(triggersPerPrimaryDataset.values()))), 
@@ -1093,7 +1099,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         # basic distribution for control region
         make_ZpicPlots              = True
         make_JetsPlusLeptonsPlots   = True
-        make_JetmultiplictyPlots    = True
+        make_JetmultiplictyPlots    = False
         make_METPlots               = False
         make_METPuppiPlots          = False
         make_recoVerticesPlots      = False
@@ -1113,7 +1119,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         # the follow are mainly for debugging purposes 
         make_BoostedBtagPlots        = False    
-        make_DYReweightingPlots      = True
+        make_DYReweightingPlots      = False
         make_tau2tau1RatioPlots      = False
         make_deltaRPlots             = False
         make_zoomplotsANDptcuteffect = False
@@ -1503,14 +1509,15 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                             # Evaluate the training  
                     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     if self.doEvaluate:
-                        
-                        plotOptions = utils.getOpts(channel)
-                        if self.doBlinded:
-                            plotOptions["blinded-range"] = [0.6, 1.0] 
 
                         for reco, Selections_per_reco in llbbSelections.items():
                             for region, selections_per_region in Selections_per_reco.items(): 
                                 for tag_plus_wp, sel in selections_per_region.items():
+                                    
+                                    plotitLeg = f"{channel}_{reco}-{region}" 
+                                    plotOptions = utils.getOpts(plotitLeg)
+                                    if self.doBlinded:
+                                        plotOptions["blinded-range"] = [0.6, 1.0] 
                                    
                                     bjets_   = lljj_bJets[region][tag_plus_wp.replace(wp,'')][wp]
                                     jj_p4    = ( (bjets_[0].p4 + bjets_[1].p4) if region=="resolved" else( bjets_[0].p4))
@@ -1734,32 +1741,34 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         
         plotList_2D = [ ap for ap in self.plotList if ( isinstance(ap, Plot) or isinstance(ap, DerivedPlot) ) and len(ap.binnings) == 2 ]
         logger.debug("Found {0:d} plots to save".format(len(plotList_2D)))
-
-        p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
         
-        for plot in plots_2D:
-            if ('_2j_jet_pt_eta_') in plot.name  or plot.name.startswith('pair_lept_2j_jet_pt_vs_eta_'):
-                expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
-                cv = gbl.TCanvas(f"c{plot.name}")
-                cv.cd(1)
-                expStack.obj.Draw("COLZ0")
-                cv.Update()
-                cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
-            else:
-                logger.debug(f"Saving plot {plot.name}")
-                obsStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "DATA")
-                expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
-                cv = gbl.TCanvas(f"c{plot.name}")
-                cv.Divide(2)
-                if not not expStack:
+        if plotList_2D:
+            # FIXME  era here causeing issue, when bamboo in run on 1 single era but the yml contains other eras !
+            p_config, samples, plots_2D, systematics, legend = loadPlotIt(config, plotList_2D, eras=None, workdir=workdir, resultsdir=resultsdir, readCounters=self.readCounters, vetoFileAttributes=self.__class__.CustomSampleAttributes, plotDefaults=self.plotDefaults)
+        
+            for plot in plots_2D:
+                if ('_2j_jet_pt_eta_') in plot.name  or plot.name.startswith('pair_lept_2j_jet_pt_vs_eta_'):
+                    expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
+                    cv = gbl.TCanvas(f"c{plot.name}")
                     cv.cd(1)
                     expStack.obj.Draw("COLZ0")
-                if not not obsStack:
-                    cv.cd(2)
-                    obsStack.obj.Draw("COLZ0")
-                cv.Update()
-                cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
-        
+                    cv.Update()
+                    cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
+                else:
+                    logger.debug(f"Saving plot {plot.name}")
+                    obsStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "DATA")
+                    expStack = Stack(smp.getHist(plot) for smp in samples if smp.cfg.type == "MC")
+                    cv = gbl.TCanvas(f"c{plot.name}")
+                    cv.Divide(2)
+                    if not not expStack:
+                        cv.cd(1)
+                        expStack.obj.Draw("COLZ0")
+                    if not not obsStack:
+                        cv.cd(2)
+                        obsStack.obj.Draw("COLZ0")
+                    cv.Update()
+                    cv.SaveAs(os.path.join(resultsdir, f"{plot.name}.png"))
+            
         if self.doProduceParquet:
             skims = [ap for ap in self.plotList if isinstance(ap, Skim)]
             if self.doSkim and skims:
