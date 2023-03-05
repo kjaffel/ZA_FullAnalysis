@@ -17,8 +17,10 @@ plot_on_log=true
 n=1
 
 era='fullrun2'
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext28/'
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY/'
 #================ DO NOT CHANGE =============================
 #============================================================
 

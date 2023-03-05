@@ -43,7 +43,7 @@ splitEraUL2016=false
 splitJECs=true
 splitLep=true          # by default bbH, nb3 and boosted cat. are combined at the level of histograms, if this flag set to true -> the split will be produced too.
 splitTTbar=true
-splitDrellYan=false
+splitDrellYan=true
 
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
@@ -56,9 +56,10 @@ n=1
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext28/no_split_prepostVFP/'
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
-
+#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
+#stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY/'
 
 #================ DO NOT CHANGE =============================
 #============================================================

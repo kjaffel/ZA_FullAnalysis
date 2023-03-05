@@ -234,7 +234,13 @@ def SymbolicLinkForBayesianResults(bb, workDir):
             print("Failed to run {0}".format(" ".join(cmd)))
 
 
-def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
+def get_SignalMassPoints(era, bambooDir, returnKeyMode= False, split_sig_reso_boo= False):
+    bamboo_p    = bambooDir.replace('results', '')
+    yaml_file   = os.path.join(bamboo_p, 'plots.yml')
+    k = 'files'
+    if not os.path.exists(yaml_file):
+        k = 'samples'
+        yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')
     
     points = {'gg_fusion': 
                 { 'resolved': { 'HToZA': [], 'AToZH': [] },
@@ -246,10 +252,10 @@ def get_SignalMassPoints(era, returnKeyMode= False, split_sig_reso_boo= False):
                   },
             }
 
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", 'fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+    with open(yaml_file) as _f:
         plotConfig = yaml.safe_load(_f) 
     
-    for f, cfg in plotConfig['samples'].items():
+    for f, cfg in plotConfig[k].items():
         
         thdm    = 'HToZA'
         split_f = f.split('_')

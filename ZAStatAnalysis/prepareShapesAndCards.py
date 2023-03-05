@@ -145,7 +145,7 @@ def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, datas
             Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', run_validation, unblind, verbose)
    
     elif method =='goodness_of_fit':
-        Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, verbose)
+        Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
     return 
 
 
@@ -478,7 +478,7 @@ popd
     return script     
 
 
-def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, verbose):
+def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose):
     
     Lepts  = { 'MuMu': '\mu\mu',
                'ElEl': 'ee',
@@ -492,21 +492,26 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
                'split_OSSF': '\mu\mu+ee',
                'split_OSSF_MuEl': '\mu\mu+ee+\mu e'}
     
-    p           = 'ggH' if opts['process']=='gg_fusion' else 'bbH'
+    if multi_signal: 
+        p  = 'ggH+bbH'
+        t2w= "-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO --verbose {verbose} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]'" 
+    else: 
+        p  = 'ggH' if opts['process']=='gg_fusion' else 'bbH'
+        t2w= ''
+    
     nb          = 'nb2+nb3' if opts['nb']=='nb2PLusnb3' else opts['nb'] 
     params      = output_prefix.split(mode)[-1]
     fNm         = opts['process']+ '_'+ opts['nb']+'_' +opts['region']+'_' + opts['flavor'] + params
-    
     label_left  = '{}, {}, {}, ({})'.format(p, nb, opts['region'].replace('_','+'), Lepts[opts['flavor']])
     label_right = '%s fb^{-1}(13TeV)'%(round(Constants.getLuminosity(H.PlotItEraFormat(era))/1000., 2))
-    pad_style   = '--pad-style TopMargin=0.04' if (opts['region']=='resolved_boosted' or nb == 'nb2+nb3') else ''
+    pad_style   = '--pad-style TopMargin=0.04' if (opts['region']=='resolved_boosted' or nb == 'nb2+nb3' or multi_signal) else ''
     
     script      = """#!/bin/bash
 
 pushd {dir}
 # If workspace does not exist, create it once
 if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root} &> {name}.log
+    text2workspace.py {t2w} {datacard} -m {mass} -o {workspace_root} &> {name}.log
 fi
 
 # http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/#goodness-of-fit-tests
@@ -558,6 +563,7 @@ popd
 """.format( workspace_root = workspace_file,
             datacard       = os.path.basename(datacard), 
             fNm            = fNm,
+            t2w            = t2w,
             #seed          = random.randrange(100, 1000, 3),
             label_left     = label_left,
             label_right    = label_right,
@@ -736,8 +742,8 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
     # have their equivalent root file in the results/ dir  
     all_parameters = {}
     for prod, prefixs in {'gg_fusion': ['GluGluTo'], 
-                         'bb_associatedProduction': [''],
-                         'gg_fusion_bb_associatedProduction': ['GluGluTo', '']}.items():
+                          'bb_associatedProduction': [''],
+                          'gg_fusion_bb_associatedProduction': ['GluGluTo', '']}.items():
         
         all_parameters[prod] = { 'resolved': [] , 'boosted': [] }
         for prefix in prefixs:
@@ -769,13 +775,12 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                         if not (m_heavy, m_light) in grid_data['gg_fusion'][reg][thdm] or not (m_heavy, m_light) in grid_data['bb_associatedProduction'][reg][thdm]:
                             continue
                     else:
-                        if not (m_heavy, m_light) in grid_data[p][reg][thdm]:
+                        if not (m_heavy, m_light) in grid_data[prod][reg][thdm]:
                             continue
                     
                     if not (m_heavy, m_light) in all_parameters[prod][reg]:
                         all_parameters[prod][reg].append( (m_heavy, m_light) )
     
-    print( all_parameters )
     NotIn2Prod = []    
     for tup in all_parameters['gg_fusion']['resolved']:
         if not tup in all_parameters['bb_associatedProduction']['resolved']:
@@ -828,10 +833,13 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                 logger.info("Generating set of cards for parameter(s)  : %s" % (', '.join([str(x) for x in all_parameters[prod][reg]])))
                 
                 p = ''
-                if method != 'generatetoys':  
-                    if reco=='nb2': p = 'gg_fusion' 
-                    else: p = 'bb_associatedProduction'
-                
+                if method != 'generatetoys':
+                    if multi_signal:
+                        if reco=='nb2': p = 'gg_fusion' 
+                        else: p = 'bb_associatedProduction'
+                    else:
+                        p = prod
+
                 Totflav_cards_allparams, buggy = prepareShapes( input           = os.path.join(input, p), 
                                                                 dataset         = dataset, 
                                                                 thdm            = thdm, 
@@ -963,9 +971,12 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                                                  'tt' : ['^TTToSemiLeptonic_tt_*', '^TTTo2L2Nu_tt_*', '^TTToHadronic_tt_*'] })
     if H.splitDrellYan:
         del histfactory_to_combine_processes['DY']
-        histfactory_to_combine_processes.update({'DY0jets' : ['^DYJetsToLL_0J*'],
-                                                 'DY1jets' : ['^DYJetsToLL_1J*'],
-                                                 'DY2jets' : ['^DYJetsToLL_2J*'] })
+        #histfactory_to_combine_processes.update({'DY0jets' : ['^DYJetsToLL_0J*'],
+        #                                         'DY1jets' : ['^DYJetsToLL_1J*'],
+        #                                         'DY2jets' : ['^DYJetsToLL_2J*'] })
+        histfactory_to_combine_processes.update({'DY0b' : ['^DYJetsToLL_0J_DY0b_*', '^DYJetsToLL_1J_DY0b_*', '^DYJetsToLL_2J_DY0b_*'],
+                                                 'DY1b' : ['^DYJetsToLL_0J_DY1b_*', '^DYJetsToLL_1J_DY1b_*', '^DYJetsToLL_2J_DY1b_*'],
+                                                 'DY2b' : ['^DYJetsToLL_0J_DY2b_*', '^DYJetsToLL_1J_DY2b_*', '^DYJetsToLL_2J_DY2b_*'] })
 
     
     bkg_processes = histfactory_to_combine_processes.keys()
@@ -1028,11 +1039,13 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
     for flavor in flavors:
         cat = '{}_{}_{}_{}'.format(prod, reco, reg, flavor)
         analysis_categories.append(cat)
+    
+    shapesDir= options.output.split('work_')[0]+'work_'+H.EraFromPOG(era)
 
     file, systematics, ToFIX = H.prepareFile(processes_map       = histfactory_to_combine_processes, 
                                              categories_map      = histfactory_to_combine_categories, 
                                              input               = input, 
-                                             output_filename     = os.path.join(output, 'shapes_{}_{}_{}.root'.format('_'.join(sig_process), reco, reg)), 
+                                             output_filename     = os.path.join(shapesDir, 'shapes_{}_{}_{}.root'.format('_'.join(sig_process), reco, reg)), 
                                              signal_process      = sig_process,
                                              method              = method, 
                                              luminosity          = luminosity, 
@@ -1172,14 +1185,14 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #    bbb.AddBinByBin(bkgs, cb)
 
         # Write small script to compute the limit
-        def createRunCombineScript(bin_id, mass, output_dir, output_prefix, cat, opts, create=False, skip=False):
+        def createRunCombineScript(bin_id, mass, output_dir, output_prefix, cat, opts, create=False, skip=False, multi_signal=False):
             datacard       = os.path.join(output_dir, output_prefix + '.dat')
             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
 
             if method == 'goodness_of_fit': 
                 #and any( x in cat for x in['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']):
                 create      = False
-                Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, verbose)
+                Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
             
             if method == 'pvalue' and any( x in cat for x in ['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']):
                 create = True
@@ -1565,7 +1578,7 @@ popd
             #shapeFile_smoothed.Close()           
            
             if script:
-                createRunCombineScript(bin_id, mass, output_dir, output_file, cat, opts, create=False, skip=False)
+                createRunCombineScript(bin_id, mass, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
         
         #cb.PrintObs()
         #cb.PrintProcs()
@@ -1616,7 +1629,7 @@ popd
                         subprocess.check_call(cmd, cwd=output_dir, stdout=f)
                     
                     opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav)}
-                    createRunCombineScript(bin_id, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True)
+                    createRunCombineScript(bin_id, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True, multi_signal=multi_signal)
                     
                     if not mflav in ToSKIP:
                         if mflav in default_comb:
@@ -1725,7 +1738,7 @@ if __name__ == '__main__':
     
     Years = ['16preVFP', '16postVFP', '17', '18'] if H.splitEraUL2016 else [16, 17, 18]
     
-    for thdm in ['HToZA', 'AToZH']:
+    for thdm in ['AToZH','HToZA']:
         
         heavy = thdm[0]
         light = thdm[-1]
@@ -1796,7 +1809,7 @@ if __name__ == '__main__':
             
             # for test or for specific points : please use signal_grid_foTest,
             # otherwise the full list of samples will be used !
-            signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), returnKeyMode= False, split_sig_reso_boo= False) 
+            signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), options.bambooDir, returnKeyMode= False, split_sig_reso_boo= False) 
             
             prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
                                 thdm                = thdm,

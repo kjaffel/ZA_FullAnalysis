@@ -759,8 +759,9 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
             if k[0].startswith(s):
                 signals_keys +=[k]
     
-    tt = 'ttB' if splitTTbar else 'ttbar'
-    dy = 'DY2jets' if splitDrellYan else 'DY'
+    tt  = 'ttB' if splitTTbar else 'ttbar'
+    #dy = 'DY2jets' if splitDrellYan else 'DY'
+    dy  = 'DY2b' if splitDrellYan else 'DY'
     
     print( signals_keys[0], signals_keys )
     files_tolistsysts  = [ processes_files[tt][0], processes_files[dy][0], processes_files[signals_keys[0]][0]]

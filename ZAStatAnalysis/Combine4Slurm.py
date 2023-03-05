@@ -39,9 +39,8 @@ def SlurmCombine(cardDir, method, outDir, time, mem_per_cpu, isTest):
         #                   "HToZATo2L2B_gg_fusion_nb2PLusnb3_resolved_boosted_split_OSSF_MuEl_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh",
         #                   "HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_split_OSSF_MuEl_dnn_MH_800.0_MA_200.0_run_goodness_of_fit.sh"]:
         #    continue
-        #if not m in ['MH-300.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MA-510.0_MH-130.0', 'MH-800.0_MA-200.0', 'MH-650.0_MA-50.0']:
-        if m in ['MA-800.0_MH-140.0']:
-            continue
+        #if not m in ['MA-800.0_MH-140.0', 'MH-650.0_MA-50.0', 'MH-300.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MA-510.0_MH-130.0', 'MH-800.0_MA-200.']:
+        #    continue
         config.inputParams.append([cmssw, dir, script])
     config.payload = \
         """
