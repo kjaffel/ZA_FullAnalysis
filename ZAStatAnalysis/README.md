@@ -2,6 +2,7 @@
 ## CombinedLimit: CC7 release CMSSW_10_2_X - recommended version
 - Setting up the environment (once):
 ```bash
+cd ZA_FullAnalysis/ZAStatAnalysis
 export SCRAM_ARCH=slc7_amd64_gcc700
 cmsrel CMSSW_10_2_13
 cd CMSSW_10_2_13/src
@@ -50,7 +51,7 @@ cmsenv
 ```
 ```bash
 git clone -o upstream git@github.com:kjaffel/ZA_FullAnalysis.git
-cd ZAStatAnalysis
+cd ZA_FullAnalysis/ZAStatAnalysis
 source first_setup.sh
 source setup_python_packages.sh
 

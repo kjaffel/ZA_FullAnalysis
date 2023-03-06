@@ -1596,14 +1596,14 @@ popd
             writeCard(shallow_cp, mass, output_dir, output_file, cat, opts, script=True)
             
 
-        if merge_cards and method not in ['generatetoys']:
+        if merge_cards and method not in ['generatetoys', 'fit']:
             
             list_mergeable_flavors = [['MuMu', 'ElEl'], ['MuMu', 'ElEl', 'MuEl'], ['OSSF', 'MuEl'], ['MuMu', 'MuEl'], ['ElEl', 'MuEl']] 
             
             Totflav_cards_allparams[(output_dir, bin_id)] = {'OSSF': [], 
-                                                          'OSSF_MuEl': [],
-                                                          'split_OSSF': [],
-                                                          'split_OSSF_MuEl':[] }
+                                                             'OSSF_MuEl': [],
+                                                             'split_OSSF': [],
+                                                             'split_OSSF_MuEl':[] }
                
             ToSKIP = [['MuMu', 'MuEl'], ['ElEl', 'MuEl']]
             default_comb = []

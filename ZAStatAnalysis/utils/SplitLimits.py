@@ -27,6 +27,8 @@ def getLimits(dir):
     return data
 
 
+def get_keys_from_value(d, val):
+    return [k for k, v in d.items() if v == val]
 
 
 if __name__ == "__main__":
@@ -34,8 +36,9 @@ if __name__ == "__main__":
     dir = '../hig-22-010/datacards_nosplitJECs/work__ULfullrun2/bayesian_rebin_on_S/asymptotic-limits__very_good_xbr/dnn/jsons/2POIs_r'
     data = getLimits(dir)
     
-    colors  = ['cyan', 'purple', 'chocolate']
-    regions = ['resoved', 'boosted', 'resolved_boosted']
+    colors  = {'resolved': 'cyan', 
+               'boosted': 'purple',
+               'resolved_boosted': 'chocolate' }
 
     for p, d_per_flav in data.items():
         
@@ -44,25 +47,36 @@ if __name__ == "__main__":
         
         for flav, d_per_reg in d_per_flav.items():
             # create fixed legend
-            for i in range(3): 
-                plt.plot([0.], [0.], 'o', color=colors[i], label=regions[i])
+            for r, c  in colors.items(): 
+                plt.plot([0.], [0.], 'o', color=c, label=r)
             
             for i, (params, l) in enumerate(d_per_reg.items()):
                
                 if not 'resolved' in l.keys() or not 'boosted' in  l.keys() or not 'resolved_boosted' in l.keys():
                     continue
-                expected0 = l['resolved']['limits']['expected']*1000
-                expected1 = l['boosted']['limits']['expected']*1000
-                expected3 = l['resolved_boosted']['limits']['expected']*1000
+
+                expected = { 'resolved': l['resolved']['limits']['expected']*1000,
+                             'boosted' : l['boosted']['limits']['expected']*1000,
+                             'resolved_boosted': l['resolved_boosted']['limits']['expected']*1000 }
                 
-                li_      = [expected0, expected1, expected3 ]
-                winner   = li_.index(min(li_))
+                if expected['resolved'] == expected[ 'resolved_boosted']:
+                    winner = 'resolved'
+                elif expected['boosted'] == expected[ 'resolved_boosted']:
+                    winner = 'boosted'
+                else:
+                    li_      = sorted(expected.values())
+                    _1st_min = li_[0]
+                    _2nd_min = li_[1]
+                    winner   = get_keys_from_value(expected, _1st_min)[0]
+                    if (_2nd_min - _1st_min) < 1 and winner== 'resolved_boosted': 
+                        # 2nd min is just 2fb-1 larger than the 1st min, is not worth the combination
+                        winner = get_keys_from_value(expected, _2nd_min)[0]
+
                 color    = colors[winner]
                 m_heavy  = float(params[0])
                 m_light  = float(params[1])
                 
-                print( p, flav )
-                print( (m_heavy, m_light), li_, 'winner', regions[winner])
+                print( p, flav, (m_heavy, m_light), expected, 'winner', winner)
                 
                 plt.plot([m_light], [m_heavy], 'o', color=color)#, label=regions)
             print( '*'*10)

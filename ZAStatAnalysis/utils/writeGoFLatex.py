@@ -27,7 +27,7 @@ def print_multiSignal_table(_res, LatexF, heavy, light, m_heavy, m_light, captio
     print(R"	\begin{tabular}{|ll|cc|}")
     print(R"\hline")
         
-    print(R"\multicolumn{2}{|l|}{{\begin{tabular}[c]{@{}l@{}}saturated GOF p-value\\ ($\m_{%s},  m_{%s}$) = (%s,%s) GeV\end{tabular}}} & \multicolumn{2}{c|}{\begin{tabular}[c]{@{}c@{}}multi-signal fit, \\ r\_gg%s+ r\_bb%s\end{tabular}} \\ \cline{3-4}\multicolumn{2}{|l|}{}    & \multicolumn{1}{c|}{resolved} & boosted               \\ \hline "%(heavy, light, m_heavy, m_light, heavy, heavy))
+    print(R"\multicolumn{2}{|l|}{{\begin{tabular}[c]{@{}l@{}}saturated GOF p-value\\ ($m_{%s},  m_{%s}$) = (%s,%s) GeV\end{tabular}}} & \multicolumn{2}{c|}{\begin{tabular}[c]{@{}c@{}}multi-signal fit, \\ r\_gg%s+ r\_bb%s\end{tabular}} \\ \cline{3-4}\multicolumn{2}{|l|}{}    & \multicolumn{1}{c|}{resolved} & boosted               \\ \hline "%(heavy, light, m_heavy, m_light, heavy, heavy))
 	# nb2 
     print(R"\multicolumn{1}{|l|}{{nb2}}     		       & 1. ee                                  &\multicolumn{1}{c|}{%s}                & 				\multicolumn{1}{c|}{%s}        \\ \cline{2-4} "%(
         _res['nb2']['gg{}_bb{}'.format(heavy, heavy)]['resolved']['ElEl'], _res['nb2']['gg{}_bb{}'.format(heavy, heavy)]['boosted']['ElEl'] ))
@@ -162,7 +162,7 @@ def print_table(_res, LatexF, heavy, light, m_heavy, m_light, caption=''):
         _res['nb3']['bb{}'.format(heavy)]['resolved']['OSSF_MuEl'], _res['nb3']['bb{}'.format(heavy)]['boosted']['OSSF_MuEl'] ))
     
     # nb2 +nb3
-    print(R"     \multicolumn{1}{|l|}{{nb2+nb3}}                  & {\begin{tabular}[c]{@{}l@{}}15. OSSF  (x+13)\\ x= \\     4, if nb2-resolved, ggH\\     6, otherwise\end{tabular}} ")
+    print(R"     \multicolumn{1}{|l|}{{nb2+nb3}}                                & {\begin{tabular}[c]{@{}l@{}}15. OSSF  (x+13)\\ x= \\     4, if nb2-resolved, ggH\\     6, otherwise\end{tabular}} ")
     print(R"& \multicolumn{1}{c|}{%s}     & %s          & \multicolumn{1}{c|}{%s}      & %s       \\ \cline{3-6} "%(
         _res['nb2PLusnb3']['gg{}'.format(heavy)]['resolved']['OSSF'], _res['nb2PLusnb3']['gg{}'.format(heavy)]['boosted']['OSSF'], 
         _res['nb2PLusnb3']['bb{}'.format(heavy)]['resolved']['OSSF'], _res['nb2PLusnb3']['bb{}'.format(heavy)]['boosted']['OSSF'] ))
@@ -223,7 +223,8 @@ def print_table(_res, LatexF, heavy, light, m_heavy, m_light, caption=''):
 #path = '../hig-22-010/unblinding_stage1/followup1__ext27/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/'
 #path = '../hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/'
 #path = '../hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/'
-path  = '../hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/multi_signal/'
+#path = '../hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/multi_signal/'
+path  = '../hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/'
 
 
 flavors   = ['ElEl', 'MuMu', 'MuEl', 'OSSF', 'OSSF_MuEl', 'split_OSSF', 'split_OSSF_MuEl', 'MuMu_ElEl', 'MuMu_ElEl_MuEl', 'MuMu_MuEl', 'ElEl_MuEl']
@@ -303,7 +304,8 @@ for gof in glob.glob(os.path.join(path, tb, 'M*')):
     
     #caption = ' followup1__ext27, full 2016, split ttbar , correlate top pt rwgt'
     #caption = ' followup1\_\_ext28 split 2016 , split ttbar '  
-    caption  = ' followup1\_\_ext29, split ttbar, no split DY, sno split 2016, fix btag SF'
+    #caption = ' followup1\_\_ext29, split ttbar, no split DY, sno split 2016, fix btag SF'
+    caption  = ''# followup1\_\_ext30, split ttbar and DY'
 
     os.makedirs(os.path.join(path, m, 'saturated'), exist_ok=True) 
     if os.path.isdir(os.path.join(path, m, 'saturated')):
