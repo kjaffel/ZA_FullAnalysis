@@ -11,7 +11,6 @@ class Reporting:
 
     '''A suite of commands that are useful for analyzing the results
     of a completed scan, or during a scan.
-
     filename :: the name of the experiment log from Scan()'''
 
     def __init__(self, source=None):
@@ -171,8 +170,8 @@ class Reporting:
         with the talos backend in Scan(). Adds an index as the last column.'''
 
         cols = self._cols(metric)
-        out = self.data[cols].sort_values(metric, ascending=ascending)
-        out = out.drop(metric, axis=1).head(n)
+        out  = self.data[cols].sort_values(metric, ascending=ascending)
+        out  = out.drop(metric, axis=1).head(n)
         out.insert(out.shape[1], 'index_num', range(len(out)))
 
         return out.values

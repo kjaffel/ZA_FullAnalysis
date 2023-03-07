@@ -174,7 +174,7 @@ def main():
                     #    class_name = 'Plot_Multi_ROC',
                     #    def_name   = 'MakeMultiROCPlot',
                     #    plot_name  = f'ROC_HToZA_gg_fusion_resolved_mH_500.0_mA_300.0')
-                    ] + allROC
+                    ] #+ allROC
                     
     #///////////////      TO BE MODIFIED BY USER       ////////////////
     # Make the output dir #
@@ -228,7 +228,7 @@ def main():
             for template in templates: 
                 logging.debug('Hist template "%s" -> Class "%s"'%(template.tpl, template.class_name))
                 list_config = [] # Will contain the dictionaries of parameters
-                YAML = ProcessYAML(yaml_path, template.tpl) # Contain the ProcessYAML objects
+                YAML   = ProcessYAML(yaml_path, template.tpl) # Contain the ProcessYAML objects
                 params = {**{'filepath':f,'filename':filename},**obj.override_params}
                 # Get the list of configs #
                 YAML.Particularize(fullname)

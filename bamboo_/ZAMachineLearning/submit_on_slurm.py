@@ -17,7 +17,7 @@ def submit_on_slurm(name, args, debug=False):
     # Check arguments #
     # If the value is not found, the find() method returns -1
     
-    IPython.embed()
+    #IPython.embed()
     
     GPU = args.find("--GPU") != -1
     
@@ -51,10 +51,10 @@ def submit_on_slurm(name, args, debug=False):
         #config.payload += "module load TensorFlow \n"
         # ceci gpu
         config.payload += "module --force purge\n"
-        #config.payload += "module load cp3\n"
+        config.payload += "module load cp3\n"
         #config.payload += "module load grid/grid_environment_sl7\n"
-        config.payload += "module load slurm/slurm_utils\n"
         config.payload += "module load releases/2020b\n"
+        config.payload += "module load slurm/slurm_utils\n"
         config.payload += "module load Keras/2.4.3-foss-2020b\n"
         config.payload += "module load matplotlib/3.3.3-fosscuda-2020b\n"
         config.payload += "module load ROOT/6.24.06-fosscuda-2020b-Python-3.8.6\n"

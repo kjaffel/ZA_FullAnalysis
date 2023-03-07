@@ -28,6 +28,9 @@ class ConcatenateCSV:
             logging.debug('File : %s'%(f))
 
             # Use pandas to get the dict inside the csv file #
+            if os.stat(f).st_size == 0:
+                print( ' empty file ::', f)
+                continue
             panda_data = read_csv(f)
             panda_data['zip'] = os.path.basename(f.replace('.csv','.zip'))
             
@@ -40,14 +43,17 @@ class ConcatenateCSV:
             logging.debug('\tCurrent number of hyperparameter sets : %d'%(self.counter)) 
 
         if parameters.eval_criterion == 'eval_error':
-            self.full_df = self.full_df.sort_values(by=['eval_mean'], ascending=False)
+            self.full_df = pd.concat([self.full_df[self.full_df['eval_mean'] >=0].sort_values(by=['eval_mean'], ascending=False),
+                                      self.full_df[self.full_df['eval_mean'] < 0].sort_values(by=['eval_mean'])])
+            #self.full_df = self.full_df.sort_values(by=['eval_mean'], ascending=False)
         elif parameters.eval_criterion == 'val_loss':
             self.full_df = self.full_df.sort_values(by=['val_loss'])
         elif parameters.eval_criterion == 'val_acc':
-            self.full_df = self.full_df.sort_values(by=['val_acc'],ascending=False)
+            self.full_df = self.full_df.sort_values(by=['val_acc'], ascending=False)
         else:
             raise RuntimeError('Evaluation criterion is not valid')
         logging.info('Total number of hyperparameter sets : %d'%(self.full_df.shape[0])) 
+
 
     def WriteToFile(self):
         # Define name for output file #

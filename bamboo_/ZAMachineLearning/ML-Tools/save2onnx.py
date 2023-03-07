@@ -15,12 +15,19 @@ base_path = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLe
 
 #path_to_json = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/model/best_model/best_model_model.json" 
 #path_to_h5   = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/ZAMachineLearning/model/best_model/best_model_model.h5"
+
 #path_to_json = "../ul__results/work__1/model/all_combined_dict_343_isbest_model/all_combined_dict_343_model.json"
 #path_to_h5   = "../ul__results/work__1/model/all_combined_dict_343_isbest_model/all_combined_dict_343_model.h5"
+
 #path_to_json = "../ul__results/work_nanov9__1/model/all_combined_dict_241_isbest_model/all_combined_dict_241_model.json"
 #path_to_h5   = "../ul__results/work_nanov9__1/model/all_combined_dict_241_isbest_model/all_combined_dict_241_model.h5"
+
 path_to_json  = "../ul__results/work_nanov9__1/ext1/model/all_combined_dict_216_isbest_model/all_combined_dict_216_model.json"
 path_to_h5    = "../ul__results/work_nanov9__1/ext1/model/all_combined_dict_216_isbest_model/all_combined_dict_216_model.h5"
+
+path_to_json  = "../ul__results/work_nanov9__18/model/all_combined_resubmit_dict_102_isbest_model/all_combined_resubmit_dict_102_model.json"
+path_to_h5    = "../ul__results/work_nanov9__18/model/all_combined_resubmit_dict_102_isbest_model/all_combined_resubmit_dict_102_model.h5"
+
 
 with open(path_to_json,"r") as f:
     loaded_model_json = f.read()
@@ -32,13 +39,13 @@ try:
     import onnxruntime
     print("keras2onnx version is :"+keras2onnx.__version__)
     onnx_model = keras2onnx.convert_keras(kerasmodel, kerasmodel.name)
-    keras2onnx.save_model(onnx_model, os.path.join(base_path, "keras_tf_onnx_models", "prob_model_work__1.onnx"))
-    #sess = onnxruntime.InferenceSession(os.path.join(base_path, "keras_tf_onnx_models", "prob_model_work__1.onnx"))
+    keras2onnx.save_model(onnx_model, os.path.join(base_path, "keras_tf_onnx_models", "keras_2_onnx_test.onnx"))
+    sess = onnxruntime.InferenceSession(os.path.join(base_path, "keras_tf_onnx_models", "keras_2_onnx_test.onnx"))
 except Exception as ex:
     logger.exception("ERROR while saving to onnx:{}".format(ex))
 
 import onnx
-onnx_model = onnx.load(f'{base_path}/keras_tf_onnx_models/prob_model_work__1.onnx')
+onnx_model = onnx.load(f'{base_path}/keras_tf_onnx_models/keras_2_onnx_test.onnx')
 output =[node.name for node in onnx_model.graph.output]
 
 input_all = [node.name for node in onnx_model.graph.input]

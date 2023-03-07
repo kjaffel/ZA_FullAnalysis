@@ -33,11 +33,12 @@ def pogEraFormat(era):
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul2016__ver1/results',
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver1/results',
 #samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver2/results',
+#samples_path = {'2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver4/results',
 
 samples_path = {
-    '2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results',
-    '2017' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results',
-    '2018' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver3/results'
+    '2016' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver6/results',
+    '2017' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver6/results',
+    '2018' :'/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/skims_nanov9/ul_fullrun2___nanov9__ver6/results'
     }
 
 main_path  = os.path.abspath(os.path.dirname(__file__))
@@ -79,14 +80,16 @@ if N_apply != N_slices/N_models: # Otherwise the same slice can be applied on se
 
 #==============================================
 # For GPU #
+## scontrol show nodes --> to see what the nodes really offer.
 #==============================================
 if opt.GPU:
     partition  = 'gpu'        # Def, cp3 or cp3-gpu
     QOS        = 'normal'     # cp3 or normal
-    time       = '0-12:00:00' # days-hh:mm:ss
-    mem        = '60'         # ram in GB
+    time       = '0-6:00:00'  # days-hh:mm:ss
+    mem        = '4000'       # ram in MB
     tasks      = '20'         # Number of threads(as a string)
     gpus       = 1            # TeslaV100 or 1 
+    cpus       = 8
 #==============================================
 # For CPU #
 #==============================================
@@ -94,7 +97,7 @@ else:
     partition = 'cp3'         # Def, cp3 or cp3-gpu
     QOS       = 'cp3'         # cp3 or normal
     time      = '2-59:00:00'  # days-hh:mm:ss
-    mem       = '9000'        # ram in MB
+    mem       = '30G'         # ram in GB
     tasks     = '1'           # Number of threads(as a string) (not parallel training for classic mode)
     
 ######################################  Names  ########################################
@@ -128,7 +131,7 @@ split_name = 'tag' # 'sample' or 'tag' : criterion for output file splitting
 ##############################  Evaluation criterion   ################################
 #######################################################################################
 
-eval_criterion = "eval_error" # either val_loss or eval_error
+eval_criterion = "val_loss" # either val_loss or eval_error
     
 #####################################  Model callbacks ################################
 #######################################################################################
@@ -137,7 +140,7 @@ early_stopping_params = {'monitor'   : 'val_loss',             # Value to monito
                          'min_delta' : 0.,                     # Minimum delta to declare an improvement
                          'patience'  : 50,                     # How much time to wait for an improvement
                          'verbose'   : 1,                      # Verbosity level
-                         'restore_best_weights': False,
+                         'restore_best_weights': True,
                          'mode'      : 'min'           }       # Mode : 'auto', 'min', 'max'
 
 # Reduce LR on plateau : if no improvement for some time, will reduce lr by a certain factor
@@ -157,7 +160,7 @@ reduceLR_params = {'monitor'    : 'val_loss',   # Value to monitor
 # Classification #
 p = { 
     'epochs' : [200],   
-    'batch_size' : [1000], 
+    'batch_size' : [5000],  #1000 
     'lr' : [0.01], 
     'hidden_layers' : [2,3,4,5,6], 
     'first_neuron' : [16,32,64,128,256],
@@ -291,6 +294,7 @@ for era in eras:
             smp   = fn.split('/')[-1]
 
             if '__skeleton__' in smp: continue
+            if 'tb_20p00_TuneCP5_bbH4F_13TeV_amcatnlo_pythia8' in smp:continue
             if not pogEraFormat(era) in smp: continue 
             # this will prevent from mixing samples when the path given to the skims is the same for the 3 yeras
             
@@ -322,8 +326,8 @@ for era in eras:
     with open(sumWjson,'r') as handle:
         event_weight_sum_dict[era] = json.load(handle)
 
-print (xsec_dict)
-print(event_weight_sum_dict)
+#print (xsec_dict)
+#print(event_weight_sum_dict)
 #######################################  dtype operation ##############################
                 # root_numpy does not like some operators very much #
 #######################################################################################

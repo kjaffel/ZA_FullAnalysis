@@ -399,7 +399,7 @@ if __name__ == "__main__":
         #with open(os.path.join('data','points_0.500000_0.500000.json')) as f:
         #    d = json.load(f)
         #    masspoints = [(mH, mA,) for mA, mH in d]
-        masspoints = [(500, 300)]#, ( 300, 50), ( 300, 100), ( 300, 200), (500, 300), (800, 700)]
+        masspoints = [(200, 50)]#, ( 300, 50), ( 300, 100), ( 300, 200), (500, 300), (800, 700)]
         pbar = enlighten.Counter(total=len(masspoints), desc='Progress', unit='mass points')
         if not args.jobs:
             inst.load_model(args.model)

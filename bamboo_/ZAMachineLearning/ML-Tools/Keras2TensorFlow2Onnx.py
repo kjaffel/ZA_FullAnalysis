@@ -41,14 +41,16 @@ def analyze_inputs_outputs(graph):
     return (inputs, outputs)
 
 
-def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path_to_h5= None, prefix= None, name=None, outdir=None):
+def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path_to_h5= None, prefix= None, name=None, path_out=None):
 
-    if path_to_all is not None:
-        outdir = os.path.join(path_to_all,'keras_tf_onnx_models/')
-        
+    if path_to_all is not None: 
+        logger.info(f"{glob.glob(os.path.join(path_to_all, 'model/', '*_isbest_model/'))[0]} will be used in conversion {job} !") 
         path_to_json =  glob.glob(os.path.join(path_to_all, 'model/', '*_isbest_model/', '*_model.json'))[0]
         path_to_h5   =  glob.glob(os.path.join(path_to_all, 'model/', '*_isbest_model/', '*_model.h5'))[0]
     
+    if path_out is not None: 
+        outdir = os.path.join(path_out,'keras_tf_onnx_models/')
+
     os.makedirs(outdir,exist_ok=True)
     print( path_to_json, path_to_h5, outdir)
     print( {name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')})
@@ -134,30 +136,29 @@ def KerasToTensorflowModel(path_to_all=None, job= None, path_to_json= None, path
 
         frozen_graph = load_graph( os.path.join(outdir, suffix+".pb"))
         in_, out = analyze_inputs_outputs( frozen_graph)
-        print( 'Inputs:' , in_)
+        print( 'Inputs:' , in_ )
         print( 'Outputs:', out )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', '-p', required=True, type=str, help='path where I can get : model/*_isbest_model/*_model.json && *_model.h5')
-    parser.add_argument('--outdir','-o', dest='outdir', required=False, default='./keras_tf_onnx_models', help='The directory to place the output files - default("./keras_tf_onnx_models")')
+    parser.add_argument('--path', '-p', required=False, type=str, help='path where I can get : model/*_isbest_model/*_model.json && *_model.h5')
+    parser.add_argument('--output','-o', required=False, default='./keras_tf_onnx_models', help='The directory to place the output files - default("./keras_tf_onnx_models")')
     parser.add_argument('--job', required=True, type=str, choices=['k2tf', 'k2onnx'], help='What do you want: Keras -> TF or Keras -> ONNX')
    
     # If needed you can still pass .json and .h5 files instead of the full path  with --path ! 
-    parser.add_argument('--json',required=False, type=str,help='The json model file you wish to convert to .pb')
-    parser.add_argument('--h5',required=False, type=str,help='The h5 model model weights file you wish to convert to .pb **do not use _full.h5**')
+    parser.add_argument('--json', required=False, type=str,help='The json model file you wish to convert to .pb')
+    parser.add_argument('--h5', required=False, type=str,help='The h5 model model weights file you wish to convert to .pb **do not use _full.h5**')
     parser.add_argument('--name', required=False, default='best_model', help='The name of the resulting output graph will be given ad {name}.pb for TF and {name}.onnx for ONNX- default("best_model.pb and best_model.onnx")')
     args = parser.parse_args()
 
     if args.path is None and args.json is None and args.h5 is None:
-        print(' sorry this is not gonna work , either provid --json and --h5 or --path/ to model/*_isbest_model ')
-   
+        print(' sorry this is not gonna work , either provid --json and --h5 or --path/ where I model/*_isbest_model can be found')
 
     # http://alexlenail.me/NN-SVG/index.html
     KerasToTensorflowModel(path_to_all      = args.path, 
                            job              = args.job,
                            path_to_json     = args.json,
                            path_to_h5       = args.h5,
-                           prefix           = 'k2TF' if args.job == 'k2tf' else 'k2onnx',
+                           prefix           = args.job,
                            name             = args.name,
-                           outdir           = args.outdir)
+                           path_out         = args.output)

@@ -14,6 +14,7 @@ import plotille # For plots in terminal
 import array
 
 import numpy as np
+import pandas as pd 
 import matplotlib.pyplot as plt
 
 import talos
@@ -37,11 +38,12 @@ from generate_mask import GenerateSliceIndices, GenerateSliceMask
 
 class HyperModel:
     def __init__(self, name, list_inputs=None, list_outputs=None):
-        self.name = name
+        self.name            = name
         #self.custom_objects = {'PreprocessLayer': PreprocessLayer} # Needs to be specified when saving and restoring
-        self.custom_objects = {name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')}
-        self.list_inputs    = list_inputs
-        self.list_outputs   = list_outputs
+        self.custom_objects  = {name:getattr(Operations,name) for name in dir(Operations) if name.startswith('op')}
+        self.list_inputs     = list_inputs
+        self.list_outputs    = list_outputs
+        
         # Printing #
         if self.list_inputs is not None:
             logging.info('Number of features : %d'%len(self.list_inputs))
@@ -239,9 +241,9 @@ class HyperModel:
             logging.warning('You asked for the evaluation error but it was not computed, will switch to val_loss') 
             best = 'val_loss'
         if best == 'eval_error':
-            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=False,path_model=path_model)
+            Deploy(self.h, self.name_model, self.custom_objects, metric='eval_mean', asc=False, path_model=path_model)
         elif best == 'val_loss':
-            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=False,path_model=path_model)
+            Deploy(self.h, self.name_model, self.custom_objects, metric='val_loss', asc=False, path_model=path_model)
             logging.warning('Best model saved according to val_loss')
         else: 
             logging.error('Argument of HyperDeploy not understood')
@@ -253,7 +255,6 @@ class HyperModel:
         Reports the model from csv file of previous scan
         Plot several quantities and comparisons in dir /$name/
         Selects the best models according to the eval_criterion (val_loss or eval_error)
-        Reference :
         """
         logging.info(' Starting reporting '.center(80,'-'))
 
@@ -270,7 +271,7 @@ class HyperModel:
         logging.info('Complete data after n_round = %d'%(r.rounds()))
         logging.debug(r.data)
 
-        # Lowest eval_error #
+        # Lowest val_loss/eval_error #
         logging.info('-'*80)
         if eval_criterion == 'eval_error':
             logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_mean'),r.rounds2high('eval_mean')))
@@ -283,11 +284,18 @@ class HyperModel:
         # Best params #
         logging.info('='*80)
         logging.info('Best parameters sets')
+        
+        df = r.data 
         if eval_criterion == 'eval_error':
-            sorted_data = r.data.sort_values('eval_mean',ascending=False)
+            #sorted_data = r.data.sort_values('eval_mean',ascending=False)
+            sorted_data  = pd.concat([df[df['eval_mean'] >=0].sort_values(by=['eval_mean'], ascending=False), 
+                           df[df['eval_mean'] < 0].sort_values(by=['eval_mean'])])
         elif eval_criterion == 'val_loss':
-            sorted_data = r.data.sort_values('val_loss',ascending=False)
-
+            #sorted_data = r.data.sort_values('val_loss',ascending=False)
+            sorted_data  = pd.concat([df[df['val_loss'] >=0].sort_values(by=['val_loss'], ascending=False), 
+                           df[df['val_loss'] < 0].sort_values(by=['val_loss'])])
+        print( sorted_data)
+        
         for i in range(0,10):
             logging.info('-'*80)
             logging.info('Best params no %d'%(i+1))
@@ -306,7 +314,7 @@ class HyperModel:
         fig1.color_mode = 'byte'
         fig1.histogram(eval_mean_arr, bins=200, lc=25)
         print ('  Evaluation error  '.center(80,'-'))
-        print ('Best model : ',sorted_data.iloc[0][['eval_mean']])
+        print ('Best model : ', sorted_data.iloc[0][['eval_mean']])
         print(fig1.show(legend=True))
 
         fig2 = plotille.Figure()

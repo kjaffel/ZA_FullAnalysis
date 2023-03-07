@@ -250,11 +250,12 @@ def main():
         
         reportNm   = dict_csv.modelNm()
         modelzipNm = dict_csv.modelzipNm()
+        
         # will solve UnicodeEncodeError: 'ascii' codec 
         # can't encode characters in position 39-188: ordinal not in range(128) in NeuralNet.py", line 298
         os.system('export PYTHONIOENCODING=utf8')
         instance = HyperModel(reportNm)
-        instance.HyperReport(workdir=opt.outputs, eval_criterion=parameters.eval_criterion, plotscan=True)
+        instance.HyperReport(workdir=opt.outputs, eval_criterion=parameters.eval_criterion, plotscan=False)
 
     #############################################################################################
     # Output of given files from given model #
@@ -478,6 +479,10 @@ def main():
         train_all[list_inputs+list_outputs] = train_all[list_inputs+list_outputs].astype('float32')
         test_all[list_inputs+list_outputs]  = test_all[list_inputs+list_outputs].astype('float32')
         
+        # drop negative event weight 
+        train_all.drop(train_all.index[train_all['total_weight'] < 0])
+        test_all.drop(test_all.index[test_all['total_weight'] < 0])
+
         #if opt.scan!='':
         #    InputPlots(train_all, list_inputs, opt.outputs, force=True)
         
@@ -486,21 +491,21 @@ def main():
         df_isggH      = train_all[train_all['isggH']==1]
         df_isbbH      = train_all[train_all['isbbH']==1]
         
-        print ( 'isBoosted  :', df_isBoosted)
-        print ( 'isResolved :', df_isResolved)
-        print ( 'isggH : ', df_isggH)
-        print ( 'isbbH : ', df_isbbH)
-        
+        # equalize weight
         if opt.resolved and opt.boosted:
             N = train_all.shape[0]
-            df_isBoosted['learning_weight'] *= N/df_isBoosted['learning_weight'].sum() 
+            df_isBoosted['learning_weight']  *= N/df_isBoosted['learning_weight'].sum() 
             df_isResolved['learning_weight'] *= N/df_isResolved['learning_weight'].sum() 
-        
+        if len(opt.process)==2 :
+            df_isggH['learning_weight'] *= N/df_isggH['learning_weight'].sum() 
+            df_isbbH['learning_weight'] *= N/df_isbbH['learning_weight'].sum() 
+
         print ( 'isBoosted  :', df_isBoosted)
         print ( 'isResolved :', df_isResolved)
+        print ( 'isggH  :', df_isggH)
+        print ( 'isbbH  :', df_isbbH)
+        print ( f"learning_weight ==>  resolved : {df_isResolved['learning_weight'].sum()} boosted : {df_isBoosted['learning_weight'].sum()}  isggH : {df_isggH['learning_weight'].sum()} isbbH : {df_isbbH['learning_weight'].sum()}")
         
-        print ( 'learning_weight boosted  :', df_isBoosted['learning_weight'].sum())
-        print ( 'learning_weight resolved :', df_isResolved['learning_weight'].sum())
         # Preprocessing #
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer

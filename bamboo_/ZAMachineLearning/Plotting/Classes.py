@@ -677,9 +677,10 @@ class ProcessYAML():
     def Particularize(self,filename=''):
         self.part_template = os.path.join(self.OUTPUT_YAML, self.template.replace('tpl-tempalte/','').replace('.yml.tpl','_') + filename + '.yml')
         
-        rocs_dir = self.part_template.split('ROCMulti_')[0]
-        if not os.path.exists(rocs_dir):
-            os.makedirs(rocs_dir)
+        if 'ROCMulti_' in self.part_template:
+            rocs_dir = self.part_template.split('ROCMulti_')[0]
+            if not os.path.exists(rocs_dir):
+                os.makedirs(rocs_dir)
         
         with open(self.template) as tpl_handle:
             tpl = tpl_handle.read()
