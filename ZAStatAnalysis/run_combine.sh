@@ -11,10 +11,10 @@ era='fullrun2'
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='goodness_of_fit'
+do_what='fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
-multi_signal=true
+multi_signal=false
 # if this true, the cards will contain both signals r_ggH & r_bbH, but using 1 discriminator, nb2 for ggH and nb3 for bbH
 # this will allow you to test HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel while freezing or profiling 1 signal at the time
 # tanbeta will be required
@@ -208,7 +208,8 @@ fi
 if [ "$do_what" = "fit" ]; then
     #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
     #./run_combine_${mode}_fitprepost.sh
-
+    
+    # post-processing:
     #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
 fi 

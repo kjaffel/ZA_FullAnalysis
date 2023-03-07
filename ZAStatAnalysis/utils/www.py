@@ -46,7 +46,7 @@ def getCats(proc, nb, region, flav):
     categories_details ={ 'Cat15=4+13': (proc, '(nb2, ee+mumu)+(nb3, OSSF)', region),
                           'Cat15=6+13': (proc, '(nb2, OSSF)+(nb3, OSSF)', region),
                           'Cat16=5+14': (proc, '(nb2, ee+mumu+muel)+(nb3, OSSF+muel)', region),
-                          'Cat16=7+14': (proc, '(nb2, OSSF)+(nb3, OSSF)', region),
+                          'Cat16=7+14': (proc, '(nb2, OSSF+muel)+(nb3, OSSF+muel)', region),
                           'Cat17=4+11': (proc, '(nb2, ee+mumu)+(nb3, ee+mumu)', region),
                           'Cat18=5+12': (proc, '(nb2, ee+mumu+muel)+(nb3, ee+mumu+muel)', region) 
                           }
@@ -91,8 +91,8 @@ def ComparePullsImpacts(path, output):
             heavy = m.split('-')[0].replace('M','')
             light = 'A' if heavy =='H' else 'H'
             
-            if not m =='MH-500.0_MA-300.0': # just for test
-                continue
+            #if not m =='MH-500.0_MA-300.0': # just for test
+            #    continue
             for proc, process in {f'bb{heavy}': 'bb_associatedProduction', f'gg{heavy}': 'gg_fusion'}.items():
                 for i, listcats in enumerate([ ['nb2PLusnb3-boosted', 'nb2-boosted', 'nb3-boosted'], 
                                                ['nb2PLusnb3-resolved', 'nb2-resolved', 'nb3-resolved'], 
@@ -168,7 +168,7 @@ def CopyResultsForEOSWeb(path, do, www):
 if __name__ == '__main__':
 
     base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
-    www  = os.path.join('www-eos-lxplus', 'hig-22-010', '__ver13_test')
+    www  = os.path.join('www-eos-lxplus', 'hig-22-010', '__ver14')
     
     flavours = {'ElEl': 'ee',
                 'MuMu': 'mumu',
@@ -189,13 +189,13 @@ if __name__ == '__main__':
                      #'pulls-impacts': 'hig-22-010/unblinding_stage1/followup1__ext19/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r___QCDmuRF_is_ON/',
                      #'goodness_of_fit_test': 'hig-22-010/unblinding_stage1/followup1__ext19/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
                      #'goodness_of_fit_test': 'hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
-                     'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
-                     #'goodness_of_fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
-                     #'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
+                     #'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
+                     'goodness_of_fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
+                     'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
                      }.items():
         
         path = os.path.join(base, path)
-        #CopyResultsForEOSWeb(path, do, www)
         if do == 'pulls_and_impacts':
-            print( path)
             ComparePullsImpacts(path, www)
+        
+        #CopyResultsForEOSWeb(path, do, www)

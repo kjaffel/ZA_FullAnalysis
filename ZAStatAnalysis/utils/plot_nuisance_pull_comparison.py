@@ -106,8 +106,8 @@ if __name__ == '__main__':
         os.makedirs(args.output)
 
     impacts_df = []
-    print( args.impacts, type(args.impacts))
-    for cat_json in args.impacts:
+    print(sorted(args.impacts))
+    for cat_json in sorted(args.impacts):
         cat, json_path = cat_json.split(":")
         impact_json = load_impact_json(json_path)
         impact_df = get_impacts_df(impact_json)
