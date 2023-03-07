@@ -965,16 +965,16 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.2529 # +/- 0.0004 pb
 
-  HZJ_HToWW_M-125_UL18:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/HZJ_HToWW_M-125_UL18.dat
-    split: 400
-    era: '2018'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
+#  HZJ_HToWW_M-125_UL18:
+#    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+#    files: dascache/nanov9/2018/HZJ_HToWW_M-125_UL18.dat
+#    split: 400
+#    era: '2018'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.0406 # +/- 0.0 pb
+#
   HZJ_HToWW_M-125_UL18:
     db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
     files: dascache/nanov9/2018/HZJ_HToWW_M-125_UL18.dat
@@ -985,16 +985,16 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0406 # +/- 0.0 pb
 
-  ZH_HToBB_ZToLL_M-125_UL18:
-    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/ZH_HToBB_ZToLL_M-125_UL18.dat
-    split: 400
-    era: '2018'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.07814 # +/- 0.0001904 pb
-
+#  ZH_HToBB_ZToLL_M-125_UL18:
+#    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+#    files: dascache/nanov9/2018/ZH_HToBB_ZToLL_M-125_UL18.dat
+#    split: 400
+#    era: '2018'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.07814 # +/- 0.0001904 pb
+#
   ggZH_HToBB_ZToLL_M-125_UL18:
     db: das:/ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
     files: dascache/nanov9/2018/ggZH_HToBB_ZToLL_M-125_UL18.dat
@@ -2142,26 +2142,26 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.2529 # +/- 0.0004 pb
 
-  HZJ_HToWW_M-125_UL17:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HZJ_HToWW_M-125_UL17.dat
-    split: 400
-    era: '2017'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
-  ZH_HToBB_ZToLL_M-125_UL17:
-    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/ZH_HToBB_ZToLL_M-125_UL17.dat
-    split: 400
-    era: '2017'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.07814 # +/- 0.0001904 pb
-
+#  HZJ_HToWW_M-125_UL17:
+#    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+#    files: dascache/nanov9/2017/HZJ_HToWW_M-125_UL17.dat
+#    split: 400
+#    era: '2017'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.0406 # +/- 0.0 pb
+#
+#  ZH_HToBB_ZToLL_M-125_UL17:
+#    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+#    files: dascache/nanov9/2017/ZH_HToBB_ZToLL_M-125_UL17.dat
+#    split: 400
+#    era: '2017'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.07814 # +/- 0.0001904 pb
+#
   ggZH_HToBB_ZToLL_M-125_UL17:
     db: das:/ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
     files: dascache/nanov9/2017/ggZH_HToBB_ZToLL_M-125_UL17.dat
@@ -4264,15 +4264,15 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.2529 # +/- 0.0004 pb
 
-  HZJ_HToWW_M-125_UL16postVFP:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HZJ_HToWW_M-125_UL16postVFP.dat
-    split: 400
-    era: '2016-postVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
+#  HZJ_HToWW_M-125_UL16postVFP:
+#    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+#    files: dascache/nanov9/2016-postVFP/HZJ_HToWW_M-125_UL16postVFP.dat
+#    split: 400
+#    era: '2016-postVFP'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.0406 # +/- 0.0 pb
 
   HZJ_HToWW_M-125_UL16postVFP:
     db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM
@@ -4284,16 +4284,16 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0406 # +/- 0.0 pb
 
-  HZJ_HToWW_M-125_UL16preVFP:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HZJ_HToWW_M-125_UL16preVFP.dat
-    split: 400
-    era: '2016-preVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
+#  HZJ_HToWW_M-125_UL16preVFP:
+#    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+#    files: dascache/nanov9/2016-preVFP/HZJ_HToWW_M-125_UL16preVFP.dat
+#    split: 400
+#    era: '2016-preVFP'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.0406 # +/- 0.0 pb
+#
   HZJ_HToWW_M-125_UL16preVFP:
     db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
     files: dascache/nanov9/2016-preVFP/HZJ_HToWW_M-125_UL16preVFP.dat
@@ -4304,26 +4304,26 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0406 # +/- 0.0 pb
 
-  ZH_HToBB_ZToLL_M-125_UL16postVFP:
-    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/ZH_HToBB_ZToLL_M-125_UL16postVFP.dat
-    split: 400
-    era: '2016-postVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.07814 # +/- 0.0001904 pb
-
-  ZH_HToBB_ZToLL_M-125_UL16preVFP:
-    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/ZH_HToBB_ZToLL_M-125_UL16preVFP.dat
-    split: 400
-    era: '2016-preVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.07814 # +/- 0.0001904 pb
-
+#  ZH_HToBB_ZToLL_M-125_UL16postVFP:
+#    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+#    files: dascache/nanov9/2016-postVFP/ZH_HToBB_ZToLL_M-125_UL16postVFP.dat
+#    split: 400
+#    era: '2016-postVFP'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.07814 # +/- 0.0001904 pb
+#
+#  ZH_HToBB_ZToLL_M-125_UL16preVFP:
+#    db: das:/ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+#    files: dascache/nanov9/2016-preVFP/ZH_HToBB_ZToLL_M-125_UL16preVFP.dat
+#    split: 400
+#    era: '2016-preVFP'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 0.07814 # +/- 0.0001904 pb
+#
   ggZH_HToBB_ZToLL_M-125_UL16postVFP:
     db: das:/ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/ggZH_HToBB_ZToLL_M-125_UL16postVFP.dat
@@ -4374,16 +4374,16 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 28.87 # +/- 0.02027 pb
 
-  GluGluHToZZTo2L2Q_M125_UL16preVFP:
-    db: das:/GluGluHToZZTo2L2Q_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluHToZZTo2L2Q_M125_UL16preVFP.dat
-    split: 400
-    era: '2016-preVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 28.87 # +/- 0.02027 pb
-
+#  GluGluHToZZTo2L2Q_M125_UL16preVFP:
+#    db: das:/GluGluHToZZTo2L2Q_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+#    files: dascache/nanov9/2016-preVFP/GluGluHToZZTo2L2Q_M125_UL16preVFP.dat
+#    split: 400
+#    era: '2016-preVFP'
+#    group: SM
+#    type: mc
+#    generated-events: 'genEventSumw'
+#    cross-section: 28.87 # +/- 0.02027 pb
+#
   ttHTobb_M125_UL16postVFP:
     db: das:/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/ttHTobb_M125_UL16postVFP.dat
