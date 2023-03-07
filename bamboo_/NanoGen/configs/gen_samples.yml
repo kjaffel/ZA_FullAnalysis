@@ -1,14 +1,8 @@
 tree: Events
 eras:
-  '2016':
-    luminosity: 35921.875594646 #pb 
+  'run2':
+    luminosity: 137191.592856304 #pb 
     luminosity-error: 0.025 
-  #'2017':
-  #  luminosity: 41529.152060112 #pb
-  #  luminosity-error: 0.023  
-  #'2018':
-  #  luminosity: 59740.565201546 #pb
-  #  luminosity-error: 0.025 
 samples:
 # gg fusion loop induced 
   HToZATo2L2B_500p00_300p00_0p50_ggH_TuneCP5_13TeV_pythia8:
@@ -21,7 +15,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-0.5
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_1p00_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_1p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -33,7 +27,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-1
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/test.root]
@@ -45,7 +39,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-1.5
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_2p00_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_2p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -57,7 +51,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-2
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_5p00_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_5p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -69,7 +63,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-5
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_6p00_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_6p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -81,7 +75,7 @@ samples:
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-6
     type: signal
-    era: '2016'
+    era: 'run2'
   
   HToZATo2L2B_500p00_300p00_8p00_ggH_TuneCP5_13TeV_pythia8:
     files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_8p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -93,7 +87,7 @@ samples:
     line-width: 2
     legend: ggH, MH-500_MA-300_TANBETA-8
     type: signal
-    era: '2016'
+    era: 'run2'
   
 #  HToZATo2L2B_500p00_300p00_10p00_ggH_TuneCP5_13TeV_pythia8:
 #    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_10p00_ggH_TuneCP5_13TeV_pythia8.root]
@@ -209,7 +203,7 @@ plotIt:
     height: 600
     luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
     experiment: CMS
-    extra-label: Bamboo prelimenary --2016NanoGen 
+    extra-label: Bamboo prelimenary -- Full run2NanoGen 
     show-overflow: true
     y-axis-format: "%1% / %2$.2f [GeV]"
     margin-left: 0.15

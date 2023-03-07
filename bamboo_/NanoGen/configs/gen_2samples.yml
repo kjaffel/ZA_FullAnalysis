@@ -1,40 +1,61 @@
 tree: Events
 eras:
-  '2016':
-    luminosity: 35921.875594646 #pb 
+  'run2':
+    luminosity: 137191.592856304 #pb 
     luminosity-error: 0.025 
-  #'2017':
-  #  luminosity: 41529.152060112 #pb
-  #  luminosity-error: 0.023  
-  #'2018':
-  #  luminosity: 59740.565201546 #pb
-  #  luminosity-error: 0.025 
 samples:
 #### b-associated production 4FS 
-  HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
-    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
-    generated-events: 'genEventSumw'
-    cross-section: 1.04056455E+00 # pb from Sushi 
-    branching-ratio: 0.5952128  # BR(H->ZA)*BR(A->bb) = 6.643e-01 * 8.960e-01
-    line-color: "#1BE3E3"
-    line-type: 1
-    line-width: 3
-    legend: bbH, MH-500_MA-300_TANBETA-20.
-    type: signal
-    era: '2016'
-
+#  HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8:
+#    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/run2ZAsamples/HToZATo2L2B_500p00_300p00_20p00_bbH4F_TuneCP5_13TeV-amcatnlo_pythia8.root]
+#    generated-events: 'genEventSumw'
+#    cross-section: 1.04056455E+00 # pb from Sushi 
+#    branching-ratio: 0.5952128  # BR(H->ZA)*BR(A->bb) = 6.643e-01 * 8.960e-01
+#    line-color: "#1BE3E3"
+#    line-type: 1
+#    line-width: 3
+#    legend: bbH, MH-500_MA-300_TANBETA-20.
+#    type: signal
+#    era: "run2"
+#
 #### gg fusion Loop induced  
-  HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
-    files: [root://eosuser.cern.ch//eos/user/k/kjaffel/ZAAnalysis_run2/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/test.root]
+# 3 Benchmarks
+# process : pp > h2 > h3 l+ l- [QCD] the decay of h3 in pythia 
+# I am still using madpin card with : set modespin none  but no decay included
+  HToZATo2L2B_200p00_50p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0318/HToZATo2L2B_200p00_50p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
     generated-events: 'genEventSumw'
     cross-section: 1.91895272 # pb from Sushi 
     branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
-    line-color: "#00b8ff"
+    line-color: "#FF0000"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-200_MA-50_TANBETA-1.5
+    type: signal
+    era: "run2"
+  
+  HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+    files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0318/HToZATo2L2B_500p00_300p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.91895272 # pb from Sushi 
+    branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
+    line-color: "#FF0000"
     line-type: 1
     line-width: 3
     legend: ggH, MH-500_MA-300_TANBETA-1.5
     type: signal
-    era: '2016'
+    era: "run2"
+  
+  HToZATo2L2B_1000p00_500p00_1p50_ggH_TuneCP5_13TeV_pythia8:
+      files: [/home/ucl/cp3/kjaffel/ZAPrivateProduction/CMSSW_11_2_0_pre7/src/Configuration/NanoGenScripts/prod_ver-0318/HToZATo2L2B_1000p00_500p00_1p50_ggH_TuneCP5_13TeV_pythia8.root]
+    generated-events: 'genEventSumw'
+    cross-section: 1.91895272 # pb from Sushi 
+    branching-ratio: 0.30915395  # BR(H->ZA)*BR(A->bb) = 5.705e-01 * 5.419e-01 
+    line-color: "#FF0000"
+    line-type: 1
+    line-width: 3
+    legend: ggH, MH-1000_MA-500_TANBETA-1.5
+    type: signal
+    era: "run2"
 
 plotIt:
   configuration:
@@ -42,7 +63,7 @@ plotIt:
     height: 600
     luminosity-label: '%1$.2f fb^{-1} (13 TeV)' 
     experiment: CMS
-    extra-label: Bamboo prelimenary --2016NanoGen 
+    extra-label: Bamboo prelimenary --Full run2NanoGen 
     show-overflow: true
     y-axis-format: "%1% / %2$.2f [GeV]"
     margin-left: 0.15

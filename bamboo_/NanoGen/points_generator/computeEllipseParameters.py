@@ -69,11 +69,11 @@ def main():
                 print ("-"*80)
                 print ('mllbb'.center(10,' ').center(80,'-')) 
                 print (filename)
-                (mllbb, width_llbb, PVal1, fit1) = getMassAndWidth(signal_path, histo_mllbb, MH, opt.era, opt.region, cat='mH_'+cat, centroid='mllbb', use_fit=opt.fit)
+                (mllbb, width_llbb, PVal1, fit1) = getMassAndWidth(signal_path, histo_mllbb, MH, MA, tanbeta, opt.era, opt.region, cat='mH_'+cat, centroid='mllbb', use_fit=opt.fit)
                 print ("mllbb: ", mllbb, " width_llbb: ", width_llbb, " PVal1: ", PVal1)
                 print ("-"*80)
                 print ('mbb'.center(10,' ').center(80,'-')) 
-                (mbb, width_bb, PVal2, fit2) = getMassAndWidth(signal_path, histo_mbb, MA, opt.era, opt.region, cat='mA_'+cat, centroid='mbb', use_fit=opt.fit)
+                (mbb, width_bb, PVal2, fit2) = getMassAndWidth(signal_path, histo_mbb, MH, MA, tanbeta, opt.era, opt.region, cat='mA_'+cat, centroid='mbb', use_fit=opt.fit)
                 print ("mbb: ", mbb, " width_bb: ", width_bb, " PVal2: ", PVal2)
                 print ("-"*80)
 
@@ -105,7 +105,7 @@ def main():
     # save window plot #
     if opt.window:
         ROOT.gStyle.SetOptStat(0)
-        root_window = ROOT.TFile(f"ellipseparameters_{opt.era}/{opt.region}/window.root","RECREATE")
+        root_window = ROOT.TFile(signal_path+f"ellipseparameters_{opt.era}/{opt.region}/window.root","RECREATE")
         c1 = ROOT.TCanvas()
         pad1 = ROOT.TPad( 'pad1', 'window', 0.03, 0.10, 0.50, 0.85)
         pad2 = ROOT.TPad( 'pad2', 'full', 0.53, 0.10, 0.98, 0.85)
@@ -115,15 +115,15 @@ def main():
         ROOT.SetOwnership(pad1, False)
         ROOT.SetOwnership(pad2, False)
 
-        c1.SaveAs(f"ellipseparameters_{opt.era}/{opt.region}/window.pdf[")
+        c1.SaveAs(signal_path+f"ellipseparameters_{opt.era}/{opt.region}/window.pdf[")
         for win,hist in zip(list_window,list_histo):
             win.Write()
             pad1.cd()
             win.Draw('COLZ')
             pad2.cd()
             hist.Draw("COLZ")
-            c1.SaveAs(f"ellipseparameters_{opt.era}/{opt.region}/window.pdf")
-        c1.SaveAs(f"ellipseparameters_{opt.era}/{opt.region}/window.pdf]")
+            c1.SaveAs(signal_path+f"ellipseparameters_{opt.era}/{opt.region}/window.pdf")
+        c1.SaveAs(signal_path+f"ellipseparameters_{opt.era}/{opt.region}/window.pdf]")
 
 def getSubHist(histo,centroid,mass,sample):
     
@@ -193,12 +193,14 @@ def getEllipseParameters(histo,centroid,mass,sample,use_window):
     return (a, b, theta)
 
 
-def getMassAndWidth(signal_path, massHisto, mass, era, region, cat, centroid, use_fit=False):
+def getMassAndWidth(signal_path, massHisto, mH, mA, tanbeta, era, region, cat, centroid, use_fit=False):
 
+    print( mH, mA, tanbeta )
     # find the maximum and determine the window
     maximumBin = massHisto.GetMaximumBin()
     massPeak   = massHisto.GetBinLowEdge(maximumBin)
     maximum    = massHisto.GetMaximum()
+    mass = mH if centroid=='mllbb' else mA
     print ("maximum: ", maximum)
     print ("maximumBin without fit: ", maximumBin)
     print ("massPeak without fit : ", massPeak)
@@ -210,7 +212,7 @@ def getMassAndWidth(signal_path, massHisto, mass, era, region, cat, centroid, us
             #coeff = np.loadtxt('pol'+str(order)+'_fit_'+cat+'.txt')
             #p = np.poly1d(coeff)
             #massPeak = p(mass)
-            coeff = np.loadtxt(f'ellipseparameters_{opt.era}/{opt.region}'+'/weird_fit_'+cat+'.txt')
+            coeff = np.loadtxt(signal_path+f'ellipseparameters_{opt.era}/{opt.region}'+'/weird_fit_'+cat+'.txt')
             massPeak = func_fit(mass,coeff[0],coeff[1])
         except:
             print ('[ERROR] No coeff file '+'pol'+str(order)+'_fit_'+cat+'.txt found for the pol2 fit')
@@ -258,7 +260,7 @@ def getMassAndWidth(signal_path, massHisto, mass, era, region, cat, centroid, us
             m_reco = 0    
         sigma = 0
     
-    massHisto.SetTitle( "MH= %s GeV, MA= %s GeV"%(mass, mass))
+    massHisto.SetTitle( "MH= %s GeV, MA= %s GeV, tb = %s"%(mH, mH, tanbeta))
     if "genmllbb" in massHisto.GetName():
         massHisto.GetXaxis().SetTitle("Gen mllbb (GeV)")
         massHisto.GetYaxis().SetTitle("Events")
@@ -268,8 +270,8 @@ def getMassAndWidth(signal_path, massHisto, mass, era, region, cat, centroid, us
         massHisto.GetYaxis().SetTitle("Events")
     c = ROOT.TCanvas("c", "c", 800,600)
     massHisto.Draw()
-    c.SaveAs("{0}/ellipseparameters_{1}/{2}.pdf".format(signal_path, era, massHisto.GetName()))
-    c.SaveAs("{0}/ellipseparameters_{1}/{2}.png".format(signal_path, era, massHisto.GetName()))
+    #c.SaveAs("{}/ellipseparameters_{}/{}_mH-{}_mA-{}_tb-{}.pdf".format(signal_path, era, massHisto.GetName(), str(mH).replace('.', 'p'), str(mA).replace('.', 'p'), str(tanbeta).replace('.', 'p')))
+    c.SaveAs("{}/ellipseparameters_{}/{}_mH-{}_mA-{}_tb-{}.png".format(signal_path, era, massHisto.GetName(), str(mH).replace('.', 'p'), str(mA).replace('.', 'p'), str(tanbeta).replace('.', 'p')))
     del c
 
     return (m_reco, sigma, pvalue, fit)

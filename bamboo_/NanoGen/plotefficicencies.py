@@ -34,8 +34,8 @@ def Plot_Eff(path= None, eff_x_acc_vs_mH= False):
     fig= plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
     
-    selec_vals   = defaultdict(dict) 
-    SumW_vals    = defaultdict(dict) 
+    selec_vals    = defaultdict(dict) 
+    SumW_vals     = defaultdict(dict) 
     Nevents_vals  = defaultdict(dict)
     eff_vals      = defaultdict(dict)
     acc_vals      = defaultdict(dict)
@@ -57,7 +57,6 @@ def Plot_Eff(path= None, eff_x_acc_vs_mH= False):
                 mH_vals[cat].append(MH)
                 
                 process = "bbH4F@NLO" if "amcatnlo" in smpNm else "bbH4F@LO"
-                legend ="{}, MH-{}_MA-{}_tb-{}".format(process, string_to_mass(str(MH)), string_to_mass(str(MA)), string_to_mass(str(tb)))
                 
                 selec_vals[cat]   = []
                 SumW_vals[cat]    = []
@@ -81,19 +80,22 @@ def Plot_Eff(path= None, eff_x_acc_vs_mH= False):
                 acc = sorted_eff[2]
                 eff_X_acc_vals[cat].append(sorted_eff[3]*acc)
                 print( " warning : be careful , watch out your selection , xtick labes done manually ") 
+                
                 if not eff_x_acc_vs_mH:
+                    legend ="{}, MH-{}_MA-{}_tb-{}".format(process, string_to_mass(str(MH)), string_to_mass(str(MA)), string_to_mass(str(tb)))
                     ax.plot(sorted_cuts, sorted_eff, "o", linestyle=linestyles[idx], color=colors[j], label="%s"%legend)
                 
 
-            order = "@LO" if idx==0 else "@NLO"
-            legend = "OSSF-Lep {}".format(order) if cat =="oslep" else "{} {}".format(order,cat.upper())
+            order = "LO" if idx==0 else "NLO"
+            channel = "bbH, $OSSF-leptons$" if cat =="oslep" else "bbH, ${}$".format(cat.upper())
             if eff_x_acc_vs_mH:
+                legend = "{}".format(order)
                 ax.plot(mH_vals[cat], eff_X_acc_vals[cat], "o", linestyle=linestyles[idx], color=colors[idx], label="%s"%legend)
 
-        plt.title('CMS Simulation Preliminary', fontsize=14., loc='left')
-        plt.title('$\sqrt{s}= 13TeV, 139fb{-1}$', fontsize=14., loc='right')
+        plt.title('CMS Simulation Preliminary', fontsize=14., weight='bold', loc='left')
+        plt.title('$\sqrt{s}= 13TeV, 139fb{-1}$', fontsize=14., weight='bold', loc='right')
         plt.legend(fontsize=14., loc="best", frameon=False)
-        
+        plt.gca().get_legend().set_title(channel)  
         if eff_x_acc_vs_mH:
             ax.set_ylabel("Acceptance x Efficiency", fontsize=14.)
             ax.set_xlabel("$M_{H} [GeV]$", fontsize=14.)

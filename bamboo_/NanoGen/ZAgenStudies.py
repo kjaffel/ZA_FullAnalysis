@@ -119,11 +119,11 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         doPlot_LeptonsPlusGenJets   = True
         doPlot_GenBJets             = True
         doPlot_LeptonsPLusGenBJets  = True
-        doPlot_deltaR_CR            = True   # Control Region 
-        doPlot_deltaR_SR            = True   # 
-        doPlot_ForwardBJets         = True
-        doGen_Matching              = True
-        doPlot_MET                  = True
+        doPlot_deltaR_CR            = False  # Control Region 
+        doPlot_deltaR_SR            = False  # Signal Region 
+        doPlot_ForwardBJets         = False
+        doGen_Matching              = False
+        doPlot_MET                  = False
         ################################################################################################
         # IMPORTANT FLAGG 
         doSelect_fromHardprocess    = False 
@@ -149,17 +149,21 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             plots += [ Plot.make1D('GenPartmap_pdgIDs', op.map(t.GenPart, lambda p : p.pdgId), noSel, EqBin(100, -50., 50.), title="GenPart PdgID")]
             
             genbs = op.select(t.GenPart, lambda j : op.abs(j.pdgId)==5 )
-            plots += [ Plot.make1D('bs_statusflags_map', op.map(genbs, lambda jb: jb.statusFlags), noSel, EqBin(1000 // binScaling, 0., 30000.), title="genBjets status Flags")]
+            sorted_genbs =  op.select(genbs, lambda b: -b.pt )
+            plots += [ Plot.make1D('bs_statusflags_map', op.map(sorted_genbs, lambda jb: jb.statusFlags), noSel, EqBin(1000 // binScaling, 0., 30000.), title="genBjets status Flags")]
             
+            h1_fromGenPart = op.select(t.GenPart,lambda obj: obj.pdgId == 25 )
             h2_fromGenPart = op.select(t.GenPart,lambda obj: obj.pdgId == 35 )
             h3_fromGenPart = op.select(t.GenPart,lambda obj: obj.pdgId == 36 )
             z_fromGenPart  = op.select(t.GenPart,lambda obj: obj.pdgId == 23)
             gamma_fromGenPart  = op.select(t.GenPart,lambda obj: obj.pdgId == 22)
             
-            for obj, genPart in {"h2_fromGenPart":h2_fromGenPart, 
-                                 "h3_fromGenPart": h3_fromGenPart, 
-                                 "z_fromGenPart" : z_fromGenPart, 
-                                 "gamma_fromGenPart" : gamma_fromGenPart, 
+            for obj, genPart in {
+                                 #"h1_fromGenPart": op.sort(h1_fromGenPart, lambda j : -j.pt),
+                                 "h2_fromGenPart": op.sort(h2_fromGenPart, lambda j : -j.pt), 
+                                 "h3_fromGenPart": op.sort(h3_fromGenPart,  lambda j : -j.pt),
+                                 "z_fromGenPart" : op.sort(z_fromGenPart, lambda j : -j.pt),
+                                 "gamma_fromGenPart" : op.sort(gamma_fromGenPart, lambda j : -j.pt), 
                                 }.items():
                 
                 plots.append(Plot.make1D(f"Nbr_{suffix}_{obj}", op.rng_len(genPart), noSel, EqBin(10, 0., 10.), title=f"Nbr {obj}"))
@@ -203,6 +207,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                 plots += [ Plot.make1D(f'Pt_{flag}_fromGenPart_notfromA', (genB[0].p4 + genB[1].p4).Pt(), twogenBs, EqBin(50 // binScaling, 0., 800.), title=f"GenPart pT(bb) {flag} NotFromADecay [GeV]")]
                 plots += [ Plot.make1D(f'Eta_{flag}_fromGenPart_notfromA', (genB[0].p4 + genB[1].p4).Eta(), twogenBs, EqBin(40, -2.5, 2.5), title=f"GenPart #eta(bb) {flag} NotFromADecay")]
                 plots += [ Plot.make1D(f'Phi_{flag}_fromGenPart_notfromA', (genB[0].p4 + genB[1].p4).Phi(), twogenBs, EqBin(40, -3.1416, 3.1416), title=f"GenPart #phi(bb) {flag} NotFromADecay")]
+                plots += [ Plot.make1D(f'deltaR_{flag}_fromGenPart_notfromA', op.deltaR(genB[0].p4, genB[1].p4), twogenBs, EqBin(40, 0., 10.), title=f"#Delta R(bb)")]
             
         ################################################################################################
         ################################################################################################
@@ -273,7 +278,9 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             jetsscenarios = { "resolved": { 'at_least_3jets'  : op.rng_len(genCleanedJets)    >= 3  },  
                              #"boosted" : { 'at_least_1fatjet': op.rng_len(genCleanedJetsAK8) >= 1  }
                             }
-            bjetsscenarios = { "resolved": { 'at_least_3bjets'  : op.rng_len(genBJets)        >= 3  },
+            bjetsscenarios = { "resolved": { 'at_least_3bjets'  : op.rng_len(genBJets)        >= 3, 
+                                             'at_least_2bjets'  : op.rng_len(genBJets)        >= 2,
+                                             'at_least_1bjets'  : op.rng_len(genBJets)        >= 1,},
                               #"boosted" : { 'at_least_1fatbjet_and_2resolvedbjets': [ op.rng_len(genBJetsAK8) >= 1, 
                               #                                                        op.rng_len(genBJets)    >= 2 ] } 
                              }
@@ -287,11 +294,10 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         ################################################################################################
         # Matching studies 
         ################################################################################################
-        
         if doGen_Matching: 
             resID = ( 36 if 'HToZATo2L2B' in sample else (35))
             # mother of bb~ 
-            mother = ( 'h3' if 'HToZATo2L2B' in sample else ('h2'))
+            mother_of_bs = ( 'h3' if 'HToZATo2L2B' in sample else ('h2'))
             genParticles = op.select(t.GenPart, lambda p : op.AND(op.OR(p.statusFlags & 2**GEN_FLAGS["IsLastCopy"], p.statusFlags & 2**GEN_FLAGS["FromHardProcess"], p.statusFlags & 2**GEN_FLAGS["IsHardProcess"]), p.parent.idx >= 0))
             
             # b and light flavour quarks that are not from the h3 decay in the case of H > ZA and  /  not from h2 decay in the case of A > ZH
@@ -299,8 +305,8 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
             b_quark_forward     = op.select(genParticles, lambda jet: op.AND(op.abs(jet.pdgId) == 5, op.NOT(jet.genPartMother.pdgId == resID)))
             light_quark_forward = op.select(genParticles, lambda jet: op.AND(op.NOT(op.abs(jet.pdgId) == 5), op.NOT(op.rng_any(jet.ancestors, lambda mother: mother.pdgId == resID))))
     
-            mkPlt(f"incl_has_2b_forward_notfrom_{resID}", op.AND(b_quark_forward), noSel, EqBin(2, 0, 2))
-            mkPlt(f"incl_has_2light_forward_notfrom_{resID}", op.rng_len(light_quark_forward), noSel, EqBin(5, 0, 5))
+            #mkPlt(f"incl_has_2b_forward_notfrom_{resID}", op.AND(b_quark_forward), noSel, EqBin(2, 0, 2))
+            #mkPlt(f"incl_has_2light_forward_notfrom_{resID}", op.rng_len(light_quark_forward), noSel, EqBin(5, 0, 5))
 
             # match genJets with quarks
             for match_q_genJet_DR in [0.4 , 0.5, 0.7 ]:
@@ -380,15 +386,15 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                     plots.append(Plot.make1D(f"matched_genbjet_forawrd_Phibb_{selNm}", (matchedGenJets["b0"].p4 + matchedGenJets["b1"].p4).Phi(), sel, EqBin( 40, -3.1416, 3.1416), title="matched forward b jet #Phi (bb)"))
                     plots.append(Plot.make1D(f"matched_genbjet_forawrd_DpTbb_{selNm}", op.abs(matchedGenJets["b0"].pt - matchedGenJets["b1"].pt), sel, EqBin(40, 0., 400.), title="matched forward b jet |pt(b1)-pt(b2)|"))
         
-                    plots.append(SummedPlot(f"matched_genbjet_notfrom_{mother}_hFlavour_{selNm}", [
-                            Plot.make1D(f"matched_genbjet_b0_notfrom_{mother}_hFlavour_{selNm}", matchedGenJets["b0"].hadronFlavour, sel, EqBin(6, 0, 6)),
-                            Plot.make1D(f"matched_genbjet_b1_notfrom_{mother}_hFlavour_{selNm}", matchedGenJets["b1"].hadronFlavour, sel, EqBin(6, 0, 6))
-                    ], title=f"Hadron flavour of jet matched to b quark not from {mother}"))
+                    plots.append(SummedPlot(f"matched_genbjet_notfrom_{mother_of_bs}_hFlavour_{selNm}", [
+                            Plot.make1D(f"matched_genbjet_b0_notfrom_{mother_of_bs}_hFlavour_{selNm}", matchedGenJets["b0"].hadronFlavour, sel, EqBin(6, 0, 6)),
+                            Plot.make1D(f"matched_genbjet_b1_notfrom_{mother_of_bs}_hFlavour_{selNm}", matchedGenJets["b1"].hadronFlavour, sel, EqBin(6, 0, 6))
+                    ], title=f"Hadron flavour of jet matched to b quark not from {mother_of_bs}"))
                     
-                    plots.append(SummedPlot(f"matched_light_genjet_notfrom_{mother}_hFlavour_{selNm}", [
-                            Plot.make1D(f"matched_light_genjet_l0_notfrom_{mother}_hFlavour_{selNm}", matchedGenJets["b0"].hadronFlavour, sel, EqBin(6, 0, 6)),
-                            Plot.make1D(f"matched_light_genjet_l1_notfrom_{mother}_hFlavour_{selNm}", matchedGenJets["b1"].hadronFlavour, sel, EqBin(6, 0, 6))
-                    ], title=f"Hadron flavour of genjet matched to light quark not from {mother}"))
+                    plots.append(SummedPlot(f"matched_light_genjet_notfrom_{mother_of_bs}_hFlavour_{selNm}", [
+                            Plot.make1D(f"matched_light_genjet_l0_notfrom_{mother_of_bs}_hFlavour_{selNm}", matchedGenJets["b0"].hadronFlavour, sel, EqBin(6, 0, 6)),
+                            Plot.make1D(f"matched_light_genjet_l1_notfrom_{mother_of_bs}_hFlavour_{selNm}", matchedGenJets["b1"].hadronFlavour, sel, EqBin(6, 0, 6))
+                    ], title=f"Hadron flavour of genjet matched to light quark not from {mother_of_bs}"))
             
     
             # FIXME WIP
@@ -422,7 +428,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
         
         ################################################################################################
         ################################################################################################
-        if doPlot_ForwardBJets:
+        if doPlot_ForwardBJets and isbbH:
                 
             sel = noSel.refine("select_4bjets_including_2b-asscicated", cut=op.rng_len(genBJets) >= 4)
             bb_p4 = (genBJets[2].p4 + genBJets[3].p4)
@@ -515,6 +521,9 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                     selections_for_cutflowreport.append(leptons_plus_jets_selec[jk])
                     selections_for_cutflowreport.append(leptons_plus_bjets_selec[bk])
                 
+                for bk,bv in bjetsscenarios[regime].items():
+                    selections_for_cutflowreport.append(catSel.refine("{0}_GenBJet_{1}Sel_{2}_fromIncluSel".format(bk, channel, regime), cut=[bv]))
+                    
                 if regime == "resolved":
                     jj_p4 = genCleanedJets[0].p4+genCleanedJets[1].p4
                     bb_p4 = genBJets[0].p4+genBJets[1].p4
@@ -535,7 +544,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                         
                     if doPlot_LeptonsPlusGenJets:
                         plots += [ Plot.make1D(f"{channel}_{regime}_{jk_scenario}_gen{nm}", var, lepplusjets, binning,
-                                title=f"GEN {title}", plotopts=utils.getOpts(channel))
+                                title=f"RECO {title}", plotopts=utils.getOpts(channel))
                                 for nm, (var, binning, title) in {
                                 "jjPT" : (jj_p4.Pt() , EqBin(60 // binScaling, 0., 450.), "jj P_{T} [GeV]"),
                                 "jjPhi": (jj_p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "jj #phi"),
@@ -585,7 +594,7 @@ class NanoGenHtoZAPlotter(NanoAODHistoModule):
                 for bk_scenario, lepplusbjets in leptons_plus_bjets_selec.items():
                     if doPlot_LeptonsPLusGenBJets:
                         plots += [ Plot.make1D(f"{channel}_{regime}_{bk_scenario}_gen{nm}", var, lepplusbjets, binning,
-                                    title=f"GEN {title}", plotopts=utils.getOpts(channel))
+                                    title=f"RECO {title}", plotopts=utils.getOpts(channel))
                                 for nm, (var, binning, title) in {
                                 "bbPT" : (bb_p4.Pt() , EqBin(60 // binScaling, 0., 450.), "bb P_{T} [GeV]"),
                                 "bbPhi": (bb_p4.Phi(), EqBin(50 // binScaling, -3.1416, 3.1416), "bb #phi"),

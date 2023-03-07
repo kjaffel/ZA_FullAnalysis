@@ -59,8 +59,8 @@ def getParameters(filename=None):
     return mH, mA, tb, proc
 
 def ResolutionsVSWidth(path=None):
-    for mode in ['AToZH', 'HToZA']:
-        for cat in ['elel', 'mumu', 'oslep']:
+    for mode in ['HToZA']: # 'AToZH'
+        for cat in ['oslep']:#'elel', 'mumu', 'oslep']:
             for var_ToPlot in  ['mllbb', 'mbb']:
                 reco_w = {}
                 natural_w = {}
@@ -75,23 +75,27 @@ def ResolutionsVSWidth(path=None):
                 #C.SetLogy()
                 #C.SetLogx()
                 C.Clear()
+                
                 for rootf in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), path, "results", "*.root")):
                     file = ROOT.TFile(rootf)
                     smp = rootf.split('/')[-1]
                     mH, mA, tb, proc = getParameters(filename=rootf)
                     if "__skeleton__" in smp:
                         continue
-                    if not smp.startswith("{}To2L2B_240p00_130p00_{}_{}".format(mode, tb, proc)) and not smp.startswith("{}To2L2B_500p00_250p00_{}_{}".format(mode, tb, proc)) and not smp.startswith("{}To2L2B_800p00_140p00_{}_{}".format(mode, tb, proc)):
+                    if not ( smp.startswith("{}To2L2B_240p00_130p00_{}_{}".format(mode, tb, proc)) 
+                            or smp.startswith("{}To2L2B_500p00_250p00_{}_{}".format(mode, tb, proc)) 
+                            or smp.startswith("{}To2L2B_800p00_140p00_{}_{}".format(mode, tb, proc)) ):
                         continue
+                    print( smp, tb )
                     mA = mA.replace('p', '.').replace('.00', '')
                     mH = mH.replace('p', '.').replace('.00', '')
                     tb = tb.replace('p', '.').replace('.00', '').replace('.50', '.5')
                     if mode =='AToZH':
-                        smpName = r"m_{A}=%s , m_{H}= %s, tan\beta= %s"%(mA,mH, tb)
+                        smpName = r"m_{A}=%s , m_{H}= %s, t\beta= %s"%(mA,mH, tb)
                         h_fromGenPart = ('h2' if var_ToPlot =='mbb' else('h3'))
                         mass = (string_to_mass(mH) if var_ToPlot =='mbb' else(string_to_mass(mA)))
                     else:
-                        smpName = r"m_{H}= %s, m_{A}=%s, tan\beta= %s"%(mH, mA, tb)
+                        smpName = r"(%s, %s, %s)"%(mH, mA, tb)
                         h_fromGenPart = ('h3' if var_ToPlot =='mbb' else('h2'))
                         mass = (string_to_mass(mA) if var_ToPlot =='mbb' else(string_to_mass(mH)))
                         
@@ -113,10 +117,12 @@ def ResolutionsVSWidth(path=None):
                 
                 colors = [ROOT.kViolet, ROOT.kRed, ROOT.kCyan, ROOT.kBlack, ROOT.kGreen, ROOT.kBlue, ROOT.kCyan, ROOT.kRed+2, ROOT.kSpring, ROOT.kTeal, ROOT.kYellow, ROOT.kMagenta, ROOT.kCyan, ROOT.kOrange]
         
-                legend = ROOT.TLegend(0.6, 0.6, 0.9, 0.9)
+                #legend = ROOT.TLegend(0.6, 0.6, 0.9, 0.9)
+                legend = ROOT.TLegend(0.4, 0.6, 0.6, 0.9)
                 legend.SetFillStyle(4000)
                 legend.SetBorderSize(0)
-                header = r" CMS Simulation: H\rightarrow ZA \rightarrow llbb" if mode =="HToZA" else r" CMS Simulation : A\rightarrow ZH \rightarrow ll bb"
+                legend.SetTextSize(0.03)
+                header = r"#bf{CMS Simulation: bbH\rightarrow ZA \rightarrow llbb, (M_{A}, M_{H}, tan\beta )}" if mode =="HToZA" else r"CMS Simulation : A\rightarrow ZH \rightarrow ll bb"
                 for d_idx, dict_ in enumerate([reco_w, natural_w]):
                     for i,(name, h) in enumerate(sorted(dict_.items())):
                         if h.Integral() ==0. :
@@ -131,19 +137,20 @@ def ResolutionsVSWidth(path=None):
                         h.SetMaximum(1.2 )#h.GetMaximum())
                         h.SetMinimum(0.)
                         if d_idx == 0:
-                            legend.AddEntry(h,name + " reconstructed")
+                            legend.AddEntry(h,name + "\n: reconstructed")
                         else:
-                            legend.AddEntry(h,name + " natural width")
+                            legend.AddEntry(h,name + "\n: natural width")
                         h.Draw("H same")
                     
                 legend.SetHeader("{}".format(header))
                 legend.Draw()
 
-                C.Print(f"resolution_vs_naturalwidth_{mode}/{cat}_{var_ToPlot}_bbH.png")
-                C.Print(f"resolution_vs_naturalwidth_{mode}/{cat}_{var_ToPlot}_bbH.pdf")
+                C.Print(f"plots/resolution_vs_naturalwidth_{mode}/{cat}_{var_ToPlot}_bbH.png")
+                C.Print(f"plots/resolution_vs_naturalwidth_{mode}/{cat}_{var_ToPlot}_bbH.pdf")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='', formatter_class=argparse.RawTextHelpFormatter)
+    # resultsNanoGen/forluca_and_rainer_2/
     parser.add_argument('-p', '--path', required=True, help='Bamboo directory')
     options = parser.parse_args()
     ResolutionsVSWidth(path=options.path)
