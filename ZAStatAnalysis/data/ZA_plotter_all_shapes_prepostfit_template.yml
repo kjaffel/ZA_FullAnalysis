@@ -22,9 +22,21 @@ files:
     line-color: '#FF0A2A'
     line-type: 8
     line-width: 3
-  DY_fit-type_histos.root:
+  #DY_fit-type_histos.root:
+  #  type: mc
+  #  group: DY
+  DY0b_fit-type_histos.root:
     type: mc
     group: DY
+  DY1b_fit-type_histos.root:
+    type: mc
+    group: DY
+  DY2b_fit-type_histos.root:
+    type: mc
+    group: DY
+  #ttbar_fit-type_histos.root:
+  #  type: mc
+  #  group: ttbar
   tt_fit-type_histos.root:
     type: mc
     group: tt
