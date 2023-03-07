@@ -1,8 +1,9 @@
 #! /bin/env python
-
 import math
 import argparse
 import ROOT
+import os
+import json 
 
 def format_eta_bin(eta_bin):
     return 'ptabseta<%.1f' % (eta_bin[1]) if (eta_bin[0] == 0) else 'ptabseta%.1f-%.1f' % (eta_bin[0], eta_bin[1])
@@ -13,9 +14,7 @@ parser.add_argument('-s', '--suffix', help='Suffix to append at the end of the o
 
 args = parser.parse_args()
 
-
-# Parse input files
-# Structure is
+# Parse input files structure is:
 # eta_low eta_up pt_low pt_up eff_data eff_data_err
 
 efficiencies = {}
@@ -78,9 +77,7 @@ for i in range(0, len(eta_binning) - 1):
     json_content_data.append(eta_data)
 
 # Save JSON file
-import os
 wp = os.path.splitext(os.path.basename(args.file))[0]
 filename = 'Electron_%s_%s.json' % (wp, args.suffix)
 with open(filename, 'w') as j:
-    import json
     json.dump(json_content, j, indent=2)

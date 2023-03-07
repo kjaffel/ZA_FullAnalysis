@@ -252,7 +252,7 @@ if __name__ == "__main__":
     #path   = 'ul_run2__ver15'
     path    = 'ul_run2__ver19'
     inDir   = os.path.join(path, 'results' )
-    outDir  = os.path.join(inDir, 'interpolated')
+    outDir  = os.path.join(inDir, 'interpolated2')
     
     if not os.path.isdir(outDir):
         os.makedirs(outDir)
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     
     # Put what you want to interpolate in format --> (mH, mA) or (mA, mH) in case  thdm='AToZH' 
     #par_interlist=[(250,100), (300,50),(300,200),(500,200),(510,130),(650,50),(800,50),(800,100),(800,200)]
-    par_interlist=[(609.21, 35.), (609.21, 50.)]
+    par_interlist=[(609.21, 50.), (609.21, 450.), (500., 150.), (500., 350.)]
     
     for prefix, prod in {'GluGluTo': 'gg_fusion', 
                          '': 'bb_associatedProduction'

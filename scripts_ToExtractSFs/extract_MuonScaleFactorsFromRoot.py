@@ -7,7 +7,7 @@ import json
 def format_eta_bin(eta_bin):
     return 'ptabseta<%.1f' % (eta_bin[1]) if (eta_bin[0] == 0) else 'ptabseta%.1f-%.1f' % (eta_bin[0], eta_bin[1])
 
-def Get_MuonIDSFs_InJsonFormat(file=None, suffix=None, IGNORE_LAST_PT_BIN=False):
+def Get_ObjectIDSFs_InJsonFormat(file=None, suffix=None, object= None, IGNORE_LAST_PT_BIN=False):
 
     f = ROOT.TFile.Open(file)
 
@@ -53,7 +53,7 @@ def Get_MuonIDSFs_InJsonFormat(file=None, suffix=None, IGNORE_LAST_PT_BIN=False)
             json_content_data.append(eta_data)
 
   
-        filename = 'Muon_%s_%s.json' % (wp, suffix)
+        filename = '%s_%s_%s.json' % (object, wp, suffix)
         with open(filename, 'w') as j:
             json.dump(json_content, j, indent=2)
     
@@ -61,10 +61,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script allow you to extract both muon id and iso scale factors from root file and dump them in json format', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-f', '--file', help='ROOT file containing muons  scale factors', required=True)
     parser.add_argument('-s', '--suffix', help='Suffix to append at the end of the output filename', required=False)
+    parser.add_argument('--object', choices=["Muon", "Electron", "Btag"], help='Suffix to append at the end of the output filename', required=False)
     args = parser.parse_args()
     
     suffix_ = args.suffix
     if args.suffix is None:
         suffix_ = args.file.split('/')[-1]
 
-    Get_MuonIDSFs_InJsonFormat(file= args.file, suffix= suffix_, IGNORE_LAST_PT_BIN=False)
+    Get_ObjectIDSFs_InJsonFormat(file= args.file, suffix= suffix_, object= args.object, IGNORE_LAST_PT_BIN=False)

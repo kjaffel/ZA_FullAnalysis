@@ -1,5 +1,5 @@
 #! /bin/env python
-
+import json
 import math
 import argparse
 import csv
@@ -34,9 +34,7 @@ valid_syst_types = ['central', 'up', 'down']
 parser = argparse.ArgumentParser()
 parser.add_argument('file', help='CSV file containing b-tagging scale factors')
 parser.add_argument('-s', '--suffix', help='Suffix to append at the end of the output filename', required=True)
-
 args = parser.parse_args()
-
 # See https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration for CSV format definition
 
 all_json_content = {}
@@ -159,7 +157,6 @@ for (operating_point, measurement_type, jet_flavor), json_content in all_json_co
     if (json_content['binning']['x'][0] >= 0):
         json_content['variables'][0] = 'AbsEta'
 
-    import json
     filename = 'BTagging_%s_%s_%s_%s.json' % (operating_point_to_string(operating_point), jet_flavor_to_string(jet_flavor), measurement_type, args.suffix)
     with open(filename, 'w') as j:
         json.dump(json_content, j, indent=2)

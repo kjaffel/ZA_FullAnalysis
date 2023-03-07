@@ -7,8 +7,8 @@ import ROOT
 def format_eta_bin(eta_bin):
     return 'ptabseta<%.1f' % (eta_bin[1]) if (eta_bin[0] == 0) else 'ptabseta%.1f-%.1f' % (eta_bin[0], eta_bin[1])
 
-def Get_ElectronSFs_InJsonFormat(file= args.file, suffix= suffix_, IGNORE_LAST_PT_BIN=False):
-    f = ROOT.TFile.Open(args.file)
+def Get_ElectronSFs_InJsonFormat(file= None, suffix= None, IGNORE_LAST_PT_BIN=False):
+    f = ROOT.TFile.Open(file)
     for key in f.GetListOfKeys():
         wp = key.GetName()
     
@@ -58,7 +58,7 @@ def Get_ElectronSFs_InJsonFormat(file= args.file, suffix= suffix_, IGNORE_LAST_P
             json_content_data.append(eta_data)
     
         # Save JSON file
-        filename = 'Electron_%s_%s.json' % (wp, args.suffix)
+        filename = '%s_%s.json' % (wp, suffix)
         with open(filename, 'w') as j:
             json.dump(json_content, j, indent=2)
 if __name__ == '__main__':
