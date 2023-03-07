@@ -434,13 +434,17 @@ if __name__ == "__main__":
                                  #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2017/results',
                                  #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1/2018/results',
                                  
-                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016-preVFP/results',
-                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016-postVFP/results',
-                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2016/results',
-                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
+                                 #'2016-preVFP' : '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9/2016-preVFP/results',
+                                 #'2016-postVFP': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9/2016-postVFP/results',
+                                 #'2016': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9/2016/results',
+                                 #'2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9/2017/results',
+                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9/2018/results',
                                  
-                                 #'2018': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3/2017/results',
-                                 '2017': '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__7/2017/results',
+                                 '2016-preVFP':'../../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/control_plots//2016-preVFP/results',
+                                 '2016-postVFP':'../../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/control_plots//2016-postVFP/results',
+                                 '2016':'../../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/control_plots//2016/results',
+                                 '2017':'../../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/control_plots//2017/results',
+                                 '2018':'../../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/control_plots//2018/results',
                                  }.items():
    
             

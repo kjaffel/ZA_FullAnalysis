@@ -11,8 +11,7 @@ from collections import defaultdict
 from faker import Factory
 fake = Factory.create()
 
-# TODO 
-# 2- finish xsc uncer checks for mc and signal !! 
+# TODO xsc cross-check for mc and signal !! 
 
 def get_era_and_luminosity(smp=None, run=None, isdata=False):
     preVFPruns  = ["B", "C", "D", "E"]

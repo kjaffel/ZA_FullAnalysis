@@ -129,7 +129,6 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
 
                     elif do=='full':
                         dtype_processes += processes
-
                 else:
                     dtype_processes += processes
             #s = 'data' if dtype=='data' else 'mc'
@@ -140,7 +139,8 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_few_for_fast_unblind.txt'
     #fNm = f'mc_fullanalysisRunIISummer20UL_{suffix}nanov9_for_btagEffMaps.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_noSignal.txt'
-    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9_for_skim.txt'
+    #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_for_skim.txt'
+    fNm  = 'fullanalysisRunIISummer20UL_18_17_16_nanov9.txt' 
     
     writeToFile(fNm, all_processes)
     print('Available A -> ZH signal points ::', list(set(AToZH_points)))
@@ -205,8 +205,8 @@ if __name__ == "__main__":
         }
     
     
-    _runOn  = ['data', 'mc', 'signal']
-    do = 'custom' # choices: 'full', 'chunk', 'HvsA', custom
+    _runOn  = ['signal']#'data', 'mc', 'signal']
+    do = 'full' # choices: 'full', 'chunk', 'HvsA', custom
     chunk_of = 10
     
     rm_nlo          = False
@@ -230,7 +230,7 @@ if __name__ == "__main__":
             writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY)
     
     elif do == 'full':
-        outF = ZA_DASGOCILENT(_runOn=_runOn)
+        outF = ZA_DASGOCILENT(n='', choosen_points=None, _runOn=_runOn)
         if print_bambooCfg:
             writeBambooYml(outF, doSplitTT=doSplitTT, doSplitDY=doSplitDY) 
         

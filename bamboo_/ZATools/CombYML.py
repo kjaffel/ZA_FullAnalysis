@@ -8,7 +8,12 @@ import Constants as Constants
 
 #path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext4/chunk_1/'
 #path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__1'
-path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3'
+#path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__3'
+#path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext6/sanitycheck__9'
+#path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/'
+#path = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext14/'
+path  = '../run2Ulegay_results/unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/'
+
 eras = ['2016-preVFP', '2016-postVFP', '2017', '2018']
 
 shutil.copy(os.path.join(path,'2016-preVFP', 'plots.yml'), os.path.join(path, 'plots.yml'))
