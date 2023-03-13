@@ -262,6 +262,10 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             
             crossNm     = old_hist.GetName()+name+"_crossCheck_%.2f"%p0
             FinalEdges  = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
+            if 'MuEl' in name: 
+                FinalEdges = optimizer.no_low_binContents(nph, FinalEdges, crossNm)
+                if '300.0_MA_200.0' in crossNm and 0.94 in FinalEdges:
+                    FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.94) )
             FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
             
             _newHist        = nph.rebin(FinalEdges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
@@ -456,7 +460,7 @@ if __name__ == "__main__":
         os.makedirs(args.output)
    
     plotsDIR = os.path.join(args.output, "plots")
-    if not os.path.isdir(plotsDIR):
+    if not  os.path.exists(plotsDIR):
         os.makedirs(plotsDIR)
 
     sumPath   = "asimov_data-scaled" if args.scale else "asimov"

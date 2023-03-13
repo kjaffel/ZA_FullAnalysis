@@ -272,10 +272,25 @@ def no_zero_binContents(nph, newEdges, crossNm):
     newHist = nph.rebin(edges).fillHistogram(crossNm)
     np_newhist  = NumpyHist.getFromRoot(newHist)
     if 0. in np_newhist.w:
-        result  = np.where(np_newhist.w == 0.)
-        result  = np.array(result)
+        result  = np.array(np.where(np_newhist.w == 0.))
         rm_idx  = np.where(result == 0, 1, result)
         FinalEdges  = np.delete(edges, rm_idx)
+        return  np.array(FinalEdges)
+    else:
+        return np.array(newEdges)
+
+
+def no_low_binContents(nph, newEdges, crossNm):
+    edges   = np.array(newEdges)
+    newHist = nph.rebin(edges).fillHistogram(crossNm)
+    np_newhist  = NumpyHist.getFromRoot(newHist)
+    if any( x < 1. for x in np_newhist.w):
+        result  = np.array(np.where(np_newhist.w < 1.))
+        rm_idx  = np.where(result == 0, 1, result)
+        FinalEdges  = np.delete(edges, rm_idx)
+        logger.warning( f'bin contents  : {np_newhist.w}' )
+        logger.warning( f'remove bin idx: {rm_idx}' )
+        logger.warning( f'old edges: {newEdges}, new edges: {FinalEdges}' )
         return  np.array(FinalEdges)
     else:
         return np.array(newEdges)

@@ -494,7 +494,7 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
     
     if multi_signal: 
         p  = 'ggH+bbH'
-        t2w= "-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO --verbose {verbose} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]'" 
+        t2w= "-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO --verbose {} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]'".format(verbose) 
     else: 
         p  = 'ggH' if opts['process']=='gg_fusion' else 'bbH'
         t2w= ''
