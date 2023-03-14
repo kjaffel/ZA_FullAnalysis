@@ -155,6 +155,9 @@ def CopyResultsForEOSWeb(path, do, www):
         
         _mkdir_cats(m, heavy, light, www, do)
         
+        #if not m in ['MH-300.0_MA-200.0']: # just for test
+        #    continue
+        
         if do =='goodness_of_fit':
             p = os.path.join(p, 'saturated')
         
@@ -163,22 +166,11 @@ def CopyResultsForEOSWeb(path, do, www):
             if do == 'pulls_and_impacts':
                 for dest in glob.glob(os.path.join(p, 'NPs_comparasion', proc, '*')):
                     comp = dest.split('/')[-1]
-
-                    # FIXME will be removed in next iteration 
-                    if comp == 'comp_0': 
-                        comp ='comp_1_' + '__vs__'.join(['nb2PLusnb3-boosted', 'nb2-boosted', 'nb3-boosted'])
-                    
-                    elif comp == 'comp_1':
-                        comp = 'comp_2_'+ '__vs__'.join(['nb2PLusnb3-resolved', 'nb2-resolved', 'nb3-resolved'])
-                    
-                    elif comp == 'comp_2':
-                        comp = 'comp_3_'+ '__vs__'.join(['nb2PLusnb3-resolved-boosted', 'nb2-boosted', 'nb3-boosted', 'nb2-resolved', 'nb3-resolved'] )
-                    ##
                     dest_path = os.path.join(www, m, process, comp)
                     _copy_results(dest, dest_path, isdir=True)
             
             for cat in cats:
-                nb     = cat.split('-')[0] 
+                nb  = cat.split('-')[0] 
                 for flav in flavors:
                     for _type in ['*.png', '*.json', '*.pdf']:
                         
@@ -189,20 +181,19 @@ def CopyResultsForEOSWeb(path, do, www):
                                     region = '+'.join(cat.split('-')[1:])
                                     prefix = getCats(proc, nb, region, flav)[0]
                                     
-                                    plt = plt_path.split('/')[-1]
-                                    newplt = plt.replace('dnn_scores', f"dnn_{proc}_{m.replace('-','_')}_{cat.replace('-','_')}_{flav}_{fit_type}")
+                                    plt       = plt_path.split('/')[-1]
+                                    newplt    = plt.replace('dnn_scores', f"dnn_{proc}_{m.replace('-','_')}_{cat.replace('-','_')}_{flav}_{fit_type}")
                                     dest_path = os.path.join(www, m, process, cat, prefix+':'+flav, do, newplt)
                                     _copy_results(plt_path, dest_path)
-                                    
-                        for res in glob.glob(os.path.join(p, _type)):
-                            
-                            if not f"{process}_{cat.replace('-','_')}_{flav}_" in res:
-                                continue
-                            
-                            region = '+'.join(cat.split('-')[1:])
-                            prefix = getCats(proc, nb, region, flav)[0]
-                            res_path = os.path.join(www, m, process, cat, prefix+':'+flav, do)
-                            _copy_results(res, res_path)
+                        else: 
+                            for res in glob.glob(os.path.join(p, _type)):        
+                                if not f"{process}_{cat.replace('-','_')}_{flav}_" in res:
+                                    continue
+                                
+                                region   = '+'.join(cat.split('-')[1:])
+                                prefix   = getCats(proc, nb, region, flav)[0]
+                                res_path = os.path.join(www, m, process, cat, prefix+':'+flav, do)
+                                _copy_results(res, res_path)
 
 if __name__ == '__main__':
 
@@ -223,8 +214,9 @@ if __name__ == '__main__':
                      #'goodness_of_fit_test': 'hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
                      #'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext29/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
                      #'goodness_of_fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
-                     'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
+                     #'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
                      #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r', 
+                     'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver2/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r', 
                      }.items():
         
         if do =='pre-Fit_and_post-Fit':
