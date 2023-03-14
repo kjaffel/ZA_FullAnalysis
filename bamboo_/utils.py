@@ -283,8 +283,8 @@ def getSignalMassPoints(outdir, all_=True):
 
 
 def getSignalMassPoints_ver2(outdir, chunk=None, do='full', chunk_of=10):
-    #with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
-    with open(os.path.join(outdir, 'fullanalysisRunIISummer20UL_18_17_16_nanov9_FewSignals.yml')) as _f:
+    with open(os.path.join(outdir, 'signals_fullanalysisRunIISummer20UL_18_17_16_nanov9.yml')) as _f:
+    #with open(os.path.join(outdir, 'fullanalysisRunIISummer20UL_18_17_16_nanov9_FewSignals.yml')) as _f:
         plotConfig = yaml.load(_f, Loader=yaml.FullLoader)
     
     all_points = chunk_of_points = { 'HToZA': [], 'AToZH': [] }
@@ -307,9 +307,12 @@ def getSignalMassPoints_ver2(outdir, chunk=None, do='full', chunk_of=10):
     if do =='full':
         return all_points
     elif do=='chunk' :   
-        if chunk ==0: chunk_of_points['AToZH'] = [tuple(x) for x in all_points['AToZH'] ]
-        else: chunk_of_points['AToZH'] = [] 
-        chunk_of_points['HToZA'] = [tuple(x) for x in np.array_split(all_points['HToZA'], chunk_of)[chunk]]
+        if chunk ==0: 
+            chunk_of_points['AToZH'] = [tuple(x) for x in all_points['AToZH'] ]
+            chunk_of_points['HToZA'] = [] 
+        else: 
+            chunk_of_points['AToZH'] = [] 
+            chunk_of_points['HToZA'] = [tuple(x) for x in np.array_split(all_points['HToZA'], chunk_of)[chunk]]
         return chunk_of_points
 
 

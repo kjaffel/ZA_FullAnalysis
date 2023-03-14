@@ -115,7 +115,7 @@ class NanoHtoZABase(NanoAODModule):
                 help=" add Yields Histograms: not recomended if you turn off the systematics, jobs may run out of memory")
         parser.add_argument("-dnn", "--DNN_Evaluation", action="store_true", 
                 help="Pass TensorFlow model and evaluate DNN output")
-        parser.add_argument("--chunk", type=int, default=None, choices=np.arange(10).tolist(), 
+        parser.add_argument("--chunk", type=int, default=None, choices=np.arange(20).tolist(), 
                 help="For DNN evaluation you can split the signal on a 10 chunk")
         parser.add_argument("--splitJER", action="store_true", default= True, 
                 help='breakup into 6 nuisance parameters per year (correlated among all jets in all events per year, but uncorrelated across years), \n'
@@ -1097,8 +1097,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         masses_notseen = []
         
         # basic distribution for control region
-        make_ZpicPlots              = True
-        make_JetsPlusLeptonsPlots   = True
+        make_ZpicPlots              = False
+        make_JetsPlusLeptonsPlots   = False
         make_JetmultiplictyPlots    = False
         make_METPlots               = False
         make_METPuppiPlots          = False
@@ -1109,7 +1109,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         make_bJetsPlusLeptonsPlots_NoMETcut = False
         
         # plots after btag , met and mll cut 
-        make_FinalSelControlPlots       = True
+        make_FinalSelControlPlots       = False
         make_EllipsesforCombinedLimits  = self.doEllipses
         
         # plots for the studies
@@ -1534,8 +1534,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         nm     = 'Z%s'%Light
                                         
                                         EXTRA = []
-                                        if mode == 'HToZA':
-                                            EXTRA = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
+                                        #if mode == 'HToZA':
+                                        #    EXTRA = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
                                         masses_seen_forEvaluation  = dict_allmasspoints[mode] + EXTRA
                                         signal_grid = { 'seen_byDNN'   : set(masses_seen_forEvaluation),
                                                         'notseen_byDNN': set(masses_notseen) }
