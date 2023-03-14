@@ -14,117 +14,19 @@ eras:
      luminosity-error: 0.01
 
 samples:
-  GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
+  GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
+    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-40p68_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
     era: '2018'
     type: signal
     prod: ggH
     generated-events: 'genEventSumw'
-    cross-section: 0.0607435616   # +/- 2.68711277e-05 pb
-    branching-ratio: 0.050351710810384816  # H -> ZA (0.913031976) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#298f8c'
+    cross-section: 0.0675161406   # +/- 2.901942e-05 pb
+    branching-ratio: 0.0570909877092579  # H -> ZA (0.924068212) * A -> bb (0.918503543) * Z -> ee+ mumu (0.067264)
+    line-color: '#db07c0'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-217p19_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0598236475   # +/- 2.6564312e-05 pb
-    branching-ratio: 0.047713559465249133  # H -> ZA (0.908376913) * A -> bb (0.780895713) * Z -> ee+ mumu (0.067264)
-    line-color: '#01989f'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-252p91_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0588717471   # +/- 2.62434852e-05 pb
-    branching-ratio: 0.04362561790402855  # H -> ZA (0.901540542) * A -> bb (0.719405311) * Z -> ee+ mumu (0.067264)
-    line-color: '#f62168'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-294p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0578920816   # +/- 2.59097654e-05 pb
-    branching-ratio: 0.03583469015099682  # H -> ZA (0.891187354) * A -> bb (0.597794546) * Z -> ee+ mumu (0.067264)
-    line-color: '#61d081'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-30p00_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0683040398   # +/- 2.92559957e-05 pb
-    branching-ratio: 0.057200561344184817  # H -> ZA (0.924297897) * A -> bb (0.920037726) * Z -> ee+ mumu (0.067264)
-    line-color: '#ce57f1'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-345p53_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0568396847   # +/- 2.55452318e-05 pb
-    branching-ratio: 0.0009423954876296294  # H -> ZA (0.873789321) * A -> bb (0.01603407) * Z -> ee+ mumu (0.067264)
-    line-color: '#8f8fc9'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-34p93_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0679317201   # +/- 2.91444517e-05 pb
-    branching-ratio: 0.05716871338684345  # H -> ZA (0.924200607) * A -> bb (0.919622268) * Z -> ee+ mumu (0.067264)
-    line-color: '#af6ef5'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-405p40_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0557665578   # +/- 2.51783595e-05 pb
-    branching-ratio: 0.00014193512329803125  # H -> ZA (0.843661527) * A -> bb (0.00250114543) * Z -> ee+ mumu (0.067264)
-    line-color: '#0c7074'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   GluGluToHToZATo2L2B_MH_846p11_MA_475p64_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
     db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-475p64_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
@@ -135,7 +37,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0546784386   # +/- 2.47963359e-05 pb
     branching-ratio: 0.00011062686764986452  # H -> ZA (0.786082115) * A -> bb (0.00209223282) * Z -> ee+ mumu (0.067264)
-    line-color: '#5be6b1'
+    line-color: '#f7defa'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -149,7 +51,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0670558194   # +/- 2.88804199e-05 pb
     branching-ratio: 0.05696586054880424  # H -> ZA (0.923888349) * A -> bb (0.916668868) * Z -> ee+ mumu (0.067264)
-    line-color: '#706bc2'
+    line-color: '#fc85d8'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -163,7 +65,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0535801741   # +/- 2.43912987e-05 pb
     branching-ratio: 8.497362185130638e-05  # H -> ZA (0.66020031) * A -> bb (0.00191348788) * Z -> ee+ mumu (0.067264)
-    line-color: '#eb53af'
+    line-color: '#b71589'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -177,7 +79,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0665483518   # +/- 2.87265536e-05 pb
     branching-ratio: 0.05678726665642131  # H -> ZA (0.923643586) * A -> bb (0.914037169) * Z -> ee+ mumu (0.067264)
-    line-color: '#7fb68d'
+    line-color: '#ffdc7c'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -191,7 +93,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0659915856   # +/- 2.8556708e-05 pb
     branching-ratio: 0.05654435966796185  # H -> ZA (0.923309714) * A -> bb (0.910456489) * Z -> ee+ mumu (0.067264)
-    line-color: '#9796cc'
+    line-color: '#32932b'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -205,7 +107,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0524760295   # +/- 2.3988889e-05 pb
     branching-ratio: 4.352972400686843e-05  # H -> ZA (0.356603269) * A -> bb (0.00181475459) * Z -> ee+ mumu (0.067264)
-    line-color: '#c918e5'
+    line-color: '#184683'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -219,7 +121,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0653858469   # +/- 2.83712273e-05 pb
     branching-ratio: 0.05622164475622567  # H -> ZA (0.922854528) * A -> bb (0.90570676) * Z -> ee+ mumu (0.067264)
-    line-color: '#b57ccc'
+    line-color: '#8280cd'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -233,7 +135,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0647299593   # +/- 2.81669563e-05 pb
     branching-ratio: 0.05579552931012473  # H -> ZA (0.922231557) * A -> bb (0.899449393) * Z -> ee+ mumu (0.067264)
-    line-color: '#076f6d'
+    line-color: '#ed5271'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -247,7 +149,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0238969247   # +/- 1.01171322e-05 pb
     branching-ratio: 0.056414173560016205  # H -> ZA (0.941083789) * A -> bb (0.891204248) * Z -> ee+ mumu (0.067264)
-    line-color: '#8b499b'
+    line-color: '#40e484'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -261,164 +163,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0236059085   # +/- 1.00249699e-05 pb
     branching-ratio: 0.05568556063999405  # H -> ZA (0.940445149) * A -> bb (0.880291353) * Z -> ee+ mumu (0.067264)
-    line-color: '#351003'
+    line-color: '#965d5b'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-137p54_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0232975207   # +/- 9.93601176e-06 pb
-    branching-ratio: 0.0547110004975195  # H -> ZA (0.939564327) * A -> bb (0.865696073) * Z -> ee+ mumu (0.067264)
-    line-color: '#7dd406'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-160p17_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0229712228   # +/- 9.81963995e-06 pb
-    branching-ratio: 0.053390244104284  # H -> ZA (0.938342284) * A -> bb (0.845897866) * Z -> ee+ mumu (0.067264)
-    line-color: '#8cb883'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0226303726   # +/- 9.70803095e-06 pb
-    branching-ratio: 0.05165330801765025  # H -> ZA (0.936633952) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#f138f3'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
+  HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
+    db: das:/HToZATo2L2B_MH-846p11_MA-40p68_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
+    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
     era: '2018'
     type: signal
     prod: bbH
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05898166082298366  # H -> ZA (0.961827945) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#fa64c8'
+    branching-ratio: 0.060385803493659594  # H -> ZA (0.966889242) * A -> bb (0.928486153) * Z -> ee+ mumu (0.067264)
+    line-color: '#0b86fa'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-217p19_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.0587073538244306  # H -> ZA (0.959672285) * A -> bb (0.909466827) * Z -> ee+ mumu (0.067264)
-    line-color: '#d4e9e9'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-252p91_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05836733192741321  # H -> ZA (0.956483832) * A -> bb (0.907213529) * Z -> ee+ mumu (0.067264)
-    line-color: '#29ab07'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-294p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057922027485638995  # H -> ZA (0.951603119) * A -> bb (0.904909627) * Z -> ee+ mumu (0.067264)
-    line-color: '#509872'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-30p00_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060486247197897886  # H -> ZA (0.966993847) * A -> bb (0.929929959) * Z -> ee+ mumu (0.067264)
-    line-color: '#bcf472'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-345p53_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057161781427220414  # H -> ZA (0.943257239) * A -> bb (0.900933878) * Z -> ee+ mumu (0.067264)
-    line-color: '#af6f3c'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-34p93_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060447067292676224  # H -> ZA (0.966949542) * A -> bb (0.929370179) * Z -> ee+ mumu (0.067264)
-    line-color: '#6f03b7'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-846p11_MA-405p40_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05555413742705898  # H -> ZA (0.928362653) * A -> bb (0.889643598) * Z -> ee+ mumu (0.067264)
-    line-color: '#f7bca2'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   HToZATo2L2B_MH_846p11_MA_475p64_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
     db: das:/HToZATo2L2B_MH-846p11_MA-475p64_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
@@ -429,7 +191,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05347338361776379  # H -> ZA (0.898221825) * A -> bb (0.885057267) * Z -> ee+ mumu (0.067264)
-    line-color: '#26029b'
+    line-color: '#89a10e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -443,7 +205,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06030733120628185  # H -> ZA (0.966807308) * A -> bb (0.927358155) * Z -> ee+ mumu (0.067264)
-    line-color: '#067db1'
+    line-color: '#0522ac'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -457,7 +219,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.04881538072913323  # H -> ZA (0.823514047) * A -> bb (0.881257811) * Z -> ee+ mumu (0.067264)
-    line-color: '#0bd476'
+    line-color: '#adb161'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -471,7 +233,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06021463470033826  # H -> ZA (0.966695779) * A -> bb (0.926039568) * Z -> ee+ mumu (0.067264)
-    line-color: '#1ebac8'
+    line-color: '#8c760c'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -485,7 +247,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06010947876552853  # H -> ZA (0.966543593) * A -> bb (0.924567931) * Z -> ee+ mumu (0.067264)
-    line-color: '#209928'
+    line-color: '#3adbe8'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -499,7 +261,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.033713727089623745  # H -> ZA (0.571020178) * A -> bb (0.877753605) * Z -> ee+ mumu (0.067264)
-    line-color: '#ff0567'
+    line-color: '#19e78e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -513,7 +275,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05999308013254414  # H -> ZA (0.966336008) * A -> bb (0.922975785) * Z -> ee+ mumu (0.067264)
-    line-color: '#ccb317'
+    line-color: '#d41f22'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -527,7 +289,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05986545813216902  # H -> ZA (0.966051716) * A -> bb (0.921283396) * Z -> ee+ mumu (0.067264)
-    line-color: '#09256b'
+    line-color: '#cd8d37'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -541,7 +303,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.060361920668134596  # H -> ZA (0.975943472) * A -> bb (0.919508391) * Z -> ee+ mumu (0.067264)
-    line-color: '#9885a3'
+    line-color: '#73368e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -555,82 +317,112 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.0602243849941008  # H -> ZA (0.975673592) * A -> bb (0.91766704) * Z -> ee+ mumu (0.067264)
-    line-color: '#38b953'
+    line-color: '#dc3ae0'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-997p14_MA-137p54_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.060076944249459266  # H -> ZA (0.975301007) * A -> bb (0.915770126) * Z -> ee+ mumu (0.067264)
-    line-color: '#6a5826'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-997p14_MA-160p17_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05991773260661937  # H -> ZA (0.97478339) * A -> bb (0.913828209) * Z -> ee+ mumu (0.067264)
-    line-color: '#2127f1'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18:
-    db: das:/HToZATo2L2B_MH-997p14_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
-    files: dascache/nanov9/2018/HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL18.dat
-    era: '2018'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05973166486742378  # H -> ZA (0.974058439) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#cbaf79'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  DYJetsToLL_0J_UL18:
+  DYJetsToLL_0J_DY0b_UL18:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
     files: dascache/nanov9/2018/DYJetsToLL_0J_UL18.dat
     split: 400
     era: '2018'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 4757.0 # +/- 9.294 pb
 
-  DYJetsToLL_1J_UL18:
+  DYJetsToLL_0J_DY1b_UL18:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_0J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+  DYJetsToLL_0J_DY2b_UL18:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_0J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+
+  DYJetsToLL_1J_DY0b_UL18:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
     files: dascache/nanov9/2018/DYJetsToLL_1J_UL18.dat
     split: 400
     era: '2018'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 859.589402 # +/- 6.067 pb
 
-  DYJetsToLL_2J_UL18:
+  DYJetsToLL_1J_DY1b_UL18:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_1J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+  DYJetsToLL_1J_DY2b_UL18:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_1J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+
+  DYJetsToLL_2J_DY0b_UL18:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
     files: dascache/nanov9/2018/DYJetsToLL_2J_UL18.dat
     split: 400
     era: '2018'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY1b_UL18:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_2J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY2b_UL18:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
+    files: dascache/nanov9/2018/DYJetsToLL_2J_UL18.dat
+    split: 400
+    era: '2018'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
 
   TTToSemiLeptonic_tt_UL18:
     db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
@@ -882,16 +674,6 @@ samples:
     cross-section: 0.2529 # +/- 0.0004 pb
 
   HZJ_HToWW_M-125_UL18:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM
-    files: dascache/nanov9/2018/HZJ_HToWW_M-125_UL18.dat
-    split: 400
-    era: '2018'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
-  HZJ_HToWW_M-125_UL18:
     db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM
     files: dascache/nanov9/2018/HZJ_HToWW_M-125_UL18.dat
     split: 400
@@ -1121,117 +903,19 @@ samples:
     run_range: [320500, 325175]
     certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
-  GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
+  GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
+    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-40p68_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
     era: '2017'
     type: signal
     prod: ggH
     generated-events: 'genEventSumw'
-    cross-section: 0.0607435616   # +/- 2.68711277e-05 pb
-    branching-ratio: 0.050351710810384816  # H -> ZA (0.913031976) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#3c8de1'
+    cross-section: 0.0675161406   # +/- 2.901942e-05 pb
+    branching-ratio: 0.0570909877092579  # H -> ZA (0.924068212) * A -> bb (0.918503543) * Z -> ee+ mumu (0.067264)
+    line-color: '#149e1c'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-217p19_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0598236475   # +/- 2.6564312e-05 pb
-    branching-ratio: 0.047713559465249133  # H -> ZA (0.908376913) * A -> bb (0.780895713) * Z -> ee+ mumu (0.067264)
-    line-color: '#8f35ad'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-252p91_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0588717471   # +/- 2.62434852e-05 pb
-    branching-ratio: 0.04362561790402855  # H -> ZA (0.901540542) * A -> bb (0.719405311) * Z -> ee+ mumu (0.067264)
-    line-color: '#1f26ff'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-294p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0578920816   # +/- 2.59097654e-05 pb
-    branching-ratio: 0.03583469015099682  # H -> ZA (0.891187354) * A -> bb (0.597794546) * Z -> ee+ mumu (0.067264)
-    line-color: '#ce8e75'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-30p00_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0683040398   # +/- 2.92559957e-05 pb
-    branching-ratio: 0.057200561344184817  # H -> ZA (0.924297897) * A -> bb (0.920037726) * Z -> ee+ mumu (0.067264)
-    line-color: '#1cdeab'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-345p53_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0568396847   # +/- 2.55452318e-05 pb
-    branching-ratio: 0.0009423954876296294  # H -> ZA (0.873789321) * A -> bb (0.01603407) * Z -> ee+ mumu (0.067264)
-    line-color: '#9cd6c1'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-34p93_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0679317201   # +/- 2.91444517e-05 pb
-    branching-ratio: 0.05716871338684345  # H -> ZA (0.924200607) * A -> bb (0.919622268) * Z -> ee+ mumu (0.067264)
-    line-color: '#e21680'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-405p40_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0557665578   # +/- 2.51783595e-05 pb
-    branching-ratio: 0.00014193512329803125  # H -> ZA (0.843661527) * A -> bb (0.00250114543) * Z -> ee+ mumu (0.067264)
-    line-color: '#289dcb'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   GluGluToHToZATo2L2B_MH_846p11_MA_475p64_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
     db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-475p64_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
@@ -1242,7 +926,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0546784386   # +/- 2.47963359e-05 pb
     branching-ratio: 0.00011062686764986452  # H -> ZA (0.786082115) * A -> bb (0.00209223282) * Z -> ee+ mumu (0.067264)
-    line-color: '#c35166'
+    line-color: '#19fb2f'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -1256,7 +940,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0670558194   # +/- 2.88804199e-05 pb
     branching-ratio: 0.05696586054880424  # H -> ZA (0.923888349) * A -> bb (0.916668868) * Z -> ee+ mumu (0.067264)
-    line-color: '#7f0cbf'
+    line-color: '#f4e5ea'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -1270,7 +954,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0535801741   # +/- 2.43912987e-05 pb
     branching-ratio: 8.497362185130638e-05  # H -> ZA (0.66020031) * A -> bb (0.00191348788) * Z -> ee+ mumu (0.067264)
-    line-color: '#6c686c'
+    line-color: '#f6a64b'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -1284,7 +968,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0665483518   # +/- 2.87265536e-05 pb
     branching-ratio: 0.05678726665642131  # H -> ZA (0.923643586) * A -> bb (0.914037169) * Z -> ee+ mumu (0.067264)
-    line-color: '#f9266b'
+    line-color: '#75c2cb'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -1298,7 +982,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0659915856   # +/- 2.8556708e-05 pb
     branching-ratio: 0.05654435966796185  # H -> ZA (0.923309714) * A -> bb (0.910456489) * Z -> ee+ mumu (0.067264)
-    line-color: '#98ff83'
+    line-color: '#0146dc'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -1312,7 +996,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0524760295   # +/- 2.3988889e-05 pb
     branching-ratio: 4.352972400686843e-05  # H -> ZA (0.356603269) * A -> bb (0.00181475459) * Z -> ee+ mumu (0.067264)
-    line-color: '#31c56a'
+    line-color: '#7752be'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -1326,7 +1010,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0653858469   # +/- 2.83712273e-05 pb
     branching-ratio: 0.05622164475622567  # H -> ZA (0.922854528) * A -> bb (0.90570676) * Z -> ee+ mumu (0.067264)
-    line-color: '#deebb2'
+    line-color: '#8d9e92'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -1340,7 +1024,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0647299593   # +/- 2.81669563e-05 pb
     branching-ratio: 0.05579552931012473  # H -> ZA (0.922231557) * A -> bb (0.899449393) * Z -> ee+ mumu (0.067264)
-    line-color: '#b20796'
+    line-color: '#4d9bdf'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -1354,7 +1038,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0238969247   # +/- 1.01171322e-05 pb
     branching-ratio: 0.056414173560016205  # H -> ZA (0.941083789) * A -> bb (0.891204248) * Z -> ee+ mumu (0.067264)
-    line-color: '#9956c2'
+    line-color: '#6c9cb0'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -1368,164 +1052,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0236059085   # +/- 1.00249699e-05 pb
     branching-ratio: 0.05568556063999405  # H -> ZA (0.940445149) * A -> bb (0.880291353) * Z -> ee+ mumu (0.067264)
-    line-color: '#291672'
+    line-color: '#2b80e7'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-137p54_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0232975207   # +/- 9.93601176e-06 pb
-    branching-ratio: 0.0547110004975195  # H -> ZA (0.939564327) * A -> bb (0.865696073) * Z -> ee+ mumu (0.067264)
-    line-color: '#a222c5'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-160p17_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0229712228   # +/- 9.81963995e-06 pb
-    branching-ratio: 0.053390244104284  # H -> ZA (0.938342284) * A -> bb (0.845897866) * Z -> ee+ mumu (0.067264)
-    line-color: '#b7cbf4'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0226303726   # +/- 9.70803095e-06 pb
-    branching-ratio: 0.05165330801765025  # H -> ZA (0.936633952) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#c2989b'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
+  HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
+    db: das:/HToZATo2L2B_MH-846p11_MA-40p68_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
     era: '2017'
     type: signal
     prod: bbH
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05898166082298366  # H -> ZA (0.961827945) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#291fa1'
+    branching-ratio: 0.060385803493659594  # H -> ZA (0.966889242) * A -> bb (0.928486153) * Z -> ee+ mumu (0.067264)
+    line-color: '#55c375'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-217p19_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.0587073538244306  # H -> ZA (0.959672285) * A -> bb (0.909466827) * Z -> ee+ mumu (0.067264)
-    line-color: '#037163'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-252p91_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05836733192741321  # H -> ZA (0.956483832) * A -> bb (0.907213529) * Z -> ee+ mumu (0.067264)
-    line-color: '#e32352'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-294p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057922027485638995  # H -> ZA (0.951603119) * A -> bb (0.904909627) * Z -> ee+ mumu (0.067264)
-    line-color: '#dafebb'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-30p00_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060486247197897886  # H -> ZA (0.966993847) * A -> bb (0.929929959) * Z -> ee+ mumu (0.067264)
-    line-color: '#5818b0'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-345p53_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057161781427220414  # H -> ZA (0.943257239) * A -> bb (0.900933878) * Z -> ee+ mumu (0.067264)
-    line-color: '#b66c07'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-34p93_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060447067292676224  # H -> ZA (0.966949542) * A -> bb (0.929370179) * Z -> ee+ mumu (0.067264)
-    line-color: '#90cf65'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-846p11_MA-405p40_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05555413742705898  # H -> ZA (0.928362653) * A -> bb (0.889643598) * Z -> ee+ mumu (0.067264)
-    line-color: '#0a75f8'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   HToZATo2L2B_MH_846p11_MA_475p64_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
     db: das:/HToZATo2L2B_MH-846p11_MA-475p64_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
@@ -1536,7 +1080,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05347338361776379  # H -> ZA (0.898221825) * A -> bb (0.885057267) * Z -> ee+ mumu (0.067264)
-    line-color: '#26ca9c'
+    line-color: '#94dcca'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -1550,7 +1094,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06030733120628185  # H -> ZA (0.966807308) * A -> bb (0.927358155) * Z -> ee+ mumu (0.067264)
-    line-color: '#288278'
+    line-color: '#6d349d'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -1564,7 +1108,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.04881538072913323  # H -> ZA (0.823514047) * A -> bb (0.881257811) * Z -> ee+ mumu (0.067264)
-    line-color: '#427850'
+    line-color: '#0bf001'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -1578,7 +1122,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06021463470033826  # H -> ZA (0.966695779) * A -> bb (0.926039568) * Z -> ee+ mumu (0.067264)
-    line-color: '#4fe182'
+    line-color: '#8c0f75'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -1592,7 +1136,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06010947876552853  # H -> ZA (0.966543593) * A -> bb (0.924567931) * Z -> ee+ mumu (0.067264)
-    line-color: '#9ac4bf'
+    line-color: '#07b804'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -1606,7 +1150,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.033713727089623745  # H -> ZA (0.571020178) * A -> bb (0.877753605) * Z -> ee+ mumu (0.067264)
-    line-color: '#e741b5'
+    line-color: '#d62dc5'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -1620,7 +1164,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05999308013254414  # H -> ZA (0.966336008) * A -> bb (0.922975785) * Z -> ee+ mumu (0.067264)
-    line-color: '#09a06f'
+    line-color: '#c8a7d0'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -1634,7 +1178,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05986545813216902  # H -> ZA (0.966051716) * A -> bb (0.921283396) * Z -> ee+ mumu (0.067264)
-    line-color: '#95e547'
+    line-color: '#3ad454'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -1648,7 +1192,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.060361920668134596  # H -> ZA (0.975943472) * A -> bb (0.919508391) * Z -> ee+ mumu (0.067264)
-    line-color: '#f7c219'
+    line-color: '#6a0cbb'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -1662,68 +1206,112 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.0602243849941008  # H -> ZA (0.975673592) * A -> bb (0.91766704) * Z -> ee+ mumu (0.067264)
-    line-color: '#3edc2e'
+    line-color: '#039f3f'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-997p14_MA-137p54_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.060076944249459266  # H -> ZA (0.975301007) * A -> bb (0.915770126) * Z -> ee+ mumu (0.067264)
-    line-color: '#7ebab6'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17:
-    db: das:/HToZATo2L2B_MH-997p14_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
-    files: dascache/nanov9/2017/HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL17.dat
-    era: '2017'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05973166486742378  # H -> ZA (0.974058439) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#da960f'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  DYJetsToLL_0J_UL17:
+  DYJetsToLL_0J_DY0b_UL17:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
     files: dascache/nanov9/2017/DYJetsToLL_0J_UL17.dat
     split: 400
     era: '2017'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 4757.0 # +/- 9.294 pb
 
-  DYJetsToLL_1J_UL17:
+  DYJetsToLL_0J_DY1b_UL17:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_0J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+  DYJetsToLL_0J_DY2b_UL17:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_0J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+
+  DYJetsToLL_1J_DY0b_UL17:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
     files: dascache/nanov9/2017/DYJetsToLL_1J_UL17.dat
     split: 400
     era: '2017'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 859.589402 # +/- 6.067 pb
 
-  DYJetsToLL_2J_UL17:
+  DYJetsToLL_1J_DY1b_UL17:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_1J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+  DYJetsToLL_1J_DY2b_UL17:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_1J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+
+  DYJetsToLL_2J_DY0b_UL17:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
     files: dascache/nanov9/2017/DYJetsToLL_2J_UL17.dat
     split: 400
     era: '2017'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY1b_UL17:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_2J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY2b_UL17:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    files: dascache/nanov9/2017/DYJetsToLL_2J_UL17.dat
+    split: 400
+    era: '2017'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
 
   TTToSemiLeptonic_tt_UL17:
     db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
@@ -1975,7 +1563,7 @@ samples:
     cross-section: 0.2529 # +/- 0.0004 pb
 
   HZJ_HToWW_M-125_UL17:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM
+    db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v2/NANOAODSIM
     files: dascache/nanov9/2017/HZJ_HToWW_M-125_UL17.dat
     split: 400
     era: '2017'
@@ -2194,117 +1782,19 @@ samples:
     run_range: [305040, 306460]
     certified_lumi_file: https://cms-service-dqmdc.web.cern.ch//CAF/certification/Collisions17/13TeV/Legacy_2017/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
 
-  GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
+  GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
+    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-40p68_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
     era: '2016-postVFP'
     type: signal
     prod: ggH
     generated-events: 'genEventSumw'
-    cross-section: 0.0607435616   # +/- 2.68711277e-05 pb
-    branching-ratio: 0.050351710810384816  # H -> ZA (0.913031976) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#d293c8'
+    cross-section: 0.0675161406   # +/- 2.901942e-05 pb
+    branching-ratio: 0.0570909877092579  # H -> ZA (0.924068212) * A -> bb (0.918503543) * Z -> ee+ mumu (0.067264)
+    line-color: '#9f1a03'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-217p19_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0598236475   # +/- 2.6564312e-05 pb
-    branching-ratio: 0.047713559465249133  # H -> ZA (0.908376913) * A -> bb (0.780895713) * Z -> ee+ mumu (0.067264)
-    line-color: '#fdccf4'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-252p91_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0588717471   # +/- 2.62434852e-05 pb
-    branching-ratio: 0.04362561790402855  # H -> ZA (0.901540542) * A -> bb (0.719405311) * Z -> ee+ mumu (0.067264)
-    line-color: '#3c7c39'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-294p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0578920816   # +/- 2.59097654e-05 pb
-    branching-ratio: 0.03583469015099682  # H -> ZA (0.891187354) * A -> bb (0.597794546) * Z -> ee+ mumu (0.067264)
-    line-color: '#a5fb3d'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-30p00_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0683040398   # +/- 2.92559957e-05 pb
-    branching-ratio: 0.057200561344184817  # H -> ZA (0.924297897) * A -> bb (0.920037726) * Z -> ee+ mumu (0.067264)
-    line-color: '#e28e87'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-345p53_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0568396847   # +/- 2.55452318e-05 pb
-    branching-ratio: 0.0009423954876296294  # H -> ZA (0.873789321) * A -> bb (0.01603407) * Z -> ee+ mumu (0.067264)
-    line-color: '#8cbee6'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-34p93_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0679317201   # +/- 2.91444517e-05 pb
-    branching-ratio: 0.05716871338684345  # H -> ZA (0.924200607) * A -> bb (0.919622268) * Z -> ee+ mumu (0.067264)
-    line-color: '#a19cbc'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-405p40_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0557665578   # +/- 2.51783595e-05 pb
-    branching-ratio: 0.00014193512329803125  # H -> ZA (0.843661527) * A -> bb (0.00250114543) * Z -> ee+ mumu (0.067264)
-    line-color: '#4f7e19'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   GluGluToHToZATo2L2B_MH_846p11_MA_475p64_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
     db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-475p64_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
@@ -2315,7 +1805,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0546784386   # +/- 2.47963359e-05 pb
     branching-ratio: 0.00011062686764986452  # H -> ZA (0.786082115) * A -> bb (0.00209223282) * Z -> ee+ mumu (0.067264)
-    line-color: '#283027'
+    line-color: '#bfc86c'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -2329,10 +1819,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0670558194   # +/- 2.88804199e-05 pb
     branching-ratio: 0.05696586054880424  # H -> ZA (0.923888349) * A -> bb (0.916668868) * Z -> ee+ mumu (0.067264)
-    line-color: '#44ce73'
+    line-color: '#121190'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
+
+  GluGluToHToZATo2L2B_MH_846p11_MA_558p06_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
+    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-558p06_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_846p11_MA_558p06_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
+    era: '2016-postVFP'
+    type: signal
+    prod: ggH
+    generated-events: 'genEventSumw'
+    cross-section: 0.0535801741   # +/- 2.43912987e-05 pb
+    branching-ratio: 8.497362185130638e-05  # H -> ZA (0.66020031) * A -> bb (0.00191348788) * Z -> ee+ mumu (0.067264)
+    line-color: '#59d9ec'
+    line-type: 8
+    line-width: 3
+    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
 
   GluGluToHToZATo2L2B_MH_846p11_MA_55p16_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
     db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-55p16_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
@@ -2343,7 +1847,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0665483518   # +/- 2.87265536e-05 pb
     branching-ratio: 0.05678726665642131  # H -> ZA (0.923643586) * A -> bb (0.914037169) * Z -> ee+ mumu (0.067264)
-    line-color: '#25ecc6'
+    line-color: '#7e3869'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -2357,7 +1861,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0659915856   # +/- 2.8556708e-05 pb
     branching-ratio: 0.05654435966796185  # H -> ZA (0.923309714) * A -> bb (0.910456489) * Z -> ee+ mumu (0.067264)
-    line-color: '#e54d3f'
+    line-color: '#f5d52e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -2371,7 +1875,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0524760295   # +/- 2.3988889e-05 pb
     branching-ratio: 4.352972400686843e-05  # H -> ZA (0.356603269) * A -> bb (0.00181475459) * Z -> ee+ mumu (0.067264)
-    line-color: '#505410'
+    line-color: '#b845fe'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -2385,7 +1889,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0653858469   # +/- 2.83712273e-05 pb
     branching-ratio: 0.05622164475622567  # H -> ZA (0.922854528) * A -> bb (0.90570676) * Z -> ee+ mumu (0.067264)
-    line-color: '#813403'
+    line-color: '#75d542'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -2399,7 +1903,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0647299593   # +/- 2.81669563e-05 pb
     branching-ratio: 0.05579552931012473  # H -> ZA (0.922231557) * A -> bb (0.899449393) * Z -> ee+ mumu (0.067264)
-    line-color: '#b32669'
+    line-color: '#f35fae'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -2413,7 +1917,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0238969247   # +/- 1.01171322e-05 pb
     branching-ratio: 0.056414173560016205  # H -> ZA (0.941083789) * A -> bb (0.891204248) * Z -> ee+ mumu (0.067264)
-    line-color: '#d5c672'
+    line-color: '#c245a6'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -2427,164 +1931,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0236059085   # +/- 1.00249699e-05 pb
     branching-ratio: 0.05568556063999405  # H -> ZA (0.940445149) * A -> bb (0.880291353) * Z -> ee+ mumu (0.067264)
-    line-color: '#6ee5d7'
+    line-color: '#efefc2'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-137p54_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0232975207   # +/- 9.93601176e-06 pb
-    branching-ratio: 0.0547110004975195  # H -> ZA (0.939564327) * A -> bb (0.865696073) * Z -> ee+ mumu (0.067264)
-    line-color: '#7c4927'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-160p17_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0229712228   # +/- 9.81963995e-06 pb
-    branching-ratio: 0.053390244104284  # H -> ZA (0.938342284) * A -> bb (0.845897866) * Z -> ee+ mumu (0.067264)
-    line-color: '#3a2c2a'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0226303726   # +/- 9.70803095e-06 pb
-    branching-ratio: 0.05165330801765025  # H -> ZA (0.936633952) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#f7e5d6'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
+  GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
+    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-40p68_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_40p68_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
     era: '2016-preVFP'
     type: signal
     prod: ggH
     generated-events: 'genEventSumw'
-    cross-section: 0.0607435616   # +/- 2.68711277e-05 pb
-    branching-ratio: 0.050351710810384816  # H -> ZA (0.913031976) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#497b53'
+    cross-section: 0.0675161406   # +/- 2.901942e-05 pb
+    branching-ratio: 0.0570909877092579  # H -> ZA (0.924068212) * A -> bb (0.918503543) * Z -> ee+ mumu (0.067264)
+    line-color: '#b890d0'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-217p19_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_217p19_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0598236475   # +/- 2.6564312e-05 pb
-    branching-ratio: 0.047713559465249133  # H -> ZA (0.908376913) * A -> bb (0.780895713) * Z -> ee+ mumu (0.067264)
-    line-color: '#69a0ff'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-252p91_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_252p91_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0588717471   # +/- 2.62434852e-05 pb
-    branching-ratio: 0.04362561790402855  # H -> ZA (0.901540542) * A -> bb (0.719405311) * Z -> ee+ mumu (0.067264)
-    line-color: '#e9020b'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-294p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_294p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0578920816   # +/- 2.59097654e-05 pb
-    branching-ratio: 0.03583469015099682  # H -> ZA (0.891187354) * A -> bb (0.597794546) * Z -> ee+ mumu (0.067264)
-    line-color: '#4cf050'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-30p00_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_30p00_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0683040398   # +/- 2.92559957e-05 pb
-    branching-ratio: 0.057200561344184817  # H -> ZA (0.924297897) * A -> bb (0.920037726) * Z -> ee+ mumu (0.067264)
-    line-color: '#23e48c'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-345p53_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_345p53_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0568396847   # +/- 2.55452318e-05 pb
-    branching-ratio: 0.0009423954876296294  # H -> ZA (0.873789321) * A -> bb (0.01603407) * Z -> ee+ mumu (0.067264)
-    line-color: '#414ffe'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-34p93_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_34p93_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0679317201   # +/- 2.91444517e-05 pb
-    branching-ratio: 0.05716871338684345  # H -> ZA (0.924200607) * A -> bb (0.919622268) * Z -> ee+ mumu (0.067264)
-    line-color: '#b1d787'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-405p40_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_846p11_MA_405p40_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0557665578   # +/- 2.51783595e-05 pb
-    branching-ratio: 0.00014193512329803125  # H -> ZA (0.843661527) * A -> bb (0.00250114543) * Z -> ee+ mumu (0.067264)
-    line-color: '#a82cb8'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   GluGluToHToZATo2L2B_MH_846p11_MA_475p64_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
     db: das:/GluGluToHToZATo2L2B_MH-846p11_MA-475p64_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
@@ -2595,7 +1959,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0546784386   # +/- 2.47963359e-05 pb
     branching-ratio: 0.00011062686764986452  # H -> ZA (0.786082115) * A -> bb (0.00209223282) * Z -> ee+ mumu (0.067264)
-    line-color: '#1a8b73'
+    line-color: '#c150c2'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -2609,7 +1973,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0670558194   # +/- 2.88804199e-05 pb
     branching-ratio: 0.05696586054880424  # H -> ZA (0.923888349) * A -> bb (0.916668868) * Z -> ee+ mumu (0.067264)
-    line-color: '#b69a97'
+    line-color: '#72e75d'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -2623,7 +1987,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0535801741   # +/- 2.43912987e-05 pb
     branching-ratio: 8.497362185130638e-05  # H -> ZA (0.66020031) * A -> bb (0.00191348788) * Z -> ee+ mumu (0.067264)
-    line-color: '#cf5c78'
+    line-color: '#a9fef6'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -2637,7 +2001,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0665483518   # +/- 2.87265536e-05 pb
     branching-ratio: 0.05678726665642131  # H -> ZA (0.923643586) * A -> bb (0.914037169) * Z -> ee+ mumu (0.067264)
-    line-color: '#7746c2'
+    line-color: '#99677e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -2651,7 +2015,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0659915856   # +/- 2.8556708e-05 pb
     branching-ratio: 0.05654435966796185  # H -> ZA (0.923309714) * A -> bb (0.910456489) * Z -> ee+ mumu (0.067264)
-    line-color: '#d850ae'
+    line-color: '#b668b7'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -2665,7 +2029,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0524760295   # +/- 2.3988889e-05 pb
     branching-ratio: 4.352972400686843e-05  # H -> ZA (0.356603269) * A -> bb (0.00181475459) * Z -> ee+ mumu (0.067264)
-    line-color: '#583995'
+    line-color: '#ca2ae1'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -2679,7 +2043,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0653858469   # +/- 2.83712273e-05 pb
     branching-ratio: 0.05622164475622567  # H -> ZA (0.922854528) * A -> bb (0.90570676) * Z -> ee+ mumu (0.067264)
-    line-color: '#0cff29'
+    line-color: '#45aec9'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -2693,7 +2057,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0647299593   # +/- 2.81669563e-05 pb
     branching-ratio: 0.05579552931012473  # H -> ZA (0.922231557) * A -> bb (0.899449393) * Z -> ee+ mumu (0.067264)
-    line-color: '#465fb1'
+    line-color: '#15821e'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -2707,7 +2071,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0238969247   # +/- 1.01171322e-05 pb
     branching-ratio: 0.056414173560016205  # H -> ZA (0.941083789) * A -> bb (0.891204248) * Z -> ee+ mumu (0.067264)
-    line-color: '#c1732f'
+    line-color: '#ead7db'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -2721,164 +2085,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0236059085   # +/- 1.00249699e-05 pb
     branching-ratio: 0.05568556063999405  # H -> ZA (0.940445149) * A -> bb (0.880291353) * Z -> ee+ mumu (0.067264)
-    line-color: '#2d4c65'
+    line-color: '#665ff6'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-137p54_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_997p14_MA_137p54_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0232975207   # +/- 9.93601176e-06 pb
-    branching-ratio: 0.0547110004975195  # H -> ZA (0.939564327) * A -> bb (0.865696073) * Z -> ee+ mumu (0.067264)
-    line-color: '#9dac81'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-160p17_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_997p14_MA_160p17_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0229712228   # +/- 9.81963995e-06 pb
-    branching-ratio: 0.053390244104284  # H -> ZA (0.938342284) * A -> bb (0.845897866) * Z -> ee+ mumu (0.067264)
-    line-color: '#20cadb'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/GluGluToHToZATo2L2B_MH-997p14_MA-186p51_tb-1p50_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/GluGluToHToZATo2L2B_MH_997p14_MA_186p51_tb_1p50_TuneCP5_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: ggH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0226303726   # +/- 9.70803095e-06 pb
-    branching-ratio: 0.05165330801765025  # H -> ZA (0.936633952) * A -> bb (0.819871054) * Z -> ee+ mumu (0.067264)
-    line-color: '#a3a04d'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-ggH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
+  HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
+    db: das:/HToZATo2L2B_MH-846p11_MA-40p68_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
     era: '2016-postVFP'
     type: signal
     prod: bbH
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05898166082298366  # H -> ZA (0.961827945) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#e5864d'
+    branching-ratio: 0.060385803493659594  # H -> ZA (0.966889242) * A -> bb (0.928486153) * Z -> ee+ mumu (0.067264)
+    line-color: '#2318a3'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-217p19_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.0587073538244306  # H -> ZA (0.959672285) * A -> bb (0.909466827) * Z -> ee+ mumu (0.067264)
-    line-color: '#767963'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-252p91_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05836733192741321  # H -> ZA (0.956483832) * A -> bb (0.907213529) * Z -> ee+ mumu (0.067264)
-    line-color: '#e50c60'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-294p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057922027485638995  # H -> ZA (0.951603119) * A -> bb (0.904909627) * Z -> ee+ mumu (0.067264)
-    line-color: '#139a37'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-30p00_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060486247197897886  # H -> ZA (0.966993847) * A -> bb (0.929929959) * Z -> ee+ mumu (0.067264)
-    line-color: '#3f5e59'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-345p53_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057161781427220414  # H -> ZA (0.943257239) * A -> bb (0.900933878) * Z -> ee+ mumu (0.067264)
-    line-color: '#b3b6c9'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-34p93_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060447067292676224  # H -> ZA (0.966949542) * A -> bb (0.929370179) * Z -> ee+ mumu (0.067264)
-    line-color: '#06f496'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-405p40_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05555413742705898  # H -> ZA (0.928362653) * A -> bb (0.889643598) * Z -> ee+ mumu (0.067264)
-    line-color: '#a46ed5'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   HToZATo2L2B_MH_846p11_MA_475p64_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
     db: das:/HToZATo2L2B_MH-846p11_MA-475p64_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
@@ -2889,7 +2113,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05347338361776379  # H -> ZA (0.898221825) * A -> bb (0.885057267) * Z -> ee+ mumu (0.067264)
-    line-color: '#417fff'
+    line-color: '#43baf3'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -2903,7 +2127,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06030733120628185  # H -> ZA (0.966807308) * A -> bb (0.927358155) * Z -> ee+ mumu (0.067264)
-    line-color: '#594f23'
+    line-color: '#360579'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -2917,7 +2141,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.04881538072913323  # H -> ZA (0.823514047) * A -> bb (0.881257811) * Z -> ee+ mumu (0.067264)
-    line-color: '#f7040d'
+    line-color: '#06fc6d'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -2931,7 +2155,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06021463470033826  # H -> ZA (0.966695779) * A -> bb (0.926039568) * Z -> ee+ mumu (0.067264)
-    line-color: '#315050'
+    line-color: '#71c55f'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -2945,7 +2169,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06010947876552853  # H -> ZA (0.966543593) * A -> bb (0.924567931) * Z -> ee+ mumu (0.067264)
-    line-color: '#618d2d'
+    line-color: '#1d2018'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -2959,7 +2183,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.033713727089623745  # H -> ZA (0.571020178) * A -> bb (0.877753605) * Z -> ee+ mumu (0.067264)
-    line-color: '#9dee0b'
+    line-color: '#5782c7'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -2973,7 +2197,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05999308013254414  # H -> ZA (0.966336008) * A -> bb (0.922975785) * Z -> ee+ mumu (0.067264)
-    line-color: '#5d8b80'
+    line-color: '#ea27ea'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -2987,7 +2211,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05986545813216902  # H -> ZA (0.966051716) * A -> bb (0.921283396) * Z -> ee+ mumu (0.067264)
-    line-color: '#efbcbb'
+    line-color: '#427c4f'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -3001,7 +2225,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.060361920668134596  # H -> ZA (0.975943472) * A -> bb (0.919508391) * Z -> ee+ mumu (0.067264)
-    line-color: '#a00c25'
+    line-color: '#1d4242'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -3015,164 +2239,24 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.0602243849941008  # H -> ZA (0.975673592) * A -> bb (0.91766704) * Z -> ee+ mumu (0.067264)
-    line-color: '#e3764f'
+    line-color: '#621d1a'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-137p54_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.060076944249459266  # H -> ZA (0.975301007) * A -> bb (0.915770126) * Z -> ee+ mumu (0.067264)
-    line-color: '#91d87e'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-160p17_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05991773260661937  # H -> ZA (0.97478339) * A -> bb (0.913828209) * Z -> ee+ mumu (0.067264)
-    line-color: '#286f28'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16postVFP.dat
-    era: '2016-postVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05973166486742378  # H -> ZA (0.974058439) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#ccc2bc'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
+  HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
+    db: das:/HToZATo2L2B_MH-846p11_MA-40p68_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_40p68_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
     era: '2016-preVFP'
     type: signal
     prod: bbH
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05898166082298366  # H -> ZA (0.961827945) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#101aa3'
+    branching-ratio: 0.060385803493659594  # H -> ZA (0.966889242) * A -> bb (0.928486153) * Z -> ee+ mumu (0.067264)
+    line-color: '#02dc1b'
     line-type: 8
     line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 186.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-217p19_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_217p19_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.0587073538244306  # H -> ZA (0.959672285) * A -> bb (0.909466827) * Z -> ee+ mumu (0.067264)
-    line-color: '#05fd66'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 217.19) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-252p91_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_252p91_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05836733192741321  # H -> ZA (0.956483832) * A -> bb (0.907213529) * Z -> ee+ mumu (0.067264)
-    line-color: '#80f6bb'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 252.91) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-294p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_294p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057922027485638995  # H -> ZA (0.951603119) * A -> bb (0.904909627) * Z -> ee+ mumu (0.067264)
-    line-color: '#615f37'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 294.51) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-30p00_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_30p00_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060486247197897886  # H -> ZA (0.966993847) * A -> bb (0.929929959) * Z -> ee+ mumu (0.067264)
-    line-color: '#784a44'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 30) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-345p53_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_345p53_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.057161781427220414  # H -> ZA (0.943257239) * A -> bb (0.900933878) * Z -> ee+ mumu (0.067264)
-    line-color: '#cb2452'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 345.53) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-34p93_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_34p93_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.060447067292676224  # H -> ZA (0.966949542) * A -> bb (0.929370179) * Z -> ee+ mumu (0.067264)
-    line-color: '#1ab3e2'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 34.93) GeV}'
-
-  HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-846p11_MA-405p40_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_846p11_MA_405p40_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.079044054   # +/- 4.33423038e-07 pb
-    branching-ratio: 0.05555413742705898  # H -> ZA (0.928362653) * A -> bb (0.889643598) * Z -> ee+ mumu (0.067264)
-    line-color: '#247af1'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 405.40) GeV}'
+    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 40.68) GeV}'
 
   HToZATo2L2B_MH_846p11_MA_475p64_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
     db: das:/HToZATo2L2B_MH-846p11_MA-475p64_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
@@ -3183,7 +2267,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05347338361776379  # H -> ZA (0.898221825) * A -> bb (0.885057267) * Z -> ee+ mumu (0.067264)
-    line-color: '#05b56d'
+    line-color: '#5a9234'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 475.64) GeV}'
@@ -3197,7 +2281,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06030733120628185  # H -> ZA (0.966807308) * A -> bb (0.927358155) * Z -> ee+ mumu (0.067264)
-    line-color: '#a0b050'
+    line-color: '#e23b6b'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 47.37) GeV}'
@@ -3211,7 +2295,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.04881538072913323  # H -> ZA (0.823514047) * A -> bb (0.881257811) * Z -> ee+ mumu (0.067264)
-    line-color: '#163a7d'
+    line-color: '#b2af33'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 558.06) GeV}'
@@ -3225,7 +2309,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06021463470033826  # H -> ZA (0.966695779) * A -> bb (0.926039568) * Z -> ee+ mumu (0.067264)
-    line-color: '#6975f7'
+    line-color: '#690d5a'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 55.16) GeV}'
@@ -3239,7 +2323,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.06010947876552853  # H -> ZA (0.966543593) * A -> bb (0.924567931) * Z -> ee+ mumu (0.067264)
-    line-color: '#0b0470'
+    line-color: '#81fb67'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 64.24) GeV}'
@@ -3253,7 +2337,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.033713727089623745  # H -> ZA (0.571020178) * A -> bb (0.877753605) * Z -> ee+ mumu (0.067264)
-    line-color: '#dd345a'
+    line-color: '#5000d1'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 654.75) GeV}'
@@ -3267,7 +2351,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05999308013254414  # H -> ZA (0.966336008) * A -> bb (0.922975785) * Z -> ee+ mumu (0.067264)
-    line-color: '#4a9b25'
+    line-color: '#666230'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 74.80) GeV}'
@@ -3281,7 +2365,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.079044054   # +/- 4.33423038e-07 pb
     branching-ratio: 0.05986545813216902  # H -> ZA (0.966051716) * A -> bb (0.921283396) * Z -> ee+ mumu (0.067264)
-    line-color: '#ba4999'
+    line-color: '#4c4656'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (846.11, 87.10) GeV}'
@@ -3295,7 +2379,7 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.060361920668134596  # H -> ZA (0.975943472) * A -> bb (0.919508391) * Z -> ee+ mumu (0.067264)
-    line-color: '#3391f6'
+    line-color: '#199354'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 101.43) GeV}'
@@ -3309,112 +2393,214 @@ samples:
     generated-events: 'genEventSumw'
     cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
     branching-ratio: 0.0602243849941008  # H -> ZA (0.975673592) * A -> bb (0.91766704) * Z -> ee+ mumu (0.067264)
-    line-color: '#122fda'
+    line-color: '#73dceb'
     line-type: 8
     line-width: 3
     legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 118.11) GeV}'
 
-  HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-137p54_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_997p14_MA_137p54_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.060076944249459266  # H -> ZA (0.975301007) * A -> bb (0.915770126) * Z -> ee+ mumu (0.067264)
-    line-color: '#fffa41'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 137.54) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-160p17_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_997p14_MA_160p17_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05991773260661937  # H -> ZA (0.97478339) * A -> bb (0.913828209) * Z -> ee+ mumu (0.067264)
-    line-color: '#2f9574'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 160.17) GeV}'
-
-  HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP:
-    db: das:/HToZATo2L2B_MH-997p14_MA-186p51_tb-20p00_TuneCP5_bbH4F_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HToZATo2L2B_MH_997p14_MA_186p51_tb_20p00_TuneCP5_bbH4F_13TeV_madgraph_pythia8_UL16preVFP.dat
-    era: '2016-preVFP'
-    type: signal
-    prod: bbH
-    generated-events: 'genEventSumw'
-    cross-section: 0.0330409623   # +/- 1.79170182e-07 pb
-    branching-ratio: 0.05973166486742378  # H -> ZA (0.974058439) * A -> bb (0.911668431) * Z -> ee+ mumu (0.067264)
-    line-color: '#2fddbf'
-    line-type: 8
-    line-width: 3
-    legend: '#splitline{lo-bbH: (m_{H}, m_{A})}{= (997.14, 186.51) GeV}'
-
-  DYJetsToLL_0J_UL16postVFP:
+  DYJetsToLL_0J_DY0b_UL16postVFP:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/DYJetsToLL_0J_UL16postVFP.dat
     split: 400
     era: '2016-postVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 4757.0 # +/- 9.294 pb
 
-  DYJetsToLL_0J_UL16preVFP:
+  DYJetsToLL_0J_DY1b_UL16postVFP:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_0J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+  DYJetsToLL_0J_DY2b_UL16postVFP:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_0J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+
+  DYJetsToLL_0J_DY0b_UL16preVFP:
     db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
     files: dascache/nanov9/2016-preVFP/DYJetsToLL_0J_UL16preVFP.dat
     split: 400
     era: '2016-preVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 4757.0 # +/- 9.294 pb
 
-  DYJetsToLL_1J_UL16postVFP:
+  DYJetsToLL_0J_DY1b_UL16preVFP:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_0J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+  DYJetsToLL_0J_DY2b_UL16preVFP:
+    db: das:/DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_0J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 4757.0 # +/- 9.294 pb
+
+
+  DYJetsToLL_1J_DY0b_UL16postVFP:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/DYJetsToLL_1J_UL16postVFP.dat
     split: 400
     era: '2016-postVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 859.589402 # +/- 6.067 pb
 
-  DYJetsToLL_1J_UL16preVFP:
+  DYJetsToLL_1J_DY1b_UL16postVFP:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_1J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+  DYJetsToLL_1J_DY2b_UL16postVFP:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_1J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+
+  DYJetsToLL_1J_DY0b_UL16preVFP:
     db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
     files: dascache/nanov9/2016-preVFP/DYJetsToLL_1J_UL16preVFP.dat
     split: 400
     era: '2016-preVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 859.589402 # +/- 6.067 pb
 
-  DYJetsToLL_2J_UL16postVFP:
+  DYJetsToLL_1J_DY1b_UL16preVFP:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_1J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+  DYJetsToLL_1J_DY2b_UL16preVFP:
+    db: das:/DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_1J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 859.589402 # +/- 6.067 pb
+
+
+  DYJetsToLL_2J_DY0b_UL16postVFP:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/DYJetsToLL_2J_UL16postVFP.dat
     split: 400
     era: '2016-postVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 361.4 # +/- 3.704 pb
 
-  DYJetsToLL_2J_UL16preVFP:
+  DYJetsToLL_2J_DY1b_UL16postVFP:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_2J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY2b_UL16postVFP:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+    files: dascache/nanov9/2016-postVFP/DYJetsToLL_2J_UL16postVFP.dat
+    split: 400
+    era: '2016-postVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
+
+  DYJetsToLL_2J_DY0b_UL16preVFP:
     db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
     files: dascache/nanov9/2016-preVFP/DYJetsToLL_2J_UL16preVFP.dat
     split: 400
     era: '2016-preVFP'
-    group: DY
+    group: DY0b
+    subprocess: DY0b
     type: mc
     generated-events: 'genEventSumw'
     cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY1b_UL16preVFP:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_2J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY1b
+    subprocess: DY1b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
+  DYJetsToLL_2J_DY2b_UL16preVFP:
+    db: das:/DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    files: dascache/nanov9/2016-preVFP/DYJetsToLL_2J_UL16preVFP.dat
+    split: 400
+    era: '2016-preVFP'
+    group: DY2b
+    subprocess: DY2b
+    type: mc
+    generated-events: 'genEventSumw'
+    cross-section: 361.4 # +/- 3.704 pb
+
 
   TTToSemiLeptonic_tt_UL16postVFP:
     db: das:/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
@@ -3915,16 +3101,6 @@ samples:
     cross-section: 0.2529 # +/- 0.0004 pb
 
   HZJ_HToWW_M-125_UL16postVFP:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
-    files: dascache/nanov9/2016-postVFP/HZJ_HToWW_M-125_UL16postVFP.dat
-    split: 400
-    era: '2016-postVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
-  HZJ_HToWW_M-125_UL16postVFP:
     db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM
     files: dascache/nanov9/2016-postVFP/HZJ_HToWW_M-125_UL16postVFP.dat
     split: 400
@@ -3935,17 +3111,7 @@ samples:
     cross-section: 0.0406 # +/- 0.0 pb
 
   HZJ_HToWW_M-125_UL16preVFP:
-    db: das:/HZJ_HToWW_M-125_CPS_NNPDF31_TuneCP5_13TeV-powheg-jhugen735-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
-    files: dascache/nanov9/2016-preVFP/HZJ_HToWW_M-125_UL16preVFP.dat
-    split: 400
-    era: '2016-preVFP'
-    group: SM
-    type: mc
-    generated-events: 'genEventSumw'
-    cross-section: 0.0406 # +/- 0.0 pb
-
-  HZJ_HToWW_M-125_UL16preVFP:
-    db: das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM
+    db: [das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11_ext1-v1/NANOAODSIM, das:/HZJ_HToWW_M-125_TuneCP5_13TeV-powheg-jhugen727-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM]
     files: dascache/nanov9/2016-preVFP/HZJ_HToWW_M-125_UL16preVFP.dat
     split: 400
     era: '2016-preVFP'
@@ -4549,34 +3715,69 @@ plotIt:
       legend: data
     signal:
       legend: Signal
-    DY:
-      fill-color: '#0000FF'
-      legend: DY+jets
+    DY0b:
+      fill-color: '#5F9EA0'
+      legend: DY0b
       order: 7
+      line-width: 1
+      line-color: 1
+      line-style: 1
+    DY1b:
+      fill-color: '#C6E2FF'
+      legend: DY1b
+      order: 8
+      line-width: 1
+      line-color: 1
+      line-style: 1
+    DY2b:
+      fill-color: '#0000FF'
+      legend: DY2b
+      order: 9
+      line-width: 1
+      line-color: 1
+      line-style: 1
     tt:
       fill-color: '#c4ffff'
       legend: tt
       order: 5
+      line-width: 1
+      line-color: 1
+      line-style: 1
     ttB:
       fill-color: '#abb2b9'
       legend: ttB
       order: 6
+      line-width: 1
+      line-color: 1
+      line-style: 1
     ST:
       fill-color: '#ffc800'
       legend: ST
       order: 4
+      line-width: 1
+      line-color: 1
+      line-style: 1
     VV:
       fill-color: '#ff8d58'
       legend: VV
       order: 3
+      line-width: 1
+      line-color: 1
+      line-style: 1
     others:
       fill-color: '#9370DB'
       legend: VVV, ttV
       order: 1
+      line-width: 1
+      line-color: 1
+      line-style: 1
     SM:
       fill-color: '#43294D'
       legend: ggh, tth, Zh
       order: 2
+      line-width: 1
+      line-color: 1
+      line-style: 1
   plotdefaults:
       y-axis: Events
       log-y: both
@@ -4604,47 +3805,49 @@ plotIt:
      # on the jets energy scale 
     - jesTotal
      # on DY+jets @nlo
-    - DYweight_resolved_elel_ployfit_lowmass6_highmass5
+    - DYweight_resolved_elel_ployfit_lowmass6_highmass4
     - DYweight_boosted_mumu_ployfit_lowmass6
         #2018
-    - pileup_2018
        # splited by source, uncorrelated per year
     - jesAbsolute_2018
     - jesBBEC1_2018
     - jesEC2_2018
     - jesHF_2018
     - jesRelativeSample_2018
+    - pileup_2018
      # on DY+jets @nlo
-    - DYweight_resolved_elel_ployfit_lowmass7_highmass5
+    - DYweight_resolved_elel_ployfit_lowmass7_highmass4
     - DYweight_boosted_mumu_ployfit_lowmass7
      # on HLTZvtx
     - HLTZvtx
         #2017
-    - pileup_2017
        # splited by source, uncorrelated per year
     - jesAbsolute_2017
     - jesBBEC1_2017
     - jesEC2_2017
     - jesHF_2017
     - jesRelativeSample_2017
+    - pileup_2017
      # L1 prefiring event correction weight
     - L1PreFiring_2017
      # on DY+jets @nlo
-    - DYweight_resolved_elel_ployfit_lowmass6_highmass5
+    - DYweight_resolved_elel_ployfit_lowmass6_highmass4
     - DYweight_boosted_mumu_ployfit_lowmass6
         #2016
-    - pileup_2016
        # splited by source, uncorrelated per year
     - jesAbsolute_2016
     - jesBBEC1_2016
     - jesEC2_2016
     - jesHF_2016
     - jesRelativeSample_2016
+    - pileup_2016
      # L1 prefiring event correction weight
     - L1PreFiring_2016
      # on DY+jets @nlo
-    - DYweight_resolved_elel_ployfit_lowmass6_highmass5
+    - DYweight_resolved_elel_ployfit_lowmass6_highmass4
     - DYweight_boosted_mumu_ployfit_lowmass6
+     # on ttbar
+    - TopPt_reweighting
      # leptons ID, ISO and RCO SFs 
     - muid_medium
     - muiso_tight
@@ -4662,6 +3865,7 @@ plotIt:
     - psISR
     - psFSR
     - pdf
+    - pdfAlphaS
      # on the btagged jets 
     - btagSF_fixWP_subjetdeepcsvM_light
     - btagSF_fixWP_subjetdeepcsvM_heavy
@@ -4669,7 +3873,8 @@ plotIt:
     - btagSF_fixWP_deepcsvM_heavy
     - btagSF_fixWP_deepflavourM_light
     - btagSF_fixWP_deepflavourM_heavy
-     # from btag eff meas bEff
+     # from btag eff measurements 
+    - bEff
     - cEff
     - lightEff
     # on the cross section : 1+xsec_uncer(pb)/xsec(pb)

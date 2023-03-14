@@ -31,17 +31,35 @@ def getSamplesFromDAS(era, smp, dataType= None, rm_nlo= False):
     except subprocess.CalledProcessError:
         logger.error("Failed to run {0}".format(" ".join(dasgoCmd)))
    
+    if dataType == 'mc':
+        for ls in [ls_linesAPV, ls_lines]:
+            if len(ls) !=2: continue
+            
+            ext_f = None
+            for f in ls:
+                if 'ext' in f.decode('utf-8'):
+                    ext_ver = f.decode('utf-8').split('_ext')[-1].split('-')[-1]
+                    ext_f   = f
+            
+            if ext_f:
+                for f in ls:
+                    if not f.decode('utf-8').endswith(ext_ver):
+                        print( f'droping {ext_f} this extension does not belong here !')
+                        ls.remove(ext_f)
+    
     all_smp = (ls_lines + ls_linesAPV if era == 16 else (ls_lines))
     
     if dataType == 'mc':
         all_smp = [ smpNm for smpNm in all_smp if not any(str.encode(x) in smpNm for x in ['PUForTRKv2_TRKv2_', 'PU35ForTRKv2_TRKv2_', 'PUForTRK_TRK_106X', '-PU35ForTRK_TRK_106X_', 'JMENano', 'PUForMUOVal', 'FSUL18_FSUL18_'])] 
         return all_smp
+    
     elif dataType == 'signal':
         if rm_nlo: 
             filter_nlosmp = [ smpNm for smpNm in all_smp if not str.encode('_tb-20p00_TuneCP5_bbH4F_13TeV-amcatnlo-pythia8') in smpNm]
             return filter_nlosmp
         else:
             return all_smp
+    
     else:
         if era == 17: all_smp = [ smpNm for smpNm in all_smp if not (str.encode('2017G') in smpNm or str.encode('2017H') in smpNm)]
         return all_smp
@@ -134,13 +152,16 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
             #s = 'data' if dtype=='data' else 'mc'
             #checklocalfiles(era, dtype_processes, s=s)
         all_processes += dtype_processes
+    
+    if n !='':
+        suffix += f'chunk{n}_'
 
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_AtoZHvsHToZA.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_few_for_fast_unblind.txt'
     #fNm = f'mc_fullanalysisRunIISummer20UL_{suffix}nanov9_for_btagEffMaps.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_noSignal.txt'
     #fNm = f'fullanalysisRunIISummer20UL_{suffix}nanov9_for_skim.txt'
-    fNm  = 'fullanalysisRunIISummer20UL_18_17_16_nanov9.txt' 
+    fNm  = f'fullanalysisRunIISummer20UL_{suffix}nanov9.txt' 
     
     writeToFile(fNm, all_processes)
     print('Available A -> ZH signal points ::', list(set(AToZH_points)))
@@ -205,9 +226,9 @@ if __name__ == "__main__":
         }
     
     
-    _runOn  = ['signal']#'data', 'mc', 'signal']
-    do = 'full' # choices: 'full', 'chunk', 'HvsA', custom
-    chunk_of = 10
+    _runOn  = ['signal', 'data', 'mc']
+    do = 'chunk' # choices: 'full', 'chunk', 'HvsA', custom
+    chunk_of = 20
     
     rm_nlo          = False
     print_bambooCfg = True
