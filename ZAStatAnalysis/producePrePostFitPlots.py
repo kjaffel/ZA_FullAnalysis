@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, os, os.path
 import glob 
 import ROOT
@@ -230,9 +232,6 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                 for cat_path in glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re)):
                     ch = 1
                     
-                    #if not 'MH-500.0_MA-300.0' in cat_path: # FIXME test
-                    #   continue
-
                     split_path = cat_path.split('/')
                     if '' in split_path: split_path.remove('')
                     
@@ -381,13 +380,13 @@ if __name__ == '__main__':
                                             era             = options.era,
                                             submit_to_slurm = True )
      
-   # runPlotIt_prepostFit(workdir          = options.inputs, 
-   #                      mode             = options.mode, 
-   #                      era              = options.era, 
-   #                      unblind          = options.unblind, 
-   #                      reshape          = options.reshape, 
-   #                      poi_dir          = '2POIs_r', 
-   #                      tb_dir           = '', 
-   #                      rescale_to_za_br = options.rescale_to_za_br)
+    runPlotIt_prepostFit(workdir          = options.inputs, 
+                         mode             = options.mode, 
+                         era              = options.era, 
+                         unblind          = options.unblind, 
+                         reshape          = options.reshape, 
+                         poi_dir          = '2POIs_r', 
+                         tb_dir           = '', 
+                         rescale_to_za_br = options.rescale_to_za_br)
 
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

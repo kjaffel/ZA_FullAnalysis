@@ -37,18 +37,31 @@ signal_process = args.signal
 def getColumnName(workspace):
     # this works assuming no combination of lepton flavour or regions
     # which is true for  'fit' 
+    # workspace e.g: HToZATo2L2B_bb_associatedProduction_nb2_resolved_MuMu_dnn_MH_379.0_MA_54.59_combine_workspace.root
     mode   = workspace.split('To2L2B_')[0]
     heavy  = mode[0]
     light  = mode[-1]
     prod   = 'gg%s'%heavy if 'gg_fusion' in workspace else 'bb%s'%heavy
     nb     = workspace.split('_')[3]
-    region = workspace.split('_')[4] 
-    channel= workspace.split('_')[5]
+                    
+    if 'resolved_boosted' in workspace: region= 'resolved_boosted'
+    elif 'resolved' in workspace: region = 'resolved'
+    elif 'boosted' in workspace: region = 'boosted'
+                    
+    channel  = workspace.split(region+'_')[-1].split('_dnn')[0]
     flavDict = {
-            'ElEl': '$e^{\pm}e^{\mp}$', 
-            'MuMu': '$\mu^{\pm}\mu^{\mp}$',
-            'MuEl': '$\mu^{\pm}e^{\mp}$',
-            'OSSF': '$\mu^{\pm}\mu^{\mp}$ + $e^{\pm}e^{\mp}$'}
+                'ElEl'      : 'ee',
+                'MuMu'      : r'$\mu\mu$',
+                'MuEl'      : r'$\mu e$',
+                'MuMu_ElEl' : r'$\mu\mu$ + ee',
+                'OSSF'      : r'$\mu\mu$ + ee',
+                'ElEl_MuEl' :  'ee + r$\mu e$',
+                'MuMu_MuEl' : r'$\mu\mu$ + $\mu e$',
+                'OSSF_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
+                'split_OSSF': r'$\mu\mu$ + ee',
+                'split_OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
+                'MuMu_ElEl_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
+                }
     return '%s -%s, (%s)'%(nb, region, flavDict[channel])  
 
 

@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+
 import argparse
 import os, sys, os.path
 import glob
@@ -91,9 +92,6 @@ def merge_histos(fit, tot_histos, output_dir, ch_exp):
     from numpy_hist import NumpyHist
     from hist_interface import CppInterface
     
-    d_ch_exp = {}
-    for i in range(ch_exp): d_ch_exp['ch%s'%(i+1)]= [] 
-    
     print( tot_histos )
     
     for bkg, rF_chs in tot_histos.items():
@@ -112,7 +110,9 @@ def merge_histos(fit, tot_histos, output_dir, ch_exp):
                 #print( hist, nph)     
                 #print( histNm, rF, var ) 
                 if not histNm in mergedHists.keys():
-                    mergedHists[histNm]= d_ch_exp
+                    mergedHists[histNm] = {}
+                    for i in range(ch_exp): 
+                        mergedHists[histNm]['ch%s'%(i+1)]= [] 
                 
                 mergedHists[histNm][ch].append(nph)
             inF.Close()
@@ -120,20 +120,21 @@ def merge_histos(fit, tot_histos, output_dir, ch_exp):
         outNm = "%s_%s_histos.root" % (bkg, fit)
         outF  = TFile.Open(os.path.join(output_dir, outNm), 'recreate')
         
-        #print( bkg, mergedHists )
+        print( bkg, mergedHists )
         for histNm, ch_histos in mergedHists.items():
             
             edges  = []
             events = []
             quadraticErr = []
-            for i, (ch, ch_histo)  in enumerate(ch_histos.items()):
-                if not ch_histo:
+            for i, (ch, histos)  in enumerate(ch_histos.items()):
+                if not histos:
                     edg, eve, err = produce_empty_hist_to_allow_plotit_stack(fit, ch, output_dir, findhist=histNm)
                     events.append(eve)
                     edges.append(np.array( list(map(lambda x: x + i, edg.tolist() )) ))
                     quadraticErr.append(err)
                 else:
-                    nph = ch_histo[0]
+                    #print (histos)
+                    nph = histos[0]
                     events.append(nph.w)
                     edges.append( np.array( list(map(lambda x: x + i, nph.e.tolist() )) ) )
                     quadraticErr.append(nph.s)
