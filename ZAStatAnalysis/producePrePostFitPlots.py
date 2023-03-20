@@ -21,68 +21,59 @@ def CopyTH1F_to_TH1D(hist):
     return copyHist
 
 
-def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir):
-   
-    for fit in ['fit_s', 'fit_b']:
-        for rf in glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit)):
+def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era, submit_to_slurm=True):
+    if submit_to_slurm:
+        from CP3SlurmUtils.Configuration import Configuration
+        from CP3SlurmUtils.SubmitWorker import SubmitWorker
+        slurm_stageout = workdir.split('work__')[0]
+        config = Configuration()
+        config.sbatch_partition = 'cp3'
+        config.sbatch_qos = 'cp3'
+        config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
+        config.sbatch_chdir = os.path.join(slurm_stageout, 'work__UL%s'%era, 'slurm', 'plotit')
+        config.stageoutDir = config.sbatch_chdir
+        config.sbatch_time  = '01:24:00'
+        config.sbatch_memPerCPU = '2000'
+        config.inputParamsNames = ['cmssw', 'inDir', 'outDir', 'prod', 'name']
+        config.inputParams = []
+        cmssw  = config.cmsswDir
+    
+    for i, fit in enumerate(['fit_s', 'fit_b']):
+        for j, rf in enumerate(glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit))):
+            
+            #if i !=0 or j !=0: # just for test
+            #    exit()
+
             smp    = rf.split('/')[-1]
             dir    = rf.split(smp)[0]
             params = rf.split('/')[-3].split('_')
             heavy  = params[0].split('-')[0].replace('M', '')
             light  = params[1].split('-')[0].replace('M', '')
+            inDir  = '%s/%s'%(dir, smp)
+            outDir = '%s/%s'%(dir, fit) 
             prod   = '%sToZ%sTo2LB'%(heavy, light)
+            name   = 'dnn_scores' 
+
+            if submit_to_slurm:
+                config.inputParams.append([cmssw, inDir, outDir, prod, name])
+            else:
+                redoConversion = ['python', 'utils/convertPrePostfitShapesForPlotIt.py', '-i',  inDir, '-o', outDir, '--signal-process', prod, '-n', name]
+                try:
+                    logger.info("running {}".format(" ".join(redoConversion)))
+                    subprocess.check_call(redoConversion)#, stdout=subprocess.DEVNULL)
+                except subprocess.CalledProcessError:
+                    logger.error("Failed to run {}".format(" ".join(redoConversion)))
     
-            redoConversion = ['python', 'utils/convertPrePostfitShapesForPlotIt.py', '-i',  '%s/%s'%(dir, smp), '-o', '%s/%s'%(dir, fit), '--signal-process', prod, '-n', 'dnn_scores']
-            try:
-                logger.info("running {}".format(" ".join(redoConversion)))
-                subprocess.check_call(redoConversion)#, stdout=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logger.error("Failed to run {}".format(" ".join(redoConversion)))
-
-
-
-def reshapePrePostFitHistograms(workdir, mode, poi_dir, tb_dir):
-    
-    for fit in ['fit_s', 'fit_b']:
-        for rf in  glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', fit, '*.root')):
-            cat    = rf.split('/')[-2]
-            smp    = rf.split('/')[-1]
-            p_out  = rf.split(smp)[0]
-            
-            outdir = os.path.join(p_out, 'reshaped')
-            if not os.path.isdir(outdir):
-                os.makedirs(outdir)
-
-            if smp == 'plots.root':
-                continue
-            if smp.startswith('fit_shapes_'):
-                continue
-            #print( 'working on:', rf)
-            inFile  = HT.openFileAndGet(rf)
-            outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
-            for hk in inFile.GetListOfKeys():
-                
-                cl = ROOT.gROOT.GetClass(hk.GetClassName())
-                if not cl.InheritsFrom("TH1"):
-                    continue
-                histNm = hk.ReadObj().GetName()
-                hk.ReadObj().SetDirectory(0)
-                
-                hist  = hk.ReadObj()
-                #hist = CopyTH1F_to_TH1D(hk.ReadObj())
-                
-                nph = NumpyHist.getFromRoot(hist)
-                #nph.setUnitaryBinWidth()
-                nph.divideByBinWidth()
-                newHist = nph.fillHistogram(hist.GetName())
-                newHist.SetDirectory(0) 
-                
-                outFile.cd()
-                newHist.Write()
-            inFile.Close()
-            outFile.Close()
-            #print( 'Divide events by the bin width for', fit, smp)
-        #print( "============="*10)
+    if submit_to_slurm :
+        config.payload = \
+            """
+                pushd ${cmssw}
+                echo "working on plotit root files :::"
+                python utils/convertPrePostfitShapesForPlotIt.py -i ${inDir} -o ${outDir} --signal-process ${prod} -n ${name}
+            """
+        submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
+        submitWorker()
+    return 
 
 
 def ProcessHistograms( hist):
@@ -210,45 +201,69 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
         lumi     = Constants.getLuminosity(era)
         hist_nm  = Constants.get_Nm_for_runmode( mode)
         
+        # will devide bin contents by the bin width
+        if options.reshape: 
+            sys.path.append(f'{base}/utils')
+            import convertPrePostfitShapesForPlotIt as shPlotIt 
+            for fit in ['fit_s', 'fit_b']:
+                output_dir = os.path.join(workdir, mode, poi_dir, tb_dir, '*', 'plotIt_*', fit)
+                shPlotIt.reshapePrePostFitHistograms(output_dir)
+        
         xmax_dict= {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
         channels = {
-                    'ElEl'     : 'ee',
-                    'MuMu'     : r'$\mu\mu$',
-                    'MuEl'     : r'$\mu e$',
-                    'MuMu_ElEl': r'$\mu\mu$ + ee',
-                    'OSSF'     : r'$\mu\mu$ + ee',
-                    'ElEl_MuEl':  'ee + r$\mu e$',
-                    'MuMu_MuEl': r'$\mu\mu$ + $\mu e$',
-                    'OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
-                    'MuMu_ElEl_MuEl': r'($\mu\mu$ + ee) + $\mu e$',
+                    'ElEl'      : 'ee',
+                    'MuMu'      : r'$\mu\mu$',
+                    'MuEl'      : r'$\mu e$',
+                    'MuMu_ElEl' : r'$\mu\mu$ + ee',
+                    'OSSF'      : r'$\mu\mu$ + ee',
+                    'ElEl_MuEl' :  'ee + r$\mu e$',
+                    'MuMu_MuEl' : r'$\mu\mu$ + $\mu e$',
+                    'OSSF_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
+                    'split_OSSF': r'$\mu\mu$ + ee',
+                    'split_OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
+                    'MuMu_ElEl_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
                     }
         
         for fit in ['prefit', 'postfit']:
             for fit_what in ['fit_s', 'fit_b']:
                 
-                plotit_histos = glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re))
-                
-                for cat_path in plotit_histos:
+                for cat_path in glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re)):
+                    ch = 1
                     
+                    #if not 'MH-500.0_MA-300.0' in cat_path: # FIXME test
+                    #   continue
+
                     split_path = cat_path.split('/')
                     if '' in split_path: split_path.remove('')
                     
-                    if any(x in split_path for x in ['MuMu_ElEl', 'MuMu_MuEl', 'ElEl_MuEl', 'OSSF_MuEl', 'MuMu_ElEl_MuEl']):
-                        print('sorry, merged categories are not supported...')
-                        continue # this is need to be taken care in :: convertPrePostfitShapesForPlotIt.py TODO
-                    
-                    if reshape: p_out = split_path[-3]
-                    else: p_out = split_path[-2]
-                   
+                    p_out  = split_path[-3]
                     output = cat_path.split()[-1]
                     os.chdir(os.path.join(base, cat_path.split(output)[0]))
                     os.getcwd()
                     
+                    if '_nb2_' in p_out: nb = 'nb2'
+                    elif '_nb3_' in p_out: nb = 'nb3'
+                    elif 'nb2PLusnb3' in p_out: 
+                        nb  = 'nb2+nb3'
+                        ch *= 2
+                   
+                    if 'resolved_boosted' in p_out: 
+                        region = 'resolved_boosted'
+                        ch *= 2
+                    elif 'resolved' in p_out: region = 'resolved'
+                    elif 'boosted' in p_out : region = 'boosted'
+                    
+                    f = p_out.split( region + '_')[-1]
+                    flavs  = f.split('_') 
+                    flavor = channels[f]
+                    flen   = len(flavs)
+                    if 'split' in flavs:
+                        if 'MuEl' in flavs: flen = 3
+                        else: flen = 2
+                    ch *= flen
+                    
                     inBlockSignal = False
-                    prod       = p_out.split('_')[1] +'_'+p_out.split('_')[2]
-                    flavor     = channels[p_out.split('_')[-1]]
-                    region     = p_out.split('_')[-2]
-                    reco       = p_out.split('_')[-3]
+                    prod       = '_'.join(p_out.split('_')[1:2])
                     params     = cat_path.split('/plotIt_')[0].split('/')[-1].split('_')
                     heavy      = params[0].split('-')[0].replace('M', '')
                     light      = params[1].split('-')[0].replace('M', '')
@@ -258,14 +273,16 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     m_heavy    = m_heavy.replace('.00', '')
                     m_light    = m_light.replace('.00', '')
                     x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode}'
-                    x_max      = xmax_dict[mode]
+                    x_max      = ch 
                     signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
                     tb         = float(tb_dir.split('_')[1]) if tb_dir !='' else None
-
+                    
+                    print( p_out, ch , flavor, nb, region ) 
                     if tb is None:
                         tb = 1.5 if 'gg_fusion' in p_out else 20.
                     xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
-                    
+                    print( br , tb) 
+
                     with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                         with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
                             
@@ -279,7 +296,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                         outf.write("  luminosity-label: '%1$.2f fb^{-1} (13 TeV)'\n")
                                 
                                 elif '    blinded-range:' in line:
-                                    outf.write("{}    blinded-range: [0.8, 1.0]\n".format('#' if unblind or 'MuEl' in p_out else ''))
+                                    outf.write("{}    blinded-range: [0.8, 1.]\n".format('#' if unblind or 'MuEl' in p_out else ''))
                                 elif '    x-axis:' in line:
                                     outf.write(f"    x-axis: {x_axis}\n")
                                 elif '  root: myroot_path' in line:
@@ -292,6 +309,9 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                     signal = line.strip().replace('signal-prod', process).replace('fit-type', fit).replace(':','')
                                     if not os.path.exists( os.path.join(output, signal)): cs = '#'
                                     outf.write(f"{cs}  {signal}:\n")
+                                    if rescale_to_za_br:
+                                        outf.write(f"{cs}    branching-ratio: {br}\n")
+                                
                                 elif '_fit-type_histos.root:' in line:
                                     inBlockSignal = False
                                     bkg    = line.strip().replace('fit-type', fit).replace(':','')
@@ -301,14 +321,12 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                 elif '    type:' in line and not inBlockSignal:
                                     _Type  = line.strip().split(':')[-1]
                                     outf.write(f"{cb}    type: {_Type}\n")
+                                
                                 elif '    group:' in line and not inBlockSignal:
                                     _group = line.strip().split(':')[-1]
                                     outf.write(f"{cb}    group: {_group}\n")
-                                
                                 elif '    legend: mysignal' in line:
                                     outf.write(f"{cs}    legend: '{signal_smp}'\n")
-                                elif '    Branching-ratio: ' in line:
-                                    outf.write(f"{cs}    Branching-ratio: {br}\n")
                                 elif '    type: signal' in line:
                                     outf.write(f"{cs}    type: signal\n")
                                 elif '    line-type: 8' in line and inBlockSignal:
@@ -317,15 +335,11 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                     outf.write(f"{cs}    line-width: 3\n")
 
                                 elif '      text: mychannel' in line:
-                                    outf.write(f"      text: {reco}-{region}, {flavor}\n")
+                                    outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(nb, region.replace('_', '+'), flavor.replace('$', '').replace("\mu", "#mu")))
                                 elif '  histo-name:' in line:
                                     outf.write(f"  {hist_nm}_{fit}:\n")
                                 elif '    - x_max' in line:
                                     outf.write(f"    - {x_max}\n")
-                                #elif 'Label1' in line:
-                                #    outf.write("        - {text: '%s -%s', position: [0.22, 0.895], size: 20}\n"%(reco, region))
-                                #elif 'Lable2' in line:
-                                #    outf.write("        - {text: '%s', position: [0.3, 0.7], size: 20}\n"%flavor)
                                 elif '  - fit-type' in line:
                                     outf.write("  - {}\n".format(fit))
                                 else:
@@ -339,6 +353,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                         print(f' plot saved in :: {cat_path}/{hist_nm}_{fit}_logy.png')
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
+                    print( "===============" *8)
                 os.chdir(base)
 
 
@@ -359,18 +374,20 @@ if __name__ == '__main__':
 
     options = parser.parse_args()
     
-    #RedoPrePostfitShapesConversionForPlotIt(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
-    
-    if options.reshape: # will devide bin contents by the bin width
-        reshapePrePostFitHistograms(workdir=options.inputs, mode=options.mode, poi_dir='2POIs_r', tb_dir='')
-    
-    runPlotIt_prepostFit(workdir          = options.inputs, 
-                         mode             = options.mode, 
-                         era              = options.era, 
-                         unblind          = options.unblind, 
-                         reshape          = options.reshape, 
-                         poi_dir          = '2POIs_r', 
-                         tb_dir           = '', 
-                         rescale_to_za_br = options.rescale_to_za_br)
+    RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
+                                            mode            = options.mode, 
+                                            poi_dir         = '2POIs_r', 
+                                            tb_dir          = '', 
+                                            era             = options.era,
+                                            submit_to_slurm = True )
+     
+   # runPlotIt_prepostFit(workdir          = options.inputs, 
+   #                      mode             = options.mode, 
+   #                      era              = options.era, 
+   #                      unblind          = options.unblind, 
+   #                      reshape          = options.reshape, 
+   #                      poi_dir          = '2POIs_r', 
+   #                      tb_dir           = '', 
+   #                      rescale_to_za_br = options.rescale_to_za_br)
 
     #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

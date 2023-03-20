@@ -22,9 +22,6 @@ files:
     line-color: '#FF0A2A'
     line-type: 8
     line-width: 3
-  #DY_fit-type_histos.root:
-  #  type: mc
-  #  group: DY
   DY0b_fit-type_histos.root:
     type: mc
     group: DY
@@ -34,9 +31,6 @@ files:
   DY2b_fit-type_histos.root:
     type: mc
     group: DY
-  #ttbar_fit-type_histos.root:
-  #  type: mc
-  #  group: ttbar
   tt_fit-type_histos.root:
     type: mc
     group: tt
@@ -67,6 +61,56 @@ plots:
     - position: [0.22, 0.89]
       size: 20
       text: mychannel
+    vertical-lines:
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 1.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 2.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 3.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 4.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 5.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 6.
+    }
+    - {
+        line-color: 1,
+        line-type: 1,
+        line-width: 2,
+        pad: top,
+        value: 7.
+    }
     legend-columns: 3
     log-y: both
     ratio-y-axis-range: [0.6, 1.4]
