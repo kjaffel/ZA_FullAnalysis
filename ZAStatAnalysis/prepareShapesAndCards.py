@@ -146,12 +146,15 @@ def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, datas
    
     elif method =='goodness_of_fit':
         Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
+    
+    elif method =='fit':
+        PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
     return 
 
 
 def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod, era, verbose, reg=None, skip=None, unblind=False, _2POIs_r=False, run_validation=False, multi_signal=False, todo=''):
     
-    if method in ['fit', 'generatetoys']:
+    if method in ['generatetoys']:
         return 
     
     keys = ['OSSF', 'OSSF_MuEl', 'split_OSSF', 'split_OSSF_MuEl']
@@ -160,6 +163,7 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
         
         output_dir = cat[0]
         output_sig = cat[1]
+        sig = prod[0:2]+ output_sig.split('_')[1][-1] 
         if Constants.cat_to_tuplemass(output_sig) in skip:
             continue
         
@@ -179,7 +183,8 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                 if not cmd:
                     continue
                 
-                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': reg, 'flavor': k }
+                combinedcat = prod + '_nb2PLusnb3_' + reg + '_' + k
+                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': reg, 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
                 check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
                                     opts            = opts,
                                     unblind         = unblind, 
@@ -203,7 +208,9 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                         kp = 'split_'+k
                     
                     cmd += proc_combination[reco][cat][kp]
-                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': 'resolved_boosted', 'flavor': k }
+                
+                combinedcat = prod + '_nb2PLusnb3_resolved_boosted_' + k
+                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
                 check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
                                     opts            = opts,
                                     unblind         = unblind, 
@@ -282,6 +289,101 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
            #         Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', verbose)
 
     return 
+
+
+
+def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, bin_id, cat, prod, dataset, run_validation=False, unblind=False, verbose=False, skip=False):
+    script = """#! /bin/bash
+
+# http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
+pushd {dir}
+
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+
+# print yield tables
+if [ ! -d YieldTables ]; then
+    mkdir YieldTables;
+fi
+
+# Run combined
+# Fit the {name} distribution
+
+if [ ! -d plotIt_{cat} ]; then
+    mkdir plotIt_{cat};
+fi
+
+pushd plotIt_{cat}
+    combine {method} -m {mass} {dataset} --saveWithUncertainties --ignoreCovWarning -n {name} ../{workspace_root} --plots --verbose {verbose} &> {name}.log
+popd 
+
+
+# Create pre/post-fit shapes 
+#fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
+#fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
+
+CAT={CAT}
+fits=("fit_s" "fit_b")  
+
+for fit_what in ${{fits[*]}}; do
+    
+    if [ ! -d plotIt_{cat}/${{fit_what}} ]; then
+        mkdir plotIt_{cat}/${{fit_what}};
+    fi
+    
+    pushd plotIt_{cat}/${{fit_what}} 
+    
+    PostFitShapesFromWorkspace -w ../../{workspace_root} -d ../../{datacard} -o ../fit_shapes_${{CAT}}_${{fit_what}}.root -f ../fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+
+    {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i ../fit_shapes_${{CAT}}_${{fit_what}}.root -o . --signal-process HToZATo2L2B -n {name2}
+    $CMSSW_BASE/../utils/printYieldTables.py -w ../../{workspace_root} -f ../fitDiagnostics{prefix}.root -s {signal} -b {bin} --fit ${{fit_what}} -o ../../YieldTables
+    
+    # Generate JSON for interactive covariance viewer
+    # https://cms-hh.web.cern.ch/tools/inference/scripts.html#generate-json-for-interactive-covariance-viewer
+    $CMSSW_BASE/../utils/extract_fitresult_cov.json.py ../fitDiagnostics{prefix}.root
+    
+    popd
+
+done
+
+run_validation={run_validation}
+if $run_validation; then 
+    if [ ! -d validation_datacards ]; then
+        mkdir validation_datacards;
+    fi
+    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+fi
+
+popd
+""".format(workspace_root = workspace_file, 
+           prefix         = output_prefix, 
+           cat            = cat, 
+           bin            = bin_id, 
+           signal         = prod,  
+           CAT            = cat+'_'+bin_id, 
+           dir            = os.path.abspath(output_dir),
+           name           = output_prefix, 
+           name2          = Constants.get_Nm_for_runmode(mode),
+           c              = '#' if skip else '',
+           datacard       = os.path.basename(datacard), 
+           mass           = mass, 
+           verbose        = verbose, 
+           run_validation = str(run_validation).lower(),
+           method         = H.get_combine_method(method), 
+           dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')) )
+    
+    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
+    print( method, script_file)
+    with open(script_file, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_file)
+    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+    
+    return script
+
 
 
 def _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, mass, flavor, method, prod, reco, dataset, expectSignal, run_validation, unblind, verbose):
@@ -1459,88 +1561,8 @@ popd
             
             elif method =='fit':
                 # for PAG closure checks : https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsPAGPreapprovalChecks
-                create = True
-                script = """#! /bin/bash
-
-# http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
-pushd {dir}
-
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-
-# print yield tables
-if [ ! -d YieldTables ]; then
-    mkdir YieldTables;
-fi
-
-# Run combined
-# Fit the {name} distribution
-
-if [ ! -d plotIt_{cat} ]; then
-    mkdir plotIt_{cat};
-fi
-
-pushd plotIt_{cat}
-    combine {method} -m {mass} {dataset} --saveWithUncertainties --ignoreCovWarning -n {name} ../{workspace_root} --plots --verbose {verbose} &> {name}.log
-popd 
-
-
-# Create pre/post-fit shapes 
-#fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
-#fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
-
-CAT={CAT}
-fits=("fit_s" "fit_b")  
-
-for fit_what in ${{fits[*]}}; do
-    
-    if [ ! -d plotIt_{cat}/${{fit_what}} ]; then
-        mkdir plotIt_{cat}/${{fit_what}};
-    fi
-    
-    pushd plotIt_{cat}/${{fit_what}} 
-    
-    PostFitShapesFromWorkspace -w ../../{workspace_root} -d ../../{datacard} -o ../fit_shapes_${{CAT}}_${{fit_what}}.root -f ../fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
-
-    {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i ../fit_shapes_${{CAT}}_${{fit_what}}.root -o . --signal-process HToZATo2L2B -n {name2}
-    $CMSSW_BASE/../utils/printYieldTables.py -w ../../{workspace_root} -f ../fitDiagnostics{prefix}.root -s {signal} -b {bin} --fit ${{fit_what}} -o ../../YieldTables
-    
-    # Generate JSON for interactive covariance viewer
-    # https://cms-hh.web.cern.ch/tools/inference/scripts.html#generate-json-for-interactive-covariance-viewer
-    $CMSSW_BASE/../utils/extract_fitresult_cov.json.py ../fitDiagnostics{prefix}.root
-    
-    popd
-
-done
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi
-
-popd
-""".format(workspace_root = workspace_file, 
-           prefix         = output_prefix, 
-           cat            = cat, 
-           bin            = bin_id, 
-           signal         = sig_process[0],  
-           CAT            = cat+'_'+bin_id, 
-           dir            = os.path.abspath(output_dir),
-           name           = output_prefix, 
-           name2          = Constants.get_Nm_for_runmode(mode),
-           c              = '#' if skip else '',
-           datacard       = os.path.basename(datacard), 
-           mass           = mass, 
-           verbose        = verbose, 
-           run_validation = str(run_validation).lower(),
-           method         = H.get_combine_method(method), 
-           dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')) )
-            
+                create = False
+                script = PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
             if create:
                 script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
                 print( method, script_file)
@@ -1596,7 +1618,7 @@ popd
             writeCard(shallow_cp, mass, output_dir, output_file, cat, opts, script=True)
             
 
-        if merge_cards and method not in ['generatetoys', 'fit']:
+        if merge_cards and method not in ['generatetoys']:
             
             list_mergeable_flavors = [['MuMu', 'ElEl'], ['MuMu', 'ElEl', 'MuEl'], ['OSSF', 'MuEl'], ['MuMu', 'MuEl'], ['ElEl', 'MuEl']] 
             
@@ -1624,11 +1646,12 @@ popd
                     cmd  = ['combineCards.py'] + args
                     
                     merged_flav_datacard = output_prefix + '_'+ prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav) + '_' + bin_id
+                    merged_cat = prod + '_' + reco + '_' + reg + '_' + '_'.join(mflav) 
                     
                     with open( os.path.join(output_dir, merged_flav_datacard + '.dat'), 'w+') as f:
                         subprocess.check_call(cmd, cwd=output_dir, stdout=f)
                     
-                    opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav)}
+                    opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process, 'cat': merged_cat, 'bin': bin_id}
                     createRunCombineScript(bin_id, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True, multi_signal=multi_signal)
                     
                     if not mflav in ToSKIP:

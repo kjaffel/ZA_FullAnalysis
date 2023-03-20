@@ -907,7 +907,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     xsc, xsc_err, BR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, proc1, thdm, tb)
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
-                        smpScale  *= BR
+                        #smpScale  *= BR
                         if method !='asymptotic':
                             smpScale *= xsc
                     else:
