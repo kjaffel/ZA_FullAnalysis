@@ -171,8 +171,6 @@ def ZA_DASGOCILENT(n='', choosen_points=None, _runOn=None):
 
 if __name__ == "__main__":
     
-    outdir   =  '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/config'
-    
     look_for = {
         'signal' : ['GluGluToHToZATo2L2B', 'HToZATo2L2B', 'GluGluToAToZHTo2L2B', 'AToZHTo2L2B'],
         'mc'     : [
@@ -237,7 +235,7 @@ if __name__ == "__main__":
 
     if do == 'chunk':
         for n in range(chunk_of):
-            chunk_of_points = utils.getSignalMassPoints_ver2(outdir, chunk=n, do=do, chunk_of=chunk_of)
+            chunk_of_points = utils.getSignalMassPoints_ver2(chunk=n, do=do, chunk_of=chunk_of)
             choosen_points  = chunk_of_points['HToZA']+chunk_of_points['AToZH']
             logger.info( f'working on batch {n} :: {choosen_points}, len: {len(choosen_points)}')
             outF = ZA_DASGOCILENT(n, choosen_points, _runOn=_runOn)

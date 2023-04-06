@@ -1,8 +1,8 @@
-# 2HDM H/A ->Z( -> ll) A/H ( -> bb) search: Full ULegcay RunII Analysis
-- Analysis use Bamboo RDataFrame and works with NanoAODv``{5,7,8 and 9}``, check ``.yml`` configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite NanoAOD version. 
+# 2HDM H/A →  Z( → ll) A/H ( → bb) search: Full ULegcay RunII Analysis (working nano version is 9) :
+- Analysis use Bamboo RDataFrame and works with NanoAODv``{5, 7, 8, and 9}``, check ``.yml`` configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite NanoAOD version. 
 - You can find more about Bamboo in [the UserGuide](https://bamboo-hep.readthedocs.io/en/latest/index.html). Also feel free to report any issue you encounter in [~bamboo](https://mattermost.web.cern.ch/cms-exp/channels/bamboo) channel on the CERN mattermost, or on [Gitlab](https://gitlab.cern.ch/cp3-cms/bamboo/-/issues).
 
-## Bamboo Installation(1st time):
+## Bamboo Installation (1st time):
 ```bash
 mkdir bamboodev
 cd bamboodev
@@ -30,7 +30,8 @@ cd -
 pip install --no-binary=correctionlib correctionlib
 
 # To use the calculators modules for jet and MET corrections and systematic variations
-pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git
+# Please use Tags: 0.1.0 at the moment  
+pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git@0.1.0
 ```
 - Let's make things more simpler, in your ``~/.bashrc`` you can add:
 ```bash
@@ -108,42 +109,24 @@ I do recommend to test locally first with ``--maxFiles=1``,  to check that the m
 - ``--doMETT1Smear``:  This correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
 - ``--dobJetEnergyRegression``:
 - ``--yields``:
-- ``--skim``:
 - ``--backend``:
-
-**Note**: Tensorflow does not work on ``ingrid-ui1``, you need to run on a worker node with a more recent CPU, so run as follow before ``bambooRun`` command whenever ``-dnn`` flag is set to ``True``:
-```bash
-srun --partition=cp3 --qos=cp3 --time=0-24:00:00 --pty bash 
-# you may have to exclude these working nodes as well: 
---exclude=mb-sab[001-005,007-021,081-084,087-088,090,101-103],mb-opt[015-018,021,024-025,031,042,051-052,054,056-064,067-079,111,114-116],mb-ivy[201-208,211-212,214-217,219,220-222,224-227],mb-wes[001-002,003,005-019,021-051,053-055,057-074,076-086,251-252],mb-sky013,mb-neh[070,201-209,211-212]
-```
-```bash
-bambooRun --distributed=driver -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
-```
-In case you want to run plotIt again (after changing few options such fill color, legend position, unable systematics, etc...)
-```bash
-plotIt -i /path_to_your_dir/ -o /path_to_your_dir/plots_{add_era: 2016, 2017 or 2018} -y -e era /path_to_your_Output_dir/plots.yml
-```
-Or simply run with ``--onlypost``as follow:
-```bash
-bambooRun --onlypost -v -s -m ZAtollbb.py:NanoHtoZA config/choose_One_.yml -o ~/path_to_your_Output_dir/
-```
 ## Make Skim:
-You can run ``bambooRun`` command for differnt ``--args`` or you can use ``runSkimmer.py`` to submit all of them at once.
-```bash
-python runSkimmer.py --process ggH --output skim_dir --submit 
-
-# ZAtollbbSkimmer is deprecated( please use the command above) 
-bambooRun --distributed=driver -sel 2Lep2bJets -reg resolved  -cat MuMu -Tag DeepFlavour -wp M -proc ggH -s -m ZAtollbbSkimmer.py:Skimedtree_NanoHtoZA config/*.yml -o ~/path_to_your_Output_dir/
-```
-- ``--submit``: ``driver``, ``worker`` , ``max1`` or ``onlypost`` . ``--driver`` option will submit the independent tasks to a batch scheduler (currently HTCondor and Slurm are supported) instead of running them sequentially, wait for the results to be ready, and combine them (the worker tasks will run the same module, but with ``--worker`` and the actual input and results file names as input and output arguments). ``max1`` same as ``--maxFiles=1``
-- ``-o``/``--output``:  skim output dir 
-- ``-p``/``--process``: ``ggH`` for gg-fusion and ``bbH`` for b-associated production 
-- ``-s``/`` --systematics``: add systematics variations 
-- ``--standalone``: if for some reason you need the old skimmer you can pass this flag 
+- ``--skim``:
 
 ## Produce 2D Efficiencies Maps for Btagging: 
 ```bash
-bambooRun --distributed=driver -v -s -m BtagEfficiencies.py:ZA_BTagEfficiencies config/mc.yml -o outputdir
+bambooRun --distributed=driver -m BtagEfficiencies.py:ZA_BTagEfficiencies config/<mc.yml> -o <output_path>
 ```
 ## Trouble-Shooting:
+- To run on a worker node with a more recent CPU
+```bash
+srun --partition=cp3 --qos=cp3 --time=0-24:00:00 --pty bash 
+```
+- In case you want to run plotIt again (after changing few options such fill color, legend position, unable systematics, etc...)
+```bash
+plotIt -i <output_path> -o <output_path>/plots_<era> -y -e era <output_path>/plots.yml
+```
+- For post-processing use ``--onlypost``:
+```bash
+bambooRun --onlypost -m ZAtollbb.py:NanoHtoZA config/<_.yml> -o <output_path>
+```

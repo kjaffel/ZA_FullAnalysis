@@ -97,6 +97,7 @@ class NanoHtoZABase(NanoAODModule):
         self.doSaveQCDVars          = False
         self.normalizeForCombine    = False
         self.SplitSignalPoints      = False       # Distribute generated signal mass points between resolved and boosted
+        self.chunck_of              = 20
         self.doMVAEvaluator_on      = 'full' if self.args.chunk is None else 'chunk'
         self.doPassNbr_subjets      = "both_subjets" # discri cut on fat jet options: atleast_1subjet or both_subjets, fatjet 
         self.WorkingPoints          = ["M"]       # ["L", "M", "T"]
@@ -987,8 +988,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
         #===============================================================================
         if self.doEvaluate:
                         
-            outdir   = os.path.abspath(os.path.join(zaPath, 'config' ))
-            dict_allmasspoints = utils.getSignalMassPoints_ver2(outdir, self.doChunk, do=self.doMVAEvaluator_on, chunk_of=10)
+            dict_allmasspoints = utils.getSignalMassPoints_ver2(self.doChunk, do=self.doMVAEvaluator_on, chunk_of=self.chunck_of)
             for mode in [ 'HToZA', 'AToZH']:
                 logger.info( f'{mode} running {self.doMVAEvaluator_on} {self.doChunk} of samples for len={len(dict_allmasspoints[mode])}')
                 logger.info( f'full set of points :: {dict_allmasspoints[mode]}')
