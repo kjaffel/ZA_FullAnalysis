@@ -11,9 +11,10 @@ era='fullrun2'
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='fit'
+do_what='asymptotic'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
+post_processing=true
 multi_signal=false
 # if this true, the cards will contain both signals r_ggH & r_bbH, but using 1 discriminator, nb2 for ggH and nb3 for bbH
 # this will allow you to test HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel while freezing or profiling 1 signal at the time
@@ -48,18 +49,19 @@ splitDrellYan=true
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
-sbatch_time='01:59:00'
+sbatch_time='07:59:00'
 sbatch_memPerCPU='7000'
 
 n=1
 
+#stageOut='hig-22-010/datacards_nosplitJECs/'
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext28/no_split_prepostVFP/'
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
 bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver6/'
 
 #================ DO NOT CHANGE =============================
 #============================================================
@@ -191,7 +193,7 @@ echo "running ${do_what} post-processing step with the following arguments : " $
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
     ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
-    #./run_combine_${mode}_generatetoys.sh
+    ./run_combine_${mode}_generatetoys.sh
 fi
 
 #=============================================
@@ -206,61 +208,66 @@ fi
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
-    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
-    #./run_combine_${mode}_fitprepost.sh
-    
-    # post-processing:
-    #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
-    python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --reshape
-fi 
+    if $post_processing; then
+        #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
+        python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --unblind --reshape
+    else
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
+        ./run_combine_${mode}_fitprepost.sh
+    fi 
+fi
 
 #=====================================================================
 # pulls and impacts S(--expectSignal 1) or S+B(--expectSignal 0) fit
 #=====================================================================
 if [ "$do_what" = "impacts" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method impacts $plus_args
-    #./run_combine_${mode}_impactspulls.sh
+    ./run_combine_${mode}_impactspulls.sh
 fi
 
 #==================================================================
 # CLs ( --expectSignal 1 )/CLsplusb (--expectSignal 0) limits 
 #==================================================================
 if [ "$do_what" = "asymptotic" ]; then
-    #./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
-    #./run_combine_${mode}_asymptoticlimits.sh
-
-    #jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
-    #jsP=$outDir/$scenario/asymptotic-limits/dnn_r_xBR/jsons/
-    jsP=$outDir/$scenario/asymptotic-limits__very_good_xbr/$mode/jsons/
-
-    #python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era $plus_args2 
-    #python ZAlimits.py --jsonpath $jsP --log --era $era $plus_args2
-
-    #python draw2D_mH_vs_mA_withRoot.py --jsonpath $jsP --era $era $plus_args2
-    #python draw2D_mH_vs_mA_scatter.py --jsonpath $jsP --era $era $plus_args2
-
-    python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod bbH
-    #python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod ggH
+    if $post_processing; then
+        jsP=$outDir/$scenario/asymptotic-limits/$mode/jsons/
+        #jsP=$outDir/$scenario/asymptotic-limits/dnn_r_xBR/jsons/
+        #jsP=$outDir/$scenario/asymptotic-limits__very_good_xbr/$mode/jsons/
+        
+        python collectLimits.py -i $outDir/$scenario/ --method asymptotic --era $era $plus_args2 
+        #python ZAlimits.py --jsonpath $jsP --log --era $era $plus_args2
     
-    #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
-    #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 997.14 
-    #python 2hdmtbvsmass.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
+        #python draw2D_mH_vs_mA_withRoot.py --jsonpath $jsP --era $era $plus_args2
+        #python draw2D_mH_vs_mA_scatter.py --jsonpath $jsP --era $era $plus_args2
+    
+        #python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod bbH
+        #python draw2D_tb_vs_cba_withRoot.py --jsonpath $jsP --era $era $plus_args2 --prod ggH
+        
+        #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
+        #python draw2D_tb_vs_2hdmmass_withRoot.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 997.14 
+        #python 2hdmtbvsmass.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
+    else
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
+        ./run_combine_${mode}_asymptoticlimits.sh
+    fi
 fi
 
 #============================================================
 # pvalue/ Significance scan : expecting signal 1
 #============================================================
 if [ "$do_what" = "pvalue" ]; then
-    ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method pvalue $plus_args
-    #./run_combine_${mode}_pvalue.sh
+    if $post_processing; then
+        jsP=$outDir/$scenario/pvalue-significance/$mode/jsons/
 
-    jsP=$outDir/$scenario/pvalue-significance/$mode/jsons/
-
-    #python collectPvalue.py --inputs $outDir/$scenario/
-    #python plotSignificance.py --jsonpath $jsP --era $era --scan mA
-    #python plotSignificance.py --jsonpath $jsP --era $era --scan mH
-
-    #python plotPValue.py --input $jsP --era $era
+        #python collectPvalue.py --inputs $outDir/$scenario/
+        #python plotSignificance.py --jsonpath $jsP --era $era --scan mA
+        #python plotSignificance.py --jsonpath $jsP --era $era --scan mH
+    
+        #python plotPValue.py --input $jsP --era $era
+    else
+        ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method pvalue $plus_args
+        ./run_combine_${mode}_pvalue.sh
+    fi
 fi
 
 #=============================================================
@@ -268,7 +275,7 @@ fi
 #============================================================
 if [ "$do_what" = "goodness_of_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method goodness_of_fit $plus_args
-    #./run_combine_${mode}_goodness_of_fit.sh
+    ./run_combine_${mode}_goodness_of_fit.sh
 fi 
 
 #=============================================================
