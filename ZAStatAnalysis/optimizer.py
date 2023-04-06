@@ -109,34 +109,42 @@ def get_yields(Observation, v=False):
     return newdic
 
 
-def get_sortedfiles(binnings, inputs, era):
+def get_sortedfiles(binnings, inputs, era, toys, asimov):
     for rf in inputs:
         smpNm = rf.split('/')[-1].replace('.root','')
         if smpNm.startswith('__skeleton__'):
             continue
     
-        if 'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
-            binnings['files']['tot_obs_data'].append(rf)
-        elif 'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
-            binnings['files']['tot_b'].append(rf)
-        elif 'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
-            binnings['files']['tot_s'].append(rf)
-        elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH']):
-            binnings['files']['signal'].append(rf)
-        elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon']):
-            binnings['files']['data'].append(rf)
-        elif any( x in smpNm for x in ['DYJetsToLL']):
-            binnings['files']['mc']['DY'].append(rf)
-        elif any( x in smpNm for x in ['TTTo2L2Nu', 'TTToHadronic','TTToSemiLept']):
-            binnings['files']['mc']['ttbar'].append(rf)
-        elif any( x in smpNm for x in ['ST_']):
-            binnings['files']['mc']['SingleTop'].append(rf)
-        elif any( x in smpNm for x in ['ZZTo2L2Nu', 'ZZTo4L', 'ZZTo2L2Q']):
-            binnings['files']['mc']['ZZ'].append(rf)
-        elif any( x in smpNm for x in ['GluGluHToZZTo2L2Q_M125', 'HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
-            binnings['files']['mc']['ZZ'].append(rf)
-        else:
-            binnings['files']['mc']['others'].append(rf)
+        if asimov:
+            if 'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
+                binnings['files']['asimov']['tot_obs_data'].append(rf)
+            elif 'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
+                binnings['files']['asimov']['tot_b'].append(rf)
+            elif 'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
+                binnings['files']['asimov']['tot_s'].append(rf)
+            
+            elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH']):
+                binnings['files']['asimov']['signal'].append(rf)
+            
+            elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon']):
+                binnings['files']['asimov']['data'].append(rf)
+            
+            elif any( x in smpNm for x in ['DYJetsToLL']):
+                binnings['files']['asimov']['mc']['DY'].append(rf)
+            elif any( x in smpNm for x in ['TTTo2L2Nu', 'TTToHadronic','TTToSemiLept']):
+                binnings['files']['asimov']['mc']['ttbar'].append(rf)
+            elif any( x in smpNm for x in ['ST_']):
+                binnings['files']['asimov']['mc']['SingleTop'].append(rf)
+            elif any( x in smpNm for x in ['ZZTo2L2Nu', 'ZZTo4L', 'ZZTo2L2Q']):
+                binnings['files']['asimov']['mc']['ZZ'].append(rf)
+            elif any( x in smpNm for x in ['GluGluHToZZTo2L2Q_M125', 'HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 
+                                            'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
+                binnings['files']['asimov']['mc']['SM'].append(rf)
+            else:
+                binnings['files']['asimov']['mc']['others'].append(rf)
+        if toys:
+            binnings['files']['toys'].append(rf)
+
     return binnings
 
 
@@ -280,12 +288,12 @@ def no_zero_binContents(nph, newEdges, crossNm):
         return np.array(newEdges)
 
 
-def no_low_binContents(nph, newEdges, crossNm):
+def no_low_binContents(nph, newEdges, crossNm, thresh=6.):
     edges   = np.array(newEdges)
     newHist = nph.rebin(edges).fillHistogram(crossNm)
     np_newhist  = NumpyHist.getFromRoot(newHist)
-    if any( x < 1. for x in np_newhist.w):
-        result  = np.array(np.where(np_newhist.w < 1.))
+    if any( x < thresh for x in np_newhist.w):
+        result  = np.array(np.where(np_newhist.w < thresh))
         rm_idx  = np.where(result == 0, 1, result)
         FinalEdges  = np.delete(edges, rm_idx)
         logger.warning( f'bin contents  : {np_newhist.w}' )

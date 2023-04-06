@@ -261,6 +261,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Collection of limits at 95 % C.L.')
     parser.add_argument('-i','--inputs', action='store', type=str, required=True,  
                     help='List of (ROOT) combine output file to collect the limits (e.g. higgsCombineBLABLA_.AsymptoticLimits.mH125.root) or higgsCombineBLABLA_.HybridNew.mH125.root')
+    parser.add_argument('--unblind', action='store_true', default=False,
+                    help='unblind data in dnn score template')
+    parser.add_argument('--multi_signal',       action='store_true', dest='multi_signal', required=False, default=False,
+                    help='The cards will contain both signals but using 1 discriminator nb2 for gg-fusion and nb3 for bb-associated production')
     parser.add_argument('--method', action='store', required=True, type=str, choices=['asymptotic', 'hybridnew'], help='Analysis method')
     parser.add_argument('--era', action='store', required=True, help='')
     parser.add_argument('--mode', action='store', required=False, default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'], help='')
@@ -275,8 +279,7 @@ if __name__ == '__main__':
     options = parser.parse_args()
     
     
-    poi_dir, tb_dir, CL_dir = Constants.locate_outputs(options.method, options._2POIs_r, options.tanbeta, options.expectSignal)
-    
+    poi_dir, tb_dir, CL_dir = Constants.locate_outputs( options.method, options._2POIs_r, options.tanbeta, options.expectSignal, options.multi_signal) 
     for thdm in ['HToZA', 'AToZH']:
 
         #print("Extracting %s limits..."%thdm)
@@ -304,12 +307,7 @@ if __name__ == '__main__':
             
             for reco in ['nb2PLusnb3', 'nb2', 'nb3']:
                 for reg in ['resolved', 'boosted', 'resolved_boosted']:
-                    for flavor in ['OSSF_MuEl', 'MuMu_ElEl', 'ElEl', 'MuMu', 'MuEl', 'MuMu_ElEl_MuEl', 'ElEl_MuEl', 'MuMu_MuEl', 'OSSF', 'OSSF_MuEl']:
-                        
-                        # I don't need this for now
-                        # too much details I don't need 
-                        if flavor in ['ElEl_MuEl', 'MuMu_MuEl', 'ElEl', 'MuMu', 'MuEl']: 
-                            continue
+                    for flavor in ['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']: #'ElEl_MuEl', 'MuMu_MuEl', 'ElEl', 'MuMu', 'MuEl']: 
                         
                         limits_path = glob.glob(os.path.join(options.inputs, '{}-limits'.format(options.method), options.mode, CL_dir, poi_dir, tb_dir, '*', '*{}'.format(s)))
                         
@@ -324,7 +322,7 @@ if __name__ == '__main__':
                                 continue
                             
                             point_limits = getLimitsFromFile(f, options.method)
-                            #print ( 'working on::', f)
+                            print ( 'working on::', f)
                             #print ( 'working on -- M%s, M%s:'%(heavy, light), mHeavy, mLight , 'template:', options.mode, 'flavor:', flavor)
                         
                             if point_limits is None:

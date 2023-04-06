@@ -114,19 +114,19 @@ catagories = OrderedDict({
     'ggH_nb2_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb2$-',        'boosted' ],
     'ggH_nb3_resolved'        : [['MuMu_ElEl_MuEl'],    'ggH', '$nb3$-',        'resolved'],
     'ggH_nb3_boosted'         : [['OSSF_MuEl'],         'ggH', '$nb3$-',        'boosted' ],
-    'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'resolved'],
-    'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'boosted' ],             
+    #'ggH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'resolved'],
+    #'ggH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'ggH', '$nb2+nb3$, ',   'boosted' ],             
     
     'bbH_nb2_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'resolved'],
     'bbH_nb2_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb2$-',        'boosted' ],
     'bbH_nb3_resolved'        : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'resolved'],
     'bbH_nb3_boosted'         : [['OSSF_MuEl'],         'bbH', '$nb3$-',        'boosted' ],
-    'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'resolved'],             
-    'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'boosted' ],   
+    #'bbH_nb2PLusnb3_resolved' : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'resolved'],             
+    #'bbH_nb2PLusnb3_boosted'  : [['OSSF', 'OSSF_MuEl'], 'bbH', '$nb2+nb3$, ',   'boosted' ],   
     
     # combination 1 reso +boo  
-    'ggH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
-    'bbH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
+    #'ggH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'ggH', '$nb2+nb3$, ', 'resolved_boosted'],
+    #'bbH_nb2PLusnb3_resolved_boosted': [['OSSF_MuEl', 'OSSF'], 'bbH', '$nb2+nb3$, ', 'resolved_boosted'],
     
     # combination 2 ggH +bbH 
         # the limits here set on the opposite process while _r_bbH or _r_ggH mentionned in the name of the file

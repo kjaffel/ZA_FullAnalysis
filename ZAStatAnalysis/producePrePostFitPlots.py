@@ -43,6 +43,8 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
     for i, fit in enumerate(['fit_s', 'fit_b']):
         for j, rf in enumerate(glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit))):
             
+            if not 'MH-300.0_MA-200.0' in rf: #just for test
+                continue
             #if i !=0 or j !=0: # just for test
             #    exit()
 
@@ -232,6 +234,8 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                 for cat_path in glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re)):
                     ch = 1
                     
+                    if not 'MH-300.0_MA-200.0' in cat_path:
+                        continue
                     split_path = cat_path.split('/')
                     if '' in split_path: split_path.remove('')
                     
@@ -252,14 +256,18 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     elif 'resolved' in p_out: region = 'resolved'
                     elif 'boosted' in p_out : region = 'boosted'
                     
+                    
                     f = p_out.split( region + '_')[-1]
                     flavs  = f.split('_') 
                     flavor = channels[f]
                     flen   = len(flavs)
+
                     if 'split' in flavs:
                         if 'MuEl' in flavs: flen = 3
                         else: flen = 2
                     ch *= flen
+                    if 'gg_fusion_nb2_resolved_boosted_OSSF_MuEl' in p_out:
+                        ch =5
                     
                     inBlockSignal = False
                     prod       = '_'.join(p_out.split('_')[1:2])
@@ -372,14 +380,15 @@ if __name__ == '__main__':
                 help='If flagged True, limits in HToZA mode will be x to BR( Z -> ll) x BR(A -> bb ) x (H -> ZA)')
 
     options = parser.parse_args()
-    
-    RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
-                                            mode            = options.mode, 
-                                            poi_dir         = '2POIs_r', 
-                                            tb_dir          = '', 
-                                            era             = options.era,
-                                            submit_to_slurm = True )
-     
+   
+    ## if you will redo this step on slurm, you will have to wait until jobs finish before running func below :: runPlotIt_prepostFit
+    #RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
+    #                                        mode            = options.mode, 
+    #                                        poi_dir         = '2POIs_r', 
+    #                                        tb_dir          = '', 
+    #                                        era             = options.era,
+    #                                        submit_to_slurm = True )
+    # 
     runPlotIt_prepostFit(workdir          = options.inputs, 
                          mode             = options.mode, 
                          era              = options.era, 

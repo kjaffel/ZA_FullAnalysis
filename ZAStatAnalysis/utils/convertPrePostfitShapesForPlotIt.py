@@ -3,6 +3,7 @@
 import argparse
 import os, sys, os.path
 import glob
+import json
 # to prevent pyroot to hijack argparse we need to go around
 tmpargv  = sys.argv[:] 
 sys.argv = []
@@ -93,7 +94,6 @@ def merge_histos(fit, tot_histos, output_dir, ch_exp):
     from hist_interface import CppInterface
     
     print( tot_histos )
-    
     for bkg, rF_chs in tot_histos.items():
         mergedHists = {}
         for rF in sorted(rF_chs):
@@ -219,6 +219,9 @@ if __name__ == '__main__':
             combined_channels[comb] =[]
         combined_channels[comb].append(ch)
     print("Detected channels from combined datacards:", combined_channels )
+    
+    with open(os.path.join(output_dir, 'channels.json'), 'w+') as outf:
+        json.dump(combined_channels, outf)
     
     # Prepare shapes for plotIt
     if combined_channels:

@@ -21,9 +21,10 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'normal'
     config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
-    config.sbatch_chdir = os.path.join(outputDIR, 'slurm')
+    config.sbatch_chdir = os.path.join(outputDIR, 'slurm', 'bayesian')
     config.sbatch_time = '00:59:00'
     config.sbatch_memPerCPU = '1000'
+    config.sbatch_additionalOptions=['--exclude=mb-ivy220']
     #config.environmentType = 'cms'
     #config.inputSandboxContent = [""]
     #config.stageoutFiles = ['*.root']
