@@ -18,8 +18,6 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from collections import defaultdict
 
-#import numpy as np
-
 import Harvester as H
 import Constants as Constants
 import CombineHarvester.CombineTools.ch as ch
@@ -30,19 +28,19 @@ logger = Constants.ZAlogger(__name__)
 signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [(500., 300)],   #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)],
-            'AToZH': []},             #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)] },
+            'HToZA': [(300., 200)],   
+            'AToZH': []},             
         'boosted': {
-            'HToZA': [(500., 300.)], #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)], 
-            'AToZH': []},            #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)] }
+            'HToZA': [(300., 200.)], 
+            'AToZH': []},            
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [(500., 300.)], #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)],
-            'AToZH': []},           #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)] },
+            'HToZA': [(300., 200.)], 
+            'AToZH': []},           
         'boosted': {
-            'HToZA': [(500., 300.)], #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)],
-            'AToZH': []}            #(240.0, 130.0), (300.0, 135.0), (700.0, 200.0), (250.0, 125.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0), (220.0, 127.0), (670.0, 500.0), (550.0, 300.0)] }
+            'HToZA': [(300., 200.)], 
+            'AToZH': []}            
         }
     }
 
@@ -102,21 +100,23 @@ def return_flavours_to_process(reco, reg, prod, splitLep=False):
 
 
 def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, opts, era, verbose, unblind=False, what='', run_validation=False, multi_signal=False):
-    k      = opts['flavor']
-    reco   = opts['nb'] + '_'+ opts['region']
-    prod   = opts['process']
-    newCmd = ['combineCards.py']
-    
+    k        = opts['flavor']
+    reco     = opts['nb'] + '_'+ opts['region']
+    prod     = opts['process']
+    newCmd   = ['combineCards.py']
+    channels = []
+
     for i, x in enumerate(cmd):
         if "=" in x :
             Tot_nm   = x.split('=')[1]
             channel  = x.split('=')[0]
             split_ch = channel.split('_')
             new_ch   = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
-            newCmd  +=[new_ch+'='+Tot_nm]
+            newCmd  += [new_ch+'='+Tot_nm]
         else:
-            newCmd  +=[x]
-            
+            newCmd  += [x]
+        channels.append(new_ch)
+    
     out_nm = cmd[0]
     if '=' in out_nm:
         out_nm  = out_nm.split('=')[1]
@@ -148,7 +148,10 @@ def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, datas
         Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
     
     elif method =='fit':
-        PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
+        PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, channels, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
+    
+    elif method =='signal_strength':
+        CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, channels, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
     return 
 
 
@@ -219,7 +222,30 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                                     verbose         = verbose, 
                                     run_validation  = run_validation, 
                                     multi_signal    = multi_signal )
-            
+                
+                if not (cat in proc_combination['nb2_resolved'].keys() or cat in proc_combination['nb2_boosted'].keys()):
+                    continue
+                cmd = []
+                
+                # this will be for gg-gusion, no more combination with nb3
+                for reco in ['nb2_resolved', 'nb2_boosted']:
+                    
+                    kp = k
+                    if not 'split' in k and reco =='nb2_resolved' and prod =='gg_fusion':
+                        kp = 'split_'+k
+                    
+                    cmd += proc_combination[reco][cat][kp]
+                
+                combinedcat = prod + '_nb2_resolved_boosted_' + k
+                opts = {'process': prod, 'nb': 'nb2', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
+                check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
+                                    opts            = opts,
+                                    unblind         = unblind, 
+                                    what            = 'nb2 (resolved & boosted)', 
+                                    era             = era,
+                                    verbose         = verbose, 
+                                    run_validation  = run_validation, 
+                                    multi_signal    = multi_signal )
            ## deprecated !! 
            # elif todo == 'ggH_bbH':
            #     if not method in ['likelihood_fit', 'asymptotic']:
@@ -291,8 +317,53 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
     return 
 
 
+def CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, prod, dataset, run_validation, unblind, verbose, skip):
+    script = """#! /bin/bash
 
-def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, bin_id, cat, prod, dataset, run_validation=False, unblind=False, verbose=False, skip=False):
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+
+combine {method} {workspace_root} -n .{cat}.snapshot -t -1 -m 125 --algo grid --points 30 --saveWorkspace --verbose {verbose}
+combine -M MultiDimFit  higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root -n .{cat}.freezeAll -m 125 --algo grid --points 30 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit --verbose {verbose}
+
+python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root --others 'higgsCombine.{cat}.freezeAll.MultiDimFit.mH125.root:FreezeAll:2' -o {plotNm} --breakdown Syst,Stat &> {name}.log
+
+run_validation={run_validation}
+if $run_validation; then 
+    if [ ! -d validation_datacards ]; then
+        mkdir validation_datacards;
+    fi
+    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+fi
+
+popd
+""".format( dir            = os.path.dirname(os.path.abspath(datacard)),
+            method         = H.get_combine_method(method), 
+            workspace_root = workspace_file,
+            datacard       = os.path.basename(datacard), 
+            mass           = mass,
+            verbose        = verbose, 
+            run_validation = str(run_validation).lower(),
+            cat            = cat,
+            plotNm         = 'signal_strength_'+cat+'_'+bin_id, 
+            name           = output_prefix )
+    
+    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
+    print( method, script_file)
+    with open(script_file, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_file)
+    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+    
+    return script
+            
+
+
+def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, prod, dataset, run_validation=False, unblind=False, verbose=False, skip=False):
     script = """#! /bin/bash
 
 # http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
@@ -324,8 +395,13 @@ popd
 #fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
 #fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
 
-CAT={CAT}
+CAT="{CAT}"
 fits=("fit_s" "fit_b")  
+channels=(
+{channels}
+)
+
+IFS="," read -a arr <<< $channels
 
 for fit_what in ${{fits[*]}}; do
     
@@ -338,7 +414,7 @@ for fit_what in ${{fits[*]}}; do
     PostFitShapesFromWorkspace -w ../../{workspace_root} -d ../../{datacard} -o ../fit_shapes_${{CAT}}_${{fit_what}}.root -f ../fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
 
     {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i ../fit_shapes_${{CAT}}_${{fit_what}}.root -o . --signal-process HToZATo2L2B -n {name2}
-    $CMSSW_BASE/../utils/printYieldTables.py -w ../../{workspace_root} -f ../fitDiagnostics{prefix}.root -s {signal} -b {bin} --fit ${{fit_what}} -o ../../YieldTables
+    $CMSSW_BASE/../utils/printYieldTables.py -w ../../{workspace_root} -f ../fitDiagnostics{prefix}.root -s {signal} -b {bin} --fit ${{fit_what}} --channel "${{channels[@]}}" -o ../../YieldTables
     
     # Generate JSON for interactive covariance viewer
     # https://cms-hh.web.cern.ch/tools/inference/scripts.html#generate-json-for-interactive-covariance-viewer
@@ -360,6 +436,7 @@ popd
 """.format(workspace_root = workspace_file, 
            prefix         = output_prefix, 
            cat            = cat, 
+           channels       = "{}".format(",\n".join(channels)),
            bin            = bin_id, 
            signal         = prod,  
            CAT            = cat+'_'+bin_id, 
@@ -1287,7 +1364,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #    bbb.AddBinByBin(bkgs, cb)
 
         # Write small script to compute the limit
-        def createRunCombineScript(bin_id, mass, output_dir, output_prefix, cat, opts, create=False, skip=False, multi_signal=False):
+        def createRunCombineScript(bin_id, channels, mass, output_dir, output_prefix, cat, opts, create=False, skip=False, multi_signal=False):
             datacard       = os.path.join(output_dir, output_prefix + '.dat')
             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
 
@@ -1521,48 +1598,17 @@ popd
 
             
             elif method == 'signal_strength':
-                create = True
-                script = """#! /bin/bash
+                create = False
+                script = CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
 
-pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-
-combine {method} {workspace_root} -n .{cat}.snapshot -t -1 -m 125 --algo grid --points 30 --saveWorkspace --verbose {verbose}
-combine -M MultiDimFit  higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root -n .{cat}.freezeAll -m 125 --algo grid --points 30 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit --verbose {verbose}
-
-python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root --others 'higgsCombine.{cat}.freezeAll.MultiDimFit.mH125.root:FreezeAll:2' -o {plotNm} --breakdown Syst,Stat &> {name}.log
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi
-
-popd
-""".format( dir            = os.path.dirname(os.path.abspath(datacard)),
-            method         = H.get_combine_method(method), 
-            workspace_root = workspace_file,
-            datacard       = os.path.basename(datacard), 
-            mass           = mass,
-            verbose        = verbose, 
-            run_validation = str(run_validation).lower(),
-            cat            = cat,
-            plotNm         = 'signal_strength_'+cat, 
-            name           = output_prefix )
-            
             elif method =='nll_shape':
                 create = True
                 script = FastScanNLLshape(workspace_file, datacard, output_prefix, output_dir, mass, method)
             
             elif method =='fit':
                 # for PAG closure checks : https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsPAGPreapprovalChecks
-                create = False
-                script = PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
+                create   = False
+                script = PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
             if create:
                 script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
                 print( method, script_file)
@@ -1576,7 +1622,7 @@ popd
         logger.info("Writing datacards!")
         print (categories_with_parameters )
          
-        def writeCard(c, mass, output_dir, output_file, cat, opts, script=True):
+        def writeCard(c, mass, channels, output_dir, output_file, cat, opts, script=True):
             datacard  = os.path.join(output_dir, output_file + '.dat')
             # this did not work !
             #shapeFile = ROOT.TFile(os.path.join(output_dir, output_file + '_shapes.root'), 'recreate')
@@ -1600,13 +1646,14 @@ popd
             #shapeFile_smoothed.Close()           
            
             if script:
-                createRunCombineScript(bin_id, mass, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
+                createRunCombineScript(bin_id, channels, mass, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
         
         #cb.PrintObs()
         #cb.PrintProcs()
         #cb.PrintAll()
         #cb.PrintSysts()
         #cb.PrintParams()
+
         for cat in analysis_categories:
             opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': cat.split('_')[-1]}
             output_file = output_prefix + '_%s_%s' % (cat, bin_id)
@@ -1614,8 +1661,9 @@ popd
             shallow_cp = cb.cp().bin([bin_id]).channel([cat])
             shallow_cp.PrintProcs()
             shallow_cp.PrintObs()
+            channels=[]
             print('--------------------------------------------------------------------------------------------------------')
-            writeCard(shallow_cp, mass, output_dir, output_file, cat, opts, script=True)
+            writeCard(shallow_cp, mass, channels, output_dir, output_file, cat, opts, script=True)
             
 
         if merge_cards and method not in ['generatetoys']:
@@ -1651,8 +1699,9 @@ popd
                     with open( os.path.join(output_dir, merged_flav_datacard + '.dat'), 'w+') as f:
                         subprocess.check_call(cmd, cwd=output_dir, stdout=f)
                     
+                    channels = [c.split("=")[0] for c in args]
                     opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process, 'cat': merged_cat, 'bin': bin_id}
-                    createRunCombineScript(bin_id, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True, multi_signal=multi_signal)
+                    createRunCombineScript(bin_id, channels, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True, multi_signal=multi_signal)
                     
                     if not mflav in ToSKIP:
                         if mflav in default_comb:
@@ -1761,7 +1810,7 @@ if __name__ == '__main__':
     
     Years = ['16preVFP', '16postVFP', '17', '18'] if H.splitEraUL2016 else [16, 17, 18]
     
-    for thdm in ['AToZH','HToZA']:
+    for thdm in ['HToZA']: #, 'AToZH']:
         
         heavy = thdm[0]
         light = thdm[-1]

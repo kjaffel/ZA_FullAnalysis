@@ -841,7 +841,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         hash.update(cat)
         for systematic in cms_systematics[cat]:
             hash.update(systematic)
-    hash.update(get_method_group(method))
+    #hash.update(get_method_group(method)) # should note change the sys
     hash = hash.hexdigest()
 
     if os.path.exists(output_filename):
