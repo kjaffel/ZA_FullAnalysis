@@ -16,6 +16,7 @@ parser.add_argument('--fit_file',   '-f', help='Input file')
 parser.add_argument('--fit',              help='b-only fit or s+b fit ??', choices=['fit_s', 'fit_b'])
 parser.add_argument('--bin',        '-b', help='bin name')
 parser.add_argument('--signal',     '-s', help='signal name')
+parser.add_argument('--channels',   '-c', help='channels name in the datacard', nargs='+')
 parser.add_argument('--outdir',     '-o', help='output directory', default='YieldTables')
 
 
@@ -32,6 +33,7 @@ ch.ParseCombineWorkspace(cmb, wsp, 'ModelConfig', 'data_obs', False)
 mlf = ROOT.TFile(args.fit_file)
 rfr = mlf.Get(args.fit)
 fbin= args.bin
+channels = args.channels
 signal_process = args.signal
 
 def getColumnName(workspace):
@@ -44,11 +46,11 @@ def getColumnName(workspace):
     prod   = 'gg%s'%heavy if 'gg_fusion' in workspace else 'bb%s'%heavy
     nb     = workspace.split('_')[3]
                     
-    if 'resolved_boosted' in workspace: region= 'resolved_boosted'
+    if 'resolved_boosted' in workspace: region = 'resolved_boosted'
     elif 'resolved' in workspace: region = 'resolved'
     elif 'boosted' in workspace: region = 'boosted'
-                    
-    channel  = workspace.split(region+'_')[-1].split('_dnn')[0]
+        
+    flav  = workspace.split(region+'_')[-1].split('_dnn')[0]
     flavDict = {
                 'ElEl'      : 'ee',
                 'MuMu'      : r'$\mu\mu$',
@@ -62,10 +64,19 @@ def getColumnName(workspace):
                 'split_OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
                 'MuMu_ElEl_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
                 }
-    return '%s -%s, (%s)'%(nb, region, flavDict[channel])  
+    if nb == 'nb2PLusnb3': nb = 'nb2+nb3'
+    return '%s, %s, (%s)'%(nb, region.replace('_', '+'), flavDict[flav])  
 
 
-def PrintTables(cmb, fbin, signal_process, column, uargs):
+def PrintTables(cmb, fbin, channels, signal_process, column, uargs):
+    print( channels)
+    if len(channels)==1: 
+        c_dnn = cmb.cp().bin([fbin])
+    else:
+        for channel in channels:
+            c_dnn = cmb.cp().bin([fbin]).channel([channel])
+    
+    c_dnn = cmb.cp().channel(['UL17_ch1_dnn_ggA_nb2_resolved_MuMu'])
     c_dnn = cmb.cp().bin([fbin])
     
     LatexTab = r"""
@@ -116,7 +127,7 @@ Process & \multicolumn{2}{c}{%s} \\
 column = getColumnName(args.workspace)
 
 print 'Pre-fit tables:\n\n'
-preFit_LatexTab = PrintTables(cmb, fbin, signal_process, column, tuple())
+preFit_LatexTab = PrintTables(cmb, fbin, channels, signal_process, column, tuple())
 
 LF =  args.workspace.split('/')[0].split('_combine_workspace.root')[0]
 
@@ -127,7 +138,7 @@ with open(os.path.join(saveFile1), 'w+') as f_:
 cmb.UpdateParameters(rfr)
 
 print 'Post-fit tables:\n\n'
-postFit_LatexTab = PrintTables(cmb, fbin, signal_process, column, (rfr, 500))
+postFit_LatexTab = PrintTables(cmb, fbin, channels, signal_process, column, (rfr, 500))
 
 saveFile2 = os.path.join(args.outdir, LF+'_%s_postFit.tex'%args.fit)
 with open(os.path.join(saveFile2), 'w+') as f_:
