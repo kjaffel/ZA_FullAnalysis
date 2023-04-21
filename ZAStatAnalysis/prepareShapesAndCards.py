@@ -1810,7 +1810,7 @@ if __name__ == '__main__':
     
     Years = ['16preVFP', '16postVFP', '17', '18'] if H.splitEraUL2016 else [16, 17, 18]
     
-    for thdm in ['HToZA']: #, 'AToZH']:
+    for thdm in ['HToZA', 'AToZH']:
         
         heavy = thdm[0]
         light = thdm[-1]

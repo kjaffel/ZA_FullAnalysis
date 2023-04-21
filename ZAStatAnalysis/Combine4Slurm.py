@@ -26,22 +26,25 @@ def SlurmCombine(cardDir, method, outDir, time, mem_per_cpu, isTest):
     for i, inF in enumerate(glob.glob(os.path.join(cardDir, '*', '*.sh'))): 
         script = os.path.basename(inF)
         dir    = os.path.dirname(inF)
+        m      = inF.split('/')[-2]
+        
         if isTest and i!=0:
             continue
-        m = inF.split('/')[-2]
-        
-        if not ( script.startswith("HToZATo2L2B_gg_fusion_nb2_resolved_boosted_OSSF_MuEl_dnn_") or 
-                 script.startswith("HToZATo2L2B_gg_fusion_nb2_resolved_MuMu_ElEl_MuEl_dnn_") or 
-                 script.startswith("HToZATo2L2B_gg_fusion_nb2_boosted_OSSF_MuEl_dnn_") or 
-                 script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_") or
-                 script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_OSSF_MuEl_dnn_") or
-                 script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_boosted_OSSF_MuEl_dnn_") 
-                 ):
-            continue
-        
-        if not m in ['MH-300.0_MA-200.0']:#, 'MA-800.0_MH-140.0', 'MH-650.0_MA-50.0', 'MH-300.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MA-510.0_MH-130.0', 'MH-800.0_MA-200.']:
-            continue
 
+        if method != 'generatetoys-data': 
+            if not (script.startswith("HToZATo2L2B_gg_fusion_nb2_resolved_boosted_OSSF_MuEl_dnn_") or 
+                    script.startswith("HToZATo2L2B_gg_fusion_nb2_resolved_MuMu_ElEl_MuEl_dnn_") or 
+                    script.startswith("HToZATo2L2B_gg_fusion_nb2_boosted_OSSF_MuEl_dnn_") or 
+                    script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_boosted_OSSF_MuEl_dnn_") or
+                    script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_resolved_OSSF_MuEl_dnn_") or
+                    script.startswith("HToZATo2L2B_bb_associatedProduction_nb2PLusnb3_boosted_OSSF_MuEl_dnn_") 
+                    ):
+                continue
+        
+            if not m in ['MH-300.0_MA-200.0', 'MH-379.0_MA-54.59', 'MH-500.0_MA-300.0', 'MH-510.0_MA-130.0', 'MH-650.0_MA-50.0', 'MH-800.0_MA-200.0',
+                         'MA-510.0_MH-130.0', 'MA-800.0_MH-140.0', 'MA-510.0_MH-130.0']:
+                continue
+        
         config.inputParams.append([cmssw, dir, script])
     config.payload = \
         """
@@ -52,6 +55,7 @@ def SlurmCombine(cardDir, method, outDir, time, mem_per_cpu, isTest):
         """
     submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Combine', formatter_class=argparse.RawTextHelpFormatter)

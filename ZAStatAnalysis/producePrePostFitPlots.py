@@ -382,13 +382,13 @@ if __name__ == '__main__':
     options = parser.parse_args()
    
     ## if you will redo this step on slurm, you will have to wait until jobs finish before running func below :: runPlotIt_prepostFit
-    #RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
-    #                                        mode            = options.mode, 
-    #                                        poi_dir         = '2POIs_r', 
-    #                                        tb_dir          = '', 
-    #                                        era             = options.era,
-    #                                        submit_to_slurm = True )
-    # 
+   # RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
+   #                                         mode            = options.mode, 
+   #                                         poi_dir         = '2POIs_r', 
+   #                                         tb_dir          = '', 
+   #                                         era             = options.era,
+   #                                         submit_to_slurm = True )
+   #  
     runPlotIt_prepostFit(workdir          = options.inputs, 
                          mode             = options.mode, 
                          era              = options.era, 

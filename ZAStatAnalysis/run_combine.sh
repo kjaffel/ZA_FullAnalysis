@@ -11,7 +11,7 @@ era='fullrun2'
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='asymptotic'
+do_what='generate_toys'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
 post_processing=true
@@ -49,8 +49,8 @@ splitDrellYan=true
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
-sbatch_time='07:59:00'
-sbatch_memPerCPU='7000'
+sbatch_time='02:59:00'
+sbatch_memPerCPU='2000'
 
 n=1
 
@@ -61,7 +61,7 @@ n=1
 #bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
 #stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
 bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver6/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver8/'
 
 #================ DO NOT CHANGE =============================
 #============================================================
@@ -185,8 +185,11 @@ else
 fi
 
 
-echo "running ${do_what} Combine with the following arguments : " ${plus_args}
-echo "running ${do_what} post-processing step with the following arguments : " ${plus_args2}
+if $post_processing; then
+    echo "running ${do_what} post-processing step with the following arguments : " ${plus_args2}
+else
+    echo "running ${do_what} Combine with the following arguments : " ${plus_args}
+fi
 
 #=============================================
 # generate toys data only 
@@ -260,6 +263,7 @@ if [ "$do_what" = "pvalue" ]; then
         jsP=$outDir/$scenario/pvalue-significance/$mode/jsons/
 
         #python collectPvalue.py --inputs $outDir/$scenario/
+        
         #python plotSignificance.py --jsonpath $jsP --era $era --scan mA
         #python plotSignificance.py --jsonpath $jsP --era $era --scan mH
     
