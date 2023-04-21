@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# You may not need all of this, these are some of my functions/craps to test things in optimizeBinning.py script
-# using the bayesian blocks 
 import argparse
 import glob
 import os
@@ -29,8 +27,79 @@ import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
 
+# splitting same way in combine
+sorted_files = { 
+        # signal 
+        'signal'   : ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH'],
+        # data 
+        'data'     : ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon'],
+        # main Background
+        'ttbar'    : ['TTToSemiLeptonic', 'TTTo2L2Nu', 'TTToHadronic'],
+        'SingleTop': ['ST_'],
+        'DY'       : ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J', 'DYJetsToLL_M-10to50'],
+        # Others Backgrounds
+        'WJets'    : ['WJetsToLNu'],
+        'ttV'      : ['TTWTo', 'TTZTo'],
+        'VV'       : ['ZZTo', 'WWTo', 'WZTo'],
+        'VVV'      : ['ZZZ_', 'WWW_', 'WZZ_', 'WWZ_'],
+        'SMHiggs'  : ['ggZH_HToBB_ZToLL_M-125', 'HZJ_HToWW_M-125', 'ZH_HToBB_ZToLL_M-125', 'ggZH_HToBB_ZToNuNu_M-125', 
+                    'GluGluHToZZTo2L2Q_M125', 'ttHTobb_M125_', 'ttHToNonbb_M125_']
+}
 
-def rebinmethods():
+plotIt_mc_groups = {  # group, legend
+        'DY'        : ['DY', 'DY+jets'],
+        'ttbar'     : ['ttbar', 'ttbar'],
+        'SingleTop' : ['ST', 'ST'],
+        'SMHiggs'   : ['SM', 'ggh, tth, Zh'],
+        'VV'        : ['VV', 'VV'],
+        'WJets'     : ['others', 'VVV,ttV'],
+        'VVV'       : ['others', 'VVV,ttV'],
+        'ttV'       : ['others', 'VVV,ttV'],
+}
+
+
+def EraFromPOG(era):
+    return '_UL'+era.replace('20','')
+
+
+def mass_to_str(m):
+    m = str(m).replace('p','.')
+    m = "%.2f"%float(m)
+    return str(m).replace('.','p')
+
+
+def LATEX(uname=None):
+    uname=uname.lower()
+    if "elmu" in uname:
+        label = "e^{+}#mu^{-}"
+    elif "muel" in uname:
+        label = "#mu^{+}e^{-}"
+    elif "elel" in uname:
+        label = "e^{+}e^{-}"
+    elif "mumu" in uname:
+        label = "#mu^{+}#mu^{-}"
+    if "gg_fusion" in uname:
+        label = "ggH"
+    elif "bb_associatedProduction":
+        label = "bbH"
+    return label
+
+
+def get_legend(smpNm):
+    mode     = 'AToZH' if 'AToZH' in smpNm else 'HToZA'
+    heavy    = mode[0]
+    light    = mode[-1]
+    comp     = 'nlo' if 'amcatnlo' in smpNm else 'lo'
+    process  = f'gg{heavy}' if smpNm.startswith('GluGluTo') else(f'bb{heavy}')
+    tb       = 1.5 if  smpNm.startswith('GluGluTo') else 20.0
+    m_heavy  = smpNm.split('_')[2].split('-')[-1].replace('p', '.')
+    m_light  = smpNm.split('_')[4].split('-')[-1].replace('p', '.')
+    m_heavy  = ('%.2f'%float(m_heavy)).replace('.00', '')
+    m_light  = ('%.2f'%float(m_light)).replace('.00', '')
+    return "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
+
+
+def rebinmethods(): #deprecated
     method   = {}
     normal   = [['scott', 'freedman'], ['Scotts rule', 'Freedman-Diaconis rule']]
     bayesian = [['knuth', 'blocks'], ["Knuth's rule", 'Bayesian blocks']]
@@ -109,13 +178,14 @@ def get_yields(Observation, v=False):
     return newdic
 
 
-def get_sortedfiles(binnings, inputs, era, toys, asimov):
+def get_sortedfiles(binnings=None, inputs=None, era=None, toys=False, asimov=False):
     for rf in inputs:
         smpNm = rf.split('/')[-1].replace('.root','')
         if smpNm.startswith('__skeleton__'):
             continue
-    
         if asimov:
+            binnings['root'] = rf.split('/')[-2]
+            
             if 'summed_data' in smpNm or 'summed_scaled_data' in smpNm: 
                 binnings['files']['asimov']['tot_obs_data'].append(rf)
             elif 'summed_mc' in smpNm or 'summed_scaled_mc' in smpNm: 
@@ -123,28 +193,14 @@ def get_sortedfiles(binnings, inputs, era, toys, asimov):
             elif 'summed_signal' in smpNm or 'summed_scaled_signal' in smpNm: 
                 binnings['files']['asimov']['tot_s'].append(rf)
             
-            elif any(x in smpNm for x in ['AToZH', 'HToZA', 'GluGluToHToZA', 'GluGluToAToZH']):
-                binnings['files']['asimov']['signal'].append(rf)
-            
-            elif any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleElectron', 'SingleMuon']):
-                binnings['files']['asimov']['data'].append(rf)
-            
-            elif any( x in smpNm for x in ['DYJetsToLL']):
-                binnings['files']['asimov']['mc']['DY'].append(rf)
-            elif any( x in smpNm for x in ['TTTo2L2Nu', 'TTToHadronic','TTToSemiLept']):
-                binnings['files']['asimov']['mc']['ttbar'].append(rf)
-            elif any( x in smpNm for x in ['ST_']):
-                binnings['files']['asimov']['mc']['SingleTop'].append(rf)
-            elif any( x in smpNm for x in ['ZZTo2L2Nu', 'ZZTo4L', 'ZZTo2L2Q']):
-                binnings['files']['asimov']['mc']['ZZ'].append(rf)
-            elif any( x in smpNm for x in ['GluGluHToZZTo2L2Q_M125', 'HZJ_HToWW_M125', 'ZH_HToBB_ZToLL_M125', 
-                                            'ggZH_HToBB_ZToNuNu_M125', 'ggZH_HToBB_ZToLL_M125', 'ttHTobb', 'ttHToNonbb']):
-                binnings['files']['asimov']['mc']['SM'].append(rf)
-            else:
-                binnings['files']['asimov']['mc']['others'].append(rf)
+            for group , poss_f in sorted_files.items():
+                if any(x in smpNm for x in poss_f):
+                    if not group in ['data', 'signal']:
+                        binnings['files']['asimov']['mc'][group].append(smpNm)
+                    else:
+                        binnings['files']['asimov'][group].append(smpNm)
         if toys:
             binnings['files']['toys'].append(rf)
-
     return binnings
 
 
@@ -186,12 +242,6 @@ def available_points(inputs):
     return points
 
 
-def mass_to_str(m):
-    m = str(m).replace('p','.')
-    m = "%.2f"%float(m)
-    return str(m).replace('.','p')
-
-
 def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False):
     if not mode == 'dnn': prefix= mode
     else:
@@ -201,7 +251,7 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
         else: 
             prefix= 'DNNOutput_ZHnode' 
             thdm = 'AToZH'
-
+    
     heavy = thdm[0]
     light = thdm[-1]
 
@@ -218,6 +268,7 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
               }
                 
     opts = {}
+    opts['mode'] = thdm
     for k, v in dict_.items():
         for opt in v:
             value = returnIfExist(opt, hist_nm) 
@@ -230,23 +281,25 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
             opts['process'] = 'gg_fusion'
         elif 'nb3' in hist_nm:
             opts['process'] = 'bb_associatedProduction'
-    
+   
     if mass is None:
         if fix_reco_format:
             mass = hist_nm.split('__')[0].split(opts['process']+'_')[-1]
         else:
             mass = hist_nm.split('__')[0].split('METCut_')[-1]
 
-    m_heavy  = mass_to_str(mass.split('_')[1])
-    m_light  = mass_to_str(mass.split('_')[3])
+    m_heavy  = mass.split('_')[1]
+    m_light  = mass.split('_')[3]
 
+    prod     = opts['process'].split('_')[0] + heavy
     taggerWP = 'DeepFlavourM' if opts['region'] == 'resolved' else 'DeepCSVM'
-    opts.update({'mass': mass, 'taggerWP': taggerWP})
+    
+    opts.update({'mass': mass, 'taggerWP': taggerWP, 'prod': prod, 'signal': '$%s: (m_{%s}, m_{%s})=(%s, %s) GeV$'%(prod, heavy, light, m_heavy, m_light)})
     
     if fix_reco_format:
-        histNm  = f"{prefix}_{opts['flavor']}_{opts['region']}_{opts['taggerWP']}_METCut_{opts['process']}_M{heavy}_{m_heavy}_M{light}_{m_light}"
+        histNm  = f"{prefix}_{opts['flavor']}_{opts['region']}_{opts['taggerWP']}_METCut_{opts['process']}_M{heavy}_{mass_to_str(m_heavy)}_M{light}_{mass_to_str(m_light)}"
     else:
-        histNm  = f"{prefix}_{opts['flavor']}_{opts['reco']}_{opts['region']}_{opts['taggerWP']}_METCut_M{heavy}_{m_heavy}_M{light}_{m_light}"
+        histNm  = f"{prefix}_{opts['flavor']}_{opts['reco']}_{opts['region']}_{opts['taggerWP']}_METCut_M{heavy}_{mass_to_str(m_heavy)}_M{light}_{mass_to_str(m_light)}"
 
     if info:
         return histNm, opts
@@ -258,7 +311,6 @@ def no_extra_binedges(newEdges, oldEdges):
     cleanEdges = [] 
     newEdges   = newEdges.astype(float).round(2).tolist()
     oldEdges   = oldEdges.astype(float).round(2).tolist()
-    
     for i, x in enumerate(newEdges):
         if not x in oldEdges:
             closest_value = min(oldEdges, key=lambda val:abs(val-x))
@@ -276,32 +328,45 @@ def no_extra_binedges(newEdges, oldEdges):
 
 
 def no_zero_binContents(nph, newEdges, crossNm):
-    edges   = np.array(newEdges)
-    newHist = nph.rebin(edges).fillHistogram(crossNm)
+    FinalEdges  = newEdges
+    edges       = np.array(newEdges)
+    newHist     = nph.rebin(edges).fillHistogram(crossNm)
     np_newhist  = NumpyHist.getFromRoot(newHist)
-    if 0. in np_newhist.w:
-        result  = np.array(np.where(np_newhist.w == 0.))
-        rm_idx  = np.where(result == 0, 1, result)
-        FinalEdges  = np.delete(edges, rm_idx)
-        return  np.array(FinalEdges)
-    else:
-        return np.array(newEdges)
+    result      = np.array(np.where(np_newhist.w == 0.))[0]
+    FinalEdges  = np.array(np.delete(edges, result))
+    # keep bin boundaries should
+    if not FinalEdges[0] == 0: FinalEdges = np.append([0], FinalEdges)
+    if not FinalEdges[-1]== 1: FinalEdges = np.append(FinalEdges, [1])
+    return  FinalEdges
 
 
 def no_low_binContents(nph, newEdges, crossNm, thresh=6.):
-    edges   = np.array(newEdges)
-    newHist = nph.rebin(edges).fillHistogram(crossNm)
-    np_newhist  = NumpyHist.getFromRoot(newHist)
-    if any( x < thresh for x in np_newhist.w):
-        result  = np.array(np.where(np_newhist.w < thresh))
-        rm_idx  = np.where(result == 0, 1, result)
-        FinalEdges  = np.delete(edges, rm_idx)
-        logger.warning( f'bin contents  : {np_newhist.w}' )
-        logger.warning( f'remove bin idx: {rm_idx}' )
-        logger.warning( f'old edges: {newEdges}, new edges: {FinalEdges}' )
+    FinalEdges = newEdges
+    edges      = np.array(newEdges)
+    newHist    = nph.rebin(edges).fillHistogram(crossNm)
+    np_newhist = NumpyHist.getFromRoot(newHist)
+    still_below_thresh = any( x < thresh for x in np_newhist.w)
+    
+    i = 0
+    while still_below_thresh:
+        if any( x < thresh for x in np_newhist.w):
+            result      = np.array(np.where(np_newhist.w < thresh))[0]
+            result      = np.where(result == 0, 1, result)
+            if len(result) >= 2:
+                result  = np.where(result == len(result)+1, result[-2], result)
+            FinalEdges  = np.delete(edges, result)
+            
+            logger.warning( f'full bin contents                : {np_newhist.w.tolist()}' )
+            logger.warning( f'low bin contents below threshold : {result.tolist()}' )
+            logger.warning( f'old edges                        : {newEdges.tolist()}, new edges: {FinalEdges.tolist()}' )
+            
+            edges      = np.array(FinalEdges)
+            newHist    = nph.rebin(edges).fillHistogram(crossNm+f'_iter{i}')
+            np_newhist = NumpyHist.getFromRoot(newHist)
+            still_below_thresh = any( x < thresh for x in np_newhist.w)
+            i +=1
+    else: 
         return  np.array(FinalEdges)
-    else:
-        return np.array(newEdges)
 
 
 def no_bins_empty_background_across_year(rf, histNm, newEdges, channel, crossNm):
@@ -315,7 +380,7 @@ def no_bins_empty_background_across_year(rf, histNm, newEdges, channel, crossNm)
             continue
         inFile   = HT.openFileAndGet(rf_per_era)
         hist     = inFile.Get(channel).Get(histNm)
-        nph = NumpyHist.getFromRoot(hist)
+        nph      = NumpyHist.getFromRoot(hist)
         correctedEdges = no_zero_binContents(nph, correctedEdges, crossNm)
         logger.info(f'{era} binning: {crossNm}, {correctedEdges}')
     return correctedEdges
@@ -342,7 +407,6 @@ def get_bin_Content_and_Edges(hist):
 
 
 def get_new_histogramWgt(hist=None, newEdges=None, oldEdges=None, verbose=False):
-   
     oldNbins  = hist.GetNbinsX() 
     binContent= np.array([])
     binError  = np.array([])
@@ -442,12 +506,7 @@ def arr2root(old_hist=None, newEdges=None, include_overflow=False, verbose=False
     return newHist
 
 
-def EraFromPOG(era):
-    return '_UL'+era.replace('20','')
-
-
 def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
-    
     sorted_inputs= {'data'  :[],
                     'mc'    :[]}
     
@@ -539,138 +598,119 @@ def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
             logger.error("Failed to run {0}".format(" ".join(haddCmd)))
     
 
-def LATEX(uname=None):
-    uname=uname.lower()
-    if "elmu" in uname:
-        label = "e^{+}#mu^{-}"
-    elif "muel" in uname:
-        label = "#mu^{+}e^{-}"
-    elif "elel" in uname:
-        label = "e^{+}e^{-}"
-    elif "mumu" in uname:
-        label = "#mu^{+}#mu^{-}"
-    if "gg_fusion" in uname:
-        label = "ggH"
-    elif "bb_associatedProduction":
-        label = "bbH"
-    return label
 
-
-def writeymlPlotter(files, kf, year, Cfg, outf, normalized):
+def WriteYamlForPlotIt(files, Cfg, era, outf, normalized):
     for root_f in files:
-
         color  = fake.hex_color()
         smp    = root_f.split('/')[-1]
-        if normalized:
-            year   = Cfg['files'][smp]["era"]
-            lumi   = Cfg["configuration"]["luminosity"][year]
-            xsc    = Cfg['files'][smp]["cross-section"]
-            genevt = Cfg['files'][smp]["generated-events"]
-            
+        smpNm  = smp.split('.root')[0]
+        smpEra = "20"+ smpNm.split('_UL')[-1]
+        
+        if not era == 'fullrun2':
+            if not EraFromPOG(era) in smpNm:
+                continue
+        if 'VFP' in smpEra: smpEra = smpEra.replace('2016', '2016-')
+        if 'VFP' in era: era = era.replace('2016', '2016-')
+        
+        print( smp )
         outf.write(f"  {smp}:\n")
-        outf.write(f"    type: {kf}\n")
-        if not kf=='signal': 
-            outf.write(f"    group: {kf}\n")
-        outf.write(f"    era: {year}\n")
+        
+        for gp, poss_f in sorted_files.items():
+            if any(x in smp for x in poss_f):
+                group = gp
+
+        if normalized:
+            if group != 'data':
+                xsc    = Cfg['files'][smp]["cross-section"]
+                genevt = Cfg['files'][smp]["generated-events"]
+            outf.write(f"    era: {smpEra}\n")
                             
-        if kf == 'signal':
-            br = Cfg['files'][smp]["Branching-ratio"]
-            
-            outf.write(f"    legend: {smp.split('.root')[0]}\n")
+        if group == 'signal':
+            outf.write(f"    type: signal\n")
+            outf.write(f"    legend: '{get_legend(smpNm)}'\n")
             outf.write(f"    line-color: '{color}'\n")
             outf.write("    line-type: 1\n")
             if normalized:
-                outf.write(f"    Branching-ratio: {br}\n")
+                br = Cfg['files'][smp]["branching-ratio"]
+                outf.write(f"    branching-ratio: {br}\n")
                 outf.write(f"    generated-events: {genevt}\n")
                 outf.write(f"    cross-section: {xsc} # pb\n")
-        elif kf == 'mc' and normalized:
-            outf.write(f"    generated-events: {genevt}\n")
-            outf.write(f"    cross-section: {xsc} # pb\n")
+        
+        elif group =='data':
+            outf.write(f"    type: data\n")
+            outf.write(f"    group: {group}\n")
+        else:
+            newgroup = plotIt_mc_groups[group][0]
+            legend   = plotIt_mc_groups[group][1]
+            outf.write(f"    type: mc\n")
+            outf.write(f"    group: {newgroup}\n")
+            outf.write(f"    legend: {legend}\n")
+            if normalized:
+                outf.write(f"    generated-events: {genevt}\n")
+                outf.write(f"    cross-section: {xsc} # pb\n")
 
 
-def plotRebinnedHistograms(binnings, inDir, folder, mode_, suffix, year, toysdata=False, normalized=False):
-    with open(os.path.join(inDir, 'plots.yml')) as _f:
+def plotRebinnedHistograms(binnings, bambooDir, plotsDIR, era, normalized=True):
+    lumi     = Constants.getLuminosity(era)
+    bamboo_p = bambooDir.replace('results', '')
+    with open(os.path.join(bamboo_p, 'plots.yml')) as _f:
+        print(f"Will load normalisation  ( xsc, BR, sumgenEvts, lumi, etc ... ) from {os.path.join(bamboo_p, 'plots.yml')}")
         Cfg = yaml.load(_f, Loader=yaml.FullLoader)
-    lumiconfig = Cfg['configuration']
     
-    if toysdata:
-        plotsDIR = os.path.join(folder, 'bayesian_rebinned_on_toysdata')
-        for pr in binnings['files']['toys']:
-            smpNm = pr.split('/')[-1]
-            mass  = 'MH_' + smpNm.split('_MH_')[-1] 
-            pNm, infos = get_histNm_orig(mode_, smpNm, mass, info=True) 
-            with open(f"data/bayesianblocks_rebin_withtoys_template.yml", 'r') as inf:
-                with open(f"{pr}/plots.yml", 'w+') as outf:
-                    for line in inf:
-                        if '  root: myroot_path' in line:
-                            outf.write(f"  root: {pr}\n")
-                        elif '  myplot_Name:' in line:
-                            outf.write(f"  {pNm}:\n")
-                        elif '    legend: mysignal' in line:
-                            outf.write(f"    legend: '{infos['mass']}'\n")
-                        elif '      text: mychannel' in line:
-                            outf.write(f"      text: {infos['region']}, {LATEX(infos['flavor'])}\n")
-                        else:
-                            outf.write(line)
-            plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", plotsDIR, "--", f"{pr}/plots.yml"]
-            try:
-                logger.info("running {}".format(" ".join(plotitCmd)))
-                subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
-            except subprocess.CalledProcessError:
-                logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-        print( f'\tplots saved in : {plotsDIR}')
-    else:
-        plotsDIR   = os.path.join(folder, "plotit")
-        if not os.path.isdir(plotsDIR):
-            os.makedirs(plotsDIR)
+    for j, process in enumerate(['gg_fusion', 'bb_associatedProduction']):
+        
+        _root  = os.path.join( binnings['root'], process)
+        _files = glob.glob( os.path.join(_root, '*.root'))
+        outDir = os.path.join(plotsDIR, 'plotit', process)
+        if not os.path.exists(outDir):
+            os.makedirs(outDir)
         
         with open(f"data/rebinned_template.yml", 'r') as inf:
-            with open(f"{folder}/{suffix}/plots.yml", 'w+') as outf:
+            with open(f"{outDir}/plots.yml", 'w+') as outf:
+                
                 for line in inf:
-                    
                     if "  root: myroot_path" in line:
-                        outf.write(f"  root: {folder}/{suffix}/\n")
+                        outf.write(f"  root: {_root}\n")
                     elif "files:" in line:
                         outf.write("files:\n")
-                        
-                        for kf, vf in binnings['files'].items():
-                            if not vf: continue
-                            if kf == 'mc' :
-                                for mc_k, mc_f in vf.items():
-                                    writeymlPlotter(mc_f, mc_k, year, Cfg, outf, normalized)
-                            else:
-                                writeymlPlotter(vf, kf, year, Cfg, outf, normalized)
+                        WriteYamlForPlotIt(_files, Cfg, era, outf, normalized)
                     
-                    elif "  - myera" in line:
-                        for era, lumi in lumiconfig.items():
-                            outf.write(f"  - {era}\n")
-                    elif "    myera: mylumi" in line:
-                        for era, lumi in lumiconfig.items():
-                            outf.write(f"    {era}: {lumi}\n")
-                    elif "  extra-label: myextralabel" in line:
-                        if year =='2016': label = 'pre/-postVFP' 
-                        else: label =  year
-                        outf.write(f"  extra-label: {label} ULegacy Preliminary\n")
+                    elif "  no-lumi-rescaling:" in line:
+                        no_lumi_rescaling = "false" if normalized else "true"
+                        outf.write(f"  no-lumi-rescaling: {no_lumi_rescaling}\n")
+
+                    elif "  luminosity: mylumi" in line:
+                        if normalized:
+                            if era =='fullrun2':
+                                outf.write("  eras:\n")
+                                for e in ['2016-preVFP', '2016-postVFP', '2017', '2018']:
+                                    outf.write(f"  - {e}\n")
+                                outf.write(f"  luminosity:\n")
+                                for e in ['2016-preVFP', '2016-postVFP', '2017', '2018']:
+                                    outf.write(f"    {e}: {Constants.getLuminosity(e)}\n")
+                            else:
+                                outf.write(f"  luminosity: {lumi}\n")
+                        else:
+                            outf.write(f"  luminosity: {lumi}\n")
 
                     elif "plots:" in line:
                         outf.write("plots:\n")
-                        for plotNm in binnings['histograms']:
-                            infos  = plotNm.split('_')
-                            flavor = infos[2].lower()
-                            region = infos[3]
+                        for plotNm in binnings['histograms'].keys():
+                            params = get_histNm_orig('dnn', plotNm, mass=None, info=True, fix_reco_format=False)[1]
+                            
                             outf.write(f"  {plotNm}:\n")
                             outf.write("    blinded-range: [0.6, 1.0]\n")
                             outf.write("    labels:\n")
-                            outf.write("    - position: [0.22, 0.895]\n")
-                            outf.write("      size: 24\n")
-                            outf.write(f"      text: {region}, {flavor}\n")
+                            outf.write("    - position: [0.22, 0.89]\n")
+                            outf.write("      size: 20\n")
+                            outf.write(f"      text: {params['region']}, {params['flavor']}\n")
                             outf.write("    legend-columns: 2\n")
                             outf.write("    log-y: both\n")
                             outf.write("    ratio-y-axis-range: [0.6, 1.4]\n")
                             outf.write("    save-extensions: [pdf, png]\n")
                             outf.write("    show-ratio: true\n")
                             outf.write("    sort-by-yields: false\n")
-                            outf.write("    x-axis: DNN_Output ZA node\n")
+                            outf.write("    x-axis: DNN_Output Z{params['mode'][-1]} node\n")
                             outf.write("    x-axis-range:\n")
                             outf.write("    - 0.0\n")
                             outf.write("    - 1.0\n")
@@ -678,10 +718,10 @@ def plotRebinnedHistograms(binnings, inDir, folder, mode_, suffix, year, toysdat
                             outf.write("    y-axis-show-zero: true\n")
                     else:
                         outf.write(line)
-            plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", plotsDIR, "--", f"{folder}/{suffix}/plots.yml"]
+            plotitCmd = ["/home/ucl/cp3/kjaffel/bamboodev/plotIt/plotIt", "-o", outDir, "--", f"{outDir}/plots.yml"]
             try:
                 logger.info("running {}".format(" ".join(plotitCmd)))
                 subprocess.check_call(plotitCmd)#, stdout=subprocess.DEVNULL)
             except subprocess.CalledProcessError:
                 logger.error("Failed to run {0}".format(" ".join(plotitCmd)))
-    print( f'\tplots saved in : {plotsDIR}')
+        print( f'\t{process} plots saved in : {outDir}')

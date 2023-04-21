@@ -33,6 +33,7 @@ import HistogramTools as HT
 import optimizer as optimizer
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
+
 import utils.CMSStyle as CMSStyle
 import Rebinning as Rb
 
@@ -49,15 +50,13 @@ class CustomJSONEncoder(JSONEncoder):
             return "##<{}>##".format(o._list)
 
 
-def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflow=False, doThreshold2=False, logy=False):
-    
-    oldEdges = {}
+def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow=False, doThreshold2=False, logy=False):
+    oldEdges     = {}
     np_w_oldhist = {}
     np_w_newhist = {}
-   
-    np_oldhist = {}
-    np_newhist = {}
-    newHist    = {}
+    np_oldhist   = {}
+    np_newhist   = {}
+    newHist      = {}
 
     for k, v in oldHist.items():
         np_oldhist[k]   = NumpyHist.getFromRoot(v)
@@ -74,21 +73,15 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
 
     if doThreshold2:
         # list of ROOT TH1 for each of your processes (background and signals, or using a summed histogram)
-        my_histograms = [ newHist['B_hybride']] 
-        
         # fallback for main backgrounds, see net message, non main background we use 0, for signals we use np.inf
         stats = np.zeros(4)
         newHist['B_hybride'].GetStats(stats)
         fallbacks = [stats[1]/stats[0]]
         hybride_bins = optimizer.get_finalbins(oldHist['B'], newEdges['hybride'])
-    
-        #if len( hybride_bins[:-1]) < 4:
-        #    bins = [1, 3, 10, 18, 29, 37, 44, 45, 51]
-        #else:
-        bins = hybride_bins[:-1]
-    
-        rebinObj = Rb.Threshold2(my_histograms, bins, fallbacks) # Initialize the rebinning object, the TH1 in  my_histograms have not changed
-        rebinned_histograms = [rebinObj(hist)  for hist in my_histograms]
+        
+        # Initialize the rebinning object
+        rebinObj = Rb.Threshold2( [newHist['B_hybride']], hybride_bins[:-1], fallbacks) 
+        rebinned_histograms = [rebinObj(hist)  for hist in [newHist['B_hybride']]]
     
         newhist_with_thres_cut  = NumpyHist.getFromRoot(rebinned_histograms[0])
         newEdges_with_thres_cut = newhist_with_thres_cut.e
@@ -96,15 +89,16 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
         print( 'new edges after threshold cut :: ', newEdges_with_thres_cut)
         print( 'new bin content after thresold cut ::', newhist_with_thres_cut.w) 
     
-
-    fig = plt.figure(figsize=(12, 4), dpi=300)
+    fig   = plt.figure(figsize=(10, 6), dpi=300)
     fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
-    
+
     for k, subplot in zip(['B', 'S'], [121, 122]):
+        label = 'Signal' if k=='S' else 'Bkg.'
         color = 'red' if k=='S' else 'blue'
         p0    = 0.1 if isSignal else 0.02
         
-        ax = fig.add_subplot(subplot)
+        ax    = fig.add_subplot(subplot)
+        CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(args.era), figures=1)
 
         ax.hist(oldEdges[k][:-1], bins=oldEdges[k], color=color, histtype='stepfilled', weights=np_w_oldhist[k],
                 alpha=0.2, density=True, label=label)
@@ -113,80 +107,78 @@ def BayesianBlocksHybrid(oldHist, name, output, label, newEdges, include_overflo
         if logy:
             ax.set_yscale('log') 
         
-        ax.legend(prop=dict(size=12), loc='best')
+        plt.xlim([0, 1])
+        ax.legend(prop=dict(size=10), loc='upper left', title=mass)
         ax.set_xlabel('DNN_output ZA')
         ax.set_ylabel('Probability density function')
+        ax.xaxis.set_major_locator(MultipleLocator(0.1))
+        ax.xaxis.set_minor_locator(MultipleLocator(0.02))
     
     nm = name.replace('hybride_bininngS+B_bayesian_toys', 'data_obs_plus_signal')
     if logy:
         nm += '_logy'
-    
     fig.savefig(os.path.join(output, nm+'.png')) 
     #fig.savefig(os.path.join(output, nm+'.pdf'))
     plt.close(fig)
     plt.gcf().clear()
 
-    for i, subplot in enumerate([121, 122]):
-        ax = fig.add_subplot(subplot)
-        if i ==0:
-            ax.hist( oldEdges["B"][:-1], 
-                    bins    = oldEdges["B"],  # they were the same (50 bins) for both 
-                    color   = 'blue', 
-                    weights = np_w_oldhist["B"], 
-                    alpha=0.2, histtype= 'stepfilled', stacked=True, density=True, label='50 uniform bins: B-Only')
-            ax.hist( oldEdges["S"][:-1], 
-                    bins    = oldEdges["S"],  # they were the same (50 bins) for both 
-                    color   = 'red', 
-                    weights = np_w_oldhist["S"], 
-                    alpha=0.2, histtype= 'stepfilled', stacked=True, density=True, label='50 uniform bins: S-Only')
-            ax.hist(newEdges["B"][:-1], 
-                    bins    = newEdges["B"], 
-                    color   ='blue', 
-                    weights = np_w_newhist["B"], 
-                    histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: B-Only")
-            ax.hist(newEdges["S"][:-1], 
-                    bins    = newEdges["S"], 
-                    color   = 'red', 
-                    weights = np_w_newhist["S"], 
-                    histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: S-Only")
-            ax.hist(newEdges["hybride"][:-1], 
-                    bins    = newEdges["hybride"], 
-                    color   ='black', 
-                    weights = np.sum([np_w_newhist["S_hybride"], np_w_newhist["B_hybride"]], axis=0), 
-                    histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: hybrid")
-        else:
-            ax.hist(newEdges["hybride"][:-1], 
-                    bins    = newEdges["hybride"], 
-                    color   ='blue',
-                    weights = np_w_newhist["B_hybride"], 
-                    alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Bkg")
-            ax.hist(newEdges["hybride"][:-1], 
-                    bins    = newEdges["hybride"], 
-                    color   = 'red', 
-                    weights = np_w_newhist["S_hybride"], 
-                    alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Signal")
-        # not in use!
-        #ax.hist(newEdges["B_safe_stat"], 
-        #        bins    = newEdges["B_safe_stat"]+[1.], 
-        #        color   = 'purple', 
-        #        weights = np_arr_hybride["B_safe_stat"], 
-        #        histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: hybride +safe stat.")
-        if logy:
-            ax.set_yscale('log')
-            #ax.set_ylim([10e-4, 10e3])
-        ax.legend(prop=dict(size=10), loc='best')
-        ax.set_xlabel('DNN_output ZA')
-        ax.set_ylabel('Probability density function')
+    #=================================================
+    fig2, ax2   = plt.subplots(figsize=(5, 6), dpi=300)
+    CMSStyle.applyStyle(fig2, ax2, Constants.getLuminosity(args.era), figures=1)
     
+    ax2.hist( oldEdges["B"][:-1], 
+                bins    = oldEdges["B"],  # they were the same (50 bins) for both 
+                color   = 'blue', 
+                weights = np_w_oldhist["B"], 
+                alpha=0.2, histtype= 'stepfilled', stacked=True, density=True, label='50 uniform bins: Bkg.')
+    ax2.hist( oldEdges["S"][:-1], 
+                bins    = oldEdges["S"],  # they were the same (50 bins) for both 
+                color   = 'red', 
+                weights = np_w_oldhist["S"], 
+                alpha=0.2, histtype= 'stepfilled', stacked=True, density=True, label='50 uniform bins: Signal')
+    ax2.hist(newEdges["B"][:-1], 
+                bins    = newEdges["B"], 
+                color   ='blue', 
+                weights = np_w_newhist["B"], 
+                histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: B-only")
+    ax2.hist(newEdges["S"][:-1], 
+                bins    = newEdges["S"], 
+                color   = 'red', 
+                weights = np_w_newhist["S"], 
+                histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: S-only")
+    ax2.hist(newEdges["hybride"][:-1], 
+                bins    = newEdges["hybride"], 
+                color   ='black', 
+                weights = np.sum([np_w_newhist["S_hybride"], np_w_newhist["B_hybride"]], axis=0), 
+                histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: hybrid")
+   # else: i!=0
+   #     ax2.hist(newEdges["hybride"][:-1], 
+   #             bins    = newEdges["hybride"], 
+   #             color   ='blue',
+   #             weights = np_w_newhist["B_hybride"], 
+   #             alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Bkg")
+   #     ax2.hist(newEdges["hybride"][:-1], 
+   #             bins    = newEdges["hybride"], 
+   #             color   = 'red', 
+   #             weights = np_w_newhist["S_hybride"], 
+   #             alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Signal")
     if logy:
+        ax2.set_yscale('log')
         name += '_logy'
+    plt.xlim([0, 1])
+
+    ax2.legend(prop=dict(size=10), loc='upper left', title=mass)
+    ax2.set_xlabel('DNN_output ZA')
+    ax2.set_ylabel('Probability density function')
+    ax2.xaxis.set_major_locator(MultipleLocator(0.1))
+    ax2.xaxis.set_minor_locator(MultipleLocator(0.02))
     
-    fig.savefig(os.path.join(output, name+'.png')) 
+    fig2.savefig(os.path.join(output, name+'.png')) 
     #fig.savefig(os.path.join(output, name+'.pdf'))
     plt.close(fig)
     plt.gcf().clear()
 
-    if doThreshold2:
+    if doThreshold2: ## deprecated 
         return newEdges_with_thres_cut.astype(float).round(2).tolist(), newBins_with_thres_cut
     else:
         return [], []
@@ -258,16 +250,18 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             crossNm     = old_hist.GetName()+name+"_crossCheck_%.2f"%p0
             FinalEdges  = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
 
-            ## custom if you don't like what the BB give 
-            ##############"
+            #=========================================================
+            ## custom:  add on top of the BB your own modifi  
+            #=========================================================
             if not isSignal: 
-                FinalEdges = optimizer.no_low_binContents(nph, FinalEdges, crossNm, thresh=6.)
-                if '300.0_MA_200.0' in crossNm and 0.94 in FinalEdges:
-                    FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.94) )
+                FinalEdges = optimizer.no_low_binContents(nph, FinalEdges, crossNm, thresh=10.)
             else:
-                if '500.0_MA_250.0' in crossNm and 'boosted' in crossNm:
+                if '500.0_MA_250.0' in crossNm or '500.0_MH_250.0' in crossNm and 'boosted' in crossNm:
                     FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
-            ##############"
+            
+            if '300.0_MA_200.0' in crossNm and 0.94 in FinalEdges:
+                FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.94) )
+            #=========================================================
 
             #if not 'signal' in datatype:
             FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
@@ -532,6 +526,7 @@ if __name__ == "__main__":
                         inputs['S'].append(rf_s)
     
     binnings = {
+            'root' : [],
             'files': {
                     'toys'        : [],
                     'asimov'      : {
@@ -541,12 +536,14 @@ if __name__ == "__main__":
                             'signal'  : [],
                             'data'    : [],
                             'mc': {
-                                'DY': [],
+                                'DY'       : [],
                                 'ttbar'    : [],
                                 'SingleTop': [],
-                                'ZZ'       : [],
-                                'SM'       : [],
-                                'others'   : [] } }
+                                'WJets'    : [],
+                                'ttV'      : [],
+                                'VV'       : [],
+                                'VVV'      : [],
+                                'SMHiggs'  : [] } }
                     },
             'histograms':{}
             }
@@ -584,7 +581,7 @@ if __name__ == "__main__":
                 oldBinContent = {}
 
                 mass   = channel.replace(f'{args.mode}_', '')
-                histNm = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)
+                histNm, opts = optimizer.get_histNm_orig(args.mode, smpNm, mass, info=True, fix_reco_format=fix_reco_format)
                 
                 if not histNm in binnings['histograms'].keys():
                     binnings['histograms'][histNm] = {}
@@ -592,7 +589,6 @@ if __name__ == "__main__":
                     binnings['histograms'][histNm].update({process: {}})
                 
                 for key in inFile.Get(channel).GetListOfKeys():
-                    
                     isSignal  = False
                     isData    = False
 
@@ -611,14 +607,14 @@ if __name__ == "__main__":
                         logger.error('could not find object: inFile.Get({channel}).Get({key.GetName()}) -- return null pointer!')
                     print( f'- working on : {key.GetName()}' ) 
                     
-                    label    = mass if isSignal else 'B-Only toy data'
+                    label    = 'Signal '+opts['signal'] if isSignal else 'B-only toy data'
                     datatype = "toys_signal" if isSignal else key.GetName()
                    
                     np_hist = NumpyHist.getFromRoot(oldHist[k])
                     oldBinContent[k] = np_hist.w
                     oldBinErrors[k]  = np_hist.s
                     oldEdges[k]      = np_hist.e
-                   
+                     
                     newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( root_file         = rf,
                                                                             old_hist          = oldHist[k],
                                                                             mass              = mass, 
@@ -638,7 +634,7 @@ if __name__ == "__main__":
                 
                 hybridebinning_dict = {'B': newEdges['B'] }
                 
-                binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)][process].update(
+                binnings['histograms'][histNm][process].update(
                            {'B': [MarkedList(newEdges['B']), MarkedList(FinalBins['B']) ] } )
                 
                 if not any ( x in histNm for x in ['MuEl', 'ElMu'] ):
@@ -649,19 +645,19 @@ if __name__ == "__main__":
                 
                     hybridebinning_dict.update( {'S': newEdges['S'],
                                                  'hybride': binning[0] } )
-                   # not in use ( deprecated) !! 
-                   # newEdges_with_thres_cut, newBins_with_thres_cut = BayesianBlocksHybrid(
-                   #                 oldHist, 
-                   #                 name                  = 'hybride_bininngS+B_bayesian_toys' + '_' + smpNm, 
-                   #                 output                = plotsDIR, 
-                   #                 label                 = label,
-                   #                 newEdges              = hybridebinning_dict, 
-                   #                 include_overflow      = False, 
-                   #                 logy                  = args.logy)
-                    binnings['histograms'][optimizer.get_histNm_orig(args.mode, smpNm, mass, info=False, fix_reco_format=fix_reco_format)][process].update(
+                   
+                    BayesianBlocksHybrid(oldHist, 
+                                        name                  = 'hybride_bininngS+B_bayesian_toys' + '_' + smpNm, 
+                                        output                = plotsDIR, 
+                                        mass                  = opts['signal'],
+                                        newEdges              = hybridebinning_dict, 
+                                        include_overflow      = False, 
+                                        doThreshold2          = False,
+                                        logy                  = args.logy
+                                        )
+                    binnings['histograms'][histNm][process].update(
                             {   'S'      : [MarkedList(newEdges['S']), MarkedList(FinalBins['S']) ],
                                 'hybride': [MarkedList(binning[0]), MarkedList(binning[1])],
-                                # deprecated: 'BB_hybride_good_stat': [MarkedList(newEdges_with_thres_cut), MarkedList(newBins_with_thres_cut)],
                             })
 
             inFile.Close()
@@ -708,7 +704,7 @@ if __name__ == "__main__":
                         binnings['histograms'][histNm].update({process: {}})
                     
                     mass   = histNm.split(process+'_')[-1].split('__')[0]
-                    label  = mass if isSignal else 'B-Only Asimov data'
+                    label  = mass if isSignal else 'B-only Asimov data'
                     newHist, newEdges, FinalBins = BayesianBlocks(  root_file         = rf, 
                                                                     old_hist          = inFile.Get(histNm), 
                                                                     mass              = mass, 
@@ -737,18 +733,19 @@ if __name__ == "__main__":
             os.makedirs(os.path.join(args.output, suffix), exist_ok=True)
         
         if args.submit=='all':
-            files= list_inputs
+            files= inputs
         elif args.submit=='test':
             files= binnings['files']['asimov']['signal']+ binnings['files']['asimov']['tot_b']
         
         Observation = {}
-        for process in ['gg_fusion', 'bb_associatedProduction']:
+        for j, process in enumerate(['gg_fusion', 'bb_associatedProduction']):
             
             if not os.path.isdir(os.path.join(args.output, suffix, process)):
                 os.makedirs(os.path.join(args.output, suffix, process), exist_ok=True)
             
             for rf in files:
                 isSignal = False
+
                 smpNm = rf.split('/')[-1].replace('.root','')
                 if smpNm.startswith('__skeleton__'):
                     continue
@@ -757,15 +754,20 @@ if __name__ == "__main__":
                     if not optimizer.EraFromPOG(args.era) in smpNm:
                         continue
                 
-                if not args.unblind:
-                    if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
+                if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
+                    group       = 'data'
+                    if not args.unblind:
                         continue
 
-                if any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']): # my signals
+                elif any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']): # my signals
                     isSignal = True
+                    group    = 'signal'
                     if smpNm.startswith('GluGluTo'): p = 'gg_fusion'
                     else: p = 'bb_associatedProduction' 
                 
+                else:
+                    group = 'mc'
+
                 if isSignal and p !=process:
                     continue
                 
@@ -780,7 +782,17 @@ if __name__ == "__main__":
                 
                 if not smpNm in Observation.keys():
                     Observation[smpNm] = {}
-
+                
+                if j == 0: # save once !
+                    dict_ = optimizer.sorted_files
+                    binnings['root'] = os.path.join(curr_dir, args.output, suffix )
+                    for gp , poss_f in dict_.items():
+                        if any(x in smpNm for x in poss_f):
+                            if not gp in ['data', 'signal']:
+                                binnings['files']['asimov']['mc'][gp].append(f"{smpNm}.root")
+                            else:
+                                binnings['files']['asimov'][gp].append(f"{smpNm}.root")
+                
                 for key in inFile.GetListOfKeys():
                     isSys  = False
                     if args.mode == 'dnn':  
@@ -814,6 +826,7 @@ if __name__ == "__main__":
 
                     print( f' working on : {key.GetName()}' ) 
                     name = key.GetName() +'_rebin'
+                    
                     #===================================================== 
                     
                     if args.rebin == 'custom':
@@ -821,6 +834,7 @@ if __name__ == "__main__":
                         newEdges= binning[0]
                         newHist, sumOfWeightsGenerated = rebinCustom(oldHist, binning, oldHist.GetName())
                         name   += '_custome'
+                    
                     #===================================================== 
 
                     elif args.rebin == 'standalone':
@@ -836,6 +850,7 @@ if __name__ == "__main__":
                         binning  = [newEdges, keep_bins]
                         newHist, sumOfWeightsGenerated  =  rebinCustom(oldHist, binning, oldHist.GetName())
                         name    += '_standalone'
+                    
                     #===================================================== 
                     
                     elif args.rebin == 'bayesian':
@@ -873,15 +888,17 @@ if __name__ == "__main__":
                                 if hit_boundaries:
                                     binning  = data['histograms'][look_for_hist][process]['B']
                                 else:
-                                    binning    = [_half_bins, _half_edges]
+                                    binning  = [_half_bins, _half_edges]
                             else:
-                                # FIXME: test for Jan question
-                                #if 'boosted' in look_for_hist:
-                                #    look_for_hist = look_for_hist.replace('MuEl', 'OSSF')
-                                #    newkey = 'S'
-                                #else: 
-                                #    newkey = 'B'
-                                binning = data['histograms'][look_for_hist][process]['B']
+                                # FIXME: test for Jan question, by default newkey should always be 'B'
+                                look_for_hist_SR = look_for_hist.replace('MuEl', 'OSSF')
+                                binning_SR  =  data['histograms'][look_for_hist_SR][process]['S']
+                                if 'boosted' in look_for_hist and len(binning_SR[0])==2:
+                                    look_for_hist = look_for_hist_SR
+                                    newkey = 'S'
+                                else: 
+                                    newkey = 'B'
+                                binning = data['histograms'][look_for_hist][process][newkey]
                         else:
                             if get_half:
                                 hit_boundaries = False
@@ -957,7 +974,9 @@ if __name__ == "__main__":
         print(' rebinned template saved in : {} '.format(os.path.join(args.output, fNm)))
         
     if args.plotit:
-        if args.onlypost:
-            f = open(os.path.join(args.output, fileNm))
+        if args.mode =='dnn':
+            f = open(os.path.join(args.output, fNm))
             binnings = json.load(f)
-        optimizer.plotRebinnedHistograms(binnings, inDir, args.output, mode, suffix, args.era, args.toys, normalized=args.normalized)
+            optimizer.plotRebinnedHistograms(binnings, args.input, plotsDIR, args.era, normalized=True) #args.normalized)
+        else:
+            print(f'sorry not supported for other {args.mode} mode')

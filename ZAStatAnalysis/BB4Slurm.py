@@ -16,7 +16,7 @@ def get_signal_parameters(f):
     return float(m_heavy), float(m_light)
 
 
-def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, scenario, unblind):
+def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, scenario, unblind, plotit):
     config = Configuration()
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'normal'
@@ -29,15 +29,17 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
     #config.inputSandboxContent = [""]
     #config.stageoutFiles = ['*.root']
     config.stageoutDir = config.sbatch_chdir
-    config.inputParamsNames = ['cmssw', 'input', 'output', 'rebin', 'era', 'mode', 'submit', 'scenario']
+    config.inputParamsNames = ['cmssw', 'input', 'output', 'rebin', 'era', 'mode', 'submit', 'scenario', 'PlotIt']
     config.inputParams = []
     #config.numJobs = 1
     
     era_  = era.replace('20', '')
     cmssw = config.cmsswDir
+    rFiles= glob.glob(os.path.join(bambooResDIR, '*.root'))
 
-    for i, inF in enumerate(glob.glob(os.path.join(bambooResDIR, '*.root'))): 
+    for i, inF in enumerate(rFiles): 
         smp = inF.split('/')[-1]
+        PlotIt = False
         
         if era!='fullrun2':
             if not f"_UL{era_}" in smp:
@@ -50,17 +52,28 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
         if submit =='test':
             if i !=0:
                 continue
-
-        config.inputParams.append([cmssw, inF, outputDIR, rebin, era, mode, submit, scenario])
-    
+        
+        # last root file
+        if plotit and i == (len(rFiles)-1): 
+            PlotIt = True
+        
+        config.inputParams.append([cmssw, inF, outputDIR, rebin, era, mode, submit, scenario, PlotIt])
     config.payload = \
         """
             pushd ${cmssw}
-            echo "running ::" optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
-            python optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm
+            
+            if $PlotIt; then
+                args="--input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm --plotit"
+            else
+                args="--input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm"
+            fi
+
+            echo "running :: optimizeBinning.py ${args}"
+            python optimizeBinning.py ${args}
         """
     submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Bayesian Blocks', formatter_class=argparse.RawTextHelpFormatter)
@@ -74,6 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--rebin', action='store', choices= ['custom', 'standalone', 'bayesian'], required=True, help='')
     parser.add_argument('--scenario', action='store', choices= ['hybride', 'S', 'B', 'BB_hybride_good_stat'], required=False, help='')
     parser.add_argument('--submit', action='store', default='test', choices=['all', 'test'], help='')
+    parser.add_argument('--plotit', action='store_true', default=False, help=' do plots after rebining')
 
     options = parser.parse_args()
     
@@ -84,5 +98,6 @@ if __name__ == '__main__':
                             mode        = options.mode,
                             submit      = options.submit,
                             scenario    = options.scenario,
-                            unblind     = options.unblind 
+                            unblind     = options.unblind,
+                            plotit      = options.plotit,
                            )
