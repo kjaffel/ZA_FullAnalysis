@@ -379,6 +379,7 @@ if __name__ == "__main__":
                 outf.write(f"     luminosity: {opt['lumi']} #pb \n")
                 outf.write(f"     luminosity-error: {opt['uncer']}\n")
             outf.write("\n")
+            outf.write("dbcache: dascache\n")
             outf.write("samples:\n")
             # =======================================================
             run = None
@@ -503,7 +504,7 @@ if __name__ == "__main__":
                         for sub_p in subprocesses[group]:
                             outf.write(f"  {Nm.replace(newEra, '_'+sub_p+newEra)}:\n")
                             outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                            outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                            #outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
                             outf.write(f"    split: {split}\n")
                             outf.write(f"    era: '{era}'\n")
                             outf.write(f"    group: {sub_p}\n")
@@ -515,7 +516,7 @@ if __name__ == "__main__":
                     else:
                         outf.write(f"  {Nm}:\n")
                         outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                        outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                        #outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
                         outf.write(f"    split: {split}\n")
                         outf.write(f"    era: '{era}'\n")
                         outf.write(f"    group: {group}\n")
@@ -525,7 +526,7 @@ if __name__ == "__main__":
                 elif isdata :
                     outf.write(f"  {Nm}:\n")
                     outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                    outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                    #outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
                     outf.write(f"    split: {split}\n")
                     outf.write(f"    era: '{era}'\n")
                     outf.write("    group: data\n")
@@ -535,7 +536,7 @@ if __name__ == "__main__":
                 elif issignal :
                     outf.write(f"  {Nm}:\n")
                     outf.write(f'    db: {das__path}\n'.replace("'" , ""))
-                    outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
+                    #outf.write(f"    files: dascache/nanov9/{era}/{Nm}.dat\n")
                     outf.write(f"    era: '{era}'\n")
                     outf.write("    type: signal\n")
                     outf.write(f"    prod: {process}\n")
