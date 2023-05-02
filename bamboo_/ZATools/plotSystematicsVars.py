@@ -13,12 +13,12 @@ tmpargv  = sys.argv[:]
 sys.argv = []
 sys.argv = tmpargv
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
 import HistogramTools as HT
 import utils as utils
 logger = utils.ZAlogger(__name__)
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/')
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../','ZAStatAnalysis/'))
 import Harvester as H
 import Constants as Constants
 

@@ -7,10 +7,9 @@ import subprocess
 import glob
 from cppyy import gbl
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
 import utils as utils
 logger = utils.ZAlogger(__name__)
-
 
 
 def getSamplesFromDAS(era, smp, dataType= None, rm_nlo= False):

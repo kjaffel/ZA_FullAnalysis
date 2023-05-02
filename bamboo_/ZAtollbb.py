@@ -513,7 +513,7 @@ class NanoHtoZABase(NanoAODModule):
             newEra   = 'UL'+era.split('-')[0]
             suffix   = era.replace('-','').replace('20','')
             fileName = f"dilep_trig_sf_UL{suffix}.json.gz"
-            path = os.path.join("/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/HLTefficiencies/run2ULegacyHLT/", newEra, fileName)
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/HLTefficiencies/run2ULegacyHLT/', newEra, fileName))
             
             lepflav = "ee" if channel == "ElEl" else "mumu" if channel =="MuMu" else "emu"
             correction = f"h2D_SF_{lepflav}_lepABpt_FullError"
@@ -1030,7 +1030,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             except Exception as ex:
                 raise RuntimeError(f'-- {ex} -- when op.mvaEvaluator model: {ZAmodel_path}.')
 
-            bayesian_blocks = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/ul__combinedlimits/preapproval__6/rebinned_edges_bayesian_all.json"
+            bayesian_blocks = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'bayesian_blocks', 'rebinned_edges_bayesian_all.json'))
             if not os.path.exists(bayesian_blocks):
                 raise RuntimeError(f'Could not find model: {bayesian_blocks}')
             else:
@@ -1534,8 +1534,6 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                         nm     = 'Z%s'%Light
                                         
                                         EXTRA = []
-                                        #if mode == 'HToZA':
-                                        #    EXTRA = [(500.,300.), (500., 250.), (650., 50.), (379.00, 54.59), (510., 130.), (800., 140.), (516.94, 78.52), (800., 200.), (300., 200.), (717.96, 577.65)]
                                         masses_seen_forEvaluation  = dict_allmasspoints[mode] + EXTRA
                                         signal_grid = { 'seen_byDNN'   : set(masses_seen_forEvaluation),
                                                         'notseen_byDNN': set(masses_notseen) }

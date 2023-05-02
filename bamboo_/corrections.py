@@ -170,8 +170,7 @@ def localizePOGSF(era, POG, fileName):
 
 
 def localize_btv_json_files( era, data, fileName):
-    return os.path.join("/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/scripts_ToExtractSFs/", data, 'UL'+era.replace('-',''), fileName)
-
+    return os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), 'data' )), data, 'UL'+era.replace('-',''), fileName)
 
 def getLeptonSF(era, correctionSet,):
     if "muon_trigger" in correctionSet:
@@ -431,10 +430,7 @@ def call_BTagCalibration(flav, noSel, era, wp):
 def makeBtagSF(_cleaned_jets, wp, idx, legacy_btagging_wpdiscr_cuts, era, noSel, sample, dobJetER, doCorrect, isSignal, defineOnFirstUse, decorr_eras, full_scheme, full_scheme_mapping, nano="v9"):
     
     wFail = op.extMethod("scalefactorWeightForFailingObject", returnType="double")
-
-    #base_path = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/run2Ulegay_results/ul_btv_effmaps/"
-    base_path  = "/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/BTagEff_maps/"
-    
+    base_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/BTagEff_maps/' ))
     path_Effmaps = { 
             #'2016-preVFP' : "ul2016__btv_effmaps__ver8/results/summedProcessesForEffmaps/summedProcesses_2016-preVFP_ratios.root",
             #'2016-postVFP': "ul2016__btv_effmaps__ver8/results/summedProcessesForEffmaps/summedProcesses_2016-postVFP_ratios.root",
@@ -691,14 +687,14 @@ def DrellYanreweighting(noSel, j, tagger, era, doSysts):
 
 Old_puIDSFLib = {
         f"{year}_{wp}" : {
-            f"{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/PileupFullRunII/',
+            f"{eom}_{mcsf}" : os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/PileupFullRunII/' ,
                 "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf") }
         for year in ("2016", "2017", "2018") for wp in "LMT"
     }
 puIDSFLib = {
         f"{year}_{wp}" : {
-            f"{eos}_{eom}_{mcsf}" : os.path.join('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/data/PileupFullRunII/',
+            f"{eos}_{eom}_{mcsf}" : os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/PileupFullRunII/' ,
                 "fromflorian", f"PUID_{eos}_h2_{eom}_{mcsf}{year}_{wp}.json")
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf") for eos in ("EFF", "SF")}
         for year in ("2016", "2017", "2018") for wp in "LMT"
