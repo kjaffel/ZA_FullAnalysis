@@ -56,8 +56,7 @@ plots:
   histo-name:
     blinded-range: [0.8, 1.0]
     labels:
-        #- {text: 'Label1', position: [0.22, 0.895]}
-        #- {text: 'Label2', position: [0.3, 0.895]}
+        #- {text: 'myLabel', position: [0.22, 0.895]}
     - position: [0.22, 0.89]
       size: 20
       text: mychannel

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os, os.path
+import json
 import glob 
 import ROOT
 import subprocess
@@ -12,7 +13,7 @@ logger = Constants.ZAlogger(__name__)
 
 from numpy_hist import NumpyHist
 
-sys.path.append('/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/bamboo_/')
+os.path.abspath(os.path.join(os.path.dirname(__file__), '../bamboo_' ))
 import HistogramTools as HT
 
 
@@ -21,6 +22,7 @@ def CopyTH1F_to_TH1D(hist):
         return None
     copyHist = ROOT.TH1D(str(hist.GetName()), hist.GetTitle(), hist.GetNbinsX(), hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax())
     return copyHist
+
 
 
 def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era, submit_to_slurm=True):
@@ -35,7 +37,7 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
         config.sbatch_chdir = os.path.join(slurm_stageout, 'work__UL%s'%era, 'slurm', 'plotit')
         config.stageoutDir = config.sbatch_chdir
         config.sbatch_time  = '01:24:00'
-        config.sbatch_memPerCPU = '2000'
+        config.sbatch_memPerCPU = '1000'
         config.inputParamsNames = ['cmssw', 'inDir', 'outDir', 'prod', 'name']
         config.inputParams = []
         cmssw  = config.cmsswDir
@@ -43,11 +45,6 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
     for i, fit in enumerate(['fit_s', 'fit_b']):
         for j, rf in enumerate(glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit))):
             
-            if not 'MH-300.0_MA-200.0' in rf: #just for test
-                continue
-            #if i !=0 or j !=0: # just for test
-            #    exit()
-
             smp    = rf.split('/')[-1]
             dir    = rf.split(smp)[0]
             params = rf.split('/')[-3].split('_')
@@ -90,6 +87,7 @@ def ProcessHistograms( hist):
         stat.append(content)
         uncer.append(error)
     return round(sum(stat), 2), round(sum(uncer),2)
+
 
 
 def EventsYields(mH, mA, workdir, mode, unblind):
@@ -197,13 +195,26 @@ def EventsYields(mH, mA, workdir, mode, unblind):
         f.write(R'\end{tabular}' + '\n')
 
 
+
+def WriteChannelOnPlotIt(data, channels):
+    plotit_texts = {}
+    for ch, cfg in data.items():
+        ch_per_bin = cfg[0].split('_')[4:]
+        ch_per_bin[-1] = channels[ ch_per_bin[-1]]
+        plotit_texts[ch] = ch_per_bin
+    print( plotit_texts)
+    return plotit_texts
+
+
+
 def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_dir='2POIs_r', tb_dir='', rescale_to_za_br=None):
 
-        base     = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
+        base     = os.path.abspath(os.path.dirname(__file__))
         re       = 'reshaped' if reshape else ''
+        dir_     = '../' if reshape else ''
         era      = era.replace('2016', '2016-') if 'VFP' in era else era
         lumi     = Constants.getLuminosity(era)
-        hist_nm  = Constants.get_Nm_for_runmode( mode)
+        hist_nm  = Constants.get_Nm_for_runmode(mode)
         
         # will devide bin contents by the bin width
         if options.reshape: 
@@ -216,26 +227,28 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
         xmax_dict= {'dnn': 1.0, 'mllbb': 1400., 'mbb': 1200} 
         channels = {
                     'ElEl'      : 'ee',
-                    'MuMu'      : r'$\mu\mu$',
-                    'MuEl'      : r'$\mu e$',
-                    'MuMu_ElEl' : r'$\mu\mu$ + ee',
-                    'OSSF'      : r'$\mu\mu$ + ee',
-                    'ElEl_MuEl' :  'ee + r$\mu e$',
-                    'MuMu_MuEl' : r'$\mu\mu$ + $\mu e$',
-                    'OSSF_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
-                    'split_OSSF': r'$\mu\mu$ + ee',
-                    'split_OSSF_MuEl': r'$\mu\mu$ + ee + $\mu e$',
-                    'MuMu_ElEl_MuEl' : r'$\mu\mu$ + ee + $\mu e$',
+                    'MuMu'      : '#mu#mu',
+                    'MuEl'      : '#mu e',
+                    'MuMu_ElEl' : '#mu#mu + ee',
+                    'OSSF'      : '#mu#mu + ee',
+                    'ElEl_MuEl' : 'ee + #mu e',
+                    'MuMu_MuEl' : '#mu#mu + #mu e',
+                    'OSSF_MuEl' : '#mu#mu + ee + #mu e',
+                    'split_OSSF': '#mu#mu + ee',
+                    'split_OSSF_MuEl': '#mu#mu + ee + #mu e',
+                    'MuMu_ElEl_MuEl' : '#mu#mu + ee + #mu e',
                     }
         
         for fit in ['prefit', 'postfit']:
             for fit_what in ['fit_s', 'fit_b']:
                 
                 for cat_path in glob.glob(os.path.join(workdir, 'fit/', mode, poi_dir, tb_dir, '*/', 'plotIt_*', fit_what, re)):
-                    ch = 1
                     
-                    if not 'MH-300.0_MA-200.0' in cat_path:
-                        continue
+                    jsf = os.path.join(cat_path, dir_, 'channels.json')
+                    f = open(jsf)
+                    data  = json.load(f)
+                    texts = WriteChannelOnPlotIt(data, channels)
+                    
                     split_path = cat_path.split('/')
                     if '' in split_path: split_path.remove('')
                     
@@ -246,29 +259,16 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     
                     if '_nb2_' in p_out: nb = 'nb2'
                     elif '_nb3_' in p_out: nb = 'nb3'
-                    elif 'nb2PLusnb3' in p_out: 
-                        nb  = 'nb2+nb3'
-                        ch *= 2
-                   
-                    if 'resolved_boosted' in p_out: 
-                        region = 'resolved_boosted'
-                        ch *= 2
+                    elif 'nb2PLusnb3' in p_out: nb  = 'nb2+nb3'
+                    
+                    if 'resolved_boosted' in p_out: region = 'resolved_boosted'
                     elif 'resolved' in p_out: region = 'resolved'
                     elif 'boosted' in p_out : region = 'boosted'
                     
                     
                     f = p_out.split( region + '_')[-1]
-                    flavs  = f.split('_') 
                     flavor = channels[f]
-                    flen   = len(flavs)
 
-                    if 'split' in flavs:
-                        if 'MuEl' in flavs: flen = 3
-                        else: flen = 2
-                    ch *= flen
-                    if 'gg_fusion_nb2_resolved_boosted_OSSF_MuEl' in p_out:
-                        ch =5
-                    
                     inBlockSignal = False
                     prod       = '_'.join(p_out.split('_')[1:2])
                     params     = cat_path.split('/plotIt_')[0].split('/')[-1].split('_')
@@ -280,15 +280,15 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                     m_heavy    = m_heavy.replace('.00', '')
                     m_light    = m_light.replace('.00', '')
                     x_axis     = f'DNN_Output Z{light}' if mode =='dnn' else f'{mode}'
-                    x_max      = ch 
+                    x_max      = len(data.keys())
                     signal_smp = "#splitline{%s: (m_{%s}, m_{%s})}{= (%s, %s) GeV}"%(process, heavy, light, m_heavy, m_light)
                     tb         = float(tb_dir.split('_')[1]) if tb_dir !='' else None
                     
-                    print( p_out, ch , flavor, nb, region ) 
                     if tb is None:
                         tb = 1.5 if 'gg_fusion' in p_out else 20.
                     xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
-                    print( br , tb) 
+                    
+                    print( p_out, flavor, nb, region, br , tb) 
 
                     with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                         with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
@@ -341,8 +341,24 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                 elif '    line-width: 3' in line and inBlockSignal:
                                     outf.write(f"{cs}    line-width: 3\n")
 
+                                elif 'myLabel' in line:
+                                    shift = 1/(x_max+1.)
+                                    s = 12 if x_max >7 else 15 
+                                    x = shift
+                                    if x_max ==8:
+                                        shift = 0.1
+                                        x = 0.18
+                                    if x_max ==5:
+                                        x = 0.18
+                                    for i, t in enumerate(texts.values()):
+                                        print( x, shift)
+                                        outf.write(f"    - position: [{x}, 0.4]\n")
+                                        outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(t[0],t[1],t[2]))
+                                        outf.write(f"      size: {s}\n")
+                                        x += shift
+                                        #outf.write(f"        - {text: '{t}', position: [[{x+1}, 10e-2]}\n")
                                 elif '      text: mychannel' in line:
-                                    outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(nb, region.replace('_', '+'), flavor.replace('$', '').replace("\mu", "#mu")))
+                                    outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(nb, region.replace('_', '+'), flavor))
                                 elif '  histo-name:' in line:
                                     outf.write(f"  {hist_nm}_{fit}:\n")
                                 elif '    - x_max' in line:
@@ -382,13 +398,14 @@ if __name__ == '__main__':
     options = parser.parse_args()
    
     ## if you will redo this step on slurm, you will have to wait until jobs finish before running func below :: runPlotIt_prepostFit
-   # RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
-   #                                         mode            = options.mode, 
-   #                                         poi_dir         = '2POIs_r', 
-   #                                         tb_dir          = '', 
-   #                                         era             = options.era,
-   #                                         submit_to_slurm = True )
-   #  
+    #RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
+    #                                        mode            = options.mode, 
+    #                                        poi_dir         = '2POIs_r', 
+    #                                        tb_dir          = '', 
+    #                                        era             = options.era,
+    #                                        submit_to_slurm = True )
+    # 
+    
     runPlotIt_prepostFit(workdir          = options.inputs, 
                          mode             = options.mode, 
                          era              = options.era, 
@@ -398,4 +415,4 @@ if __name__ == '__main__':
                          tb_dir           = '', 
                          rescale_to_za_br = options.rescale_to_za_br)
 
-    #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
+   #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
