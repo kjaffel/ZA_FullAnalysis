@@ -3,9 +3,6 @@ import argparse
 import glob
 import os
 import yaml
-import random
-import itertools
-import math
 import shutil
 import subprocess
 import root_numpy
@@ -13,7 +10,6 @@ import root_numpy
 from collections import defaultdict
 from faker import Factory
 fake = Factory.create()
-from matplotlib import pyplot as plt
 
 import numpy as np
 import ROOT as R
@@ -39,11 +35,11 @@ sorted_files = {
         'DY'       : ['DYJetsToLL_0J', 'DYJetsToLL_1J', 'DYJetsToLL_2J', 'DYJetsToLL_M-10to50'],
         # Others Backgrounds
         'WJets'    : ['WJetsToLNu'],
-        'ttV'      : ['TTWTo', 'TTZTo'],
+        'ttV'      : ['TTWTo', 'TTZTo', 'TTWJetsToQQ'],  
         'VV'       : ['ZZTo', 'WWTo', 'WZTo'],
         'VVV'      : ['ZZZ_', 'WWW_', 'WZZ_', 'WWZ_'],
         'SMHiggs'  : ['ggZH_HToBB_ZToLL_M-125', 'HZJ_HToWW_M-125', 'ZH_HToBB_ZToLL_M-125', 'ggZH_HToBB_ZToNuNu_M-125', 
-                    'GluGluHToZZTo2L2Q_M125', 'ttHTobb_M125_', 'ttHToNonbb_M125_']
+                      'GluGluHToZZTo2L2Q_M125', 'ttHTobb_M125_', 'ttHToNonbb_M125_']
 }
 
 plotIt_mc_groups = {  # group, legend
@@ -57,6 +53,20 @@ plotIt_mc_groups = {  # group, legend
         'ttV'       : ['others', 'VVV,ttV'],
 }
 
+channels = {
+        'ElEl'      : 'ee',
+        'MuMu'      : '#mu#mu',
+        'MuEl'      : '#mu e',
+        'MuMu_ElEl' : '#mu#mu + ee',
+        'OSSF'      : '#mu#mu + ee',
+        'ElEl_MuEl' : 'ee + #mu e',
+        'MuMu_MuEl' : '#mu#mu + #mu e',
+        'OSSF_MuEl' : '#mu#mu + ee + #mu e',
+        'split_OSSF': '#mu#mu + ee',
+        'split_OSSF_MuEl': '#mu#mu + ee + #mu e',
+        'MuMu_ElEl_MuEl' : '#mu#mu + ee + #mu e',
+}
+
 
 def EraFromPOG(era):
     return '_UL'+era.replace('20','')
@@ -66,6 +76,14 @@ def mass_to_str(m):
     m = str(m).replace('p','.')
     m = "%.2f"%float(m)
     return str(m).replace('.','p')
+
+
+def dir_to_mass(dir):
+    m_heavy = "%.2f"%float(dir.split('_')[0].split('-')[-1])
+    m_light = "%.2f"%float(dir.split('_')[1].split('-')[-1])
+    heavy   = dir.split('-')[0][-1]
+    light   = 'A' if heavy =='H' else 'H'
+    return f'M{heavy}_{m_heavy}_M{light}_{m_light}'.replace('.','p')
 
 
 def LATEX(uname=None):
@@ -290,8 +308,11 @@ def get_histNm_orig(mode, hist_nm, mass=None, info=False, fix_reco_format=False)
 
     m_heavy  = mass.split('_')[1]
     m_light  = mass.split('_')[3]
-
-    prod     = opts['process'].split('_')[0] + heavy
+    
+    prod = ''
+    if 'process'in opts.keys():
+        prod     = opts['process'].split('_')[0] + heavy
+    
     taggerWP = 'DeepFlavourM' if opts['region'] == 'resolved' else 'DeepCSVM'
     
     opts.update({'mass': mass, 'taggerWP': taggerWP, 'prod': prod, 'signal': '$%s: (m_{%s}, m_{%s})=(%s, %s) GeV$'%(prod, heavy, light, m_heavy, m_light)})
@@ -311,20 +332,37 @@ def no_extra_binedges(newEdges, oldEdges):
     cleanEdges = [] 
     newEdges   = newEdges.astype(float).round(2).tolist()
     oldEdges   = oldEdges.astype(float).round(2).tolist()
+    logger.warning(f'filter non existing edges in :{newEdges}')
     for i, x in enumerate(newEdges):
         if not x in oldEdges:
             closest_value = min(oldEdges, key=lambda val:abs(val-x))
             #logger.warning(f'replacing {x} with the closest value : {closest_value} in oldEdges')
             x = closest_value
         if not x in cleanEdges:
-            if i == 0: 
-                cleanEdges.append(x)
-            else:
-                if x - cleanEdges[-1] != 0.02:
-                    cleanEdges.append(x)
-                else:
-                    print(x, 'is a very narrow bin width will be removed ' )
+            cleanEdges.append(x)
+        #        if round(x - cleanEdges[-1],2) != 0.02:
+        #            cleanEdges.append(x)
+        #        else:
+        #            logger.warning(f'[{x}, {cleanEdges[-1]}]:: is a very narrow bin width will be removed!' )
     return cleanEdges
+
+
+
+def no_narrow_bins(newEdges, isSignal=False, minsize = 0.02):
+    cleanEdges = []
+    for i, x in enumerate(newEdges.astype(float).round(2).tolist()):
+        if i == 0:
+            cleanEdges.append(x)
+        else:
+            if round(x -cleanEdges[-1],2)  <= minsize: 
+                if isSignal: 
+                    if x > 0.75: cleanEdges.append(x)
+                    else: logger.warning(f'[{x}, {cleanEdges[-1]}]:: is a very narrow bin width will be removed!' )
+                else:
+                    logger.warning(f'[{x}, {cleanEdges[-1]}]:: is a very narrow bin width will be removed!' )
+            else:
+                cleanEdges.append(x)
+    return np.array(cleanEdges)
 
 
 def no_zero_binContents(nph, newEdges, crossNm):
@@ -334,13 +372,15 @@ def no_zero_binContents(nph, newEdges, crossNm):
     np_newhist  = NumpyHist.getFromRoot(newHist)
     result      = np.array(np.where(np_newhist.w == 0.))[0]
     FinalEdges  = np.array(np.delete(edges, result))
-    # keep bin boundaries should
+    # keep bin boundaries
     if not FinalEdges[0] == 0: FinalEdges = np.append([0], FinalEdges)
     if not FinalEdges[-1]== 1: FinalEdges = np.append(FinalEdges, [1])
+    #print( 'no_zero_binContents', newEdges, FinalEdges)
     return  FinalEdges
 
 
-def no_low_binContents(nph, newEdges, crossNm, thresh=6.):
+def no_low_binContents(nph, newEdges, crossNm, thresh=10.):
+    logger.info(f"Will try to merge bins contaning less than {thresh} weighted background events ... " )
     FinalEdges = newEdges
     edges      = np.array(newEdges)
     newHist    = nph.rebin(edges).fillHistogram(crossNm)
@@ -379,10 +419,10 @@ def no_bins_empty_background_across_year(rf, histNm, newEdges, channel, crossNm)
         if not os.path.exists(rf_per_era):
             continue
         inFile   = HT.openFileAndGet(rf_per_era)
-        hist     = inFile.Get(channel).Get(histNm)
+        hist     = inFile.Get(channel).Get('data_obs')
         nph      = NumpyHist.getFromRoot(hist)
         correctedEdges = no_zero_binContents(nph, correctedEdges, crossNm)
-        logger.info(f'{era} binning: {crossNm}, {correctedEdges}')
+        logger.info(f'{era} {histNm} binning: {crossNm}, {correctedEdges}')
     return correctedEdges
 
 
@@ -450,7 +490,7 @@ def bbbyields(hist):
     return stat, uncer
 
 
-def optimizeUncertainty_(hist, l, thres, edges): # deprectaed /bugy
+def optimizeUncertainty_(hist, l, thres, edges): # deprectaed
     cond = True
     dels = 0 
     num_bins = len(l)
@@ -507,9 +547,7 @@ def arr2root(old_hist=None, newEdges=None, include_overflow=False, verbose=False
 
 
 def normalizeAndSumSamples(inDir, outDir, inputs, era, scale=False):
-    sorted_inputs= {'data'  :[],
-                    'mc'    :[]}
-    
+    sorted_inputs= {'data' :[], 'mc' :[] }
     in_ = inDir.replace('results', '')
     plotter_p = outDir.split('work__UL')[0]
 
@@ -659,12 +697,12 @@ def plotRebinnedHistograms(binnings, bambooDir, plotsDIR, era, normalized=True):
     
     for j, process in enumerate(['gg_fusion', 'bb_associatedProduction']):
         
-        _root  = os.path.join( binnings['root'], process)
+        _root  = os.path.join( binnings['root'].replace('auto/', ''), process)
         _files = glob.glob( os.path.join(_root, '*.root'))
         outDir = os.path.join(plotsDIR, 'plotit', process)
         if not os.path.exists(outDir):
             os.makedirs(outDir)
-        
+       
         with open(f"data/rebinned_template.yml", 'r') as inf:
             with open(f"{outDir}/plots.yml", 'w+') as outf:
                 
@@ -703,14 +741,14 @@ def plotRebinnedHistograms(binnings, bambooDir, plotsDIR, era, normalized=True):
                             outf.write("    labels:\n")
                             outf.write("    - position: [0.22, 0.89]\n")
                             outf.write("      size: 20\n")
-                            outf.write(f"      text: {params['region']}, {params['flavor']}\n")
+                            outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(params['reco'], params['region'], channels[params['flavor']]))
                             outf.write("    legend-columns: 2\n")
                             outf.write("    log-y: both\n")
                             outf.write("    ratio-y-axis-range: [0.6, 1.4]\n")
                             outf.write("    save-extensions: [pdf, png]\n")
                             outf.write("    show-ratio: true\n")
                             outf.write("    sort-by-yields: false\n")
-                            outf.write("    x-axis: DNN_Output Z{params['mode'][-1]} node\n")
+                            outf.write(f"    x-axis: DNN_Output Z{params['mode'][-1]} node\n")
                             outf.write("    x-axis-range:\n")
                             outf.write("    - 0.0\n")
                             outf.write("    - 1.0\n")

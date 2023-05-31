@@ -49,6 +49,8 @@ class CustomJSONEncoder(JSONEncoder):
         if isinstance(o, MarkedList):
             return "##<{}>##".format(o._list)
 
+BADGOF = {'gg_fusion': ['MA-200.0_MH-125.0', 'MA-240.0_MH-130.0', 'MH-173.52_MA-72.01', 'MH-190.85_MA-86.78', 'MH-200.0_MA-100.0', 'MH-200.0_MA-125.0', 'MH-209.9_MA-104.53', 'MH-209.9_MA-86.79', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-240.0_MA-130.0', 'MH-261.4_MA-150.5', 'MH-296.1_MA-176.02', 'MH-335.4_MA-67.54'], 
+          'bb_associatedProduction': ['MA-200.0_MH-125.0', 'MA-220.0_MH-127.0', 'MA-240.0_MH-130.0', 'MH-157.77_MA-57.85', 'MH-173.52_MA-30.0', 'MH-173.52_MA-37.34', 'MH-173.52_MA-46.48', 'MH-173.52_MA-57.85', 'MH-173.52_MA-72.01', 'MH-190.85_MA-37.34', 'MH-190.85_MA-46.48', 'MH-190.85_MA-71.28', 'MH-209.9_MA-86.79', 'MH-209.9_MA-46.48', 'MH-209.9_MA-30.0', 'MH-209.9_MA-104.53', 'MH-200.0_MA-125.0', 'MH-200.0_MA-100.0', 'MH-190.85_MA-86.78', 'MH-200.0_MA-50.0', 'MH-230.77_MA-45.88', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-230.77_MA-30.0', 'MH-230.77_MA-37.1', 'MH-230.77_MA-56.73', 'MH-230.77_MA-69.78', 'MH-250.0_MA-100.0', 'MH-250.0_MA-50.0', 'MH-261.4_MA-85.1', 'MH-261.4_MA-69.66', 'MH-296.1_MA-145.93', 'MH-296.1_MA-120.82', 'MH-261.4_MA-56.73', 'MH-261.4_MA-124.53', 'MH-261.4_MA-37.1', 'MH-261.4_MA-30.0', 'MH-261.4_MA-150.5', 'MH-261.4_MA-102.99', 'MH-261.4_MA-45.88', 'MH-296.1_MA-30.0', 'MH-296.1_MA-36.79', 'MH-296.1_MA-55.33', 'MH-296.1_MA-82.4', 'MH-296.1_MA-99.9', 'MH-300.0_MA-100.0', 'MH-300.0_MA-200.0', 'MH-335.4_MA-55.33', 'MH-335.4_MA-45.12', 'MH-335.4_MA-145.06', 'MH-335.4_MA-30.0', 'MH-335.4_MA-36.79', 'MH-379.0_MA-143.08', 'MH-379.0_MA-205.76', 'MH-379.0_MA-36.63', 'MH-379.0_MA-44.72', 'MH-379.0_MA-54.59', 'MH-379.0_MA-66.57', 'MH-442.63_MA-161.81', 'MH-442.63_MA-135.44', 'MH-516.94_MA-179.35']}
 
 def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow=False, doThreshold2=False, logy=False):
     oldEdges     = {}
@@ -63,17 +65,19 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
         np_w_oldhist[k] = np_oldhist[k].w
         oldEdges[k]     = np_oldhist[k].e
         
-        newHist[k]      = np_oldhist[k].rebin(np.array(newEdges[k])).fillHistogram(v.GetName()+'_rebin_'+k)
+        newHist[k]      = np_oldhist[k].rebin(np.array(newEdges[k])).fillHistogram(v.GetName()+'_%s_rebin_%s'%(name,k))
         np_newhist[k]   = NumpyHist.getFromRoot(newHist[k])
         np_w_newhist[k] = np_newhist[k].w
         
-        newHist['%s_hybride'%k]      = np_oldhist[k].rebin(np.array(newEdges['hybride'])).fillHistogram(v.GetName()+'_hybride')
+        newHist['%s_hybride'%k]      = np_oldhist[k].rebin(np.array(newEdges['hybride'])).fillHistogram(v.GetName()+'_%s_%s_hybride'%(name, k))
         np_newhist['%s_hybride'%k]   = NumpyHist.getFromRoot(newHist['%s_hybride'%k])
         np_w_newhist['%s_hybride'%k] = np_newhist['%s_hybride'%k].w
 
     if doThreshold2:
-        # list of ROOT TH1 for each of your processes (background and signals, or using a summed histogram)
-        # fallback for main backgrounds, see net message, non main background we use 0, for signals we use np.inf
+        """
+            list of ROOT TH1 for each of your processes (background and signals, or using a summed histogram)
+            fallback for main backgrounds, see net message, non main background we use 0, for signals we use np.inf
+        """
         stats = np.zeros(4)
         newHist['B_hybride'].GetStats(stats)
         fallbacks = [stats[1]/stats[0]]
@@ -89,6 +93,8 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
         print( 'new edges after threshold cut :: ', newEdges_with_thres_cut)
         print( 'new bin content after thresold cut ::', newhist_with_thres_cut.w) 
     
+    #=============================================================
+    #=============================================================
     fig   = plt.figure(figsize=(10, 6), dpi=300)
     fig.subplots_adjust(left=0.1, right=0.95, bottom=0.15)
 
@@ -114,16 +120,23 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
         ax.xaxis.set_major_locator(MultipleLocator(0.1))
         ax.xaxis.set_minor_locator(MultipleLocator(0.02))
     
-    nm = name.replace('hybride_bininngS+B_bayesian_toys', 'data_obs_plus_signal')
+    nm = 'data_obs_plus_signal_' +name
     if logy:
         nm += '_logy'
+    plt.tight_layout()
+
     fig.savefig(os.path.join(output, nm+'.png')) 
     #fig.savefig(os.path.join(output, nm+'.pdf'))
     plt.close(fig)
     plt.gcf().clear()
-
-    #=================================================
-    fig2, ax2   = plt.subplots(figsize=(5, 6), dpi=300)
+    plt.clf()
+    
+    #=============================================================
+    #=============================================================
+    
+    fig2 = plt.figure(1, figsize=(7, 7), dpi=300)
+    fig2.tight_layout()
+    ax2 = fig2.add_subplot(111)
     CMSStyle.applyStyle(fig2, ax2, Constants.getLuminosity(args.era), figures=1)
     
     ax2.hist( oldEdges["B"][:-1], 
@@ -151,21 +164,12 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
                 color   ='black', 
                 weights = np.sum([np_w_newhist["S_hybride"], np_w_newhist["B_hybride"]], axis=0), 
                 histtype='step', stacked=True, density=True, fill=False, label=f"Bayesian blocks: hybrid")
-   # else: i!=0
-   #     ax2.hist(newEdges["hybride"][:-1], 
-   #             bins    = newEdges["hybride"], 
-   #             color   ='blue',
-   #             weights = np_w_newhist["B_hybride"], 
-   #             alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Bkg")
-   #     ax2.hist(newEdges["hybride"][:-1], 
-   #             bins    = newEdges["hybride"], 
-   #             color   = 'red', 
-   #             weights = np_w_newhist["S_hybride"], 
-   #             alpha=0.2, histtype='stepfilled', stacked=True, density=True,label="BB-hybrid: Signal")
+    
     if logy:
         ax2.set_yscale('log')
         name += '_logy'
     plt.xlim([0, 1])
+    plt.tight_layout()
 
     ax2.legend(prop=dict(size=10), loc='upper left', title=mass)
     ax2.set_xlabel('DNN_output ZA')
@@ -173,10 +177,11 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
     ax2.xaxis.set_major_locator(MultipleLocator(0.1))
     ax2.xaxis.set_minor_locator(MultipleLocator(0.02))
     
-    fig2.savefig(os.path.join(output, name+'.png')) 
-    #fig.savefig(os.path.join(output, name+'.pdf'))
+    fig2.savefig(os.path.join(output, 'hybride_bininngS+B_bayesian_toys_' + name +'.png')) 
+    #fig.savefig(os.path.join(output, hybride_bininngS+B_bayesian_toys_' + name+'.pdf'))
     plt.close(fig)
     plt.gcf().clear()
+    plt.clf()
 
     if doThreshold2: ## deprecated 
         return newEdges_with_thres_cut.astype(float).round(2).tolist(), newBins_with_thres_cut
@@ -184,7 +189,7 @@ def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow
         return [], []
 
 
-def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, datatype, label, logy=False, isSignal=False, doplot=False, dofind_bestPrior=False, include_overflow=False):
+def BayesianBlocks(root_file, old_hist, old_hist_data_obs, mass, name, channel, output, prior, datatype, label, logy=False, isSignal=False, doplot=False, dofind_bestPrior=False, include_overflow=False):
     """
     Bayesian Blocks is a dynamic histogramming method which optimizes one of
     several possible fitness functions to determine an optimal binning for
@@ -192,28 +197,38 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
     The code below uses a fitness function suitable for event data with possible
     repeats.  More fitness functions are available: see :mod:`density_estimation`
     
+    >> from hepstats.modeling.bayesian_blocks import bayesian_blocks
+    >> d = np.random.normal(size=100)
+    >> bins = bayesian_blocks(d, p0=0.01)
+    >> bins
+    array([-3.42867575, -1.04548397,  1.00224159,  2.46667491])
+    >> 
+    >> bins = bayesian_blocks(d, p0=0.7)
+    >> bins
+    array([-3.42867575, -1.9916094 , -1.00517457, -0.98295453, -0.67406162,
+                1.00224159,  2.46667491])
+    >> 
+    >> 
+
     useful ref :
         - https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
         - https://root.cern.ch/doc/master/classTH1.html#ae0895b66e993b9e9ec728d828b9336fe 
-    
-    np_arr_edges_oldhist = root_numpy.hist2array(old_hist, include_overflow=include_overflow, copy=True, return_edges=True)
-    np_arr_oldhist = np_arr_edges_oldhist[0]
-    oldEdges       = np_arr_edges_oldhist[1][0]
-    
+        - https://scikit-hep.org/hepstats/api/hepstats.modeling.bayesian_blocks.html
     """
+    
     nph = NumpyHist.getFromRoot(old_hist)
     np_arr_oldhist = nph.w
     oldEdges       = nph.e
-    oldNbins = old_hist.GetNbinsX() 
+    oldNbins       = old_hist.GetNbinsX() 
     
     print( "oldBinContents : ",  np_arr_oldhist, len(np_arr_oldhist))
     print( "oldEdges       : ",  oldEdges ,      len(oldEdges))
 
-
     if doplot:
         color = 'red' if isSignal else 'blue' 
-        p0    = 0.1 # the larger the number of bins, the small the P0 should be to prevent the creation of spurious, jagged bins.
-        
+        p0    = 0.7 if isSignal else 0.1 # large p0 should prevent the creation of spurious, jagged bins.
+        #estimate_of_prior = Prior.calc(N=5) # for 5 change points !!
+
         priorDir = os.path.join(output, f"prior_{p0}")
         if not os.path.isdir(priorDir):
             os.makedirs(priorDir)
@@ -223,8 +238,9 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
         
         for i, (p0, subplot) in enumerate(zip([p0, p0+0.02], [121, 122])):
             
-            pNm   = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
-            print ( 'working on :', old_hist, pNm , p0)
+            pNm     = datatype + '_' + name + '_bayesian_blocks'+ "_%.2f" %p0
+            crossNm = old_hist.GetName() + name + "_crossCheck_%.2f"%p0
+            print ( 'working on :', old_hist, pNm)
             
             ax    = fig.add_subplot(subplot)
             CMSStyle.applyStyle(fig, ax, Constants.getLuminosity(args.era), figures=1)
@@ -233,7 +249,8 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             safe_arr = np.array([])
             for elem in np_arr_oldhist:
                 safe_arr = np.append(safe_arr, [elem+1e-7])
-            # reduce importance of stats. 
+            
+            # reduce importance of stats. /just to get the bin edges
             if not isSignal and 'resolved' in name:
                 safe_arr = np.divide(safe_arr, 100.)
                 print( 'reduce stat by /100.:', safe_arr )
@@ -245,27 +262,65 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
             
             if 0.98 in newEdges: newEdges.remove(0.98)
             if not 1.0 in newEdges: FinalEdges = newEdges+[1.0]
-            else: FinalEdges = newEdges
+            FinalEdges= np.array(FinalEdges)
             
-            crossNm     = old_hist.GetName()+name+"_crossCheck_%.2f"%p0
-            FinalEdges  = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
-
             #=========================================================
-            ## custom:  add on top of the BB your own modifi  
+            # custom:  add on top of the BB your own changes if needed 
+            # make sure that it will survive the conditions below !!
             #=========================================================
-            if not isSignal: 
-                FinalEdges = optimizer.no_low_binContents(nph, FinalEdges, crossNm, thresh=10.)
-            else:
-                if '500.0_MA_250.0' in crossNm or '500.0_MH_250.0' in crossNm and 'boosted' in crossNm:
-                    FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
             
-            if '300.0_MA_200.0' in crossNm and 0.94 in FinalEdges:
-                FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.94) )
-            #=========================================================
+            if isSignal:
+                if 'boosted' in crossNm:
+                    if any(x in crossNm for x in [ 'MH_500.0_MA_250.0', 'MA_500.0_MH_250.0']): 
+                        FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
 
-            #if not 'signal' in datatype:
+                if '300.0_MA_200.0' in crossNm and 0.94 in FinalEdges:
+                    FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.94) )
+                
+                if 'nb3_resolved' in crossNm:
+                    if 'MA_800.0_MH_140.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.6, 0.84, 0.94, 1.0])
+                    if 'MA_780.0_MH_680.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.68, 0.94, 1.0])
+                    if 'MA_750.0_MH_610.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
+                    if 'MA_670.0_MH_500.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
+                    #if 'MA_200.0_MH_125.0' in crossNm:
+                    #    FinalEdges = np.array([0.0, 0.5, 0.74, 0.8, 0.94, 1.0])
+                    if 'MH_209.9_MA_46.48' in crossNm and 0.96 in FinalEdges:
+                        FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.96) )
+                    if 'MH_209.9_MA_30.0' in crossNm and 0.96 in FinalEdges:
+                        FinalEdges = np.delete(FinalEdges, np.where(FinalEdges== 0.96) )
+                
+                if 'nb2_resolved' in crossNm:
+                    if 'MA_670.0_MH_500.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.2, 0.6, 0.8, 0.94, 1.0])
+                    if 'MA_750.0_MH_610.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
+                    if 'MA_780.0_MH_680.0' in crossNm:
+                        FinalEdges = np.array([0.0, 0.4, 0.8, 0.94, 1.0])
+                    #if 'MA_200.0_MH_125.0' in crossNm:
+                    #    FinalEdges = np.array([0.0, 0.2, 0.8, 0.94, 1.0])
+                    
+            #=========================================================
+            #FinalEdges = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
             FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
             
+            # one more time after dropping some bin edges
+            FinalEdges  = optimizer.no_narrow_bins(FinalEdges, isSignal, minsize = 0.02)
+            
+            # in case the S binning will be used as the main template 
+            # you don't want bins empty in background
+            if isSignal:
+                nphist   = NumpyHist.getFromRoot(old_hist_data_obs)
+                histName = crossNm.replace(old_hist.GetName(),'data_obs')
+            else:
+                nphist   = nph
+                histName = crossNm
+            FinalEdges   = optimizer.no_low_binContents(nphist, FinalEdges, histName, thresh=10.)
+            #=========================================================
+
             _newHist        = nph.rebin(FinalEdges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
             np_newhist      = NumpyHist.getFromRoot(_newHist)
             np_arr_newhist  = np_newhist.w
@@ -292,12 +347,14 @@ def BayesianBlocks(root_file, old_hist, mass, name, channel, output, prior, data
         
         if logy:
             pNm += '_logy'
-        
+
+        plt.tight_layout() 
         fig.savefig(os.path.join(priorDir, pNm+'.png')) 
         #fig.savefig(os.path.join(priorDir, pNm+'.pdf'))
         plt.close(fig)
-        plt.gcf().clear()
-        print(f" plots saved in : {output}" )
+        #plt.gcf().clear()
+        plt.clf()
+        print(f" plots saved in : {os.path.join(priorDir, pNm+'.png')}" )
     
     print( "newBinContents : ",  np_arr_newhist, len(np_arr_newhist))
     print( "newEdges       : ",  _newEdges , len(_newEdges))
@@ -345,7 +402,6 @@ def optimizeBinning(hist, maxEvents, maxUncertainty, acceptLargerOverFlowUncert=
         sumw2       = 0
         uncertainty = 0
         yields      = 0.5
-        print( '='*30)
         #print( f'BinError= {hist.GetBinError(upEdge)}, BinContent= {hist.GetBinContent(upEdge)}, {hist.GetSumw2(upEdge)}')
         # This is my threshold:"having at least a yield (i.e. sum of weights in the bin) of 1 for the background 
         #                       and 1 for the signal, 
@@ -462,6 +518,7 @@ if __name__ == "__main__":
     plotsDIR = os.path.join(args.output, "plots")
     if not  os.path.exists(plotsDIR):
         os.makedirs(plotsDIR)
+    
 
     sumPath   = "asimov_data-scaled" if args.scale else "asimov"
     s         = f"_on_{args.scenario}" if args.scenario !=None else ""
@@ -602,12 +659,13 @@ if __name__ == "__main__":
                         continue
                      
                     oldHist[k] = inFile.Get(channel).Get(key.GetName())
-                    
+                    oldHist_data_obs = inFile.Get(channel).Get('data_obs') 
+
                     if not oldHist[k]:
                         logger.error('could not find object: inFile.Get({channel}).Get({key.GetName()}) -- return null pointer!')
                     print( f'- working on : {key.GetName()}' ) 
                     
-                    label    = 'Signal '+opts['signal'] if isSignal else 'B-only toy data'
+                    label    = 'Signal ' + opts['signal'] if isSignal else 'B-only toy data'
                     datatype = "toys_signal" if isSignal else key.GetName()
                    
                     np_hist = NumpyHist.getFromRoot(oldHist[k])
@@ -617,6 +675,7 @@ if __name__ == "__main__":
                      
                     newHist[k], newEdges[k], FinalBins[k] = BayesianBlocks( root_file         = rf,
                                                                             old_hist          = oldHist[k],
+                                                                            old_hist_data_obs = oldHist_data_obs,
                                                                             mass              = mass, 
                                                                             name              = smpNm,
                                                                             channel           = channel,
@@ -641,13 +700,12 @@ if __name__ == "__main__":
                     newEdges['S'] = newEdges['S'].astype(float).round(2).tolist()
                     binning  = optimizer.hybride_binning( BOnly = [newEdges['B'], FinalBins['B']], 
                                                           SOnly = [newEdges['S'], FinalBins['S']] )
-
                 
                     hybridebinning_dict.update( {'S': newEdges['S'],
                                                  'hybride': binning[0] } )
                    
                     BayesianBlocksHybrid(oldHist, 
-                                        name                  = 'hybride_bininngS+B_bayesian_toys' + '_' + smpNm, 
+                                        name                  = smpNm,
                                         output                = plotsDIR, 
                                         mass                  = opts['signal'],
                                         newEdges              = hybridebinning_dict, 
@@ -655,6 +713,7 @@ if __name__ == "__main__":
                                         doThreshold2          = False,
                                         logy                  = args.logy
                                         )
+
                     binnings['histograms'][histNm][process].update(
                             {   'S'      : [MarkedList(newEdges['S']), MarkedList(FinalBins['S']) ],
                                 'hybride': [MarkedList(binning[0]), MarkedList(binning[1])],
@@ -707,6 +766,7 @@ if __name__ == "__main__":
                     label  = mass if isSignal else 'B-only Asimov data'
                     newHist, newEdges, FinalBins = BayesianBlocks(  root_file         = rf, 
                                                                     old_hist          = inFile.Get(histNm), 
+                                                                    old_hist_data_obs = inFile.Get(histNm),#"FIXME"
                                                                     mass              = mass, 
                                                                     name              = histNm,
                                                                     channel           = None, 
@@ -755,11 +815,11 @@ if __name__ == "__main__":
                         continue
                 
                 if any(x in smpNm for x in ['MuonEG', 'DoubleEG', 'EGamma', 'DoubleMuon', 'SingleMuon', 'SingleElectron']):
-                    group       = 'data'
+                    group   = 'data'
                     if not args.unblind:
                         continue
 
-                elif any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']): # my signals
+                elif any(x in smpNm for x in ['_tb_20p00_','_tb_1p50_']): 
                     isSignal = True
                     group    = 'signal'
                     if smpNm.startswith('GluGluTo'): p = 'gg_fusion'
@@ -770,7 +830,7 @@ if __name__ == "__main__":
 
                 if isSignal and p !=process:
                     continue
-                
+
                 print( f'==='*40) 
                 print( f' working on : {rf}' ) 
                 print( f' working on : {process} rebinning' )
@@ -784,9 +844,8 @@ if __name__ == "__main__":
                     Observation[smpNm] = {}
                 
                 if j == 0: # save once !
-                    dict_ = optimizer.sorted_files
                     binnings['root'] = os.path.join(curr_dir, args.output, suffix )
-                    for gp , poss_f in dict_.items():
+                    for gp , poss_f in optimizer.sorted_files.items():
                         if any(x in smpNm for x in poss_f):
                             if not gp in ['data', 'signal']:
                                 binnings['files']['asimov']['mc'][gp].append(f"{smpNm}.root")
@@ -890,15 +949,18 @@ if __name__ == "__main__":
                                 else:
                                     binning  = [_half_bins, _half_edges]
                             else:
-                                # FIXME: test for Jan question, by default newkey should always be 'B'
+                                # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                # FIXME: This is only a test for Jan question, by default newkey should always be 'B'
                                 look_for_hist_SR = look_for_hist.replace('MuEl', 'OSSF')
                                 binning_SR  =  data['histograms'][look_for_hist_SR][process]['S']
-                                if 'boosted' in look_for_hist and len(binning_SR[0])==2:
+                                if 'boosted' in look_for_hist:# and len(binning_SR[0])==2:
                                     look_for_hist = look_for_hist_SR
                                     newkey = 'S'
                                 else: 
                                     newkey = 'B'
                                 binning = data['histograms'][look_for_hist][process][newkey]
+                                # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                #binning = data['histograms'][look_for_hist][process]['B']
                         else:
                             if get_half:
                                 hit_boundaries = False
@@ -913,12 +975,19 @@ if __name__ == "__main__":
                                 else:
                                     binning    = [_half_bins, _half_edges]
                             else:
-                                
-                                binning  = data['histograms'][look_for_hist][process][args.scenario]
+                                # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                # FIXME this a test 
+                                if process =='bb_associatedProduction' and 'OSSF_nb2_resolved_DeepFlavourM_METCut_' in look_for_hist:
+                                    if ( any( optimizer.dir_to_mass(x) in look_for_hist for x in BADGOF['bb_associatedProduction']) and 
+                                            'gg_fusion' in data['histograms'][look_for_hist].keys() ):
+                                        binning  = data['histograms'][look_for_hist]['gg_fusion'][args.scenario]
+                                else:
+                                # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                    binning  = data['histograms'][look_for_hist][process][args.scenario]
                                 # if the signal have very low stats and BB assign 1 single bin, 
                                 # use BB B-only since the SR will be acting more like a CR in this case
-                                if len(binning[0])==2: 
-                                    binning  = data['histograms'][look_for_hist][process]['B']
+                                #if len(binning[0])==2: 
+                                #    binning  = data['histograms'][look_for_hist][process]['B']
 
                         nph_old = NumpyHist.getFromRoot(oldHist)
                         
