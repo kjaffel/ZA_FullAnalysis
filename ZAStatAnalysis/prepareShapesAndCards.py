@@ -147,6 +147,9 @@ def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, datas
     elif method =='goodness_of_fit':
         Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
     
+    elif method == 'pvalue': 
+        Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, run_validation, unblind, expectSignal, verbose)
+    
     elif method =='fit':
         PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, channels, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
     
@@ -657,6 +660,103 @@ popd
     return script     
 
 
+
+def Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, run_validation, unblind, expectSignal, verbose):
+    print( expectSignal )
+    params = output_prefix.split(mode)[-1]
+    fNm    = opts['process']+ '_'+ opts['nb']+'_' +opts['region']+'_' + opts['flavor'] + params
+    script ="""#!/bin/bash -l
+
+pushd {dir}
+# If workspace does not exist, create it once
+if [ ! -f {workspace_root} ]; then
+    text2workspace.py {datacard} -m {mass} -o {workspace_root}
+fi
+
+
+fNm="{fNm}"
+run_validation={run_validation}
+doHybridNew={doHybridNew}
+## The expected significance, assuming a signal with r=X can be calculated, by including the option --expectSignal X when generating the distribution of the test statistic 
+## and using the option --expectedFromGrid=0.5 when calculating the significance for the median. To get the \pm 1 sigma bands, use 0.16 and 0.84 instead of 0.5, and so on...
+expectedFromGrid=0.5 #median
+
+
+if $doHybridNew; then
+    #=============================================
+    # Computing Significances with toys
+    #=============================================
+    
+    if [ -f higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root ]; then
+        rm higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.*
+        echo " higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root is removed to be created again ...!"
+    fi
+    
+    for n in {{1..5}}; do
+        seed[$n]=$RANDOM
+        combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 100 -i 10 -s ${{seed[$n]}} -m {mass} -n _Toys_${{fNm}} --verbose {verbose} &
+    done
+    
+    echo "wait for HybridNew toys production to finish..."
+    wait 
+    
+    hadd higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root  higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.1.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.2.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.3.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.4.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.5.root
+    
+    # Observed/ Expected significance, assuming some signal
+    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root --expectedFromGrid=${{expectedFromGrid}} -m {mass} --verbose {verbose} &> ${{fNm}}__significance_exp_plus_s${{expectedFromGrid}}.log
+    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root -m {mass} --verbose {verbose} &> ${{fNm}}__significance_obs.log
+    
+    # Observed/ Expected p-value, assuming some signal
+    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root --pvalue --expectedFromGrid=${{expectedFromGrid}} -m {mass} --verbose {verbose} &> ${{fNm}}__pvalue_exp_plus_s${{expectedFromGrid}}.log
+    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root --pvalue -m {mass} --verbose {verbose} &> ${{fNm}}__pvalue_obs.log
+    
+else
+    #=============================================
+    # Computing Significances using real data
+    #=============================================
+    
+    echo "Observed/Expected significance"
+    combine {method} {workspace_root} -m {mass} -n _Obs_${{fNm}} &> observed__significance_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} {workspace_root} -m {mass} -t -1 --expectSignal {expectSignal} --toysFreq -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__significance_expectSignal{expectSignal}_${{fNm}}.log
+    
+    echo "Observed/Expected p-value" 
+    combine {method} {workspace_root} --pvalue -m {mass} -n _Obs_${{fNm}} &> observed__pvalue_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} {workspace_root} --pvalue -m {mass} -t -1 --expectSignal {expectSignal} --toysFreq  -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__pvalue_expectSignal{expectSignal}_${{fNm}}.log
+fi 
+
+
+if $run_validation; then 
+    if [ ! -d validation_datacards ]; then
+        mkdir validation_datacards;
+    fi
+    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+fi
+
+popd
+""".format( workspace_root = workspace_file,
+            datacard       = os.path.basename(datacard), 
+            doHybridNew    = 'false',
+            fNm            = fNm, 
+            mass           = mass,
+            name           = output_prefix,
+            method         = H.get_combine_method(method), 
+            verbose        = verbose,
+            run_validation = str(run_validation).lower(),
+            dir            = os.path.dirname(os.path.abspath(datacard)),
+            expectSignal   = expectSignal 
+            )
+
+    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
+    print( method, script_file)
+    with open(script_file, 'w') as f:
+        f.write(script)
+
+    st = os.stat(script_file)
+    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
+    return script     
+            
+
+
 def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose):
     
     Lepts  = { 'MuMu': '\mu\mu',
@@ -853,7 +953,6 @@ def get_signal_parameters(f):
 def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expectSignal, multi_signal, sbatch_time, sbatch_memPerCPU, submit_to_slurm):
     
     poi_dir, tb_dir, CL_dir = Constants.locate_outputs(method, _2POIs_r, tanbeta, expectSignal, multi_signal)
-    
     output        = os.path.join(output, H.get_method_group(method), mode, CL_dir, poi_dir, tb_dir)
     symbolic_path = os.path.abspath(os.path.dirname(output.split('/')[0]))+'/'+output.split('/')[0]
     script = """#! /bin/bash
@@ -1372,83 +1471,17 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #    bbb.AddBinByBin(bkgs, cb)
 
         # Write small script to compute the limit
-        def createRunCombineScript(bin_id, channels, mass, output_dir, output_prefix, cat, opts, create=False, skip=False, multi_signal=False):
+        def createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, output_prefix, cat, opts, create=False, skip=False, multi_signal=False):
             datacard       = os.path.join(output_dir, output_prefix + '.dat')
             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-
+            
             if method == 'goodness_of_fit': 
-                #and any( x in cat for x in['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']):
                 create      = False
                 Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
             
-            if method == 'pvalue' and any( x in cat for x in ['MuMu_ElEl', 'MuMu_ElEl_MuEl', 'OSSF', 'OSSF_MuEl']):
-                create = True
-                script ="""#!/bin/bash -l
-
-pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}.root
-fi
-
-#=============================================
-# Computing Significances with toys
-#=============================================
-combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 1 -m {mass} --verbose {verbose} &> {name}__toys1.log
-combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 2 -m {mass} --verbose {verbose} &> {name}__toys2.log
-combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 3 -m {mass} --verbose {verbose} &> {name}__toys3.log
-combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 4 -m {mass} --verbose {verbose} &> {name}__toys4.log
-combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 500 -i 10 -s 5 -m {mass} --verbose {verbose} &> {name}__toys5.log
-
-if [ -f merged.root ]; then
-    rm merged.root
-    echo "merged.root is removed, to be created again !"
-fi
-
-hadd merged.root higgsCombineTest.HybridNew.mH125.1.root higgsCombineTest.HybridNew.mH125.2.root higgsCombineTest.HybridNew.mH125.3.root higgsCombineTest.HybridNew.mH125.4.root higgsCombineTest.HybridNew.mH125.5.root 
-
-# Observed significance with toys
-combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=merged.root --grid=higgsCombineTest.significance_obs.mH{mass}.root --pvalue -m {mass} --verbose {verbose} &> {name}__significance_obs.log
-
-# Expected significance, assuming some signal
-combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=merged.root --grid=higgsCombineTest.significance_exp_plus_s.mH{mass}.root --pvalue --expectedFromGrid=0.84 -m {mass} --verbose {verbose} &> {name}__significance_exp_plus_s.log
-#=============================================
-
-{c}echo "Observed significance"
-{c}combine {method} {workspace_root}.root -m {mass} &> observed__significance_expectSignal{expectSignal}_{cat}.log
-
-echo "Expected significance"
-combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} -m {mass} --toysFreq &> expected__significance_expectSignal{expectSignal}_{cat}.log
-
-{c}echo "Observed p-value" 
-{c}combine {method} {workspace_root}.root --pvalue -m {mass} &> observed__pvalue_expectSignal{expectSignal}_{cat}.log
-
-echo "Expected p-value" 
-combine {method} {workspace_root}.root {dataset} --expectSignal {expectSignal} --pvalue -m {mass} --toysFreq &> expected__pvalue_expectSignal{expectSignal}_{cat}.log
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi
-
-popd
-""".format( workspace_root = workspace_file.replace('.root', ''), 
-            datacard       = os.path.basename(datacard), 
-            cat            = cat, 
-            mass           = mass,
-            name           = 'sig__toysFreq__{}'.format(output_prefix),
-            seed           = random.randrange(100, 1000, 3),
-            method         = H.get_combine_method(method), 
-            dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')),
-            verbose        = verbose,
-            dir            = os.path.dirname(os.path.abspath(datacard)),
-            expectSignal   = expectSignal, 
-            run_validation = str(run_validation).lower(),
-            c              = '' if unblind else '#',
-            )
+            if method == 'pvalue':
+                create = False
+                Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, run_validation, unblind, expectSignal, verbose)
             
             if method == 'hybridnew':
                 create = True
@@ -1632,6 +1665,7 @@ popd
          
         def writeCard(c, mass, channels, output_dir, output_file, cat, opts, script=True):
             datacard  = os.path.join(output_dir, output_file + '.dat')
+            
             # this did not work !
             #shapeFile = ROOT.TFile(os.path.join(output_dir, output_file + '_shapes.root'), 'recreate')
             #c.cp().mass([mass, "*"]).WriteDatacard(datacard, shapeFile)
@@ -1654,7 +1688,7 @@ popd
             #shapeFile_smoothed.Close()           
            
             if script:
-                createRunCombineScript(bin_id, channels, mass, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
+                createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
         
         #cb.PrintObs()
         #cb.PrintProcs()
@@ -1697,6 +1731,7 @@ popd
             for mflav in list_mergeable_flavors:
                 if all(x in flavors for x in mflav):
                     print("Merging {} datacards into a single one for bin  {}".format(mflav, bin_id))
+                    
                     args = ["ch{i}_{mode}_{sig}_{reco}_{reg}_{flavor}={prefix}_{prod}_{reco}_{reg}_{flavor}_{bin_id}.dat".format(
                                 i=i+1, mode=mode, sig='_'.join(sig_process), reco=reco, reg=reg, flavor=x, prefix=output_prefix, prod=prod, bin_id=bin_id) for i, x in enumerate(mflav)]
                     cmd  = ['combineCards.py'] + args
@@ -1708,8 +1743,11 @@ popd
                         subprocess.check_call(cmd, cwd=output_dir, stdout=f)
                     
                     channels = [c.split("=")[0] for c in args]
-                    opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process, 'cat': merged_cat, 'bin': bin_id}
-                    createRunCombineScript(bin_id, channels, mass, output_dir, merged_flav_datacard, prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, create=False, skip=True, multi_signal=multi_signal)
+                    opts     = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process, 'cat': merged_cat, 'bin': bin_id}
+                    
+                    createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, merged_flav_datacard, 
+                                           prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, 
+                                           create=False, skip=True, multi_signal=multi_signal)
                     
                     if not mflav in ToSKIP:
                         if mflav in default_comb:
