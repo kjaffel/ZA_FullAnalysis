@@ -22,7 +22,7 @@ def reshapePrePostFitHistograms(output_dir):
     os.path.abspath(os.path.join(os.path.dirname(__file__), '../bamboo_' ))
     import HistogramTools as HT
     
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../' ))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
     from numpy_hist import NumpyHist
     
     for rf in  glob.glob(os.path.join(output_dir, '*.root')):
@@ -68,7 +68,7 @@ def reshapePrePostFitHistograms(output_dir):
 
 
 def produce_empty_hist_to_allow_plotit_stack(fit, ch, output_dir, findhist):
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../' ))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
     from numpy_hist import NumpyHist
     
     rF  = '%s_tt_%s_histos.root'%(ch, fit) # this file should always be there
@@ -90,7 +90,7 @@ def produce_empty_hist_to_allow_plotit_stack(fit, ch, output_dir, findhist):
 
 
 def merge_histos(fit, tot_histos, output_dir, ch_exp):
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../' ))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..' )))
     from numpy_hist import NumpyHist
     from hist_interface import CppInterface
     
