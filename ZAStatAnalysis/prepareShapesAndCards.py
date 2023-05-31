@@ -696,13 +696,15 @@ fi
 # http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/#goodness-of-fit-tests
 algos=("saturated") # "KS" "AD")  
 fNm="{fNm}"
-addflag=""
 run_validation={run_validation}
 
 for algo in ${{algos[*]}}; do
     
+    addflag=""
     if [ $algo = "saturated" ]; then
         addflag+=" --toysFrequentist"
+    else
+        pad_style="--pad-style TopMargin=0.04"
     fi
     
     echo "working on :: " $algo $addflag
@@ -710,18 +712,23 @@ for algo in ${{algos[*]}}; do
     if [ ! -d ${{algo}} ]; then
         mkdir ${{algo}};
     fi
-
-    combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} --verbose {verbose} -n _Obs_${{algo}}_${{fNm}}
-    for seed in {{1..5}}; do
-        combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} -t 100 -s ${{seed}} -n _Toys_${{algo}}_${{fNm}} ${{addflag}} --verbose {verbose}
-    done
     
     if [ -f higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root ]; then
-        rm higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root
-        echo "higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root is removed, to be recreated again !"
+        rm higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.*
+        echo "higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root is removed, to be created again !"
     fi
 
-    hadd higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.1.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.2.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.3.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.4.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.5.root
+    combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} --verbose {verbose} -n _Obs_${{algo}}_${{fNm}}
+    
+    for n in {{1..5}}; do
+        seed[$n]=$RANDOM
+        combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} -t 100 -s ${{seed[$n]}} -n _Toys_${{algo}}_${{fNm}} ${{addflag}} --verbose {verbose} &
+    done
+    
+    echo "wait for higgsCombine toys production to finish..."
+    wait 
+
+    hadd higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[1]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[2]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[3]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[4]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[5]}}.root
     
     combineTool.py -M CollectGoodnessOfFit --input higgsCombine_Obs_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root -m {mass} -o ${{algo}}/gof__${{algo}}_${{fNm}}.json 
     
@@ -870,6 +877,7 @@ for script in $scripts; do
         fi
     fi
     {c1}. $script
+    echo "==========================================================================================="
     popd &> /dev/null
 
 done
