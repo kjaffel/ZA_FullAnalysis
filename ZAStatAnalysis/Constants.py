@@ -31,7 +31,7 @@ def ZAlogger(nm):
                     style='%')
         stream.setFormatter(formatter)
     except ImportError:
-        print(' try https://pypi.org/project/colorlog/  for colorlog')
+        #print(' try https://pypi.org/project/colorlog/  for colorlog')
         pass
     return logger
 
@@ -116,8 +116,7 @@ def get_xsc_br_fromSushi(smpNm, arr):
         return xsc, xsc_err, float(br_HeavytoZlight), float(br_lighttobb)
 
 
-def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode):
-    # depreacted !!    
+def get_2hdm_xsc_br_unc_fromSushi(m_Heavy, m_light, process, mode): # depreacted !!
     import numpy as np
     base   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
     heavy  = mode[0]
@@ -154,10 +153,10 @@ def get_SignalStatisticsUncer(m_heavy, m_light, process, mode, tb=None):
     br_Ztoll = 0.067264 
     heavy    = mode[0]
     light    = mode[-1]
-    if tb is None:
-        tb     = 1.5 if process.startswith('gg') else 20.
-
-    with open('data/sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb))) as f_:
+    base     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    
+    if tb is None: tb     = 1.5 if process.startswith('gg') else 20.
+    with open(os.path.join(base, 'sushi1.7.0-xsc_tanbeta-{}_2hdm-type2.yml'.format(float(tb)))) as f_:
         dict_ = yaml.safe_load(f_)
 
     given_mass = dict_[mode]['M{}_{}_M{}_{}'.format(heavy, float(m_heavy), light, float(m_light))]
