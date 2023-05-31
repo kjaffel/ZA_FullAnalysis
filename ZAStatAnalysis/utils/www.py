@@ -5,6 +5,7 @@ import subprocess
 
 def run_subprocess_call(cmd):
     try:
+        print( "Processing...  {0}".format(" ".join(cmd)))
         subprocess.call(cmd)
     except subprocess.CalledProcessError:
         print("Failed to run {0}".format(" ".join(cmd)))
@@ -90,6 +91,18 @@ def _mkdir_cats(m,  heavy, light, www, do):
                 _copy_results('index.php', pout)
 
 
+
+def _mkdir_cats_method2(m, cat, proc, flav, heavy, light, www, do):
+    nb      = cat.split('-')[0]
+    process = 'bb_associatedProduction' if proc.startswith('bb') else 'gg_fusion'
+    region  = '+'.join(cat.split('-')[1:])
+    prefix  = getCats(proc, nb, region, flav)[0]
+    pout    = os.path.join(www, m, process, cat, prefix+':'+flav, do)
+    os.makedirs(pout, exist_ok=True)
+    _copy_results('index.php', pout)
+    return 
+
+
 def _copy_results(res, res_path, isdir=False):
     if isdir: cmd = ['cp', '-r', res, res_path]
     else: cmd = ['cp', res, res_path]
@@ -108,9 +121,12 @@ def ComparePullsImpacts(path, output):
             #if not m =='MH-500.0_MA-300.0': # just for test
             #    continue
             for proc, process in {f'bb{heavy}': 'bb_associatedProduction', f'gg{heavy}': 'gg_fusion'}.items():
-                for i, listcats in enumerate([ ['nb2PLusnb3-boosted', 'nb2-boosted', 'nb3-boosted'], 
-                                               ['nb2PLusnb3-resolved', 'nb2-resolved', 'nb3-resolved'], 
-                                               ['nb2PLusnb3-resolved-boosted', 'nb2-boosted', 'nb3-boosted', 'nb2-resolved', 'nb3-resolved']] ): 
+                for i, listcats in enumerate([ ['nb2-resolved-boosted', 'nb2-boosted', 'nb2-resolved'],
+                                               ['nb2PLusnb3-resolved-boosted', 'nb2PLusnb3-boosted', 'nb2PLusnb3-resolved'], 
+                                               #['nb2PLusnb3-boosted', 'nb2-boosted', 'nb3-boosted'], 
+                                               #['nb2PLusnb3-resolved', 'nb2-resolved', 'nb3-resolved'], 
+                                               #['nb2PLusnb3-resolved-boosted', 'nb2-boosted', 'nb3-boosted', 'nb2-resolved', 'nb3-resolved']
+                                               ] ): 
                     
                     listjsons = []
                     for cat in listcats:
@@ -126,7 +142,7 @@ def ComparePullsImpacts(path, output):
                                 prefix, name   = getCats(proc, nb, region, flav)
                                 listjsons.append("'{}:'".format(', '.join(name))+jsFile)
 
-                    outputDir= os.path.join('NPs_comparasion', proc, 'comp_{}_{}/'.format(i+1, '__vs__'.join(listcats)) )
+                    outputDir= os.path.join('NPs_comparasion', process, 'comp_{}_{}/'.format(i+1, '__vs__'.join(listcats)) )
                     outf.write(f"inputDir='{p}'\n")
                     outf.write(f"outputDir='{outputDir}'\n")
                     outf.write("scriptDir='/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/utils'\n")
@@ -149,26 +165,21 @@ def ComparePullsImpacts(path, output):
 
 def CopyResultsForEOSWeb(path, do, www):
     for p in glob.glob(os.path.join(path, 'M*')):
-        m = p.split('/')[-1]
+        m     = p.split('/')[-1]
         heavy = m.split('-')[0].replace('M','')
         light = 'A' if heavy =='H' else 'H'
-        
-        _mkdir_cats(m, heavy, light, www, do)
-        
-        #if not m in ['MH-300.0_MA-200.0']: # just for test
-        #    continue
         
         if do =='goodness_of_fit':
             p = os.path.join(p, 'saturated')
         
         for proc, process in {f'bb{heavy}': 'bb_associatedProduction', f'gg{heavy}': 'gg_fusion'}.items():
-            
+            """
             if do == 'pulls_and_impacts':
-                for dest in glob.glob(os.path.join(p, 'NPs_comparasion', proc, '*')):
+                for dest in glob.glob(os.path.join(p, 'NPs_comparasion', process, '*')):
                     comp = dest.split('/')[-1]
                     dest_path = os.path.join(www, m, process, comp)
                     _copy_results(dest, dest_path, isdir=True)
-            
+            """
             for cat in cats:
                 nb  = cat.split('-')[0] 
                 for flav in flavors:
@@ -178,12 +189,12 @@ def CopyResultsForEOSWeb(path, do, www):
                             for fit_type in ['fit_s', 'fit_b']:
                                 for plt_path in glob.glob(os.path.join(p, f"plotIt_{process}_{cat.replace('-','_')}_{flav}", fit_type, "reshaped",  _type)):
                                     
-                                    region = '+'.join(cat.split('-')[1:])
-                                    prefix = getCats(proc, nb, region, flav)[0]
-                                    
+                                    region    = '+'.join(cat.split('-')[1:])
+                                    prefix    = getCats(proc, nb, region, flav)[0]
                                     plt       = plt_path.split('/')[-1]
                                     newplt    = plt.replace('dnn_scores', f"dnn_{proc}_{m.replace('-','_')}_{cat.replace('-','_')}_{flav}_{fit_type}")
                                     dest_path = os.path.join(www, m, process, cat, prefix+':'+flav, do, newplt)
+                                    _mkdir_cats_method2(m,  cat, proc, flav, heavy, light, www, do)          
                                     _copy_results(plt_path, dest_path)
                         else: 
                             for res in glob.glob(os.path.join(p, _type)):        
@@ -193,17 +204,22 @@ def CopyResultsForEOSWeb(path, do, www):
                                 region   = '+'.join(cat.split('-')[1:])
                                 prefix   = getCats(proc, nb, region, flav)[0]
                                 res_path = os.path.join(www, m, process, cat, prefix+':'+flav, do)
+                                _mkdir_cats_method2(m,  cat, proc, flav, heavy, light, www, do)          
                                 _copy_results(res, res_path)
 
 if __name__ == '__main__':
 
     base = '/home/ucl/cp3/kjaffel/bamboodev/ZA_FullAnalysis/ZAStatAnalysis/'
-    www  = os.path.join('www-eos-lxplus', 'hig-22-010', '__ver15')
+    #www  = os.path.join('www-eos-lxplus', 'hig-22-010', 'unblinding_stage2/__ver1')
+    #www  = os.path.join('www-eos-lxplus', 'hig-22-010', 'unblinding_stage2/__ver2')
+    www  = os.path.join('www-eos-lxplus', 'hig-22-010', 'unblinding_stage2/__ver4')
     
-    cats    = ['nb2-resolved', 'nb2-boosted', 'nb3-resolved', 'nb3-boosted', 'nb2PLusnb3-resolved', 'nb2PLusnb3-boosted', 'nb2PLusnb3-resolved-boosted']
+    cats    = ['nb2-resolved', 'nb2-boosted', 'nb3-resolved', 'nb2-resolved-boosted', 'nb3-boosted', 'nb2PLusnb3-resolved', 'nb2PLusnb3-boosted', 'nb2PLusnb3-resolved-boosted']
     flavors = ['ElEl', 'MuMu', 'MuEl', 'OSSF', 'OSSF_MuEl', 'split_OSSF', 'split_OSSF_MuEl', 'MuMu_ElEl', 'MuMu_ElEl_MuEl', 'MuMu_MuEl', 'ElEl_MuEl']
+    
+    done_per_chunk = True
 
-    for do, path in {
+    for do, subdir in {
                      #'goodness_of_fit_test': 'hig-22-010/unblinding_stage1/followup1__ext11/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r', 
                      #'pulls-impacts': 'hig-22-010/unblinding_stage1/followup1__ext11/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r'
                      #'goodness_of_fit_test': 'hig-22-010/unblinding_stage1/followup1__ext14/chunk_1/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r', 
@@ -216,14 +232,35 @@ if __name__ == '__main__':
                      #'goodness_of_fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
                      #'pulls_and_impacts': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r',
                      #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r', 
-                     'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver2/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r', 
+                     #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver2/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r', 
+                     #'goodness_of_fit': 'hig-22-010/unblinding_stage1/followup1__ext30/splitDY/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/',
+                     
+                     #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage2/__ver1/',
+                     #'goodness_of_fit': 'hig-22-010/unblinding_stage2/__ver1/',
+                     #'pulls_and_impacts': 'hig-22-010/unblinding_stage2/__ver1/',
+                     
+                     #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage2/__ver2/',
+                     #'goodness_of_fit': 'hig-22-010/unblinding_stage2/__ver2/',
+                     
+                     
+                     #'pre-Fit_and_post-Fit': 'hig-22-010/unblinding_stage2/__ver4/',
+                     'pulls_and_impacts': 'hig-22-010/unblinding_stage2/__ver4/',
+                     #'goodness_of_fit': 'hig-22-010/unblinding_stage2/__ver4/',
                      }.items():
         
-        if do =='pre-Fit_and_post-Fit':
-            flavors = flavors[0:4]
-        
-        path = os.path.join(base, path)
-        #if do == 'pulls_and_impacts':
-        #    ComparePullsImpacts(path, www)
-        
-        CopyResultsForEOSWeb(path, do, www)
+        if done_per_chunk:
+            for n in range(20):
+                if do == 'goodness_of_fit': dir_per_chunk = f'chunk_{n}/work__ULfullrun2/bayesian_rebin_on_S/goodness_of_fit_test/dnn/2POIs_r/'
+                elif do == 'pre-Fit_and_post-Fit': dir_per_chunk = f'chunk_{n}/work__ULfullrun2/bayesian_rebin_on_S/fit/dnn/2POIs_r/'
+                elif do == 'pulls_and_impacts': dir_per_chunk = f'chunk_{n}/work__ULfullrun2/bayesian_rebin_on_S/pulls-impacts/dnn/CLs/2POIs_r/'
+                
+                path = os.path.join(base, subdir, dir_per_chunk)
+                #if do == 'pulls_and_impacts':
+                #    ComparePullsImpacts(path, www)
+                #run_subprocess_call(["bash", "run_nuisance_parameters_comparison.sh"])
+                CopyResultsForEOSWeb(path, do, www)
+        else:
+            path = os.path.join(base, subdir)
+            if do == 'pulls_and_impacts':
+                ComparePullsImpacts(path, www)
+            CopyResultsForEOSWeb(path, do, www)
