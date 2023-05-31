@@ -11,10 +11,10 @@ era='fullrun2'
 scenario='bayesian_rebin_on_S' 
 #choices: 'bayesian_rebin_on_S', 'bayesian_rebin_on_B' , 'bayesian_rebin_on_hybride', 'uniform'
 
-do_what='generate_toys'
+do_what='fit'
 #choices: 'nll_shape', 'likelihood_fit', 'fit', 'goodness_of_fit', 'hybridnew', 'generate_toys', 'asymptotic', 'pvalue', 'impacts', 'signal_strength', 
 
-post_processing=true
+post_processing=false
 multi_signal=false
 # if this true, the cards will contain both signals r_ggH & r_bbH, but using 1 discriminator, nb2 for ggH and nb3 for bbH
 # this will allow you to test HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel while freezing or profiling 1 signal at the time
@@ -35,7 +35,9 @@ tanbeta['bb']=5.
 expectSignal=1
 verbose=0 #Verbosity level (-1 = very quiet; 0 = quiet, 1 = verbose, 2+ = debug)
 validation_datacards=true
-unblind=true
+unblind=false
+dataset='asimov'      
+# choices: 'asimov', 'toys'  will be used if unblind ==false
 normalize=true
 scale=false
 x_branchingratio=false
@@ -49,39 +51,19 @@ splitDrellYan=true
 rm_mix_lo_nlo_bbH_signal=true # as the name sugested won't process bbh signal samples @nlo mixed with lo, when both exist we will go for LO
 
 submit_to_slurm=true
-sbatch_time='02:59:00'
-sbatch_memPerCPU='2000'
-
-n=1
-
-#stageOut='hig-22-010/datacards_nosplitJECs/'
-#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext7/forcombine/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext28/with_split_prepostVFP/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext28/no_split_prepostVFP/'
-#bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext14/results/'
-#stageOut='hig-22-010/unblinding_stage1/followup1__ext29/'
-bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver8/'
-
-#================ DO NOT CHANGE =============================
-#============================================================
-workDir='work__UL'${era/20/""}'/'
-inDir=$stageOut/$workDir
-outDir=$inDir
+sbatch_time='16:59:00'
+sbatch_memPerCPU='15000'
 
 #================ + flags  ==================================
 #============================================================
+plus_args='' 
+
 if [ "$do_what" = "likelihood_fit" ]; then
     multi_signal=true
 fi 
-
-
-plus_args='' 
 if $_2POIs_r; then
     plus_args+=' --_2POIs_r'
 fi
-
-
 if [[ $multi_signal || ! $_2POIs_r ]]; then
     if [  ${tanbeta['gg']} != ${tanbeta['bb']} ]; then
         echo 'This does not make any sense, tanbeta need to be the same for both processes !'
@@ -89,57 +71,50 @@ if [[ $multi_signal || ! $_2POIs_r ]]; then
     fi
     #FIXME plus_args+=" --tanbeta="'{"gg":'${tanbeta['gg']}',"bb":'${tanbeta['bb']}'}'
 fi
-
-
 if $multi_signal; then
     plus_args+=' --multi_signal'
     _2POIs_r=true
 fi
 
-
-if $unblind; then
-    if [ "$do_what" != "generate_toys" ]; then
-        plus_args+=' --unblind'
-    fi
-fi 
-
 plus_args+=' --expectSignal '${expectSignal}
 plus_args2=$plus_args
 plus_args+=' --verbose '${verbose}
-plus_args+=' --bambooDir '${bambooDir}
 
-
+if $x_branchingratio; then
+    plus_args2+=' --rescale-to-za-br'
+fi
+if $unblind; then
+    if [ "$do_what" == "generate_toys" ]; then
+        plus_args+=' --dataset asimov'
+    else
+        plus_args+=' --unblind'
+    fi
+else
+    plus_args+=' --dataset asimov'
+fi
 if $submit_to_slurm; then
     plus_args+=' --slurm'
     plus_args+=' --sbatch_time '${sbatch_time}
     plus_args+=' --sbatch_memPerCPU '${sbatch_memPerCPU}
 fi
-
 if $normalize; then
     plus_args+=' --normalize'
 fi
-
-
 if $scale; then
     plus_args+=' --scale'
 fi
-
-
 if $splitJECs; then
     plus_args+=' --splitJECs'
 fi
-
-
 if $splitTTbar; then
     plus_args+=' --splitTTbar'
 fi
-
-
 if $splitDrellYan; then
     plus_args+=' --splitDrellYan'
 fi
-
-
+if $splitLep; then
+    plus_args+=' --splitLep'
+fi
 if $splitEraUL2016; then
     plus_args+=' --splitEraUL2016'
     if [  "${era}"==2016 ]; then
@@ -147,58 +122,44 @@ if $splitEraUL2016; then
         echo 'Needed era are [ 2016preVFP, 2016postVFP]'
         exit 1
     fi
-
 fi
-
-
 if $rm_mix_lo_nlo_bbH_signal; then
     plus_args+=' --rm_mix_lo_nlo_bbH_signal'
 fi
-
-
-if $splitLep; then
-    plus_args+=' --splitLep'
-fi
-
-
 if $validation_datacards; then
     plus_args+=' --validation_datacards'
 fi
-
-
-if $unblind; then
-    if [ "$do_what" == "generate_toys" ]; then
-        plus_args+=' --dataset asimov'
-    fi
-fi
-
-
-if $x_branchingratio; then
-    plus_args2+=' --rescale-to-za-br'
-fi
-
-
 if [ "$expectSignal"==1 ]; then
     cl='CLs'
 else
     cl='CLsplusb'
 fi
 
+#============================================================
+#============================================================
+bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver8/'
+plus_args+=' --bambooDir '${bambooDir}
 
 if $post_processing; then
     echo "running ${do_what} post-processing step with the following arguments : " ${plus_args2}
 else
     echo "running ${do_what} Combine with the following arguments : " ${plus_args}
 fi
+#================ DO NOT CHANGE =============================
+#============================================================
+workDir='work__UL'${era/20/""}'/'
+inDir=$stageOut/$workDir
+outDir=$inDir
 
 #=============================================
 # generate toys data only 
 #=============================================
 if [ "$do_what" = "generate_toys" ]; then
+    echo ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
     ./prepareShapesAndCards.py --era $era -i $bambooDir -o $stageOut/$workDir --dataset toys --mode $mode --method generatetoys --stat $plus_args
     ./run_combine_${mode}_generatetoys.sh
 fi
-
 #=============================================
 # signal strength
 #=============================================
@@ -206,28 +167,25 @@ if [ "$do_what" = "signal_strength" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method signal_strength $plus_args
     ./run_combine_${mode}_signal_strength.sh
 fi
-
 #=============================================
 # pre-fit/ post-fit  
 #=============================================
 if [ "$do_what" = "fit" ]; then
     if $post_processing; then
-        #python utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
         python3 producePrePostFitPlots.py -i $outDir/$scenario/ --mode $mode --era $era --unblind --reshape
+        #python3 utils/getSystematicsTable.py -i $outDir/$scenario/ --mode $mode $plus_args2
     else
         ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method fit $plus_args
         ./run_combine_${mode}_fitprepost.sh
     fi 
 fi
-
 #=====================================================================
 # pulls and impacts S(--expectSignal 1) or S+B(--expectSignal 0) fit
 #=====================================================================
 if [ "$do_what" = "impacts" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/  -o $outDir/$scenario/ --mode $mode --method impacts $plus_args
     ./run_combine_${mode}_impactspulls.sh
-fi
-
+    fi
 #==================================================================
 # CLs ( --expectSignal 1 )/CLsplusb (--expectSignal 0) limits 
 #==================================================================
@@ -251,10 +209,9 @@ if [ "$do_what" = "asymptotic" ]; then
         #python 2hdmtbvsmass.py --jsonpath $jsP --era $era $plus_args2 --fix mH --mass 500 
     else
         ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results/ -o $outDir/$scenario/ --mode $mode --method asymptotic $plus_args
-        ./run_combine_${mode}_asymptoticlimits.sh
+        #./run_combine_${mode}_asymptoticlimits.sh
     fi
 fi
-
 #============================================================
 # pvalue/ Significance scan : expecting signal 1
 #============================================================
@@ -266,22 +223,20 @@ if [ "$do_what" = "pvalue" ]; then
         
         #python plotSignificance.py --jsonpath $jsP --era $era --scan mA
         #python plotSignificance.py --jsonpath $jsP --era $era --scan mH
-    
+        
         #python plotPValue.py --input $jsP --era $era
     else
         ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method pvalue $plus_args
         ./run_combine_${mode}_pvalue.sh
     fi
 fi
-
 #=============================================================
 # Goodness of fit 
 #============================================================
 if [ "$do_what" = "goodness_of_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method goodness_of_fit $plus_args
-    ./run_combine_${mode}_goodness_of_fit.sh
+    #./run_combine_${mode}_goodness_of_fit.sh
 fi 
-
 #=============================================================
 # NLL shape 
 #============================================================
@@ -289,11 +244,10 @@ if [ "$do_what" = "nll_shape" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method nll_shape $plus_args
     ./run_combine_${mode}_nll_shape.sh
 fi 
-
 #=============================================================
 # Likelihood Fits and Scans
 #============================================================
 if [ "$do_what" = "likelihood_fit" ]; then
     ./prepareShapesAndCards.py --era $era -i $inDir/$scenario/results -o $outDir/$scenario/ --mode $mode --method likelihood_fit $plus_args
     ./run_combine_${mode}_likelihood_fit.sh
-fi 
+fi
