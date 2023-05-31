@@ -19,7 +19,7 @@ def get_signal_parameters(f):
 def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, scenario, unblind, plotit):
     config = Configuration()
     config.sbatch_partition = 'cp3'
-    config.sbatch_qos = 'normal'
+    config.sbatch_qos = 'cp3'
     config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
     config.sbatch_chdir = os.path.join(outputDIR, 'slurm', 'bayesian')
     config.sbatch_time = '00:59:00'

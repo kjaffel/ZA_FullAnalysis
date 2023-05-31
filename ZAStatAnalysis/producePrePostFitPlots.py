@@ -29,10 +29,12 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
     if submit_to_slurm:
         from CP3SlurmUtils.Configuration import Configuration
         from CP3SlurmUtils.SubmitWorker import SubmitWorker
+        
         slurm_stageout = workdir.split('work__')[0]
+        
         config = Configuration()
-        config.sbatch_partition = 'cp3'
-        config.sbatch_qos = 'cp3'
+        config.sbatch_partition = 'Def'
+        config.sbatch_qos = 'normal'
         config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
         config.sbatch_chdir = os.path.join(slurm_stageout, 'work__UL%s'%era, 'slurm', 'plotit')
         config.stageoutDir = config.sbatch_chdir
@@ -351,7 +353,6 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                                     if x_max ==5:
                                         x = 0.18
                                     for i, t in enumerate(texts.values()):
-                                        print( x, shift)
                                         outf.write(f"    - position: [{x}, 0.4]\n")
                                         outf.write("      text: '#splitline{%s, %s}{%s}'\n"%(t[0],t[1],t[2]))
                                         outf.write(f"      size: {s}\n")
@@ -398,14 +399,15 @@ if __name__ == '__main__':
     options = parser.parse_args()
    
     ## if you will redo this step on slurm, you will have to wait until jobs finish before running func below :: runPlotIt_prepostFit
-    #RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
-    #                                        mode            = options.mode, 
-    #                                        poi_dir         = '2POIs_r', 
-    #                                        tb_dir          = '', 
-    #                                        era             = options.era,
-    #                                        submit_to_slurm = True )
-    # 
-    
+    """
+    RedoPrePostfitShapesConversionForPlotIt(workdir         = options.inputs, 
+                                            mode            = options.mode, 
+                                            poi_dir         = '2POIs_r', 
+                                            tb_dir          = '', 
+                                            era             = options.era,
+                                            submit_to_slurm = True )
+     
+    """
     runPlotIt_prepostFit(workdir          = options.inputs, 
                          mode             = options.mode, 
                          era              = options.era, 
@@ -414,5 +416,5 @@ if __name__ == '__main__':
                          poi_dir          = '2POIs_r', 
                          tb_dir           = '', 
                          rescale_to_za_br = options.rescale_to_za_br)
-
-   #EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
+   
+    ###EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)

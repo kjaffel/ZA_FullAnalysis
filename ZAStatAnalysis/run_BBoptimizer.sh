@@ -10,9 +10,9 @@ run_on='toys'     # choices : 'toys', 'asimov'
 
 unblind=true
 do_step1_template=true
-do_step2=false
-submit_to_slurm=true        # RECOMMENDED
-scale_histos_before_BB=true   # for plotting: scale = xsc * BR* lumi/ sum_genEvents_weight
+do_step2=true
+submit_to_slurm=true           # RECOMMENDED true
+scale_histos_before_BB=true    # for plotting: scale mc = xsc * BR* lumi/ sum_genEvents_weight
 plot_on_log=true
 
 onlypost=false
@@ -23,7 +23,7 @@ n=1
 era='fullrun2' # choices: '2016' , '2016preVFP', '2016postVFP', '2017' , '2018', 'fullrun2'
 
 bambooDir='unblind_stage1_full_per_chunk_fullrun2/ext15/ForCombine/results/'
-stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver9/'
+stageOut='hig-22-010/unblinding_stage1/followup1__ext30/splitDY__ver8/'
 
 #================ DO NOT CHANGE =============================
 #============================================================
@@ -48,15 +48,12 @@ plus_args_step2+=' --scenario '${scenario}
 if $unblind; then
     plus_args_step2+=' --unblind '
 fi
-
 if $onlypost; then
     plus_args_step2+=' --onlypost'
 fi 
-
 if $plotit; then
     plus_args_step2+=' --plotit'
 fi
-
 if [ "$run_on" = "toys" ]; then
     plus_args_step1+=' --toys '
     scale=false
@@ -66,11 +63,9 @@ else
     plus_args_step1+=' --scale'
     input=$bambooDir
 fi
-
 if $scale_histos_before_BB; then
     plus_args_step1+=' --scale '
 fi
-
 if $plot_on_log; then
     plus_args_step1+=' --logy '
 fi

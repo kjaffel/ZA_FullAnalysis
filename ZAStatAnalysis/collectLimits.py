@@ -357,7 +357,7 @@ if __name__ == '__main__':
 
         logger.info(' issues with these %s points no limit is found : %s'%(thdm, crap_points))
        
-        # not computed yet : (550.0, 300.0), (670.0, 500.0), (300.0, 135.0), (250.0, 125.0), (220.0, 127.0),
-        for (m_heavy, m_light) in [(240.0, 130.0), (700.0, 200.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0)]:
-            WriteLatexTableComparasion(limits, limits_pathOut, CL_dir, m_heavy, m_light, options.tanbeta, thdm, options.era, rescale_to_za_br=options.rescale_to_za_br, _2POI=options._2POIs_r, unblind=False)
+        
+        #for (m_heavy, m_light) in [(550.0, 300.0), (670.0, 500.0), (300.0, 135.0), (250.0, 125.0), (220.0, 127.0), (240.0, 130.0), (700.0, 200.0), (750.0, 610.0), (500.0, 250.0), (800.0, 140.0), (200.0, 125.0), (510.0, 130.0), (780.0, 680.0)]:
+        #    WriteLatexTableComparasion(limits, limits_pathOut, CL_dir, m_heavy, m_light, options.tanbeta, thdm, options.era, rescale_to_za_br=options.rescale_to_za_br, _2POI=options._2POIs_r, unblind=False)
 
