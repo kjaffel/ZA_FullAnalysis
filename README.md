@@ -1,4 +1,4 @@
-# 2HDM H/A →  Z( → ll) A/H ( → bb) search: Full ULegcay RunII Analysis (working nano version is 9) :
+# 2HDM H/A →  Z( → ll) A/H ( → bb) search: ULegcay Full RunII Analysis (nanoAOD working version is 9) :
 - Analysis use Bamboo RDataFrame and works with NanoAODv``{5, 7, 8, and 9}``, check ``.yml`` configuration in ``bamboo_/config/`` directory to run ZA anslysis with your favourite NanoAOD version. 
 - You can find more about Bamboo in [the UserGuide](https://bamboo-hep.readthedocs.io/en/latest/index.html). Also feel free to report any issue you encounter in [~bamboo](https://mattermost.web.cern.ch/cms-exp/channels/bamboo) channel on the CERN mattermost, or on [Gitlab](https://gitlab.cern.ch/cp3-cms/bamboo/-/issues).
 
@@ -24,7 +24,9 @@ cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ../plotIt
 make -j2 install
 cd -
 
-# These last two cmd are needed everytime you upgrade your LCG working version! 
+# The last two commands; < pip install ./bamboo > and < make -j2 install > 
+# need to be run again, every time you upgrade your LCG working version! 
+ 
 # To use scalefactors and weights in the new CMS JSON format, the correctionlib package should be installed with
 # you can ignore torch and sphinx pip errors !
 pip install --no-binary=correctionlib correctionlib
@@ -32,9 +34,13 @@ pip install --no-binary=correctionlib correctionlib
 # To use the calculators modules for jet and MET corrections and systematic variations
 # Please use Tags: 0.1.0 at the moment  
 pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git@0.1.0
+
+# To update the JER and JEC from the database: https://github.com/cms-jet
+checkCMSJMEDatabaseCaches --cachedir cacheJEC/
 ```
 - Let's make things more simpler, in your ``~/.bashrc`` you can add:
 ```bash
+# only for cp3 users working on ingrid-ui1 cluster
 function cms_env() {
     module --force purge
     module load cp3
@@ -68,7 +74,7 @@ xrootdredirector = xrootd-cms.infn.it
 - Every time you want to setup your bamboo enviroment, what you simply need to do:
 ```bash
 cms_env
-voms-proxy-init --voms cms
+voms-proxy-init -voms cms -rfc -valid 192:00
 bamboo_env
 bambooenv
 ```
@@ -91,12 +97,12 @@ make -j2 install
 cd -
 ```
 ## Test a PR:
-```
+```bash
 git fetch upstream merge-requests/150/head:test_mr-150 
 git checkout test_mr-150
 pip install --upgrade .
 ```
-## How to run ZA full run2 analysis ?
+## How to run H/A →  Z( → ll) A/H ( → bb) full run 2 analysis ?
 I do recommend to test locally first with ``--maxFiles=1``,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with ``--distributed=driver``. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
 - ``-s``/``--systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
 - ``-v`` /``--verbose``: give you more print out for debugging. 
@@ -122,7 +128,7 @@ bambooRun --distributed=driver -m BtagEfficiencies.py:ZA_BTagEfficiencies config
 ```bash
 srun --partition=cp3 --qos=cp3 --time=0-24:00:00 --pty bash 
 ```
-- In case you want to run plotIt again (after changing few options such fill color, legend position, unable systematics, etc...)
+- In case you want to run [plotIt](https://cp3-llbb.github.io/plotit/) again (after changing few options such fill color, legend position, unable systematics, etc...)
 ```bash
 plotIt -i <output_path> -o <output_path>/plots_<era> -y -e era <output_path>/plots.yml
 ```
