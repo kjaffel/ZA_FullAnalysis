@@ -308,6 +308,12 @@ class makeYieldPlots:
 def makePUWeight(tree, era, selection):
     goldenJSON = f"Collisions{getYearFromEra(era)}_UltraLegacy_goldenJSON"
     puTuple = (localizePOGSF(era, "LUM", "puWeights.json.gz"), goldenJSON)
+    
+    #fileName= localizePOGSF(era, "LUM", "puWeights.json.gz")
+    #print( fileName )
+    #PUWeight = get_correction(fileName, goldenJSON, params={"NumTrueInteractions":tree.Pileup_nTrueInt, 'weights':'nominal'},
+    #                systNomName="nominal", systName="pileup", systVariations=("up", "down"),
+    #                defineOnFirstUse=False, sel=selection)
     PUWeight= makePileupWeight(puTuple, tree.Pileup_nTrueInt, systName="pileup", sel=selection)
     return PUWeight
 
@@ -688,14 +694,14 @@ def DrellYanreweighting(noSel, j, tagger, era, doSysts):
 Old_puIDSFLib = {
         f"{year}_{wp}" : {
             f"{eom}_{mcsf}" : os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/PileupFullRunII/' ,
-                "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json")
+                "fromPieter", f"PUID_80X_{eom}_{mcsf}_{year}_{wp}.json"))
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf") }
         for year in ("2016", "2017", "2018") for wp in "LMT"
     }
 puIDSFLib = {
         f"{year}_{wp}" : {
             f"{eos}_{eom}_{mcsf}" : os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/PileupFullRunII/' ,
-                "fromflorian", f"PUID_{eos}_h2_{eom}_{mcsf}{year}_{wp}.json")
+                "fromflorian", f"PUID_{eos}_h2_{eom}_{mcsf}{year}_{wp}.json"))
             for eom in ("eff", "mistag") for mcsf in ("mc", "sf") for eos in ("EFF", "SF")}
         for year in ("2016", "2017", "2018") for wp in "LMT"
     }
@@ -715,7 +721,6 @@ def makePUIDSF(jets, year=None, wp=None, wpToCut=None):
 
 
 def BtagSFMethod_deprectaed( channel, sample, wp, OP, isULegacy, noSel):
-    
     #sysToLoad = ["up_correlated", "down_correlated", "up_uncorrelated", "down_uncorrelated"]
     sysToLoad = ["up", "down"]
     
