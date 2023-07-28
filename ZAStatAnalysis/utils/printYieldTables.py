@@ -75,9 +75,8 @@ def PrintTables(cmb, fbin, channels, signal_process, column, uargs):
     else:
         for channel in channels:
             c_dnn = cmb.cp().bin([fbin]).channel([channel])
-    
-    c_dnn = cmb.cp().channel(['UL17_ch1_dnn_ggA_nb2_resolved_MuMu'])
-    c_dnn = cmb.cp().bin([fbin])
+            #c_dnn = cmb.cp().channel([chnnel])
+            #c_dnn = cmb.cp().bin([fbin])
     
     LatexTab = r"""
 \begin{tabular}{|l|r@{$ \,\,\pm\,\, $}l|}
