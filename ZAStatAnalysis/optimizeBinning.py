@@ -49,8 +49,13 @@ class CustomJSONEncoder(JSONEncoder):
         if isinstance(o, MarkedList):
             return "##<{}>##".format(o._list)
 
-BADGOF = {'gg_fusion': ['MA-200.0_MH-125.0', 'MA-240.0_MH-130.0', 'MH-173.52_MA-72.01', 'MH-190.85_MA-86.78', 'MH-200.0_MA-100.0', 'MH-200.0_MA-125.0', 'MH-209.9_MA-104.53', 'MH-209.9_MA-86.79', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-240.0_MA-130.0', 'MH-261.4_MA-150.5', 'MH-296.1_MA-176.02', 'MH-335.4_MA-67.54'], 
-          'bb_associatedProduction': ['MA-200.0_MH-125.0', 'MA-220.0_MH-127.0', 'MA-240.0_MH-130.0', 'MH-157.77_MA-57.85', 'MH-173.52_MA-30.0', 'MH-173.52_MA-37.34', 'MH-173.52_MA-46.48', 'MH-173.52_MA-57.85', 'MH-173.52_MA-72.01', 'MH-190.85_MA-37.34', 'MH-190.85_MA-46.48', 'MH-190.85_MA-71.28', 'MH-209.9_MA-86.79', 'MH-209.9_MA-46.48', 'MH-209.9_MA-30.0', 'MH-209.9_MA-104.53', 'MH-200.0_MA-125.0', 'MH-200.0_MA-100.0', 'MH-190.85_MA-86.78', 'MH-200.0_MA-50.0', 'MH-230.77_MA-45.88', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-230.77_MA-30.0', 'MH-230.77_MA-37.1', 'MH-230.77_MA-56.73', 'MH-230.77_MA-69.78', 'MH-250.0_MA-100.0', 'MH-250.0_MA-50.0', 'MH-261.4_MA-85.1', 'MH-261.4_MA-69.66', 'MH-296.1_MA-145.93', 'MH-296.1_MA-120.82', 'MH-261.4_MA-56.73', 'MH-261.4_MA-124.53', 'MH-261.4_MA-37.1', 'MH-261.4_MA-30.0', 'MH-261.4_MA-150.5', 'MH-261.4_MA-102.99', 'MH-261.4_MA-45.88', 'MH-296.1_MA-30.0', 'MH-296.1_MA-36.79', 'MH-296.1_MA-55.33', 'MH-296.1_MA-82.4', 'MH-296.1_MA-99.9', 'MH-300.0_MA-100.0', 'MH-300.0_MA-200.0', 'MH-335.4_MA-55.33', 'MH-335.4_MA-45.12', 'MH-335.4_MA-145.06', 'MH-335.4_MA-30.0', 'MH-335.4_MA-36.79', 'MH-379.0_MA-143.08', 'MH-379.0_MA-205.76', 'MH-379.0_MA-36.63', 'MH-379.0_MA-44.72', 'MH-379.0_MA-54.59', 'MH-379.0_MA-66.57', 'MH-442.63_MA-161.81', 'MH-442.63_MA-135.44', 'MH-516.94_MA-179.35']}
+
+BADGOF = {'gg_fusion': 
+            ['MA-200.0_MH-125.0', 'MH-173.52_MA-72.01', 'MH-190.85_MA-86.78', 'MH-200.0_MA-100.0', 'MH-200.0_MA-125.0', 'MH-209.9_MA-104.53', 'MH-209.9_MA-86.79', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-240.0_MA-130.0', 'MH-296.1_MA-176.02', 'MH-335.4_MA-67.54'], 
+        'bb_associatedProduction': 
+            ['MA-240.0_MH-130.0', 'MH-157.77_MA-57.85', 'MH-173.52_MA-46.48', 'MH-173.52_MA-57.85', 'MH-190.85_MA-37.34', 'MH-209.9_MA-46.48', 'MH-209.9_MA-104.53', 'MH-209.9_MA-30.0', 'MH-190.85_MA-86.78', 'MH-200.0_MA-100.0', 'MH-250.0_MA-50.0', 'MH-230.77_MA-102.72', 'MH-230.77_MA-123.89', 'MH-230.77_MA-30.0', 'MH-230.77_MA-37.1', 'MH-230.77_MA-45.88', 'MH-230.77_MA-56.73', 'MH-261.4_MA-37.1']
+            }
+
 
 def BayesianBlocksHybrid(oldHist, name, output, mass, newEdges, include_overflow=False, doThreshold2=False, logy=False):
     oldEdges     = {}
@@ -209,7 +214,6 @@ def BayesianBlocks(root_file, old_hist, old_hist_data_obs, mass, name, channel, 
                 1.00224159,  2.46667491])
     >> 
     >> 
-
     useful ref :
         - https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
         - https://root.cern.ch/doc/master/classTH1.html#ae0895b66e993b9e9ec728d828b9336fe 
@@ -268,7 +272,6 @@ def BayesianBlocks(root_file, old_hist, old_hist_data_obs, mass, name, channel, 
             # custom:  add on top of the BB your own changes if needed 
             # make sure that it will survive the conditions below !!
             #=========================================================
-            
             if isSignal:
                 if 'boosted' in crossNm:
                     if any(x in crossNm for x in [ 'MH_500.0_MA_250.0', 'MA_500.0_MH_250.0']): 
@@ -300,25 +303,25 @@ def BayesianBlocks(root_file, old_hist, old_hist_data_obs, mass, name, channel, 
                         FinalEdges = np.array([0.0, 0.84, 0.94, 1.0])
                     if 'MA_780.0_MH_680.0' in crossNm:
                         FinalEdges = np.array([0.0, 0.4, 0.8, 0.94, 1.0])
-                    #if 'MA_200.0_MH_125.0' in crossNm:
-                    #    FinalEdges = np.array([0.0, 0.2, 0.8, 0.94, 1.0])
                     
             #=========================================================
             #FinalEdges = optimizer.no_zero_binContents(nph, FinalEdges, crossNm) 
             FinalEdges  = optimizer.no_bins_empty_background_across_year(root_file, old_hist.GetName(), FinalEdges, channel, crossNm)
             
-            # one more time after dropping some bin edges
-            FinalEdges  = optimizer.no_narrow_bins(FinalEdges, isSignal, minsize = 0.02)
-            
             # in case the S binning will be used as the main template 
             # you don't want bins empty in background
             if isSignal:
+                minsize  = 0.02
                 nphist   = NumpyHist.getFromRoot(old_hist_data_obs)
                 histName = crossNm.replace(old_hist.GetName(),'data_obs')
             else:
+                minsize  = 0.04
                 nphist   = nph
                 histName = crossNm
             FinalEdges   = optimizer.no_low_binContents(nphist, FinalEdges, histName, thresh=10.)
+            
+            # one more time after dropping some bin edges
+            FinalEdges  = optimizer.no_narrow_bins(FinalEdges, isSignal, histName, minsize = minsize)
             #=========================================================
 
             _newHist        = nph.rebin(FinalEdges).fillHistogram(old_hist.GetName()+name+"_%.2f"%p0)
@@ -557,11 +560,16 @@ if __name__ == "__main__":
             inputs = list_inputs
             if args.rebin == 'bayesian':
                 try:
-                    f = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}_template.json"))
-                    data = json.load(f)
+                    f     = open(os.path.join(args.output, f"rebinned_edges_{args.rebin}_template.json"))
+                    data  = json.load(f)
                 except Exception as ex:
                     raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_{args.rebin}_template.json')
-        
+                #try:    
+                #    f2    = open(os.path.join(args.output, "rebinned_edges_bayesian_all_on_S__modified.json"))
+                #    data2 = json.load(f2)
+                #except Exception as ex:
+                #    raise RuntimeError(f' -- {ex} occure when reading rebinned_edges_bayesian_all_on_S__modified.json')
+
         else: 
             # prepare Bayesian_Blocks/or custon binning template 
             if args.toys:
@@ -619,9 +627,6 @@ if __name__ == "__main__":
                     continue
                 channels.add(cat)
             channels = list(channels)
-            
-            #if not 'MH-300.0_MA-200.0' in rf : # just for test
-            #    continue
             
             print( rf )
             print ("Detected channels: ", channels , smpNm)
@@ -953,14 +958,18 @@ if __name__ == "__main__":
                                 # FIXME: This is only a test for Jan question, by default newkey should always be 'B'
                                 look_for_hist_SR = look_for_hist.replace('MuEl', 'OSSF')
                                 binning_SR  =  data['histograms'][look_for_hist_SR][process]['S']
-                                if 'boosted' in look_for_hist:# and len(binning_SR[0])==2:
+                                if 'boosted' in look_for_hist:
                                     look_for_hist = look_for_hist_SR
-                                    newkey = 'S'
+                                    if len(binning_SR[0])==2: newkey = 'S'
+                                    else: newkey = 'B'
                                 else: 
                                     newkey = 'B'
                                 binning = data['histograms'][look_for_hist][process][newkey]
                                 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                 #binning = data['histograms'][look_for_hist][process]['B']
+                                """
+                                binning = data2['histograms'][look_for_hist][process][0]
+                                """
                         else:
                             if get_half:
                                 hit_boundaries = False
@@ -984,10 +993,13 @@ if __name__ == "__main__":
                                 else:
                                 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                     binning  = data['histograms'][look_for_hist][process][args.scenario]
-                                # if the signal have very low stats and BB assign 1 single bin, 
-                                # use BB B-only since the SR will be acting more like a CR in this case
-                                #if len(binning[0])==2: 
-                                #    binning  = data['histograms'][look_for_hist][process]['B']
+                                    # if the signal have very low stats and BB assign 1 single bin, 
+                                    # use BB B-only since the SR will be acting more like a CR in this case
+                                    if len(binning[0])==2: 
+                                        binning  = data['histograms'][look_for_hist][process]['B']
+                                """
+                                binning  = data2['histograms'][look_for_hist][process][0]
+                                """
 
                         nph_old = NumpyHist.getFromRoot(oldHist)
                         
@@ -1003,7 +1015,7 @@ if __name__ == "__main__":
                             #nph_new.setUnitaryBinWidth()
                             newHist = nph_new.fillHistogram(oldHist.GetName())
                         """ 
-                        
+                         
                         newHist = nph_old.rebin(np.array(binning[0])).fillHistogram(oldHist.GetName()) 
                         nph_new = NumpyHist.getFromRoot(newHist)
                         

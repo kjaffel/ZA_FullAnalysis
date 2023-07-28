@@ -348,20 +348,23 @@ def no_extra_binedges(newEdges, oldEdges):
 
 
 
-def no_narrow_bins(newEdges, isSignal=False, minsize = 0.02):
+def no_narrow_bins(newEdges, isSignal=False, histName='', minsize = 0.02):
     cleanEdges = []
     for i, x in enumerate(newEdges.astype(float).round(2).tolist()):
         if i == 0:
             cleanEdges.append(x)
         else:
             if round(x -cleanEdges[-1],2)  <= minsize: 
-                if isSignal: 
-                    if x > 0.75: cleanEdges.append(x)
+                if isSignal or any(x in histName for x in ['OSSF', 'ElEl', 'MuMu']): 
+                    if x > 0.9: cleanEdges.append(x)
                     else: logger.warning(f'[{x}, {cleanEdges[-1]}]:: is a very narrow bin width will be removed!' )
                 else:
                     logger.warning(f'[{x}, {cleanEdges[-1]}]:: is a very narrow bin width will be removed!' )
             else:
                 cleanEdges.append(x)
+    # keep bin boundaries
+    if not cleanEdges[0] == 0: cleanEdges = np.append([0], cleanEdges)
+    if not cleanEdges[-1]== 1: cleanEdges = np.append(cleanEdges, [1])
     return np.array(cleanEdges)
 
 
@@ -650,7 +653,6 @@ def WriteYamlForPlotIt(files, Cfg, era, outf, normalized):
         if 'VFP' in smpEra: smpEra = smpEra.replace('2016', '2016-')
         if 'VFP' in era: era = era.replace('2016', '2016-')
         
-        print( smp )
         outf.write(f"  {smp}:\n")
         
         for gp, poss_f in sorted_files.items():
@@ -665,7 +667,7 @@ def WriteYamlForPlotIt(files, Cfg, era, outf, normalized):
                             
         if group == 'signal':
             outf.write(f"    type: signal\n")
-            outf.write(f"    legend: '{get_legend(smpNm)}'\n")
+            outf.write(f"#    legend: '{get_legend(smpNm)}'\n")
             outf.write(f"    line-color: '{color}'\n")
             outf.write("    line-type: 1\n")
             if normalized:
@@ -734,10 +736,27 @@ def plotRebinnedHistograms(binnings, bambooDir, plotsDIR, era, normalized=True):
                     elif "plots:" in line:
                         outf.write("plots:\n")
                         for plotNm in binnings['histograms'].keys():
+                            
+                            if process=='bb_associatedProduction':
+                                if any ( x in plotNm for x in ['MA_700p00_MH_200p00', 'MH_240p00_MA_130p00']):
+                                    continue
+                            elif process=='gg_fusion':
+                                if any ( x in plotNm for x in ['MA_550p00_MH_300p00', 'MA_670p00_MH_500p00', 'MA_250p00_MH_125p00', 'MA_220p00_MH_127p00', 'MA_300p00_MH_135p00']):
+                                    continue
+                            
+                            if 'boosted' in plotNm or process=='bb_associatedProduction':
+                                if not ('OSSF' in plotNm or 'MuEl' in plotNm):
+                                    continue
+                            if process=='gg_fusion' and 'nb3' in plotNm:
+                                continue
+
+                            c= ''
+                            if 'MuEl' in plotNm: c ='#' 
+
                             params = get_histNm_orig('dnn', plotNm, mass=None, info=True, fix_reco_format=False)[1]
                             
                             outf.write(f"  {plotNm}:\n")
-                            outf.write("    blinded-range: [0.6, 1.0]\n")
+                            outf.write(f"{c}    blinded-range: [0.8, 1.0]\n")
                             outf.write("    labels:\n")
                             outf.write("    - position: [0.22, 0.89]\n")
                             outf.write("      size: 20\n")
@@ -752,6 +771,7 @@ def plotRebinnedHistograms(binnings, bambooDir, plotsDIR, era, normalized=True):
                             outf.write("    x-axis-range:\n")
                             outf.write("    - 0.0\n")
                             outf.write("    - 1.0\n")
+                            outf.write("    y-axis-format: '%1%'\n")
                             outf.write("    y-axis: Events\n")
                             outf.write("    y-axis-show-zero: true\n")
                     else:
