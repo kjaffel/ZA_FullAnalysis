@@ -7,6 +7,9 @@ import numpy as np
 from CP3SlurmUtils.Configuration import Configuration
 from CP3SlurmUtils.SubmitWorker import SubmitWorker
 
+import Constants as Constants
+logger = Constants.ZAlogger(__name__)
+
 
 def get_signal_parameters(f):
     if '_tb_' in f:  # Khawla new version format of signal sample
@@ -24,7 +27,7 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
     config.sbatch_chdir = os.path.join(outputDIR, 'slurm', 'bayesian')
     config.sbatch_time = '00:59:00'
     config.sbatch_memPerCPU = '1000'
-    config.sbatch_additionalOptions=['--exclude=mb-ivy220']
+    #config.sbatch_additionalOptions=['--exclude=mb-ivy220']
     #config.environmentType = 'cms'
     #config.inputSandboxContent = [""]
     #config.stageoutFiles = ['*.root']
@@ -37,9 +40,13 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
     cmssw = config.cmsswDir
     rFiles= glob.glob(os.path.join(bambooResDIR, '*.root'))
 
+    if os.path.exists(config.sbatch_chdir):
+        logger.warning("Output directory {}/ , already exists !!".format(config.sbatch_chdir))
+        exit()
+
     for i, inF in enumerate(rFiles): 
         smp = inF.split('/')[-1]
-        PlotIt = False
+        PlotIt = 'true'
         
         if era!='fullrun2':
             if not f"_UL{era_}" in smp:
@@ -55,21 +62,18 @@ def SlurmRunBayesianBlocks(outputDIR, bambooResDIR, rebin, era, mode, submit, sc
         
         # last root file
         if plotit and i == (len(rFiles)-1): 
-            PlotIt = True
+            PlotIt = 'false'
         
         config.inputParams.append([cmssw, inF, outputDIR, rebin, era, mode, submit, scenario, PlotIt])
     config.payload = \
         """
             pushd ${cmssw}
-            
-            if $PlotIt; then
-                args="--input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm --plotit"
-            else
-                args="--input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm"
+            args=""
+            if ${PlotIt}; then
+                args="--plotit"
             fi
-
-            echo "running :: optimizeBinning.py ${args}"
-            python optimizeBinning.py ${args}
+            echo "running :: optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm"
+            python optimizeBinning.py --input ${input} --output ${output} --rebin ${rebin} --era ${era} --mode ${mode} --submit ${submit} --scenario ${scenario} --sys --job slurm ${args}
         """
     submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
