@@ -15,7 +15,8 @@ from cppyy import gbl
 import Constants as Constants
 logger = Constants.ZAlogger(__name__)
 
-decotheory     = False
+decotheory     = False  # will split reg, flav, nb
+decothnb2nb3   = True
 decothResBoo   = False
 splitJECs      = True
 splitLep       = False
@@ -23,6 +24,8 @@ splitTTbar     = False
 splitDrellYan  = False
 splitEraUL2016 = False
 rm_mix_lo_nlo_bbH_signal= True
+
+
 
 def openFileAndGet(path, mode="read"):
     """Open ROOT file in a mode, check if open properly, and return TFile handle."""
@@ -73,7 +76,16 @@ def matching_proc(p,s):
 
 
 def symmetrise_smooth_syst(chob, syst):
-    if (syst.name().startswith("CMS_scale_j") or syst.name().startswith("CMS_res_j") or syst.name().startswith("QCD")): 
+    if ( syst.name().startswith("CMS_scale_j") or 
+         syst.name().startswith("CMS_res_j") or 
+         syst.name().startswith("QCD") or 
+         #syst.name().startswith("ISR") or 
+         #syst.name().startswith("FSR") or 
+         #syst.name().startswith("TopPt_reweighting") or 
+         syst.name().startswith("CMS_HEM") or 
+         syst.name().startswith("CMS_UnclusteredEn") or 
+         syst.name().startswith("CMS_pileup") 
+        ): 
         chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: symm_and_smooth(syst,x) if (matching_proc(x,syst)) else None)
         chob.cp().syst_name([syst.name()]).ForEachProc(lambda x: checkSizeOfShapeEffect(syst,x) if (matching_proc(x,syst)) else None)# doesn't do much, just helps the fit to converge faster
 
@@ -84,6 +96,7 @@ def drop_onesided_systs(syst):
     if(same_yield):
         print ('Dropping one-sided systematic with large normalisation effect',syst.name(),' for region ', syst.bin(), ' ,process ', syst.process(), '. up norm is ', sys)
     return same_yield
+
 
 def drop_zero_procs(chob,proc):
     if proc.signal(): # never drop signals 
@@ -114,10 +127,11 @@ def smooth_lowess_tgraph(h):
         gout.GetPoint(i,x,y)
         hist_out.Fill(x,y)
     return hist_out
-    
+
+
 def symm_and_smooth(syst,proc):
     #if any(('_'+str(x)+'_') in syst.bin() for x in [1,5,9,21,23,22,24]):
-    print ('smoothing: ', syst )
+    print ('smoothing: ', syst)
     nominal = proc.shape()
     nominal.Scale(proc.rate())
     hist_u = syst.shape_u()
@@ -193,15 +207,16 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None, multi_s
     
     other = {
         # decorrelated
-        'unclustEn'                         : "CMS_UnclusteredEn_%s"%newEra,        
-        'jesHEMIssue'                       : "CMS_HEM_%s"%newEra, 
-        'HLTZvtx'                           : "CMS_HLTZvtx_%s"%newEra,
-        'elel_trigSF'                       : "CMS_elel_trigSF_%s"%newEra,
-        'mumu_trigSF'                       : "CMS_mumu_trigSF_%s"%newEra,
-        'muel_trigSF'                       : "CMS_muel_trigSF_%s"%newEra,
-        'mu_trigger'                        : "CMS_mu_trigger_%s"%newEra,
+        'jesHEMIssue'       : "CMS_HEM_%s"%newEra, 
+        'HLTZvtx'           : "CMS_HLTZvtx_%s"%newEra,
+        'elel_trigSF'       : "CMS_elel_trigSF_%s"%newEra,
+        'mumu_trigSF'       : "CMS_mumu_trigSF_%s"%newEra,
+        'muel_trigSF'       : "CMS_muel_trigSF_%s"%newEra,
+        'mu_trigger'        : "CMS_mu_trigger_%s"%newEra,
+        'TopPt_reweighting' : "TopPt_reweighting_%s"%newEra, 
         
         # correlated
+        'unclustEn'         : "CMS_UnclusteredEn",        
         'pileup'            : "CMS_pileup",
         'L1PreFiring'       : "CMS_L1PreFiring",
         'elid_medium'       : "CMS_eff_elid",
@@ -209,23 +224,23 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None, multi_s
         'highpt_ele_reco'   : "CMS_eff_elreco_highpt",
         'muid_medium'       : "CMS_eff_muid",
         'muiso_tight'       : "CMS_eff_muiso",
-        'TopPt_reweighting' : "TopPt_reweighting", 
-
         }
    
     # remove mass _MX-... duplicate in the datacards 
+    _p = None
     if process:
         process = process.split('_')[0]
-        if decotheory and cat is not None:
-            process += '_'+'_'.join(cat.split('_')[2:])
-        if decothResBoo and cat is not None:
+        _p = process
+        if cat is not None:
             flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
-            process +=  '_' +reg
+            if decothnb2nb3: _p +=  '_' +reco
+            if decothResBoo: _p +=  '_' +reg
+            if decotheory: _p += '_'+'_'.join(cat.split('_')[2:])
     # theory 
     theo_perProc = {"qcdScale" : "QCDscale_%s"%process, 
-                    "qcdMuF"   : "QCDMuF_%s"%process, 
-                    "qcdMuR"   : "QCDMuR_%s"%process, 
-                    "qcdMuRF"  : "QCDMuRF_%s"%process,
+                    "qcdMuF"   : "QCDMuF_%s"%_p, #process, 
+                    "qcdMuR"   : "QCDMuR_%s"%_p, #process, 
+                    "qcdMuRF"  : "QCDMuRF_%s"%_p, #process,
                     "psISR"    : "ISR_%s"%process, 
                     "psFSR"    : "FSR_%s"%process,
                     "pdfAlphaS": "pdf_alphaS_%s"%process,
@@ -242,7 +257,10 @@ def CMSNamingConvention(origName=None, cat=None, era=None, process=None, multi_s
 
     # DY reweighting, decorrelated across year
     elif 'DYweight_' in origName:
-        return origName + "_{}".format(newEra)
+        #return origName + "_{}".format(newEra)
+        reco = ''
+        if cat is not None: flavor, reg, reco, prod, taggerWP = get_keys(cat, multi_signal)
+        return origName + '_' +reco + "_{}".format(newEra) # FIXME this is just a test
 
     # jes 
     elif origName.startswith("jes"):
@@ -364,11 +382,11 @@ def get_method_group(method):
 
 
 def get_combine_method(method):
-            #  The analytic minimisation is enabled by default starting in combine v8.2.0:
-            # https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/#analytic-minimisation
-            # --X-rtd MINIMIZER_analytic
-            # --X-rtd MINIMIZER_no_analytic
-            # --rMax 500 --X-rtd MINIMIZER_analytic
+    #  The analytic minimisation is enabled by default starting in combine v8.2.0:
+        # https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/#analytic-minimisation
+        # --X-rtd MINIMIZER_analytic
+        # --X-rtd MINIMIZER_no_analytic
+        # --rMax 500 --X-rtd MINIMIZER_analytic
     if method == 'fit':
         return '-M FitDiagnostics --rMax 20'   
     elif method == 'asymptotic':
@@ -380,7 +398,7 @@ def get_combine_method(method):
     elif method == 'signal_strength':
         return '-M MultiDimFit --rMin -3 --rMax 3'
     elif method == 'pvalue':
-        return '-M Significance'
+        return '-M Significance --rMin -5 --rMax 5 '
 
 
 def get_Observed_HIG_18_012(m):
@@ -543,7 +561,7 @@ def ignoreSystematic(smp=None, cat=None, process=None, s=None, _type=None):
     """
     if not s:
         return False
-    if not _type=='signal' and s =='pdfAlphaS':
+    if not _type=='signal' and s =='pdf_alphaS':
         return True
     if 'MuEl' in cat and _type=='signal' and process in s: # will ignore all systematic related to the signal for mu e channel !
         return True
@@ -552,7 +570,9 @@ def ignoreSystematic(smp=None, cat=None, process=None, s=None, _type=None):
         if not smp.startswith('DYJetsToLL') and s.startswith('DYweight_'):
             return True
         # do not propagate top pt reweighting to non ttbar samples
-        if not any( smp.startswith(x) for x in ['TTToSemiLeptonic', 'TTTo2L2Nu', 'TTToHadronic']) and s=='TopPt_reweighting':
+        # These weights should not be used to correct the MC of single top quark production and ttX processes, 
+        # with X being vector bosons, Higgs boson or bb/cc. 
+        if not any( smp.startswith(x) for x in ['tt', 'ttB', 'TTToSemiLeptonic', 'TTTo2L2Nu', 'TTToHadronic']) and 'TopPt_reweighting' in s:
             return True
     
         if 'postVFP' in smp and 'preVFP' in s: 
@@ -568,11 +588,19 @@ def ignoreSystematic(smp=None, cat=None, process=None, s=None, _type=None):
         return True
     if 'lightEff' in s:
         return True
+    
+    ## testing some gof crap
+    if 'pdf_alphaS' in s:
+        return True
+    #if 'TopPt_reweighting' in s:
+    #    return True
+    #if 'CMS_UnclusteredEn' in s:
+    #    return True
     # maybe these two are not anymore causing issues !
     #if 'CMS_UnclusteredEn' in s: # this vars is very small and causes problem in the fit
     #    return True
-    #if 'QCDMuRF_' in s:
-    #    return True
+    if 'QCDMuRF_' in s:
+        return True
     if splitJECs and 'CMS_scale_j_Total' in s : # when you do the splitling of JEC, do not pass Total, this will be a duplicate
         return True
     if 'CMS_btagSF_deepCSV_fixWP_' in s: # btag scale facors will be applied on subjets
@@ -732,7 +760,6 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         for path in paths:
             r = re.compile(path, re.IGNORECASE)
             local_process_files = [f for f in files if r.search(os.path.basename(f))]
-            #FIXME
             if process=='tt':
                 local_process_files = [f for f in local_process_files if not '_ttB_' in f]
             if len(local_process_files) == 0:
@@ -848,6 +875,7 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
         # File exists. Check is stored hash is the same as the computed one. If yes, skip the file create
         f = ROOT.TFile.Open(output_filename)
         stored_hash = f.Get('hash')
+        stored_hash = False ## FIXME let's re-write these for the moment !!
         if stored_hash and stored_hash.GetTitle() == hash:
             print("File %r already exists and contains all the needed shapes. Skipping file generation." % output_filename)
             systematics = f.Get('systematics')
@@ -908,11 +936,10 @@ def prepareFile(processes_map, categories_map, input, output_filename, signal_pr
                     smpScale = (lumi)/sumW
                     if _2POIs_r:
                         #print( 'braching-ratio from theory is not used to scale 2HDM signal')
-                        #smpScale  *= BR
-                        if method == 'generatetoys':
-                            smpScale *= BR
+                        #if method == 'generatetoys':
+                        #    smpScale *= BR
                         if method !='asymptotic':
-                            smpScale *= xsc
+                            smpScale *= BR*xsc
                     else:
                         heavy = thdm[0]
                         proc2 = 'gg%s'%heavy if proc1 =='bb%s'%heavy else 'bb%s'%heavy

@@ -174,10 +174,37 @@ def get_SignalStatisticsUncer(m_heavy, m_light, process, mode, tb=None):
     return float(xsc), float(xsc_err), br
 
 
+def get_branchingratio_crosssection(dict_, m_heavy, m_light, mode, process, tb):
+    br_Ztoll = 0.067264
+    heavy    = mode[0]
+    light    = mode[-1]
+    key      = 'M{}_{}_M{}_{}_tb_{}'.format(heavy, float(m_heavy), light, float(m_light), tb)
+
+    if not key in dict_[mode] or not dict_[mode][key]:
+        return None, None, None
+
+    br_HeavytoZlight = dict_[mode][key]['branching-ratio']['{}ToZ{}'.format(heavy, light)]
+    br_lighttobb     = dict_[mode][key]['branching-ratio']['{}Tobb'.format(light)]
+
+    if process == 'gg{}'.format(heavy):
+        xsc      = dict_[mode][key]['cross-section'][process].split()[0]
+        xsc_err  = dict_[mode][key]['cross-section'][process].split()[2]
+    else:
+        xsc      = dict_[mode][key]['cross-section'][process]['NLO'].split()[0]
+        xsc_err  = dict_[mode][key]['cross-section'][process]['NLO'].split()[2]
+
+    if br_HeavytoZlight is None or br_lighttobb is None: br = None
+    else: br = float(br_HeavytoZlight) * br_Ztoll* float(br_lighttobb)
+
+    return float(xsc), float(xsc_err), br
+
+
 def overwrite_path(f, year, lumi):
     with open(f, 'r') as file :
         filedata = file.read()
+    _year = year.replace('UL','20').replace('preVFP', '-preVFP').replace('postVFP', '-postVFP')
     filedata = filedata.replace(year, 'ULfullrun2')
+    filedata = filedata.replace(_year, 'fullrun2')
     filedata = filedata.replace(lumi, '138')
     with open(f, 'w') as file:
         file.write(filedata)

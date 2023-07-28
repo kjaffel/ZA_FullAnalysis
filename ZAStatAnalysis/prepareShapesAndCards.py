@@ -28,19 +28,19 @@ logger = Constants.ZAlogger(__name__)
 signal_grid_foTest = { 
     'gg_fusion': { 
         'resolved': { 
-            'HToZA': [(300., 200)],   
-            'AToZH': []},             
+            'HToZA': [],   
+            'AToZH': [(200., 125.)]}, #(220., 127.), (240., 130.)]},             
         'boosted': {
-            'HToZA': [(300., 200.)], 
-            'AToZH': []},            
+            'HToZA': [], 
+            'AToZH': [(200., 125.)]}, #(220., 127.), (240., 130.)]},            
         },
     'bb_associatedProduction': { 
         'resolved': { 
-            'HToZA': [(300., 200.)], 
-            'AToZH': []},           
+            'HToZA': [], 
+            'AToZH': [(200., 125.)]}, #(220., 127.), (240., 130.)]},           
         'boosted': {
-            'HToZA': [(300., 200.)], 
-            'AToZH': []}            
+            'HToZA': [], 
+            'AToZH': [(200., 125.)]}, #(220., 127.), (240., 130.)]}            
         }
     }
 
@@ -99,7 +99,7 @@ def return_flavours_to_process(reco, reg, prod, splitLep=False):
     return flavors
 
 
-def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, opts, era, verbose, unblind=False, what='', run_validation=False, multi_signal=False):
+def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, opts, era, pois, verbose, unblind=False, what='', run_validation=False, run_chcomptability=False, run_ScanNllshape=False, multi_signal=False):
     k        = opts['flavor']
     reco     = opts['nb'] + '_'+ opts['region']
     prod     = opts['process']
@@ -130,35 +130,44 @@ def check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, datas
         subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
     
     workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
+    
     if method =='asymptotic':
         if multi_signal: 
-            for poi in ['r_ggH', 'r_bbH']:
-                MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, run_validation, unblind, verbose)
+            for poi in pois:
+                MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 
+                        125, 'asymptotic', expectSignal, poi, opts, run_validation, unblind, verbose)
         else:
-            _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, dataset, run_validation, unblind, verbose)
+            _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, 
+                    125, 'asymptotic', expectSignal, dataset, run_validation, unblind, verbose)
     
     elif method =='impacts':
-        _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, 125, k, 'impacts', prod, reco, dataset, expectSignal, run_validation, unblind, verbose)
+        _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, 
+                125, k, 'impacts', prod, reco, dataset, expectSignal, run_validation, unblind, verbose)
     
     elif method =='likelihood_fit':
         if multi_signal:
-            Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', run_validation, unblind, verbose)
+            Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 
+                    125, 'likelihood_fit', opts, era, run_validation, verbose)
    
     elif method =='goodness_of_fit':
-        Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
+        Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, 
+                125, method, mode, opts, era, pois, run_validation, run_chcomptability, run_ScanNllshape, unblind, multi_signal, verbose)
     
     elif method == 'pvalue': 
-        Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, opts, run_validation, unblind, expectSignal, verbose)
+        Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, 
+                125, method, mode, opts, run_validation, unblind, expectSignal, verbose)
     
     elif method =='fit':
-        PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, channels, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
+        PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, 
+                                  125, method, mode, channels, opts, dataset, run_validation, unblind, verbose, skip=True)
     
     elif method =='signal_strength':
-        CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, 125, method, mode, channels, opts['bin'], opts['cat'], opts['sig'], dataset, run_validation, unblind, verbose, skip=True)
+        CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, 
+                125, method, mode, channels, opts, dataset, run_validation, unblind, verbose, skip=True)
     return 
 
 
-def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod, era, verbose, reg=None, skip=None, unblind=False, _2POIs_r=False, run_validation=False, multi_signal=False, todo=''):
+def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod, era, pois, verbose, reg=None, skip=None, unblind=False, _2POIs_r=False, run_validation=False, run_chcomptability=False, run_ScanNllshape=False, multi_signal=False, todo=''):
     
     if method in ['generatetoys']:
         return 
@@ -190,15 +199,18 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     continue
                 
                 combinedcat = prod + '_nb2PLusnb3_' + reg + '_' + k
-                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': reg, 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
+                opts = {'mode': thdm, 'process': prod, 'nb': 'nb2PLusnb3', 'region': reg, 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
                 check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
-                                    opts            = opts,
-                                    unblind         = unblind, 
-                                    what            = 'nb2 & nb3 %s'%reg,
-                                    era             = era,
-                                    verbose         = verbose, 
-                                    run_validation  = run_validation, 
-                                    multi_signal    = multi_signal )
+                                    opts                = opts,
+                                    unblind             = unblind, 
+                                    what                = 'nb2 & nb3 %s'%reg,
+                                    era                 = era,
+                                    pois                = pois,
+                                    verbose             = verbose, 
+                                    run_validation      = run_validation, 
+                                    run_chcomptability  = run_chcomptability,
+                                    run_ScanNllshape    = run_ScanNllshape,
+                                    multi_signal        = multi_signal )
 
             elif todo == 'res_boo':
                 if not (cat in proc_combination['nb2_resolved'].keys() or cat in proc_combination['nb2_boosted'].keys()
@@ -216,15 +228,18 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     cmd += proc_combination[reco][cat][kp]
                 
                 combinedcat = prod + '_nb2PLusnb3_resolved_boosted_' + k
-                opts = {'process': prod, 'nb': 'nb2PLusnb3', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
+                opts = {'mode': thdm, 'process': prod, 'nb': 'nb2PLusnb3', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
                 check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
-                                    opts            = opts,
-                                    unblind         = unblind, 
-                                    what            = 'resolved & boosted ( nb2 + nb3)', 
-                                    era             = era,
-                                    verbose         = verbose, 
-                                    run_validation  = run_validation, 
-                                    multi_signal    = multi_signal )
+                                    opts                = opts,
+                                    unblind             = unblind, 
+                                    what                = 'resolved & boosted ( nb2 + nb3)', 
+                                    era                 = era,
+                                    pois                = pois,
+                                    verbose             = verbose, 
+                                    run_validation      = run_validation, 
+                                    run_chcomptability  = run_chcomptability,
+                                    run_ScanNllshape    = run_ScanNllshape,
+                                    multi_signal        = multi_signal )
                 
                 if not (cat in proc_combination['nb2_resolved'].keys() or cat in proc_combination['nb2_boosted'].keys()):
                     continue
@@ -240,106 +255,74 @@ def CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, data
                     cmd += proc_combination[reco][cat][kp]
                 
                 combinedcat = prod + '_nb2_resolved_boosted_' + k
-                opts = {'process': prod, 'nb': 'nb2', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
+                opts = {'mode': thdm, 'process': prod, 'nb': 'nb2', 'region': 'resolved_boosted', 'flavor': k , 'sig': sig, 'bin': output_sig, 'cat': combinedcat}
                 check_call_DataCard(method, cmd, thdm, mode, output_dir, expectSignal, dataset, 
-                                    opts            = opts,
-                                    unblind         = unblind, 
-                                    what            = 'nb2 (resolved & boosted)', 
-                                    era             = era,
-                                    verbose         = verbose, 
-                                    run_validation  = run_validation, 
-                                    multi_signal    = multi_signal )
-           ## deprecated !! 
-           # elif todo == 'ggH_bbH':
-           #     if not method in ['likelihood_fit', 'asymptotic']:
-           #         continue
-           #     # this should not happen but in case a signal sample does not exist in both prod mechanisms
-           #     # then there is no need to continue here
-           #     if any( x== output_sig for x in skip):
-           #         continue
-           #     
-           #     Tot_proc_reg_combine = []
-           #     for j, reg in enumerate(['resolved', 'boosted']): 
-           #         
-           #         cmd = [] 
-           #         for reco in ['nb2', 'nb3']: 
-           #         
-           #             for prod in ['gg_fusion', 'bb_associatedProduction']:
-           #                 cmd += proc_combination[prod][reco+'_'+reg][cat][k]
-           #             
-           #             newCmd = ['combineCards.py']
-           #             for i, x in enumerate(cmd):
-           #                 if "=" in x :
-           #                     Tot_nm   = x.split('=')[1]
-           #                     channel  = x.split('=')[0]
-           #                     split_ch = channel.split('_')
-           #                     new_ch   = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
-           #                     newCmd  +=[new_ch+'='+Tot_nm]
-           #                     Tot_proc_reg_combine +=[new_ch+'='+Tot_nm]
-           #             
-           #         out_nm = newCmd[1]
-           #         if "=" in out_nm:
-           #             out_nm = out_nm.split('=')[1]
-
-           #         suffix        = out_nm.split(mode)[-1].replace('.dat', '')
-           #         output_prefix = '%sTo2L2B_gg_fusion_bb_associatedProduction_nb2PLusnb3_%s_%s_%s%s'%( thdm, reg, k, mode, suffix)
-           #         datacard      = os.path.join(output_dir, output_prefix +'.dat')
-           #         
-           #         logger.info('merging %s nb2 + nb3 %s ggH & bbH cmd::: %s'%(k, reg, newCmd) )
-           #         with open( datacard, 'w') as f:
-           #             subprocess.check_call(newCmd, cwd=output_dir, stdout=f)
-           #         
-           #         for poi in ['r_ggH', 'r_bbH']:
-           #             workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-           #             MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, run_validation, unblind, verbose)
-           #     
-           #     # A full combination of the signal cats, regions, and lepton flavour
-           #     FinalCmd = ['combineCards.py']
-           #     for i, x in enumerate(list( set(Tot_proc_reg_combine))):
-           #         if "=" in x :
-           #             Tot_nm    = x.split('=')[1]
-           #             channel   = x.split('=')[0]
-           #             split_ch  = channel.split('_')
-           #             new_ch    = 'ch%s_%s'%(i+1, '_'.join(split_ch[1:]))
-           #             FinalCmd +=[new_ch+'='+Tot_nm]
-           #     
-           #     logger.info('merging %s nb2 + nb3 + resolved + boosted ggH & bbH cmd::: %s'%(k, FinalCmd) )
-           #     suffix        = FinalCmd[1].split(mode)[-1].replace('.dat', '')
-           #     output_prefix = '%sTo2L2B_gg_fusion_bb_associatedProduction_nb2PLusnb3_resolved_boosted_%s_%s%s'%( thdm, k, mode, suffix)
-           #     datacard      = os.path.join(output_dir, output_prefix +'.dat')
-           #     with open( datacard, 'w') as f:
-           #         subprocess.check_call(FinalCmd, cwd=output_dir, stdout=f)
-           #     
-           #     workspace_file = os.path.basename(os.path.join(output_dir, output_prefix + '_combine_workspace.root'))
-           #     if method =='asymptotic':
-           #         for poi in ['r_ggH', 'r_bbH']:
-           #             MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, run_validation, unblind, verbose)
-           #     elif method =='likelihood_fit':
-           #         Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', verbose)
-
+                                    opts                = opts,
+                                    unblind             = unblind, 
+                                    what                = 'nb2 (resolved & boosted)', 
+                                    era                 = era,
+                                    pois                = pois,
+                                    verbose             = verbose, 
+                                    run_validation      = run_validation, 
+                                    run_chcomptability  = run_chcomptability,
+                                    run_ScanNllshape    = run_ScanNllshape,
+                                    multi_signal        = multi_signal )
     return 
 
 
-def CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, prod, dataset, run_validation, unblind, verbose, skip):
+
+def CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, opts, dataset, run_validation, unblind, verbose, skip):
+    bin_id = opts['bin']
+    cat    = opts['cat']
+    prod   = opts['sig']
+    
     script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
 
-combine {method} {workspace_root} -n .{cat}.snapshot -t -1 -m 125 --algo grid --points 30 --saveWorkspace --verbose {verbose}
-combine -M MultiDimFit  higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root -n .{cat}.freezeAll -m 125 --algo grid --points 30 --freezeParameters allConstrainedNuisances --snapshotName MultiDimFit --verbose {verbose}
-
-python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.{cat}.snapshot.MultiDimFit.mH125.root --others 'higgsCombine.{cat}.freezeAll.MultiDimFit.mH125.root:FreezeAll:2' -o {plotNm} --breakdown Syst,Stat &> {name}.log
-
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
+cat="{cat}"
 run_validation={run_validation}
+name="{name}"
+
+# If workspace does not exist, create it once
+#if [ ! -f {workspace_root} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
+
+combine {method} ${{WORKSPACE}} \\
+        -n .${{cat}}.snapshot \\
+        -t -1 \\
+        -m 125 \\
+        --algo grid \\
+        --points 30 \\
+        --saveWorkspace \\
+        --verbose {verbose}
+
+combine -M MultiDimFit  higgsCombine.${{cat}}.snapshot.MultiDimFit.mH{mass}.root \\
+        -n .${{cat}}.freezeAll \\
+        -m 125 \\
+        --algo grid \\
+        --points 30 \
+        --freezeParameters allConstrainedNuisances \\
+        --snapshotName MultiDimFit \\
+        --verbose {verbose}
+
+python $CMSSW_BASE/src/CombineHarvester/CombineTools/scripts/plot1DScan.py higgsCombine.${{cat}}.snapshot.MultiDimFit.mH{mass}.root \\
+        --others 'higgsCombine.${{cat}}.freezeAll.MultiDimFit.mH{mass}.root:FreezeAll:2' \\
+        -o {plotNm} \\
+        --breakdown Syst,Stat &> CheckSignalStrength_${{name}}.log
+
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
 fi
 
 popd
@@ -366,16 +349,30 @@ popd
             
 
 
-def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, prod, dataset, run_validation=False, unblind=False, verbose=False, skip=False):
+def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, opts, dataset, run_validation=False, unblind=False, verbose=False, skip=False):
+    bin_id = opts['bin']
+    cat    = opts['cat']
+    prod   = opts['sig']
+
     script = """#! /bin/bash
 
 # http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
 pushd {dir}
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
+run_validation={run_validation}
+name="{name}"
+CAT="{CAT}"
+fits=("fit_s" "fit_b")  
+channels=(
+{channels}
+)
+
 # If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
+#if [ ! -f {workspace_root} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
 
 # print yield tables
 if [ ! -d YieldTables ]; then
@@ -390,7 +387,13 @@ if [ ! -d plotIt_{cat} ]; then
 fi
 
 pushd plotIt_{cat}
-    combine {method} -m {mass} {dataset} --saveWithUncertainties --ignoreCovWarning -n {name} ../{workspace_root} --plots --verbose {verbose} &> {name}.log
+combine {method} ../${{WORKSPACE}} \\
+        -m {mass} {dataset} \\
+        --saveWithUncertainties \\
+        --ignoreCovWarning \\
+        -n ${{name}} \\
+        --plots \\
+        --verbose {verbose} &> ${{name}}.log
 popd 
 
 
@@ -398,11 +401,6 @@ popd
 #fit_b   RooFitResult object containing the outcome of the fit of the data with signal strength set to zero
 #fit_s   RooFitResult object containing the outcome of the fit of the data with floating signal strength
 
-CAT="{CAT}"
-fits=("fit_s" "fit_b")  
-channels=(
-{channels}
-)
 
 IFS="," read -a arr <<< $channels
 
@@ -414,30 +412,50 @@ for fit_what in ${{fits[*]}}; do
     
     pushd plotIt_{cat}/${{fit_what}} 
     
-    PostFitShapesFromWorkspace -w ../../{workspace_root} -d ../../{datacard} -o ../fit_shapes_${{CAT}}_${{fit_what}}.root -f ../fitDiagnostics{prefix}.root:${{fit_what}} -m {mass} --postfit --sampling --covariance --total-shapes --print
+    PostFitShapesFromWorkspace -w ../../${{WORKSPACE}} \\
+                               -d ../../${{DATACARD}} \\
+                               -o ../fit_shapes_${{CAT}}_${{fit_what}}.root \\
+                               -f ../fitDiagnostics${{name}}.root:${{fit_what}} \\
+                               -m {mass} \\
+                               --postfit \\
+                               --sampling \\
+                               --covariance \\
+                               --total-shapes \\
+                               --print
 
-    {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i ../fit_shapes_${{CAT}}_${{fit_what}}.root -o . --signal-process HToZATo2L2B -n {name2}
-    $CMSSW_BASE/../utils/printYieldTables.py -w ../../{workspace_root} -f ../fitDiagnostics{prefix}.root -s {signal} -b {bin} --fit ${{fit_what}} --channel "${{channels[@]}}" -o ../../YieldTables
+    {c}$CMSSW_BASE/../utils/convertPrePostfitShapesForPlotIt.py -i ../fit_shapes_${{CAT}}_${{fit_what}}.root \\
+    {c}                                                         -o . \\
+    {c}                                                         --signal-process HToZATo2L2B \\
+    {c}                                                         -n {name2}
+
+    $CMSSW_BASE/../utils/printYieldTables.py -w ../../${{WORKSPACE}} \\
+                                             -f ../fitDiagnostics${{name}}.root \\
+                                             -s {signal} \\
+                                             -b {bin} \\
+                                             --fit ${{fit_what}} \\
+                                             --channel "${{channels[@]}}" \\
+                                             -o ../../YieldTables
     
     # Generate JSON for interactive covariance viewer
     # https://cms-hh.web.cern.ch/tools/inference/scripts.html#generate-json-for-interactive-covariance-viewer
-    $CMSSW_BASE/../utils/extract_fitresult_cov.json.py ../fitDiagnostics{prefix}.root
+    $CMSSW_BASE/../utils/extract_fitresult_cov.json.py ../fitDiagnostics${{name}}.root
     
     popd
 
 done
 
-run_validation={run_validation}
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
 fi
 
 popd
 """.format(workspace_root = workspace_file, 
-           prefix         = output_prefix, 
            cat            = cat, 
            channels       = "{}".format(",\n".join(channels)),
            bin            = bin_id, 
@@ -472,23 +490,52 @@ def _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, mass, fla
     script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-# Run combined
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --doInitialFit --robustFit 1 --verbose {verbose} &> {name}_doInitialFit.log
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --robustFit 1 --doFits --parallel 60 --verbose {verbose} &> {name}_robustFit.log
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} -o impacts__{fNm}.json --verbose {verbose} &> {name}_impacts.log
-plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} --blind
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
+fNm="{fNm}"
+name="{name}"
 run_validation={run_validation}
+
+# If workspace does not exist, create it once
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
+
+# Run combined
+combineTool.py {method} -d ${{WORKSPACE}} \\
+               -m 125 \\
+               -n ${{name}} {dataset} {expectSignal} \\
+               --doInitialFit \\
+               --robustFit 1 \\
+               --verbose {verbose} &> ${{name}}_doInitialFit.log
+        
+combineTool.py {method} -d ${{WORKSPACE}} \\
+               -m 125 \\
+               -n ${{name}} {dataset} {expectSignal} \\
+               --robustFit 1 \\
+               --doFits \\
+               --parallel 60 \\
+               --verbose {verbose} &> ${{name}}_robustFit.log
+
+combineTool.py {method} -d ${{WORKSPACE}} \\
+               -m 125 \\
+               -n ${{name}} {dataset} {expectSignal} \\
+               -o impacts__${{fNm}}.json \\
+               --verbose {verbose} &> ${{name}}_impacts.log
+
+plotImpacts.py -i impacts__${{fNm}}.json -o impacts__${{fNm}} --blind
+
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/${{fNm}}.json &> validation_datacards/${{fNm}}.log
+fi
 
 popd
 """.format( workspace_root = workspace_file, 
@@ -516,20 +563,30 @@ def _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass,
     script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-# Run combined
-combine {method} -m {mass} -n {name} {workspace_root} {dataset} {rule} {blind} --verbose {verbose} &> {name}.log
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
 run_validation={run_validation}
+name="{name}"
+
+# If workspace does not exist, create it once
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
+
+# Run combined
+combine {method} -m {mass} -n ${{name}} ${{WORKSPACE}} {dataset} {rule} {blind} --verbose {verbose} &> ${{name}}.log
+
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
+fi
 
 popd
 """.format( workspace_root = workspace_file, 
@@ -555,61 +612,90 @@ popd
     
 
 
-def FastScanNLLshape(workspace_file, datacard, output_prefix, output_dir, mass, method):
-    script = """#! /bin/bash
-
-pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-
-combine -M GenerateOnly {workspace_root} -t -1 --saveToys --setParameters r=1 -m {mass} -n {name}
-combineTool.py -M FastScan -w {workspace_root}:w -d higgsCombine{name}.GenerateOnly.mH{mass}.123456.root:toys/toy_asimov
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
+def FastScanNLLshape(cat, mass):
+    script = """
+    combine -M GenerateOnly ${{WORKSPACE}} -t -1 --saveToys --setParameters r=1 -m {mass} -n ${{name}}
+    
+    if [ ! -d {cat} ]; then
+        mkdir {cat};
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
-
-popd
-""".format( workspace_root = workspace_file, 
-            datacard       = os.path.basename(datacard), 
-            mass           = mass, 
-            name           = output_prefix, 
-            run_validation = str(run_validation).lower(),
-            dir            = os.path.dirname(os.path.abspath(datacard))
-            )
+    
+    pushd {cat}
+    combineTool.py -M FastScan -w ../${{WORKSPACE}}:w -d ../higgsCombine${{name}}.GenerateOnly.mH{mass}.123456.root:toys/toy_asimov -m {mass}
+    mv nll.pdf nll_${{name}}.pdf
+    mv nll.root nll_${{name}}.root
+    popd
+""".format( cat            = cat,
+            mass           = mass)
     return script
 
 
 
-def Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, mass, method, verbose):
+def Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, mass, method, opts, era, run_validation, verbose):
+    light   = opts['mode'][-1]
+    heavy   = 'H' if light =='A' else 'A'
+    m_heavy = opts['bin'].split('_')[2]
+    m_light = opts['bin'].split('_')[-1]
+    
+    mass_legend = opts['sig']+': (m_{%s}, m_{%s}) = (%s, %s) GeV'%(heavy, light, m_heavy, m_light)
+    
     script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:floatingXSHiggs --PO --verbose {verbose} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]' {datacard} -m {mass} -o {workspace_root}
-fi
-combine {workspace_root} -M MultiDimFit --robustFit=1 --algo=grid --points 2000 --setParameterRanges r_bbH=0,4:r_ggH=0,4 -m {mass} --fastScan -n {name}
-$CMSSW_BASE/../utils/NLLscan2D.py -f higgsCombine{name}.MultiDimFit.mH{mass}.root --name {name} --y-axis-max 4 --y-axis-min 0 --x-axis-max 4 --x-axis-min 0
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
 run_validation={run_validation}
+name="{name}"
+
+
+# If workspace does not exist, create it once
+#if [ ! -f {workspace_root} ]; then
+text2workspace.py {t2w} \\
+                  -m {mass} \\
+                  ${{DATACARD}} \\
+                  -o ${{WORKSPACE}}
+#fi
+
+combine -M MultiDimFit ${{WORKSPACE}}\\
+        --robustFit=1 \\
+        --algo=grid \\
+        --points 2000 \\
+        --setParameterRanges r_bb{heavy}=0,4:r_gg{heavy}=0,4 \\
+        -m {mass} \\
+        --fastScan \\
+        -n ${{name}}
+
+$CMSSW_BASE/../utils/NLLscan2D.py -f higgsCombine${{name}}.MultiDimFit.mH{mass}.root \\
+                                  --name ${{name}} \\
+                                  --era {era} \\
+                                  --heavy {heavy} \\
+                                  --light {light} \\
+                                  --mass  "{mass_legend}" \\
+                                  --y-axis-max 4 \\
+                                  --y-axis-min 0 \\
+                                  --x-axis-max 4 \\
+                                  --x-axis-min 0
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
+fi
 
 popd
-""".format( workspace_root = workspace_file, 
+""".format( workspace_root = workspace_file,
+            heavy          = heavy,
+            light          = light,
+            t2w            = MyPhysicsModel(heavy),
             datacard       = os.path.basename(datacard), 
+            era            = era, 
             mass           = mass,
+            mass_legend    = mass_legend, 
             name           = output_prefix,
             run_validation = str(run_validation).lower(),
             verbose        = verbose, 
@@ -626,57 +712,69 @@ popd
     return script             
 
 
-def ChannelCompatibility(workspace_file, datacard, output_prefix, output_dir, mass, method, run_validation, unblind, verbose):
-    script = """#! /bin/bash
-
-pushd {dir}
-combine -M ChannelCompatibilityCheck {datacard} -m {mass} -n {name} --verbose {verbose} --saveFitResult &> {name}.log
-$CMSSW_BASE/../utils/plotCCC.py 
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
-
-popd
-""".format( workspace_root = workspace_file, 
-            datacard       = os.path.basename(datacard), 
-            mass           = mass, 
-            name           = output_prefix,
-            verbose        = verbose, 
-            run_validation = str(run_validation).lower(),
-            dir            = os.path.dirname(os.path.abspath(datacard))
+def ChannelCompatibility(pois, era, heavy, light, mass, mass_legend, verbose):
+    plotter_ccc ="""
+    """
+    for poi in pois:
+        plotter_ccc = """
+    python $CMSSW_BASE/../utils/plot_ccc.py higgsCombine.${{name}}.ChannelCompatibilityCheck.mH{mass}.root \\
+            --era {era} \\
+            --heavy {heavy} \\
+            --light {light} \\
+            --poi {poi} \\
+            --mass "{mass_legend}" \\
+            -o ChannelCompatibilityCheck_${{name}}
+""".format( mass           = mass,
+            poi            = poi,
+            mass_legend    = mass_legend,
+            era            = era,
+            heavy          = heavy,
+            light          = light
             )
-    script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
-    print( method, script_file)
-    with open(script_file, 'w') as f:
-        f.write(script)
 
-    st = os.stat(script_file)
-    os.chmod(script_file, st.st_mode | stat.S_IEXEC)
-    return script     
+    script = """
+    combine -M ChannelCompatibilityCheck ${{DATACARD}} \\
+            -m {mass} \\
+            --rMin -4 --rMax 4 \\
+            -n .${{name}} \\
+            --verbose {verbose} \\
+            --saveFitResult &> ChannelCompatibilityCheck_${{name}}.log
+""".format( mass           = mass,
+            verbose        = verbose, 
+            )
+    return script+plotter_ccc     
+
+
+
+def MyPhysicsModel(heavy):
+    t2w= """-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel \\
+                  --PO verbose \\
+                  --PO 'map=.*/gg{heavy}:r_gg{heavy}[1,0,20]' \\
+                  --PO 'map=.*/bb{heavy}:r_bb{heavy}[1,0,20]'""".format(heavy=heavy) 
+    return t2w
 
 
 
 def Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, run_validation, unblind, expectSignal, verbose):
-    print( expectSignal )
     params = output_prefix.split(mode)[-1]
     fNm    = opts['process']+ '_'+ opts['nb']+'_' +opts['region']+'_' + opts['flavor'] + params
     script ="""#!/bin/bash -l
 
 pushd {dir}
+
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
+
 # If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
+#if [ ! -f {workspace_root} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
 
 
 fNm="{fNm}"
 run_validation={run_validation}
 doHybridNew={doHybridNew}
+name="{name}"
 ## The expected significance, assuming a signal with r=X can be calculated, by including the option --expectSignal X when generating the distribution of the test statistic 
 ## and using the option --expectedFromGrid=0.5 when calculating the significance for the median. To get the \pm 1 sigma bands, use 0.16 and 0.84 instead of 0.5, and so on...
 expectedFromGrid=0.5 #median
@@ -694,21 +792,63 @@ if $doHybridNew; then
     
     for n in {{1..5}}; do
         seed[$n]=$RANDOM
-        combine -M HybridNew {datacard} --LHCmode LHC-significance --saveToys --fullBToys --saveHybridResult -T 100 -i 10 -s ${{seed[$n]}} -m {mass} -n _Toys_${{fNm}} --verbose {verbose} &
+        combine -M HybridNew ${{DATACARD}} \\ 
+                --LHCmode LHC-significance \\  
+                --saveToys \\
+                --fullBToys \\ 
+                --saveHybridResult \\
+                -T 100 -i 10 -s ${{seed[$n]}} \\
+                -m {mass} \\
+                -n _Toys_${{fNm}} \\
+                --verbose {verbose} &
     done
     
     echo "wait for HybridNew toys production to finish..."
     wait 
     
-    hadd higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root  higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.1.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.2.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.3.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.4.root higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.5.root
+    hadd higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root\\
+            higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.1.root\\
+            higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.2.root\\
+            higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.3.root\\
+            higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.4.root\\
+            higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.5.root
     
     # Observed/ Expected significance, assuming some signal
-    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root --expectedFromGrid=${{expectedFromGrid}} -m {mass} --verbose {verbose} &> ${{fNm}}__significance_exp_plus_s${{expectedFromGrid}}.log
-    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root -m {mass} --verbose {verbose} &> ${{fNm}}__significance_obs.log
+    combine -M HybridNew ${{DATACARD}} \\
+            --LHCmode LHC-significance \\ 
+            --readHybridResult \\
+            --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root \\
+            --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root \\
+            --expectedFromGrid=${{expectedFromGrid}} \\
+            -m {mass} \\
+            --verbose {verbose} &> ${{fNm}}__significance_exp_plus_s${{expectedFromGrid}}.log
+    
+    combine -M HybridNew ${{DATACARD}} \\
+            --LHCmode LHC-significance \\
+            --readHybridResult \\
+            --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root \\
+            --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root \\
+            -m {mass} \\
+            --verbose {verbose} &> ${{fNm}}__significance_obs.log
     
     # Observed/ Expected p-value, assuming some signal
-    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root --pvalue --expectedFromGrid=${{expectedFromGrid}} -m {mass} --verbose {verbose} &> ${{fNm}}__pvalue_exp_plus_s${{expectedFromGrid}}.log
-    combine -M HybridNew {datacard} --LHCmode LHC-significance --readHybridResult --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root --pvalue -m {mass} --verbose {verbose} &> ${{fNm}}__pvalue_obs.log
+    combine -M HybridNew ${{DATACARD}} \\
+            --LHCmode LHC-significance \\
+            --readHybridResult \\
+            --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root \\
+            --grid=higgsCombine.significance_exp_plus_s.${{fNm}}.HybridNew.mH{mass}.root \\
+            --pvalue --expectedFromGrid=${{expectedFromGrid}} \\
+            -m {mass} \\
+            --verbose {verbose} &> ${{fNm}}__pvalue_exp_plus_s${{expectedFromGrid}}.log
+    
+    combine -M HybridNew {datacard} \\
+            --LHCmode LHC-significance \\
+            --readHybridResult \\
+            --toysFile=higgsCombine_Toys_${{fNm}}.HybridNew.mH{mass}.12345.root \\
+            --grid=higgsCombine.significance_obs.${{fNm}}.HybridNew.mH{mass}.root \\
+            --pvalue \\
+            -m {mass} \\
+            --verbose {verbose} &> ${{fNm}}__pvalue_obs.log
     
 else
     #=============================================
@@ -716,12 +856,28 @@ else
     #=============================================
     
     echo "Observed/Expected significance"
-    combine {method} {workspace_root} -m {mass} -n _Obs_${{fNm}} &> observed__significance_expectSignal{expectSignal}_${{fNm}}.log
-    combine {method} {workspace_root} -m {mass} -t -1 --expectSignal {expectSignal} --toysFreq -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__significance_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} ${{WORKSPACE}} \\
+            -m {mass} \\
+            -n _Obs_${{fNm}} &> observed__significance_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} ${{WORKSPACE}} \\
+            -m {mass} \\
+            -t -1 \\
+            --expectSignal {expectSignal} \\
+            --toysFreq \\
+            -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__significance_expectSignal{expectSignal}_${{fNm}}.log
     
     echo "Observed/Expected p-value" 
-    combine {method} {workspace_root} --pvalue -m {mass} -n _Obs_${{fNm}} &> observed__pvalue_expectSignal{expectSignal}_${{fNm}}.log
-    combine {method} {workspace_root} --pvalue -m {mass} -t -1 --expectSignal {expectSignal} --toysFreq  -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__pvalue_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} ${{WORKSPACE}} \\
+            --pvalue \\
+            -m {mass} \\
+            -n _Obs_${{fNm}} &> observed__pvalue_expectSignal{expectSignal}_${{fNm}}.log
+    combine {method} ${{WORKSPACE}} \\
+            --pvalue \\
+            -m {mass} \\
+            -t -1 \\
+            --expectSignal {expectSignal} \\
+            --toysFreq  \\
+            -n _Toys_expectSignal{expectSignal}_${{fNm}} &> expected__pvalue_expectSignal{expectSignal}_${{fNm}}.log
 fi 
 
 
@@ -729,7 +885,10 @@ if $run_validation; then
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
 fi
 
 popd
@@ -757,8 +916,8 @@ popd
             
 
 
-def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose):
-    
+def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, pois, run_validation, run_chcomptability, run_ScanNllshape, unblind, multi_signal, verbose):
+
     Lepts  = { 'MuMu': '\mu\mu',
                'ElEl': 'ee',
                'MuEl': '\mu e',
@@ -771,11 +930,16 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
                'split_OSSF': '\mu\mu+ee',
                'split_OSSF_MuEl': '\mu\mu+ee+\mu e'}
     
-    if multi_signal: 
-        p  = 'ggH+bbH'
-        t2w= "-P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO --verbose {} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]'".format(verbose) 
+    light   = opts['mode'][-1]
+    heavy   = 'H' if light =='A' else 'A'
+    m_heavy = opts['bin'].split('_')[2]
+    m_light = opts['bin'].split('_')[-1]
+    
+    if multi_signal:
+        p  = 'gg{heavy}+bb{heavy}'.format(heavy=heavy)
+        t2w= MyPhysicsModel(heavy)
     else: 
-        p  = 'ggH' if opts['process']=='gg_fusion' else 'bbH'
+        p  = opts['sig']
         t2w= ''
     
     nb          = 'nb2+nb3' if opts['nb']=='nb2PLusnb3' else opts['nb'] 
@@ -784,19 +948,35 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
     label_left  = '{}, {}, {}, ({})'.format(p, nb, opts['region'].replace('_','+'), Lepts[opts['flavor']])
     label_right = '%s fb^{-1}(13TeV)'%(round(Constants.getLuminosity(H.PlotItEraFormat(era))/1000., 2))
     pad_style   = '--pad-style TopMargin=0.04' if (opts['region']=='resolved_boosted' or nb == 'nb2+nb3' or multi_signal) else ''
+    mass_legend = opts['sig']+': (m_{%s}, m_{%s}) = (%s, %s) GeV'%(heavy, light, m_heavy, m_light) 
+    
+    if 'MuEl' in opts['flavor']: run_chcomptability=False
+    script_ChannelCompatibility = ChannelCompatibility(pois, era, heavy, light, mass, mass_legend, verbose)
+    script_nll_shape = FastScanNLLshape(cat=output_prefix, mass=mass)
     
     script      = """#!/bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {t2w} {datacard} -m {mass} -o {workspace_root} &> {name}.log
-fi
 
-# http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/#goodness-of-fit-tests
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
 algos=("saturated") # "KS" "AD")  
 fNm="{fNm}"
+name="{name}"
 run_validation={run_validation}
+run_chcomptability={run_chcomptability}
+run_ScanNllshape={run_ScanNllshape}
+
+
+# If workspace does not exist, create it once
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py {t2w} ${{DATACARD}} \\
+                  -m {mass} \\
+                  -o ${{WORKSPACE}} \\
+                  --channel-masks &> {name}.log
+#fi
+
+# http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/#goodness-of-fit-tests
 
 for algo in ${{algos[*]}}; do
     
@@ -813,53 +993,95 @@ for algo in ${{algos[*]}}; do
         mkdir ${{algo}};
     fi
     
-    if [ -f higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root ]; then
+    if [ -f higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.1-5.root ]; then
         rm higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.*
-        echo "higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root is removed, to be created again !"
+        echo "higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.1-5.root is removed, to be created again !"
     fi
 
-    combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} --verbose {verbose} -n _Obs_${{algo}}_${{fNm}}
+    combine -M GoodnessOfFit ${{WORKSPACE}} \\
+            -m {mass} \\
+            --algo=${{algo}} \\
+            --verbose {verbose} \\
+            -n _Obs_${{algo}}_${{fNm}}
     
     for n in {{1..5}}; do
         seed[$n]=$RANDOM
-        combine -M GoodnessOfFit {workspace_root} -m {mass} --algo=${{algo}} -t 100 -s ${{seed[$n]}} -n _Toys_${{algo}}_${{fNm}} ${{addflag}} --verbose {verbose} &
+        combine -M GoodnessOfFit ${{WORKSPACE}} \\
+                -m {mass} \\
+                --algo=${{algo}} \\
+                -t 100 -s ${{seed[$n]}} \\
+                -n _Toys_${{algo}}_${{fNm}} ${{addflag}} \\
+                --verbose {verbose} &
     done
     
     echo "wait for higgsCombine toys production to finish..."
     wait 
 
-    hadd higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[1]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[2]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[3]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[4]}}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[5]}}.root
-    
-    combineTool.py -M CollectGoodnessOfFit --input higgsCombine_Obs_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.12345.root -m {mass} -o ${{algo}}/gof__${{algo}}_${{fNm}}.json 
+    hadd higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.1-5.root \\
+        higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[1]}}.root \\
+        higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[2]}}.root \\
+        higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[3]}}.root \\
+        higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[4]}}.root \\
+        higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.${{seed[5]}}.root 
+
+    combineTool.py -M CollectGoodnessOfFit \\
+            --input higgsCombine_Obs_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.root higgsCombine_Toys_${{algo}}_${{fNm}}.GoodnessOfFit.mH{mass}.1-5.root \\
+            -m {mass} \\
+            -o ${{algo}}/gof__${{algo}}_${{fNm}}.json
     
     pushd ${{algo}}
-    plotGof.py gof__${{algo}}_${{fNm}}.json --statistic ${{algo}} --mass {mgof} -o gof__${{algo}}_${{fNm}} --title-right="{label_right}" --title-left="{label_left}" {pad_style}
+    
+    plotGof.py gof__${{algo}}_${{fNm}}.json \\
+            --statistic ${{algo}} \\
+            --mass {mgof} \\
+            -o gof__${{algo}}_${{fNm}} \\
+            --title-right="{label_right}" \\
+            --title-left="{label_left}" {pad_style}
+    
     popd
 
 done
+
 
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/${{fNm}}.json &> validation_datacards/${{fNm}}.log
 fi 
+
+# Channel Comptability test
+if $run_chcomptability; then
+    {script_chcompt}
+fi
+
+# Fast NLL scan
+if $run_ScanNllshape; then
+    {script_nllshape}
+fi
+
 
 popd
 """.format( workspace_root = workspace_file,
-            datacard       = os.path.basename(datacard), 
-            fNm            = fNm,
-            t2w            = t2w,
-            #seed          = random.randrange(100, 1000, 3),
-            label_left     = label_left,
-            label_right    = label_right,
-            pad_style      = pad_style, 
-            mass           = mass,
-            mgof           = float(mass),
-            name           = output_prefix,
-            verbose        = verbose, 
-            run_validation = str(run_validation).lower(),
-            dir            = os.path.dirname(os.path.abspath(datacard)) )
+            datacard            = os.path.basename(datacard), 
+            fNm                 = fNm,
+            t2w                 = t2w,
+            label_left          = label_left,
+            label_right         = label_right,
+            pad_style           = pad_style, 
+            mass                = mass,
+            mgof                = float(mass),
+            name                = output_prefix,
+            verbose             = verbose, 
+            script_chcompt      = script_ChannelCompatibility, 
+            script_nllshape     = script_nll_shape,
+            run_validation      = str(run_validation).lower(),
+            run_chcomptability  = str(run_chcomptability).lower(),
+            run_ScanNllshape    = str(run_ScanNllshape).lower(),
+            dir                 = os.path.dirname(os.path.abspath(datacard)) )
 
     script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' %(method)))
     print( method, script_file)
@@ -871,39 +1093,55 @@ popd
     return script     
 
 
-def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, poi, run_validation, unblind, verbose):
-    script = """#! /bin/bash
+def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, poi, opts, run_validation, unblind, verbose):
+    light   = opts['mode'][-1]
+    heavy   = 'H' if light =='A' else 'A'
+    script  = """#! /bin/bash
 
 pushd {dir}
+
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
+run_validation={run_validation}
+name="{name}"
+
 # If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel  --PO --verbose {verbose} --PO 'map=.*/ggH:r_ggH[1,0,20]' --PO 'map=.*/bbH:r_bbH[1,0,20]' {datacard} -m {mass} -o {workspace_root}
-fi
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py {t2w} \\
+                  -m {mass} \\
+                  ${{DATACARD}} \\
+                  -o ${{WORKSPACE}} \\
+#fi
+
 # Run combined
 # set limit on {r} while let {poi} to float freely in the fit 
-combine {method} -m {mass} -n {name}_profiled_{poi} {workspace_root} --redefineSignalPOIs {profile} {dataset} {rule} {blind} &> {name}_profiled_{poi}.log
+combine {method} -m {mass} -n ${{name}}_profiled_{poi} ${{WORKSPACE}} --redefineSignalPOIs {profile} {dataset} {rule} {blind} &> ${{name}}_profiled_{poi}.log
 
 # set limit on {r} while freeze {poi}
-combine {method} -m {mass} -n {name}_freezed_{poi} {workspace_root} --redefineSignalPOIs {freeze} {dataset} {rule} {blind} &> {name}_freezed_{poi}.log
+combine {method} -m {mass} -n ${{name}}_freezed_{poi} ${{WORKSPACE}} --redefineSignalPOIs {freeze} {dataset} {rule} {blind} &> ${{name}}_freezed_{poi}.log
 
-run_validation={run_validation}
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
+fi
 
 popd
 """.format( workspace_root = workspace_file, 
             datacard       = os.path.basename(datacard), 
+            t2w            = MyPhysicsModel(heavy),
             name           = output_prefix, 
             mass           = mass, 
             poi            = poi, 
             rule           = '--rule CLsplusb' if expectSignal==0 else '',
-            r              = 'r_ggH' if poi=='r_bbH' else 'r_bbH',
-            profile        = 'r_ggH --floatParameters r_bbH' if poi=='r_bbH' else 'r_bbH --floatParameters r_ggH',
-            freeze         = 'r_ggH --freezeParameters r_bbH --setParameters r_bbH=0.0' if poi=='r_bbH' else 'r_bbH --freezeParameters r_ggH --setParameters r_ggH=0.0',
+            r              = 'r_gg{heavy}'.format(heavy=heavy) if poi=='r_bb{heavy}'.format(heavy=heavy) else 'r_bb{heavy}'.format(heavy=heavy),
+            profile        = 'r_gg{heavy} --floatParameters r_bb{heavy}' if poi=='r_bb{heavy}' else 'r_bb{heavy} --floatParameters r_gg{heavy}'.format(heavy=heavy),
+            freeze         = 'r_gg{heavy} --freezeParameters r_bb{heavy} --setParameters r_bb{heavy}=0.0'.format(heavy=heavy) if poi=='r_bb{heavy}'.format(heavy=heavy) else 'r_bb{heavy} --freezeParameters r_gg{heavy} --setParameters r_gg{heavy}=0.0'.format(heavy=heavy),
             method         = H.get_combine_method(method), 
             dir            = os.path.dirname(os.path.abspath(datacard)), 
             #dataset       = '--bypassFrequentistFit', 
@@ -959,6 +1197,7 @@ def CreateScriptToRunCombine(output, method, mode, tanbeta, era, _2POIs_r, expec
 
 WorkEra='{WorkEra}'
 combine_method='{combine_method}'
+submit_to_slurm={submit_to_slurm}
 scripts=`find {output} -name "*_{suffix}.sh"`
 base="$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
 echo $base
@@ -966,8 +1205,6 @@ echo $base
 for script in $scripts; do
     dir=$(dirname $script)
     script=$(basename $script)
-    echo "\tComputing with ${{script}}"
-    echo "\tworking dir ${{dir}}"
     
     pushd $dir &> /dev/null
     if [ "$WorkEra" = "work__ULfullrun2" ]; then
@@ -975,8 +1212,12 @@ for script in $scripts; do
             ln -s -d {symbolic_path} .
         fi
     fi
-    {c1}. $script
-    echo "==========================================================================================="
+    if ! $submit_to_slurm; then
+        echo "\tworking dir ${{dir}}"
+        echo "\tComputing with ${{script}}"
+        . $script
+        echo "==========================================================================================="
+    fi
     popd &> /dev/null
 
 done
@@ -984,18 +1225,22 @@ done
 sbatch_time={sbatch_time}
 sbatch_memPerCPU={sbatch_memPerCPU}
 
-# for slurm submission instead!
-{c2}python Combine4Slurm.py -c {output} -o {slurm_dir}/${{WorkEra}} --method ${{combine_method}} --time ${{sbatch_time}} --mem-per-cpu ${{sbatch_memPerCPU}}
-
+if $submit_to_slurm; then
+    # for slurm submission instead!
+    python Combine4Slurm.py -c {output} \\
+            -o {slurm_dir}/${{WorkEra}} \\
+            --method ${{combine_method}} \\
+            --time ${{sbatch_time}} \\
+            --mem-per-cpu ${{sbatch_memPerCPU}}
+fi
 """.format(output           = output.replace('work_'+ H.EraFromPOG(era), '$WorkEra'),
            WorkEra          = 'work_' + H.EraFromPOG(era),
            slurm_dir        = output.split('work__UL')[0],
+           submit_to_slurm  = str(submit_to_slurm).lower(),
            combine_method   = H.get_method_group(method),
            suffix           = 'run_%s'%method,
            sbatch_time      = sbatch_time,
            sbatch_memPerCPU = sbatch_memPerCPU,
-           c1               = '#' if submit_to_slurm  else '',
-           c2               = ''  if submit_to_slurm  else '#',
            symbol           = symbolic_path.split('/')[-1],
            symbolic_path    = symbolic_path
            )
@@ -1016,8 +1261,8 @@ sbatch_memPerCPU={sbatch_memPerCPU}
     logger.info("All done. You can run everything by executing %r" % ('./' + script_name))
 
 
-def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, verbose, sbatch_time, sbatch_memPerCPU, unblind= False, stat_only= False, merge_cards= False, _2POIs_r=False, multi_signal=False, scale= False, normalize= False, run_validation=False, submit_to_slurm= False):
-   
+def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, ellipses_mumu_file, output, method, node, scalefactors, tanbeta, verbose, sbatch_time, sbatch_memPerCPU, unblind= False, stat_only= False, merge_cards= False, _2POIs_r=False, multi_signal=False, scale= False, normalize= False, run_validation=False, run_chcomptability=False, run_ScanNllshape=False, submit_to_slurm= False): 
+
     luminosity  = Constants.getLuminosity(H.PlotItEraFormat(era))
     
     ellipses = {}
@@ -1096,10 +1341,13 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
         if _2POIs_r:
             if multi_signal:
                 sig_process = ['gg'+thdm[0], 'bb'+thdm[0]]
+                pois        = ['r_gg'+thdm[0], 'r_bb'+thdm[0]]
             else:
                 sig_process = [prod.split('_')[0]+thdm[0]]
+                pois        = ['r']
         else:
             sig_process = ['gg'+thdm[0], 'bb'+thdm[0]]
+            pois        = ['r_gg'+thdm[0]+'r_bb'+thdm[0]]
 
         for reg in ['resolved', 'boosted']:
             ToFIX = []
@@ -1126,34 +1374,38 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
                     else:
                         p = prod
 
-                Totflav_cards_allparams, buggy = prepareShapes( input           = os.path.join(input, p), 
-                                                                dataset         = dataset, 
-                                                                thdm            = thdm, 
-                                                                sig_process     = sig_process, 
-                                                                expectSignal    = expectSignal, 
-                                                                era             = era, 
-                                                                method          = method, 
-                                                                parameters      = all_parameters[prod][reg], 
-                                                                prod            = prod,
-                                                                reco            = reco, 
-                                                                reg             = reg, 
-                                                                flavors         = flavors, 
-                                                                ellipses        = ellipses, 
-                                                                mode            = mode,  
-                                                                output          = output, 
-                                                                luminosity      = luminosity, 
-                                                                scalefactors    = scalefactors,
-                                                                tanbeta         = tanbeta, 
-                                                                verbose         = verbose,
-                                                                scale           = scale, 
-                                                                merge_cards     = merge_cards, 
-                                                                _2POIs_r        = _2POIs_r, 
-                                                                multi_signal    = multi_signal,
-                                                                unblind         = unblind, 
-                                                                stat_only       = stat_only, 
-                                                                normalize       = normalize,
-                                                                run_validation  = run_validation,
-                                                                submit_to_slurm = submit_to_slurm)
+                Totflav_cards_allparams, buggy = prepareShapes( input               = os.path.join(input, p), 
+                                                                dataset             = dataset, 
+                                                                thdm                = thdm, 
+                                                                sig_process         = sig_process, 
+                                                                pois                = pois,
+                                                                expectSignal        = expectSignal, 
+                                                                era                 = era, 
+                                                                method              = method, 
+                                                                parameters          = all_parameters[prod][reg], 
+                                                                prod                = prod,
+                                                                reco                = reco, 
+                                                                reg                 = reg, 
+                                                                flavors             = flavors, 
+                                                                ellipses            = ellipses, 
+                                                                mode                = mode,  
+                                                                output              = output, 
+                                                                luminosity          = luminosity, 
+                                                                scalefactors        = scalefactors,
+                                                                tanbeta             = tanbeta, 
+                                                                verbose             = verbose,
+                                                                scale               = scale, 
+                                                                merge_cards         = merge_cards, 
+                                                                _2POIs_r            = _2POIs_r, 
+                                                                multi_signal        = multi_signal,
+                                                                unblind             = unblind, 
+                                                                stat_only           = stat_only, 
+                                                                normalize           = normalize,
+                                                                run_validation      = run_validation,
+                                                                run_chcomptability  = run_chcomptability,
+                                                                run_ScanNllshape    = run_ScanNllshape,
+                                                                submit_to_slurm     = submit_to_slurm 
+                                                                )
                 
                 ToFIX += buggy
                 proc_combination[prod][reco+'_'+reg] = Totflav_cards_allparams 
@@ -1164,30 +1416,34 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
             ToFIX = list(dict.fromkeys(ToFIX))
             
             CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, 
-                                  prod          = prod, 
-                                  era           = era, 
-                                  verbose       = verbose, 
-                                  reg           = reg, 
-                                  skip          = ToFIX, 
-                                  unblind       = unblind, 
-                                  _2POIs_r      = _2POIs_r, 
-                                  run_validation= run_validation, 
-                                  multi_signal  = multi_signal, 
-                                  todo          = 'nb2_nb3')
+                                  prod              = prod, 
+                                  pois              = pois,
+                                  era               = era, 
+                                  verbose           = verbose, 
+                                  reg               = reg, 
+                                  skip              = ToFIX, 
+                                  unblind           = unblind, 
+                                  _2POIs_r          = _2POIs_r, 
+                                  run_validation    = run_validation, 
+                                  run_chcomptability= run_chcomptability,
+                                  run_ScanNllshape  = run_ScanNllshape,
+                                  multi_signal      = multi_signal, 
+                                  todo              = 'nb2_nb3')
         
         CustomCardCombination(thdm, mode, cats, proc_combination[prod], expectSignal, dataset, method, 
                               prod              = prod, 
                               era               = era,
+                              pois              = pois,
                               verbose           = verbose, 
                               reg               = None, 
                               skip              = ToFIX, 
                               unblind           = unblind, 
                               _2POIs_r          = _2POIs_r, 
                               run_validation    = run_validation, 
+                              run_chcomptability= run_chcomptability,
+                              run_ScanNllshape  = run_ScanNllshape,
                               multi_signal      = multi_signal, 
                               todo              = 'res_boo')
-    #if _2POIs_r:
-    #    CustomCardCombination(thdm, mode, cats, proc_combination, expectSignal, dataset, method, prod=None, verbose=verbose, reg=None, skip=NotIn2Prod, unblind=unblind, _2POIs_r=_2POIs_r, run_validation=run_validation, multi_signal=multi_signal, todo='ggH_bbH')
         
     # Add mc stat. 
     #cb.AddDatacardLineAtEnd("* autoMCStats 0 0 1")
@@ -1199,7 +1455,7 @@ def prepare_DataCards(grid_data, thdm, dataset, expectSignal, era, mode, input, 
 
 
 
-def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, tanbeta, verbose, scale=False, merge_cards=False, _2POIs_r=False, multi_signal=False, unblind=False, stat_only=False, normalize=False, run_validation=False, submit_to_slurm=False):
+def prepareShapes(input, dataset, thdm, sig_process, pois, expectSignal, era, method, parameters, prod, reco, reg, flavors, ellipses, mode, output, luminosity, scalefactors, tanbeta, verbose, scale=False, merge_cards=False, _2POIs_r=False, multi_signal=False, unblind=False, stat_only=False, normalize=False, run_validation=False, run_chcomptability=False, run_ScanNllshape=False, submit_to_slurm=False):
     
     if mode == "mjj_and_mlljj":
         categories = [
@@ -1248,7 +1504,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             'ttV'      : ['^TT(W|Z)To*'],
             'VV'       : ['^(ZZ|WW|WZ)To*'],
             'VVV'      : ['^ZZZ_*', '^WWW_*', '^WZZ_*', '^WWZ_*'],
-            'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL_M-125*', '^ggZH_HToBB_ZToNuNu_M-125*', '^GluGluHToZZTo2L2Q_M125*', '^ttHTobb_M125_*', '^ttHToNonbb_M125_*']
+            'SMHiggs'  : ['^ggZH_HToBB_ZToLL_M-125*', '^HZJ_HToWW_M-125*', '^ZH_HToBB_ZToLL_M-125*', 
+                          '^ggZH_HToBB_ZToNuNu_M-125*', '^GluGluHToZZTo2L2Q_M125*', '^ttHTobb_M125_*', '^ttHToNonbb_M125_*']
             }
 
     if H.splitTTbar:
@@ -1282,7 +1539,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                 histfactory_to_combine_processes['bb{}_M{}-{}_M{}-{}'.format(thdm[0], heavy, m_heavy, light, m_light), p] = [
                                                  '^{}To2L2B_M{}_{}_M{}_{}*'.format(thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)),
                                                 ]
-            else: # 2 POIs but 1 fit at the time
+            else: # 2 POIs but 1 fit at the time for either r_ggH or r_bbH
                 histfactory_to_combine_processes['{}_M{}-{}_M{}-{}'.format(sig_process[0], heavy, m_heavy, light, m_light), p] = [
                                                 '^{}{}To2L2B_M{}_{}_M{}_{}*'.format(look_for, thdm, heavy, mass_to_str(m_heavy), light, mass_to_str(m_light)) 
                                                 ]
@@ -1309,7 +1566,8 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
         #elif mode == "mjj_vs_mlljj": 
         #    histfactory_to_combine_categories[('mjj_vs_mlljj', p)] = get_hist_regex('Mjj_vs_Mlljj_resolved_{flavor}_hZA_lljj_DeepCSVM_mll_and_met_cut')
         #elif mode == "ellipse":
-        #    histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex('rho_steps_{flavor}_{reg}_DeepCSVM__METCut_NobJetER_{prod}_MH_%sp0_MA_%sp0'%(mH, mA))
+        #    histfactory_to_combine_categories[('ellipse_{}_{}'.format(formatted_p, formatted_e), p)] = get_hist_regex(
+        #   'rho_steps_{flavor}_{reg}_DeepCSVM__METCut_NobJetER_{prod}_MH_%sp0_MA_%sp0'%(mH, mA))
     
     if unblind:
         histfactory_to_combine_processes['data_obs'] = ['^DoubleMuon*', '^DoubleEG*', '^MuonEG*', '^SingleMuon*', '^SingleElectron*', '^EGamma*']
@@ -1420,12 +1678,11 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             #cb.cp().AddSyst(cb, 'ttbar_xsec', 'lnN', ch.SystMap('process')(['ttbar'], 1.001525372691124) )
             #cb.cp().AddSyst(cb, 'SingleTop_xsec', 'lnN', ch.SystMap('process')(['SingleTop'], 1.19/1.22) )
             #cb.cp().AddSyst(cb, 'DY_xsec', 'lnN', ch.SystMap('process')(['DY'], 1.007841991384859) )
-            #
+            
             #print( sig_process )
             #for sig in sig_process:
             #    xsc, xsc_err, totBR = Constants.get_SignalStatisticsUncer(m_heavy, m_light, sig, thdm)
             #    signal_uncer        = 1+xsc_err/xsc
-    
             #    cb.cp().AddSyst(cb, '$PROCESS_xsec', 'lnN', ch.SystMap('process')([sig], signal_uncer) )
 
             for _, category_with_parameters in categories_with_parameters:
@@ -1458,7 +1715,18 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
            
         cb.FilterProcs(lambda x: H.drop_zero_procs(cb,x)) 
         cb.FilterSysts(lambda x: H.drop_zero_systs(x))
-        cb.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(cb,x) if (x.name().startswith("CMS_scale_j") or x.name().startswith("CMS_res_j") or x.name().startswith("QCD")) else None)
+        """
+        cb.cp().bin([bin_id]).ForEachSyst(lambda x: H.symmetrise_smooth_syst(cb,x) if (x.name().startswith("CMS_scale_j") or 
+            x.name().startswith("CMS_res_j") or 
+            x.name().startswith("QCD") or  
+            #x.name().startswith("ISR") or  
+            #x.name().startswith("FSR") or  
+            #x.name().startswith("TopPt_reweighting") or 
+            x.name().startswith("CMS_HEM") or  
+            x.name().startswith("CMS_UnclusteredEn") or  
+            x.name().startswith("CMS_pileup")
+            ) else None)
+        """
         #cb.FilterSysts(lambda x: H.drop_onesided_systs(x))
         
         # Bin by bin uncertainties
@@ -1477,7 +1745,7 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
             
             if method == 'goodness_of_fit': 
                 create      = False
-                Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, run_validation, unblind, multi_signal, verbose)
+                Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, opts, era, pois, run_validation, run_chcomptability, run_ScanNllshape, unblind, multi_signal, verbose)
             
             if method == 'pvalue':
                 create = False
@@ -1488,24 +1756,35 @@ def prepareShapes(input, dataset, thdm, sig_process, expectSignal, era, method, 
                 script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-# Run limit
-combine {method} --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}.log
-combine {method} --expectedFromGrid=0.5   --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}_exp.log
-combine {method} --expectedFromGrid=0.84  --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}_P1sigma.log
-combine {method} --expectedFromGrid=0.16  --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}_M1sigma.log
-combine {method} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}_P2sigma.log
-combine {method} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n {name} {workspace_root} -S {systematics} --verbose {verbose} &> {name}_M2sigma.log
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
 run_validation={run_validation}
+name="{name}"
+
+# If workspace does not exist, create it once
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
+
+
+# Run limit
+combine {method} ${{WORKSPACE}} --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}.log
+combine {method} ${{WORKSPACE}} --expectedFromGrid=0.5   --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}_exp.log
+combine {method} ${{WORKSPACE}} --expectedFromGrid=0.84  --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}_P1sigma.log
+combine {method} ${{WORKSPACE}} --expectedFromGrid=0.16  --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}_M1sigma.log
+combine {method} ${{WORKSPACE}} --expectedFromGrid=0.975 --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}_P2sigma.log
+combine {method} ${{WORKSPACE}} --expectedFromGrid=0.025 --X-rtd MINIMIZER_analytic -m {mass} -n ${{name}} -S {systematics} --verbose {verbose} &> ${{name}}_M2sigma.log
+
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
 fi
 
 popd
@@ -1522,87 +1801,21 @@ popd
             elif method == 'likelihood_fit':
                 if multi_signal:
                     create     = False
-                    Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', verbose)
+                    Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, 125, 'likelihood_fit', opts, era, run_validation, verbose)
 
             elif method == 'asymptotic':
+                create     = False
                 if multi_signal:
-                    create     = False
-                    for poi in ['r_ggH', 'r_bbH']:
-                        MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, run_validation, unblind, verbose)
+                    for poi in pois:
+                        MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, 125, 'asymptotic', expectSignal, poi, opts, run_validation, unblind, verbose)
                 else:
-                    create = True
-                    script = """#!/bin/bash
-
-pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-# Run combined
-combine {method} -m {mass} -n {name} {workspace_root} {dataset} {rule} {blind} --verbose {verbose} &> {name}.log
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi 
-
-popd
-""".format( workspace_root = workspace_file, 
-            datacard       = os.path.basename(datacard), 
-            name           = output_prefix, 
-            mass           = mass, 
-            rule           = '--rule CLsplusb' if expectSignal==0 else '',
-            method         = H.get_combine_method(method), 
-            dir            = os.path.dirname(os.path.abspath(datacard)), 
-            #dataset       = '--bypassFrequentistFit' , 
-            dataset        = '--noFitAsimov',
-            verbose        = verbose, 
-            run_validation = str(run_validation).lower(), 
-            blind          = ('' if unblind else '--run blind'),
-            )
+                    _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass, method, expectSignal, dataset, run_validation, unblind, verbose)
             
             elif method =='impacts':
-                #and ( 'MuMu' in cat or 'ElEl' in cat or 'OSSF' in cat):
-                create = True
+                create = False
                 data   = 'real' if unblind else dataset
                 fNm    = '{}_realdataset'.format(output_prefix) if unblind else '{}_expectSignal{}_{}dataset'.format(output_prefix, expectSignal, dataset)
-                script = """#! /bin/bash
-
-pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-# Run combined
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --doInitialFit --robustFit 1 --verbose {verbose} &> {name}_doInitialFit.log
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} --robustFit 1 --doFits --parallel 60 --verbose {verbose} &> {name}_robustFit.log
-combineTool.py {method} -d {workspace_root} -m 125 -n {name} {dataset} {expectSignal} -o impacts__{fNm}.json --verbose {verbose} &> {name}_impacts.log
-plotImpacts.py -i impacts__{fNm}.json -o impacts__{fNm} --blind
-
-run_validation={run_validation}
-if $run_validation; then 
-    if [ ! -d validation_datacards ]; then
-        mkdir validation_datacards;
-    fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
-fi
-
-popd
-""".format( workspace_root = workspace_file, 
-            name           = output_prefix,
-            fNm            = fNm, 
-            datacard       = os.path.basename(datacard), 
-            mass           = mass,
-            method         = H.get_combine_method(method), 
-            dir            = os.path.dirname(os.path.abspath(datacard)), 
-            verbose        = verbose, 
-            run_validation = str(run_validation).lower(),
-            dataset        = '' if unblind else ('-t -1' if dataset=='asimov' else ('-t 8 -s -1')),
-            expectSignal   = '' if unblind else '--expectSignal {}'.format(expectSignal) ) 
-            
+                _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, mass, flavor, method, prod, reco, dataset, expectSignal, run_validation, unblind, verbose)                
             
             elif method =='generatetoys':
                 create = True
@@ -1610,18 +1823,30 @@ popd
                 script = """#! /bin/bash
 
 pushd {dir}
-# If workspace does not exist, create it once
-if [ ! -f {workspace_root} ]; then
-    text2workspace.py {datacard} -m {mass} -o {workspace_root}
-fi
-combine -M GenerateOnly {workspace_root} {dataset} --toysFile --saveToys -m 125 {expectSignal} {systematics} -n {fNm} --verbose {verbose} &> {name}.log
 
+DATACARD="{datacard}"
+WORKSPACE="{workspace_root}"
 run_validation={run_validation}
+name="{name}"
+fNm="{fNm}"
+
+# If workspace does not exist, create it once
+#if [ ! -f ${{WORKSPACE}} ]; then
+text2workspace.py ${{DATACARD}} -m {mass} -o ${{WORKSPACE}}
+#fi
+
+
+combine -M GenerateOnly ${{WORKSPACE}} {dataset} --toysFile --saveToys -m 125 {expectSignal} {systematics} -n ${{fNm}} --verbose {verbose} &> ${{name}}.log
+
+
 if $run_validation; then 
     if [ ! -d validation_datacards ]; then
         mkdir validation_datacards;
     fi
-    ValidateDatacards.py {datacard} --mass {mass} --printLevel 3 --jsonFile validation_datacards/validation_{name}.json &> validation_datacards/validation_{name}.log
+    ValidateDatacards.py ${{DATACARD}} \\
+            --mass {mass} \\
+            --printLevel 3 \\
+            --jsonFile validation_datacards/validation_${{name}}.json &> validation_datacards/validation_${{name}}.log
 fi
 
 popd
@@ -1640,16 +1865,13 @@ popd
             
             elif method == 'signal_strength':
                 create = False
-                script = CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
+                script = CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, opts, dataset, run_validation, unblind, verbose, skip)
 
-            elif method =='nll_shape':
-                create = True
-                script = FastScanNLLshape(workspace_file, datacard, output_prefix, output_dir, mass, method)
-            
             elif method =='fit':
                 # for PAG closure checks : https://twiki.cern.ch/twiki/bin/view/CMS/HiggsWG/HiggsPAGPreapprovalChecks
                 create   = False
-                script = PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, bin_id, cat, sig_process[0], dataset, run_validation, unblind, verbose, skip)
+                script = PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_dir, mass, method, mode, channels, opts, dataset, run_validation, unblind, verbose, skip)
+            
             if create:
                 script_file = os.path.join(output_dir, output_prefix + ('_run_%s.sh' % method))
                 print( method, script_file)
@@ -1688,7 +1910,8 @@ popd
             #shapeFile_smoothed.Close()           
            
             if script:
-                createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, output_file, cat, opts, create=False, skip=False, multi_signal=multi_signal)
+                createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, output_file, cat, opts, 
+                                        create=False, skip=False, multi_signal=multi_signal)
         
         #cb.PrintObs()
         #cb.PrintProcs()
@@ -1697,13 +1920,17 @@ popd
         #cb.PrintParams()
 
         for cat in analysis_categories:
-            opts = {'process': prod, 'nb': reco, 'region': reg, 'flavor': cat.split('_')[-1]}
+            opts = {'mode': thdm, 'process': prod, 'nb': reco, 'region': reg, 'sig': sig_process[0], 'bin': bin_id, 'flavor': cat.split('_')[-1], 'cat': cat}
             output_file = output_prefix + '_%s_%s' % (cat, bin_id)
             
             shallow_cp = cb.cp().bin([bin_id]).channel([cat])
             shallow_cp.PrintProcs()
             shallow_cp.PrintObs()
-            channels=[]
+            
+            if era == 'fullrun2':
+                channels = ['UL16', 'UL17', 'UL18']
+            else:
+                channels = ['UL%s'%era.replace('20','')]
             print('--------------------------------------------------------------------------------------------------------')
             writeCard(shallow_cp, mass, channels, output_dir, output_file, cat, opts, script=True)
             
@@ -1743,7 +1970,7 @@ popd
                         subprocess.check_call(cmd, cwd=output_dir, stdout=f)
                     
                     channels = [c.split("=")[0] for c in args]
-                    opts     = {'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process, 'cat': merged_cat, 'bin': bin_id}
+                    opts     = {'mode': thdm, 'process': prod, 'nb': reco, 'region': reg, 'flavor': '_'.join(mflav), 'sig': sig_process[0], 'cat': merged_cat, 'bin': bin_id}
                     
                     createRunCombineScript(bin_id, channels, mass, expectSignal, output_dir, merged_flav_datacard, 
                                            prod +'_' + reco+ '_' + reg + '_'+ '_'.join(mflav), opts, 
@@ -1773,7 +2000,8 @@ if __name__ == '__main__':
                                                      'steps: 1/- final selection ( 2lep+2bjets pass btagging discr cut + met + corrections + etc... )\n'
                                                      '       2/- do skim\n'
                                                      '       3/- DNN trained using these skimmed trees\n'
-                                                     '       4/- run bamboo to produce your dnn outputs(prefit plots) with all systematics variations using the model you get from training.\n'
+                                                     '       4/- run bamboo to produce your dnn outputs(prefit plots) with\n' 
+                                                     '           all systematics variations using the model you get from training.\n'
                                                      '       5/- Bayesian Blocks rebinning ( if requestd)\n')
     parser.add_argument('-o', '--output',       action='store', dest='output', required=True, default=None,        
                                                 help='Output directory')
@@ -1784,8 +2012,10 @@ if __name__ == '__main__':
     parser.add_argument('--mode',               action='store', dest='mode', default='dnn', choices=['mjj_vs_mlljj', 'mjj_and_mlljj', 'mbb', 'mllbb', 'ellipse', 'dnn'],
                                                 help='Analysis mode')
     parser.add_argument('--node',               action='store', dest='node', default='ZA', choices=['DY', 'TT', 'ZA'],
-                                                help='DNN nodes')
-    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, choices=['validation_datacards', 'nll_shape', 'asymptotic', 'hybridnew', 'fit', 'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit', 'likelihood_fit'],        
+                                                help='DNN output nodes')
+    parser.add_argument('--method',             action='store', dest='method', required=True, default=None, 
+                                                choices=['validation_datacards', 'asymptotic', 'hybridnew', 'fit', 
+                                                        'impacts', 'generatetoys', 'signal_strength', 'pvalue', 'goodness_of_fit', 'likelihood_fit'],        
                                                 help='Analysis method')
     parser.add_argument('--expectSignal',       action='store', required=False, type=int, default=1, choices=[0, 1],
                                                 help=' Is this S+B or B-Only fit? ')
@@ -1794,11 +2024,13 @@ if __name__ == '__main__':
                                                 help='normalize the inputs histograms : lumi * xsc * (BR if signal) / sum_of_generated_evets_weights')
     parser.add_argument('--scale',              action='store_true', dest='scale', required=False, default=False,                                                  
                                                 help='scale signal rate will x1000')
-    ## extra 
+    # no systs
     parser.add_argument('-s', '--stat',         action='store_true', dest='stat_only', required=False, default=False,                                                           
                                                 help='Do not consider systematic uncertainties')
+    # extra if --mode=ellipse, deprecated !
     parser.add_argument('--ellipses-mumu-file', action='store', dest='ellipses_mumu_file', required=False, default='./data/fullEllipseParamWindow_MuMu.json',
                                                 help='file containing the ellipses parameters for MuMu (ElEl is assumed to be in the same directory)')
+    # decorrelations
     parser.add_argument('--splitJECs',          action='store_true', dest='splitJECs', required=False, default=False,                                                  
                                                 help='split JES and JER by uncertaintues sources')
     parser.add_argument('--splitLep',           action='store_true', dest='splitLep', required=False, default=True,                                                  
@@ -1811,8 +2043,6 @@ if __name__ == '__main__':
                                                 help='Will work with 2016 split between pre/post VFP')
     parser.add_argument('--rm_mix_lo_nlo_bbH_signal',  action='store_true', dest='rm_mix_lo_nlo_bbH_signal', required=False, default=False,                                                  
                                                 help='bbH signal @ nlo will not be processed, only the samples produced @ lo')
-    parser.add_argument('--validation_datacards',action='store_true', dest='validation_datacards', required=False, default=False,                                                  
-                                                help='Will run https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/validation/ and save the results in json files')
     # slurm
     parser.add_argument('--slurm',              action='store_true', dest='submit_to_slurm', required=False, default=False,                                                  
                                                 help='slurm submission for long pull and impacts jobs')
@@ -1820,7 +2050,7 @@ if __name__ == '__main__':
                                                 help='slurm submission time')
     parser.add_argument('--sbatch_memPerCPU',   action='store', type=str, dest='sbatch_memPerCPU', required=False, default='7000',                                                  
                                                 help='slurm requested memory per cpu')
-    # r 
+    # poi r 
     parser.add_argument('--_2POIs_r',           action='store_true', dest='_2POIs_r', required=False, default=False,                                                  
                                                 help='This will merge both signal in 1 histogeram and normalise accoridngly, tanbeta will be required')
     parser.add_argument('--multi_signal',       action='store_true', dest='multi_signal', required=False, default=False,                                                  
@@ -1838,18 +2068,27 @@ if __name__ == '__main__':
                                                         '-t N with N > 0. Combine will generate N toy datasets from the model and re-run the method once per toy. \n'
                                                         'The seed for the toy generation can be modified with the option -s (use -s -1 for a random seed). \n'
                                                         'The output file will contain one entry in the tree for each of these toys.\n')
-    
+    # useful for debugging 
+    parser.add_argument('--validation_datacards',action='store_true', dest='validation_datacards', required=False, default=False,                                                  
+                                                help='Will run https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/validation/ and save the results in json files')
+    parser.add_argument('--channel_comptability',action='store_true', dest='channel_comptability', required=False, default=False,                                                  
+                                                help='Will run http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/?#channel-compatibility')
+    parser.add_argument('--ScanNllshape'       ,action='store_true', dest='ScanNllshape', required=False, default=False,                                                  
+                                                help='Will run http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/debugging/#analyzing-the-nll-shape-in-each-parameter')
     parser.add_argument('-v', '--verbose',      action='store', required=False, type=int, default=0, 
                                                 help='For debugging purposes , you may consider this argument !')
     
+    
+    
     options = parser.parse_args()
 
-    H.splitEraUL2016 = options.splitEraUL2016
-    H.splitJECs      = options.splitJECs
-    H.splitLep       = options.splitLep
-    H.splitTTbar     = options.splitTTbar
-    H.splitDrellYan  = options.splitDrellYan 
-    H.rm_mix_lo_nlo_bbH_signal = options.rm_mix_lo_nlo_bbH_signal
+    H.splitEraUL2016            = options.splitEraUL2016
+    H.splitJECs                 = options.splitJECs
+    H.splitLep                  = options.splitLep
+    H.splitTTbar                = options.splitTTbar
+    H.splitDrellYan             = options.splitDrellYan 
+    H.rm_mix_lo_nlo_bbH_signal  = options.rm_mix_lo_nlo_bbH_signal
+
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
@@ -1915,7 +2154,9 @@ if __name__ == '__main__':
                     except subprocess.CalledProcessError:
                         logger.error("Failed to run {0}".format(" ".join(cmd)))
             
-            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, options._2POIs_r, options.expectSignal, options.multi_signal, options.sbatch_time, options.sbatch_memPerCPU, options.submit_to_slurm)
+            CreateScriptToRunCombine(options.output, options.method, options.mode, options.tanbeta, options.era, 
+                                    options._2POIs_r, options.expectSignal, options.multi_signal, options.sbatch_time, 
+                                    options.sbatch_memPerCPU, options.submit_to_slurm)
         
         else:
             # get a symbolic links to the BB histogram produced in 'work__ULfullrun2/bayesian_rebin_on_S/results' dir
@@ -1929,7 +2170,7 @@ if __name__ == '__main__':
             # otherwise the full list of samples will be used !
             signal_grid = Constants.get_SignalMassPoints(H.PlotItEraFormat(options.era), options.bambooDir, returnKeyMode= False, split_sig_reso_boo= False) 
             
-            prepare_DataCards(  grid_data           = signal_grid,#_foTest, 
+            prepare_DataCards(  grid_data           = signal_grid, #foTest, 
                                 thdm                = thdm,
                                 dataset             = options.dataset, 
                                 expectSignal        = options.expectSignal, 
@@ -1948,11 +2189,13 @@ if __name__ == '__main__':
                                 unblind             = options.unblind, 
                                 stat_only           = options.stat_only, 
                                 merge_cards         = True, # will do all lepton flavour combination of ee+mumu+mue / also resolved+boosted / also nb2+nb3 
-                                _2POIs_r            = options._2POIs_r, # r_ggH , r_bbH or just 1 POI r
+                                _2POIs_r            = options._2POIs_r, # r_ggH , r_bbH  if multi_signal == true else just 2 POI r for ggH/bbH done seperatly
                                 multi_signal        = options.multi_signal,
                                 scale               = options.scale, 
                                 normalize           = options.normalize,
                                 run_validation      = options.validation_datacards,
+                                run_chcomptability  = options.channel_comptability,
+                                run_ScanNllshape    = options.ScanNllshape,
                                 submit_to_slurm     = options.submit_to_slurm)
 
 
