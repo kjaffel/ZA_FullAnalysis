@@ -36,6 +36,7 @@ pip install --no-binary=correctionlib correctionlib
 pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git@0.1.0
 
 # To update the JER and JEC from the database: https://github.com/cms-jet
+# but I recommend using ``--onlyprepare --maxFiles=1`` arguments when running bamboo at first
 checkCMSJMEDatabaseCaches --cachedir cacheJEC/
 ```
 - Let's make things more simpler, in your ``~/.bashrc`` you can add:
@@ -104,18 +105,22 @@ pip install --upgrade .
 ```
 ## How to run H/A →  Z( → ll) A/H ( → bb) full run 2 analysis ?
 I do recommend to test locally first with ``--maxFiles=1``,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with ``--distributed=driver``. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
-- ``-s``/``--systematics`` add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+
+- ``-m ``/``--module``: your analysis script.
+- ``-s``/``--systematics``: add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+- ``-y``/``--yields``: add Yields Histograms: not recomended when turning on the systematics uncertainties, jobs may run out of memory very quickly!
 - ``-v`` /``--verbose``: give you more print out for debugging. 
-- ``-m ``/``--module``    : your analysis script.
+- ``--chunk``: 
 - ``-dnn ``/``--DNN_Evaluation`` : Pass TensorFlow model and evaluate DNN output
-- ``--split``: if True run2 reduced set of JES uncertainty splited by sources and JER systematic variation will be splitted between kinematics regions to decorrelate the nuisance parameters.
 - ``--hlt``: Produce HLT efficiencies maps
-- ``--blinded``: blinded data from 0.6 to 1 bin for the dnn output 
-- ``--nanoaodversion``: EOY-latest ``v7`` or Ulegacy campaign-working version ``v8`` or the latest ``v9``
-- ``--doMETT1Smear``:  This correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
-- ``--dobJetEnergyRegression``:
-- ``--yields``:
-- ``--backend``:
+- ``--blinded``: blinded data from 0.6 to 1 bin for the DNN output score
+- ``--nanoaodversion``: End-Of-Year the latest is ``v7`` or ULegacy campaign-working version is``v8`` or the latest one is ``v9``, see [Release notes](https://cms-nanoaod-integration.web.cern.ch/autoDoc/)
+- ``--backend``: ``dataframe (default)`` or ``lazy`` or ``compile`` for debug mode
+- ``--doMETT1Smear``: This correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
+- ``--dobJetEnergyRegression``: apply b jets energy regression to improve the bjets mass resolution
+- ``--splitJER``: breakup into 6 nuisance parameters per year (correlated among all jets in all events per year, but uncorrelated across years), useful for analysis that are sensitive to JER, i.e. analyses that are able to constrain the single JER nuisance parameter per year w.r.t. their assigned uncertainty
+- ``--jes``: Run 2 reduced set of JES uncertainty splited by sources or use total
+
 ## Make Skim:
 - ``--skim``:
 
