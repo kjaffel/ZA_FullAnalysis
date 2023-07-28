@@ -54,7 +54,7 @@ files:
     group: others
 plots:
   histo-name:
-    blinded-range: [0.8, 1.0]
+    #blinded-range: [0.8, 1.0]
     labels:
         #- {text: 'myLabel', position: [0.22, 0.895]}
     - position: [0.22, 0.89]

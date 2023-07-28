@@ -38,15 +38,23 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
         config.cmsswDir = os.path.dirname(os.path.abspath(__file__))
         config.sbatch_chdir = os.path.join(slurm_stageout, 'work__UL%s'%era, 'slurm', 'plotit')
         config.stageoutDir = config.sbatch_chdir
+        #config.sbatch_additionalOptions=['--exclude=mb-sky[002,005-014,016-018,020],mb-ivy220,mb-ivy213,mb-ivy212,mb-ivy211']
+        #config.sbatch_additionalOptions=['--nodelist=mb-sky[002,005-014,016-018,020],mb-ivy220,mb-ivy213,mb-ivy212,mb-ivy211']
         config.sbatch_time  = '01:24:00'
         config.sbatch_memPerCPU = '1000'
         config.inputParamsNames = ['cmssw', 'inDir', 'outDir', 'prod', 'name']
         config.inputParams = []
         cmssw  = config.cmsswDir
-    
+        
+        if os.path.exists(config.sbatch_chdir):
+            logger.warning("Output directory {}/ , already exists !!".format(config.sbatch_chdir))
+            exit()
+
     for i, fit in enumerate(['fit_s', 'fit_b']):
         for j, rf in enumerate(glob.glob(os.path.join(workdir, 'fit', mode, poi_dir, tb_dir, '*', 'plotIt_*', 'fit_shapes_*%s.root'%fit))):
             
+            #if not  (i== 0 and j ==0):
+            #    continue # test 
             smp    = rf.split('/')[-1]
             dir    = rf.split(smp)[0]
             params = rf.split('/')[-3].split('_')
@@ -72,6 +80,7 @@ def RedoPrePostfitShapesConversionForPlotIt(workdir, mode, poi_dir, tb_dir, era,
             """
                 pushd ${cmssw}
                 echo "working on plotit root files :::"
+                cat /etc/redhat-release
                 python utils/convertPrePostfitShapesForPlotIt.py -i ${inDir} -o ${outDir} --signal-process ${prod} -n ${name}
             """
         submitWorker = SubmitWorker(config, submit=True, yes=True, debug=True, quiet=True)
@@ -290,7 +299,7 @@ def runPlotIt_prepostFit(workdir, mode, era, unblind=False, reshape=False, poi_d
                         tb = 1.5 if 'gg_fusion' in p_out else 20.
                     xsc, xsc_err, br = Constants.get_SignalStatisticsUncer(float(m_heavy), float(m_light), process, f'{heavy}ToZ{light}', tb) 
                     
-                    print( p_out, flavor, nb, region, br , tb) 
+                    print( p_out, flavor, nb, region, br , tb, 'unblind', unblind) 
 
                     with open(f"{base}/data/ZA_plotter_all_shapes_prepostfit_template.yml", 'r') as inf:
                         with open(f"{output}/{fit}_plots.yml", 'w+') as outf:
@@ -406,7 +415,6 @@ if __name__ == '__main__':
                                             tb_dir          = '', 
                                             era             = options.era,
                                             submit_to_slurm = True )
-     
     """
     runPlotIt_prepostFit(workdir          = options.inputs, 
                          mode             = options.mode, 
@@ -416,5 +424,4 @@ if __name__ == '__main__':
                          poi_dir          = '2POIs_r', 
                          tb_dir           = '', 
                          rescale_to_za_br = options.rescale_to_za_br)
-   
-    ###EventsYields(mH=500, mA=300, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
+    #EventsYields(mH=379, mA=54.59, workdir=options.inputs, mode=options.mode, unblind=options.unblind)
