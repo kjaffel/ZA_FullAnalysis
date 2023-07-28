@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import argparse
 import os, sys, os.path
@@ -41,7 +41,7 @@ def reshapePrePostFitHistograms(output_dir):
             continue
         #print( 'working on:', rf)
         inFile  = HT.openFileAndGet(rf)
-        outFile = HT.openFileAndGet(f'{p_out}/reshaped/{smp}', "recreate")
+        outFile = HT.openFileAndGet('{}/reshaped/{}'.format(p_out, smp), "recreate")
         for hk in inFile.GetListOfKeys():
             
             cl = ROOT.gROOT.GetClass(hk.GetClassName())
@@ -321,7 +321,6 @@ if __name__ == '__main__':
                 
                 output_filename = "%s_%s_histos.root" % (background, fit)
                 plot_file = TFile.Open(os.path.join(output_dir, output_filename), 'recreate')
-                print( output_dir ) 
                 for i, channel in enumerate(channels):
                     # Nominal post/pre-fit shape
                     nominal_fit = file.Get('%s_%s/%s' % (channel, fit, background))
@@ -354,4 +353,4 @@ if __name__ == '__main__':
                     
                 plot_file.Close()
 
-        print("All done. Files saved in %r" % output_dir)
+        print("All done. Files saved in %s" % output_dir)
