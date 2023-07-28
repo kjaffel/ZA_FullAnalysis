@@ -138,11 +138,14 @@ class NanoHtoZABase(NanoAODModule):
         parser.add_argument("--backend", type=str, default="dataframe", 
                 help="Backend to use, 'dataframe' (default) or 'lazy' or 'compile' for debug mode")
     
-    def customizeAnalysisCfg(self, config=None):
+    
+    def customizeAnalysisCfg(self, analysisCfg):
+        super(NanoHtoZABase, self).customizeAnalysisCfg(analysisCfg)
         if not self.args.distributed:
             os.system('(git log -n 1;git diff .) &> %s/git.log' % self.args.output)
-            with open(os.path.join(self.args.output, "bamboo_config.yml"), "w+") as backupCfg:
-                yaml.dump(config, backupCfg)
+            with open(os.path.join(self.args.output, "analysisCfg.yml"), "w+") as backupCfg:
+                yaml.dump(analysisCfg, backupCfg)
+
 
     #def prepareTree(self, tree, sample=None, sampleCfg=None, backend=None):
     def prepareTree(self, tree, sample=None, sampleCfg=None):
@@ -413,6 +416,7 @@ class NanoHtoZABase(NanoAODModule):
   
 
     def defineObjects(self, t, noSel, sample=None, sampleCfg=None):
+        
         from bamboo.analysisutils import forceDefine
         from bamboo.plots import Skim
         from bamboo.plots import EquidistantBinning as EqB
@@ -446,7 +450,7 @@ class NanoHtoZABase(NanoAODModule):
         ##################################################
         if self.isMC(sample):
             self.PUWeight = corr.makePUWeight(t, era, noSel)
-            noSel = noSel.refine("puWeight", weight=corr.makePUWeight(t, era, noSel))
+            noSel = noSel.refine("puWeight", weight=self.PUWeight)
         
         ##################################################
         # Top pt reweighting 
@@ -462,7 +466,8 @@ class NanoHtoZABase(NanoAODModule):
         ###############################################
         forceDefine(t._Muon.calcProd, noSel)
         
-        #To suppress nonprompt leptons, the impact parameter in three dimensions of the lepton track, with respect to the primaryvertex, is required to be less than 4 times its uncertainty (|SIP3D|<4)
+        # To suppress nonprompt leptons, the impact parameter in three dimensions of the lepton track, 
+        # with respect to the primaryvertex, is required to be less than 4 times its uncertainty (|SIP3D|<4)
         sorted_muons = op.sort(t.Muon, lambda mu : -mu.pt)
         muons = op.select(sorted_muons, lambda mu : op.AND(mu.pt > 15., op.abs(mu.eta) < 2.4, mu.mediumId, mu.pfRelIso04_all<0.15, op.abs(mu.sip3d) < 4.))
 
@@ -540,6 +545,7 @@ class NanoHtoZABase(NanoAODModule):
                 return op.switch( mu.pt >= 52. , TkMu50_SF(mu), op.c_float(1.))
             else:
                 return op.c_float(1.)
+        
         ###############################################
         # MET xy correction  
         ###############################################
@@ -834,8 +840,13 @@ class NanoHtoZABase(NanoAODModule):
 
 
 class NanoHtoZA(NanoHtoZABase, HistogramsModule):
+    
     def __init__(self, args):
         super(NanoHtoZA, self).__init__(args)
+    
+    #def getTasks(self, analysisCfg, resolveFiles=None, **extraOpts):
+    #    self.tasks = super(NanoHtoZA, self).getTasks(analysisCfg, resolveFiles, **extraOpts)
+        
     #@profile
     # https://stackoverflow.com/questions/276052/how-to-get-current-cpu-and-ram-usage-in-python
     def definePlots(self, t, noSel, sample=None, sampleCfg=None):
@@ -1184,7 +1195,7 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             
             # apply DY weights 
             if self.doDY_reweighting:
-                if isMC and "group" in sampleCfg.keys() and sampleCfg["group"]=='DY' and channel in ['MuMu', 'ElEl']:
+                if isMC and "group" in sampleCfg.keys() and 'DY' in sampleCfg["group"] and channel in ['MuMu', 'ElEl']:
                     lljjSelections = _return_lljj_sel_dy_rewighted(AK4jets, AK8jets, channel, era, lljjSelections)
 
             # plots after rewighting , CP are 0 btag after rewighting 
@@ -1298,15 +1309,18 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                             btaggedJets = bj4wp[wp]
                             w = None
                             if self.doPass_bTagEventWeight and isMC:
+                                
                                 if reg == 'resolved':
                                     w = [ run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved'][f'{tagger}{wp}'], 
                                         run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved'][f'{tagger}{wp}'] ]
+                                
                                 elif reg =='boosted':
                                     w = [ #run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['resolved'][f'{tagger}{wp}'], 
                                         #run2_bTagEventWeight_PerWP[wp]['gg_fusion']['resolved'][f'{tagger}{wp}'],
                                         run2_bTagEventWeight_PerWP[wp]['bb_associatedProduction']['boosted'][f'{tagger}{wp}'], 
                                         run2_bTagEventWeight_PerWP[wp]['gg_fusion']['boosted'][f'{tagger}{wp}'],
                                         ]
+
                                 sel = sel.refine(f'{channel}_plus_Bjets_{reg}_{tagger}_{wp}', weight=w)
                             plots.extend(cp.makeJetmultiplictyPlots(sel, btaggedJets, f'B-tagged {jetType[reg]}', channel,f"{reg}_{tagger}{wp}"))
                     
@@ -1644,7 +1658,18 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
                                                 f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][reco][reg]} {jetType[reg]} b-jets {reg} ({key}) + {met_pt_cut}")
                                         
                                         self.selections_for_cutflowreport.add(sel, f"{reco} -{reg}: {optstex} + {jlenOpts['exclusive'][reco][reg]} {jetType[reg]} b-jets ({key}) + {met_pt_cut}")
-                    
+        """
+        _be = self.be
+        for plt in plots:
+            for p in _be.getProducts(plt.name):
+                p.makeProduct()
+        assert all(h for p in myplots for h in _be.getResults(p))
+        
+        for i, plt in enumerate(plots):
+            hist = _be.getResults(plt)[i]
+            cv = ROOT.TCanvas("c%s"%i, plt.name, 1500, 350)
+            hist.Draw()
+        """         
         
         if self.doYields:
             plots.extend(self.yield_object.returnPlots())
@@ -1653,7 +1678,8 @@ class NanoHtoZA(NanoHtoZABase, HistogramsModule):
             for pkey, plt in dict_.items():
                 if plt:
                     plots.append(SummedPlot(pkey, plt, plotopts=utils.getOpts("ossf")))
-            
+           
+
         return plots
 
 
