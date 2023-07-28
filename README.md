@@ -120,12 +120,13 @@ I do recommend to test locally first with ``--maxFiles=1``,  to check that the m
 - ``--dobJetEnergyRegression``: apply b jets energy regression to improve the bjets mass resolution
 - ``--splitJER``: breakup into 6 nuisance parameters per year (correlated among all jets in all events per year, but uncorrelated across years), useful for analysis that are sensitive to JER, i.e. analyses that are able to constrain the single JER nuisance parameter per year w.r.t. their assigned uncertainty
 - ``--jes``: Run 2 reduced set of JES uncertainty splited by sources or use total
+- some other default setting is done [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAtollbb.py#L85-L109)
 
 ```bash
 bambooRun --maxFiles=1 -m ZAtollbb.py:NanoHtoZA config/fullanalysisRunIISummer20UL_18_17_16_chunk1_nanov9.yml -o test/2018/chunk_1  -dnn -s --era=2018 --chunk=1
 ```
 ## Make Skim:
-- ``--skim``: this argument will skip control plots and do only skimmed trees to save in the output file.
+- ``--skim``: this argument will skip doing control plots and do only skimmed trees to save in the output file, useful for training a classifier.
 ```bash
 bambooRun --maxFiles=1 -m ZAtollbb.py:NanoHtoZA config/fullanalysisRunIISummer20UL_18_17_16_nanov9.yml -o test_full_skim --skim
 ```
@@ -133,6 +134,9 @@ bambooRun --maxFiles=1 -m ZAtollbb.py:NanoHtoZA config/fullanalysisRunIISummer20
 ```bash
 bambooRun --distributed=driver -m BtagEfficiencies.py:ZA_BTagEfficiencies config/<mc.yml> -o <output_path>
 ```
+## Produce Control Plots:
+- You can choose from these flags [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAtollbb.py#L1110-L1139).
+
 ## Trouble-Shooting:
 - To run on a worker node with a more recent CPU
 ```bash
