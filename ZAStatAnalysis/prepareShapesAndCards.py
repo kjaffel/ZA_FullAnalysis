@@ -280,6 +280,8 @@ def CheckSignalStrength(workspace_file, datacard, output_prefix, output_dir, mas
 
 pushd {dir}
 
+{c}ulimit -Ss 131072
+
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
 cat="{cat}"
@@ -327,6 +329,7 @@ fi
 
 popd
 """.format( dir            = os.path.dirname(os.path.abspath(datacard)),
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             method         = H.get_combine_method(method), 
             workspace_root = workspace_file,
             datacard       = os.path.basename(datacard), 
@@ -358,6 +361,8 @@ def PreFitPostFitDistributions(workspace_file, datacard, output_prefix, output_d
 
 # http://cms-analysis.github.io/CombineHarvester/post-fit-shapes-ws.html
 pushd {dir}
+
+{c1}ulimit -Ss 131072
 
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
@@ -456,6 +461,7 @@ fi
 
 popd
 """.format(workspace_root = workspace_file, 
+           c1             = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
            cat            = cat, 
            channels       = "{}".format(",\n".join(channels)),
            bin            = bin_id, 
@@ -490,6 +496,8 @@ def _PullsImpacts(workspace_file, output_prefix, output_dir, datacard, mass, fla
     script = """#! /bin/bash
 
 pushd {dir}
+
+{c}ulimit -Ss 131072
 
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
@@ -539,6 +547,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file, 
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             name           = output_prefix,
             fNm            = fNm, 
             datacard       = os.path.basename(datacard), 
@@ -563,6 +572,8 @@ def _AsymptoticLimits(workspace_file, datacard, output_prefix, output_dir, mass,
     script = """#! /bin/bash
 
 pushd {dir}
+
+{c}ulimit -Ss 131072
 
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
@@ -590,6 +601,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file, 
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             datacard       = os.path.basename(datacard), 
             name           = output_prefix, 
             mass           = mass, 
@@ -643,6 +655,8 @@ def Likelihood_FitsScans(workspace_file, datacard, output_prefix, output_dir, ma
 
 pushd {dir}
 
+{c}ulimit -Ss 131072
+
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
 run_validation={run_validation}
@@ -689,6 +703,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file,
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             heavy          = heavy,
             light          = light,
             t2w            = MyPhysicsModel(heavy),
@@ -761,6 +776,8 @@ def Pvalue_and_Significance(workspace_file, datacard, output_prefix, output_dir,
     script ="""#!/bin/bash -l
 
 pushd {dir}
+
+{c}ulimit -Ss 131072
 
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
@@ -893,6 +910,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file,
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             datacard       = os.path.basename(datacard), 
             doHybridNew    = 'false',
             fNm            = fNm, 
@@ -957,6 +975,8 @@ def Goodness_of_fit_tests(workspace_file, datacard, output_prefix, output_dir, m
     script      = """#!/bin/bash
 
 pushd {dir}
+
+{c}ulimit -Ss 131072
 
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
@@ -1065,7 +1085,8 @@ fi
 
 
 popd
-""".format( workspace_root = workspace_file,
+""".format( workspace_root      = workspace_file,
+            c                   = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             datacard            = os.path.basename(datacard), 
             fNm                 = fNm,
             t2w                 = t2w,
@@ -1100,6 +1121,8 @@ def MultiSignalModel(workspace_file, datacard, output_prefix, output_dir, mass, 
 
 pushd {dir}
 
+{c}ulimit -Ss 131072
+
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
 run_validation={run_validation}
@@ -1133,6 +1156,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file, 
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             datacard       = os.path.basename(datacard), 
             t2w            = MyPhysicsModel(heavy),
             name           = output_prefix, 
@@ -1757,6 +1781,8 @@ def prepareShapes(input, dataset, thdm, sig_process, pois, expectSignal, era, me
 
 pushd {dir}
 
+{c}ulimit -Ss 131072
+
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
 run_validation={run_validation}
@@ -1789,6 +1815,7 @@ fi
 
 popd
 """.format( workspace_root = workspace_file, 
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             datacard       = os.path.basename(datacard), 
             name           = output_prefix, 
             mass           = mass,
@@ -1824,6 +1851,8 @@ popd
 
 pushd {dir}
 
+{c}ulimit -Ss 131072
+
 DATACARD="{datacard}"
 WORKSPACE="{workspace_root}"
 run_validation={run_validation}
@@ -1851,6 +1880,7 @@ fi
 
 popd
 """.format( dir            = os.path.dirname(os.path.abspath(datacard)),
+            c              = '' if 'CMSSW_11_3_4' in os.environ["CMSSW_BASE"] else '#', 
             workspace_root = workspace_file,
             datacard       = os.path.basename(datacard), 
             mass           = mass,
