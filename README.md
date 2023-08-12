@@ -41,7 +41,7 @@ checkCMSJMEDatabaseCaches --cachedir cacheJEC/
 ```
 - Let's make things more simpler, in your ``~/.bashrc`` you can add:
 ```bash
-# only for cp3 users working on ingrid-ui1 cluster
+# cms_env : is only for cp3 users working on ingrid-ui1 cluster
 function cms_env() {
     module --force purge
     module load cp3
@@ -106,21 +106,21 @@ pip install --upgrade .
 ## How to run H/A →  Z( → ll) A/H ( → bb) full run 2 analysis ?
 I do recommend to test locally first with ``--maxFiles=1``,  to check that the module runs correctly in all cases before submitting to a batch system. If all right you can submit to slurm with ``--distributed=driver``. Avoid as well using ``-v/--verbose`` for slurm submission, will make your jobs slower.
 
-- ``-m ``/``--module``: your analysis script.
-- ``-s``/``--systematics``: add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top ...
+- ``-m ``/``--module``: your analysis module.
+- ``-s``/``--systematics``: add to your plots PSweight (FSR , ISR), PDFs and six QCD scale variations, ele_id, ele_reco, pu, BtagWeight, DY, top pt reweighting...
 - ``-y``/``--yields``: add Yields Histograms: not recomended when turning on the systematics uncertainties, jobs may run out of memory very quickly!
 - ``-v`` /``--verbose``: give you more print out for debugging. 
 - ``--chunk``: because the signal mass points are too many ( ~ 400 ) and when trying to evaluate the DNN model with all systematics the jobs become too heavy/long. I decided to split these points on 20 chunks.  
-- ``-dnn ``/``--DNN_Evaluation`` : Pass TensorFlow model and evaluate DNN output
-- ``--hlt``: Produce HLT efficiencies maps
-- ``--blinded``: blinded data from 0.6 to 1 bin for the DNN output score
+- ``-dnn ``/``--DNN_Evaluation`` : pass TensorFlow/ONNEX/SOFIE model and evaluate DNN output.
+- ``--hlt``: Produce HLT efficiencies maps.
+- ``--blinded``: blinded data from 0.6 to 1 bin for the DNN output score.
 - ``--nanoaodversion``: End-Of-Year the latest is ``v7`` or ULegacy campaign-working version is``v8`` or the latest one is ``v9``, see [Release notes](https://cms-nanoaod-integration.web.cern.ch/autoDoc/)
-- ``--backend``: ``dataframe (default)`` or ``lazy`` or ``compile`` for debug mode
-- ``--doMETT1Smear``: This correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
+- ``--backend``: ``dataframe (default)`` or ``lazy`` or ``compile`` for debug mode.
+- ``--doMETT1Smear``: this correction is a propagation of L2L3 JEC to pfMET, see [MET Type1 and Type2 corrections for more details](https://twiki.cern.ch/twiki/bin/view/CMS/METType1Type2Formulae#3_The_Type_I_correction).
 - ``--dobJetEnergyRegression``: apply b jets energy regression to improve the bjets mass resolution
-- ``--splitJER``: breakup into 6 nuisance parameters per year (correlated among all jets in all events per year, but uncorrelated across years), useful for analysis that are sensitive to JER, i.e. analyses that are able to constrain the single JER nuisance parameter per year w.r.t. their assigned uncertainty
-- ``--jes``: Run 2 reduced set of JES uncertainty splited by sources or use total
-- some other default setting is done [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAtollbb.py#L85-L109)
+- ``--splitJER``: breakup into 6 nuisance parameters per year (correlated among all jets in all events per year, but uncorrelated across years), useful for analysis that are sensitive to JER, i.e. analyses that are able to constrain the single JER nuisance parameter per year w.r.t. their assigned uncertainty.
+- ``--jes``: run 2 reduced set of JES uncertainty splited by sources or use total.
+- some other default settings are done [here](https://github.com/kjaffel/ZA_FullAnalysis/blob/master/bamboo_/ZAtollbb.py#L85-L109).
 
 ```bash
 bambooRun --maxFiles=1 -m ZAtollbb.py:NanoHtoZA config/fullanalysisRunIISummer20UL_18_17_16_chunk1_nanov9.yml -o test/2018/chunk_1  -dnn -s --era=2018 --chunk=1

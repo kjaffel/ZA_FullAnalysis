@@ -19,6 +19,7 @@ def makeControlPlotsForZpic(sel, leptons, region, uname, reg ):
             }
     
     ll_p4 = leptons[0].p4 + leptons[1].p4
+
     for i in range(2):
         plots += [ Plot.make1D(f"{uname}_{region}_lep{i+1}_{nm}_{reg}", var, sel, binning, 
             title=f"{utils.getCounter(i+1)} lepton {title}", plotopts=utils.getOpts(uname))
@@ -371,7 +372,7 @@ def MakeMETPlots(selections, lepton, corrmet, met, uname, region, reco_sig):
                     met.pt, sel,
                     EqB(60 // binScaling, 0., 600.), title="MET p_{T} [GeV]",
                     plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
-        plots.append(Plot.make1D("xycorrmet_pt_{reco_sig}_{region}_{uname}_hZA_lljj_{key}", 
+        plots.append(Plot.make1D(f"xycorrmet_pt_{reco_sig}_{region}_{uname}_hZA_lljj_{key}", 
                     corrmet.pt, sel,
                     EqB(60 // binScaling, 0., 600.), title="corrMET p_{T} [GeV]",
                     plotopts=utils.getOpts(plotitLeg, **{"log-y": False})))
