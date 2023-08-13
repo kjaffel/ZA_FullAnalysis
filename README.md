@@ -38,6 +38,15 @@ pip install git+https://gitlab.cern.ch/cp3-cms/CMSJMECalculators.git@0.1.0
 # To update the JER and JEC from the database: https://github.com/cms-jet
 # but I recommend using ``--onlyprepare --maxFiles=1`` arguments when running bamboo for the first time and/or updating your JEC/JER files
 checkCMSJMEDatabaseCaches --cachedir cacheJEC/
+
+
+# You will also need the python implementation "pyplotit" of "plotIt", which can be installed with
+pip install git+https://gitlab.cern.ch/cp3-cms/pyplotit.git
+
+#or editable from a local clone:
+
+git clone -o upstream https://gitlab.cern.ch/cp3-cms/pyplotit.git
+pip install -e pyplotit
 ```
 - Let's make things more simpler, in your ``~/.bashrc`` you can add:
 ```bash
